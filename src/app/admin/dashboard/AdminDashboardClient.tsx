@@ -25,7 +25,7 @@ export default function AdminDashboardClient({
   const [fontSize, setFontSize] = useState("16");
   const [contactPhone, setContactPhone] = useState("۰۲۱-۱۲۳۴۵۶۷۸");
   const [contactEmail, setContactEmail] = useState("info@parscoders.ir");
-  const [contactAddress, setContactAddress] = useState("تهران، خیابان ولیعصر، برج فناوری، طبقه ۱۰");
+  const [contactAddress, setContactAddress] = useState("شیراز، خیابان ولیعصر، برج فناوری، طبقه ۱۰");
   const [workingHours, setWorkingHours] = useState("شنبه تا چهارشنبه ۹ تا ۱۷");
   const [platformFinance, setPlatformFinance] = useState({
     platformWalletBalance: realStats.platformWalletBalance || 0,

@@ -43,7 +43,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-bold mb-1">آدرس</h3>
-                    <p className="text-gray-600 text-sm">تهران، خیابان ولیعصر، برج فناوری، طبقه ۱۰</p>
+                    <p className="text-gray-600 text-sm">شیراز، خیابان ولیعصر، برج فناوری، طبقه ۱۰</p>
                   </div>
                 </div>
 

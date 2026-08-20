@@ -151,7 +151,7 @@ $topBuyers = [
                 <div class="bg-white border border-gray-200 rounded-3xl p-6 relative">
                     <span class="absolute top-6 left-6 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">در انتظار پیشنهاد</span>
                     <h3 class="font-bold text-xl mb-2">آیفون 15 پرو مکس</h3>
-                    <p class="text-sm text-gray-600 mb-4">موبایل • بودجه: 65,000,000 تومان • شهر: تهران<br>رنگ تیتانیوم مشکی، رجیستر شده</p>
+                    <p class="text-sm text-gray-600 mb-4">موبایل • بودجه: 65,000,000 تومان • شهر: شیراز<br>رنگ تیتانیوم مشکی، رجیستر شده</p>
                     <button onclick="toggleOffers()" class="bg-green-50 text-green-700 border border-green-200 px-4 py-2 rounded-xl text-sm font-bold">مشاهده پیشنهادها (۱)</button>
                     
                     <!-- لیست پیشنهادات تو در تو -->
@@ -189,7 +189,7 @@ $topBuyers = [
                     <h2 class="text-xl font-bold text-[#0b9c56] border-b pb-4 mb-6">تنظیمات حساب خریدار</h2>
                     
                     <div class="flex items-center gap-4 mb-6 border-b pb-6 justify-end">
-                        <input type="text" value="تهران" class="bg-gray-50 border border-gray-200 rounded-lg p-2 text-left w-48" readonly>
+                        <input type="text" value="شیراز" class="bg-gray-50 border border-gray-200 rounded-lg p-2 text-left w-48" readonly>
                         <label class="text-sm font-bold">آدرس پیش‌فرض ارسال</label>
                     </div>
 

@@ -90,8 +90,8 @@ export const generateInvoiceHTML = (invoiceData: any) => {
             <tr>
               <td class="py-2 w-8 text-gray-400">📍</td>
               <td class="py-2 leading-relaxed">
-                <div class="font-bold text-gray-800">تهران، خیابان ولیعصر، مجتمع تجاری نور</div>
-                <div class="text-gray-500" dir="ltr">No.123, Valiasr St., Tehran, Iran</div>
+                <div class="font-bold text-gray-800">شیراز، خیابان ولیعصر، مجتمع تجاری نور</div>
+                <div class="text-gray-500" dir="ltr">No.123, Valiasr St., Shiraz, Iran</div>
               </td>
             </tr>
             <tr>
@@ -132,7 +132,7 @@ export const generateInvoiceHTML = (invoiceData: any) => {
             </tr>
             <tr>
               <td class="py-1.5"><div class="bilingual"><span class="fa-text">آدرس:</span><span class="en-text">Address</span></div></td>
-              <td class="py-1.5 font-bold text-gray-800 text-left">تهران، جاده مخصوص، کیلومتر ۱۴</td>
+              <td class="py-1.5 font-bold text-gray-800 text-left">شیراز، جاده مخصوص، کیلومتر ۱۴</td>
             </tr>
             <tr>
               <td class="py-1.5"><div class="bilingual"><span class="fa-text">شناسه مالیاتی:</span><span class="en-text">Tax ID</span></div></td>
