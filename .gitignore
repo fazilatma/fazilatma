@@ -1,0 +1,25 @@
+# وابستگی‌ها
+node_modules/
+
+# خروجی build
+.next/
+.open-next/
+.wrangler/
+out/
+build/
+dist/
+
+# فایل‌های تولیدشده
+src/generated/source-snapshot.json
+*.tsbuildinfo
+next-env.d.ts
+
+# محیط و اسرار
+.env
+.env.local
+.env*.local
+
+# سیستم‌عامل و لاگ‌ها
+.DS_Store
+*.log
+npm-debug.log*

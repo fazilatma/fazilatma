@@ -1,0 +1,45 @@
+{
+  "name": "nextjs-postgresql-template",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "predev": "node scripts/generate-source-snapshot.mjs",
+    "build": "next build",
+    "prebuild": "node scripts/generate-source-snapshot.mjs",
+    "start": "next start",
+    "db:push": "drizzle-kit push",
+    "deploy": "drizzle-kit push && next build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "pretypecheck": "node scripts/generate-source-snapshot.mjs",
+    "build:worker": "node scripts/generate-source-snapshot.mjs && opennextjs-cloudflare build",
+    "preview": "npm run build:worker && wrangler dev",
+    "deploy:cf": "npm run build:worker && node scripts/cf-ensure-kv.mjs && wrangler deploy",
+    "cf:prepare": "npm run build:worker && node scripts/cf-ensure-kv.mjs"
+  },
+  "dependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "adm-zip": "^0.6.0",
+    "dotenv": "17.3.1",
+    "drizzle-orm": "0.45.2",
+    "next": "^16.2.12",
+    "pg": "8.20.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
+    "@tailwindcss/postcss": "4.1.17",
+    "@types/node": "22.19.15",
+    "@types/pg": "8.18.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "postcss": "8.5.8",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3",
+    "wrangler": "^4.124.0"
+  }
+}

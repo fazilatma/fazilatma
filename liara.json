@@ -1,0 +1,7 @@
+{
+  "platform": "next",
+  "app": "optibid",
+  "port": 3000,
+  "buildCommand": "npm run build",
+  "startCommand": "npm run start"
+}
