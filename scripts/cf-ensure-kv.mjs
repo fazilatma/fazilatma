@@ -1,50 +1,93 @@
 /**
  * اطمینان از وجود KV Namespace برای دیپلوی Cloudflare Workers.
  *
- * این اسکریپت به صورت خودکار:
+ * wrangler v4 دیگر پرچم `--json` روی `kv namespace list` ندارد،
+ * بنابراین این اسکریپت مستقیماً Cloudflare REST API را صدا می‌زند:
  *   1. لیست KV Namespaceهای اکانت را می‌خواند؛
- *   2. اگر namespace با عنوان «optibid-OPTIBID_KV» وجود نداشته باشد، می‌سازد؛
+ *   2. اگر namespace با عنوان «OPTIBID_KV» وجود نداشته باشد، می‌سازد؛
  *   3. شناسه (id) را در wrangler.jsonc جایگزین placeholder می‌کند.
  *
- * در محیط Cloudflare Workers Builds توکن احراز هویت به صورت خودکار
- * (CLOUDFLARE_API_TOKEN) در دسترس است. برای اجرای محلی ابتدا
- * `npx wrangler login` را اجرا کنید.
+ * نیاز به CLOUDFLARE_API_TOKEN و CLOUDFLARE_ACCOUNT_ID (یا ACCOUNT_ID).
  */
-import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const PLACEHOLDER = "__OPTIBID_KV_ID__";
-const EXPECTED_TITLE_SUFFIX = "OPTIBID_KV";
+const EXPECTED_TITLE = "OPTIBID_KV";
+const API_BASE = "https://api.cloudflare.com/client/v4";
 
-function run(command) {
-  return execSync(command, {
-    encoding: "utf8",
-    env: { ...process.env, WRANGLER_SEND_METRICS: "false", CI: "true" },
-    stdio: ["ignore", "pipe", "pipe"],
-  }).toString();
+function requiredEnv() {
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  const accountId =
+    process.env.CLOUDFLARE_ACCOUNT_ID ||
+    process.env.ACCOUNT_ID ||
+    process.env.CF_ACCOUNT_ID;
+  if (!token) {
+    throw new Error("CLOUDFLARE_API_TOKEN تنظیم نشده است.");
+  }
+  if (!accountId) {
+    throw new Error("CLOUDFLARE_ACCOUNT_ID یا ACCOUNT_ID تنظیم نشده است.");
+  }
+  return { token, accountId };
 }
 
-function findNamespaceId() {
-  const output = run("npx wrangler kv namespace list --json");
-  const parsed = JSON.parse(output);
-  const namespaces = Array.isArray(parsed) ? parsed : [];
+async function cfFetch(path, { token, method = "GET", body } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    const detail =
+      json.errors?.map((e) => e.message).join("; ") ||
+      res.statusText ||
+      `HTTP ${res.status}`;
+    throw new Error(`Cloudflare API: ${detail}`);
+  }
+  return json;
+}
+
+async function listAllNamespaces({ token, accountId }) {
+  const namespaces = [];
+  let page = 1;
+  const perPage = 100;
+  while (true) {
+    const json = await cfFetch(
+      `/accounts/${accountId}/storage/kv/namespaces?page=${page}&per_page=${perPage}`,
+      { token }
+    );
+    const batch = Array.isArray(json.result) ? json.result : [];
+    namespaces.push(...batch);
+    const info = json.result_info;
+    if (!info || page >= (info.total_pages || 1) || batch.length < perPage) {
+      break;
+    }
+    page += 1;
+  }
+  return namespaces;
+}
+
+function findNamespaceId(namespaces) {
   const match =
-    namespaces.find((ns) => ns.title?.endsWith(`-${EXPECTED_TITLE_SUFFIX}`)) ||
-    namespaces.find((ns) => ns.title === EXPECTED_TITLE_SUFFIX);
+    namespaces.find((ns) => ns.title === EXPECTED_TITLE) ||
+    namespaces.find((ns) => ns.title?.endsWith(`-${EXPECTED_TITLE}`));
   return match ? match.id : null;
 }
 
-function createNamespace() {
-  const output = run("npx wrangler kv namespace create OPTIBID_KV");
-  process.stdout.write(output);
-  // خروجی wrangler یا JSON است یا TOML/متن؛ هر دو پوشش داده می‌شوند.
-  const jsonMatch = output.match(/"id"\s*:\s*"([0-9a-f]{32})"/);
-  if (jsonMatch) return jsonMatch[1];
-  const tomlMatch = output.match(/id\s*=\s*"([0-9a-f]{32})"/);
-  if (tomlMatch) return tomlMatch[1];
-  const genericMatch = output.match(/\bid\b["']?\s*[:=]\s*["']([0-9a-f]{32})["']/i);
-  if (genericMatch) return genericMatch[1];
-  throw new Error("شناسه KV Namespace در خروجی wrangler پیدا نشد.");
+async function createNamespace({ token, accountId }) {
+  const json = await cfFetch(`/accounts/${accountId}/storage/kv/namespaces`, {
+    token,
+    method: "POST",
+    body: { title: EXPECTED_TITLE },
+  });
+  const id = json.result?.id;
+  if (!id) {
+    throw new Error("شناسه KV Namespace در پاسخ API پیدا نشد.");
+  }
+  return id;
 }
 
 function patchWranglerConfig(namespaceId) {
@@ -69,25 +112,16 @@ function patchWranglerConfig(namespaceId) {
 }
 
 async function main() {
-  let namespaceId = null;
-  try {
-    namespaceId = findNamespaceId();
-    if (namespaceId) {
-      console.log(`✔ KV Namespace موجود است: ${namespaceId}`);
-    }
-  } catch (error) {
-    console.error(
-      "خطا در خواندن لیست KV Namespaceها. آیا `npx wrangler login` انجام شده است؟"
-    );
-    throw error;
-  }
-
-  if (!namespaceId) {
-    console.log("… KV Namespace یافت نشد؛ در حال ساخت optibid-OPTIBID_KV …");
-    namespaceId = createNamespace();
+  const creds = requiredEnv();
+  const namespaces = await listAllNamespaces(creds);
+  let namespaceId = findNamespaceId(namespaces);
+  if (namespaceId) {
+    console.log(`✔ KV Namespace موجود است: ${namespaceId}`);
+  } else {
+    console.log(`… KV Namespace یافت نشد؛ در حال ساخت ${EXPECTED_TITLE} …`);
+    namespaceId = await createNamespace(creds);
     console.log(`✔ KV Namespace ساخته شد: ${namespaceId}`);
   }
-
   patchWranglerConfig(namespaceId);
 }
 
