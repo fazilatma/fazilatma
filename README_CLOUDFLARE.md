@@ -21,13 +21,21 @@
 | Deploy command | `npm run deploy:cf` |
 | Root directory | `/` (پیش‌فرض) |
 
+برای اینکه هر `git push` روی سایت live اعمال شود، در همین بخش مقدار **Git branch**
+باید روی برنچی باشد که واقعاً push می‌کنید (برای این نشست Arena: `arena/01a020d5-fazilatma`).
+اگر production branch در Cloudflare روی `main` باقی بماند، push روی برنچ‌های دیگر فقط
+بعد از merge شدن به `main` روی live اعمال می‌شود.
+
 اسکریپت `deploy:cf` به صورت خودکار:
 
 1. اسنپ‌شات سورس‌کد را تولید می‌کند (`scripts/generate-source-snapshot.mjs`)
 2. پروژه را برای Workers بیلد می‌کند (`opennextjs-cloudflare build`)
-3. در صورت نبود، KV Namespace با عنوان `OPTIBID_KV` **می‌سازد** (از Cloudflare REST API
-   با `CLOUDFLARE_API_TOKEN` و `CLOUDFLARE_ACCOUNT_ID`/`ACCOUNT_ID`) و شناسه
-   آن را در `wrangler.jsonc` ثبت می‌کند (`scripts/cf-ensure-kv.mjs`)
+3. در صورت نبود، KV Namespace با عنوان `OPTIBID_KV` **می‌سازد** و شناسه
+   آن را در `wrangler.jsonc` ثبت می‌کند (`scripts/cf-ensure-kv.mjs`). این مرحله
+   اگر `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` در محیط وجود داشته باشد از
+   Cloudflare REST API استفاده می‌کند؛ در غیر این صورت تلاش می‌کند از احراز هویت
+   داخلی Wrangler در Cloudflare Workers Builds استفاده کند تا deploy با push و بدون
+   تنظیم دستی متغیرهای build انجام شود.
 4. با `wrangler deploy` دیپلوی می‌کند
 
 > نکته: اگر ترجیح می‌دهید دستور دیپلوی همان `npx wrangler deploy` بماند، کافی است
