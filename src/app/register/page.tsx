@@ -366,7 +366,7 @@ export default function RegisterPage() {
                   <label className="mb-2 block text-sm font-medium text-gray-700">شهر / استان</label>
                   <input
                     type="text"
-                    placeholder="مثال: دزفول، دزفول"
+                    placeholder="مثال: آبادان، آبادان"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-green-500"

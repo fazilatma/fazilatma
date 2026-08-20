@@ -87,7 +87,7 @@ $topSellers = [
                 <div class="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
                     <span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold mb-4 inline-block">در انتظار پیشنهاد</span>
                     <h3 class="text-xl font-bold text-[#003b5c] mb-2">آیفون 15 پرو مکس</h3>
-                    <p class="text-sm text-gray-600 mb-4">بودجه: ۶۵,۰۰۰,۰۰۰ تومان • دزفول</p>
+                    <p class="text-sm text-gray-600 mb-4">بودجه: ۶۵,۰۰۰,۰۰۰ تومان • آبادان</p>
                     <button onclick="document.getElementById('offersBox').classList.toggle('hidden')" class="bg-[#f0f9ff] text-[#00a8e8] border border-[#00a8e8]/30 px-5 py-2.5 rounded-xl font-bold">مشاهده پیشنهادها (۱)</button>
                     
                     <div id="offersBox" class="hidden mt-4 bg-[#f8fcfb] p-5 rounded-2xl border border-[#00a8e8]/20">
