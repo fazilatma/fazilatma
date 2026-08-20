@@ -179,7 +179,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
                     <div class="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm relative transition hover:shadow-md">
                         <div class="absolute top-6 left-6 bg-[#fff4e5] text-[#d97706] px-4 py-1.5 rounded-full text-xs font-bold border border-orange-200">در انتظار پیشنهاد</div>
                         <h3 class="text-xl font-bold text-[#003b5c] mb-2">آیفون 15 پرو مکس</h3>
-                        <p class="text-sm text-gray-600 mb-4 border-r-2 border-[#00a8e8] pr-3">موبایل • بودجه: ۶۵,۰۰۰,۰۰۰ تومان • شیراز<br>رنگ تیتانیوم مشکی، رجیستر شده، آکبند</p>
+                        <p class="text-sm text-gray-600 mb-4 border-r-2 border-[#00a8e8] pr-3">موبایل • بودجه: ۶۵,۰۰۰,۰۰۰ تومان • اهواز<br>رنگ تیتانیوم مشکی، رجیستر شده، آکبند</p>
                         <button onclick="document.getElementById('nestedOffers1').classList.toggle('hidden')" class="bg-[#f0f9ff] text-[#00a8e8] border border-[#00a8e8]/30 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2">
                             مشاهده و انتخاب پیشنهادها (۱)
                         </button>
@@ -219,7 +219,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
                                         <label class="absolute right-4 -top-2.5 bg-white px-1 text-xs text-gray-400">نوع خریدار</label>
                                     </div>
                                     <div class="relative">
-                                        <input type="text" value="شیراز" class="peer w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-right focus:outline-none">
+                                        <input type="text" value="اهواز" class="peer w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-right focus:outline-none">
                                         <label class="absolute right-4 -top-2.5 bg-gray-50 px-1 text-xs text-gray-400">شهر</label>
                                     </div>
                                 </div>
