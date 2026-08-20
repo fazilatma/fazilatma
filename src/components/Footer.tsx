@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { getLiveContent } from "@/lib/live-content";
 
-export default function Footer() {
+export default async function Footer() {
+  const liveContent = await getLiveContent();
+
   return (
     <footer className="bg-gray-900 text-white" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -77,7 +80,7 @@ export default function Footer() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                آبادان، خیابان ولیعصر
+                {liveContent.footerAddressFa}
               </li>
               <li className="text-gray-500 mt-2">ساعات کاری: شنبه تا چهارشنبه ۹ تا ۱۷</li>
             </ul>

@@ -1,4 +1,8 @@
+import { getCachedLiveContent } from "@/hooks/useLiveContent";
+
 export const generateInvoiceHTML = (invoiceData: any) => {
+  const liveContent = getCachedLiveContent();
+
   return `
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -90,8 +94,8 @@ export const generateInvoiceHTML = (invoiceData: any) => {
             <tr>
               <td class="py-2 w-8 text-gray-400">📍</td>
               <td class="py-2 leading-relaxed">
-                <div class="font-bold text-gray-800">آبادان، خیابان ولیعصر، مجتمع تجاری نور</div>
-                <div class="text-gray-500" dir="ltr">No.123, Valiasr St., Abadan, Iran</div>
+                <div class="font-bold text-gray-800">${liveContent.invoiceCompanyAddressFa}</div>
+                <div class="text-gray-500" dir="ltr">${liveContent.invoiceCompanyAddressEn}</div>
               </td>
             </tr>
             <tr>
@@ -132,7 +136,7 @@ export const generateInvoiceHTML = (invoiceData: any) => {
             </tr>
             <tr>
               <td class="py-1.5"><div class="bilingual"><span class="fa-text">آدرس:</span><span class="en-text">Address</span></div></td>
-              <td class="py-1.5 font-bold text-gray-800 text-left">آبادان، جاده مخصوص، کیلومتر ۱۴</td>
+              <td class="py-1.5 font-bold text-gray-800 text-left">${liveContent.invoiceShippingAddressFa}</td>
             </tr>
             <tr>
               <td class="py-1.5"><div class="bilingual"><span class="fa-text">شناسه مالیاتی:</span><span class="en-text">Tax ID</span></div></td>

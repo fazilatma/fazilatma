@@ -91,6 +91,24 @@ npm run preview
 - صفحات «کد منبع» و دانلود ZIP در Workers از اسنپ‌شاتی که هنگام build تولید می‌شود
   استفاده می‌کنند (چون فایل‌های پروژه روی Workers وجود ندارند).
 
+## تغییرات متنی بدون انتظار برای Build
+
+برای متن‌های ساده و پرتکرار سایت (مثل نام شهر و آدرس‌ها)، فایل زیر به عنوان منبع live استفاده می‌شود:
+
+```text
+data/live-content.json
+```
+
+Worker در runtime این فایل را از برنچ GitHub می‌خواند:
+
+```text
+https://raw.githubusercontent.com/fazilatma/fazilatma/refs/heads/arena/01a020d5-fazilatma/data/live-content.json
+```
+
+بنابراین برای تغییر سریع شهر/آدرس در live page کافی است فقط همین فایل JSON را ویرایش، commit و push کنید. صفحه با refresh بعدی مقدار جدید را از GitHub raw می‌خواند و برای این نوع تغییر لازم نیست منتظر پایان build/deploy Cloudflare بمانید.
+
+> توجه: Cloudflare Workers Builds ممکن است همچنان بعد از push در پس‌زمینه build را شروع کند؛ اما نمایش این متن‌های live به کامل شدن آن build وابسته نیست.
+
 ## دستورات مفید
 
 ```bash

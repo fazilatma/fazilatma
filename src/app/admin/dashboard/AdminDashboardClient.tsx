@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SellerStars from "@/components/SellerStars";
+import { useLiveContent } from "@/hooks/useLiveContent";
 
 export default function AdminDashboardClient({
   realStats,
@@ -13,6 +14,7 @@ export default function AdminDashboardClient({
   sellerRankings: any[];
   initialKycUsers: any[];
 }) {
+  const liveContent = useLiveContent();
   const [activeTab, setActiveTab] = useState("overview");
   const [pendingVerifications, setPendingVerifications] = useState<any[]>(initialKycUsers);
   const [kycReasons, setKycReasons] = useState<Record<number, string>>({});
@@ -52,6 +54,10 @@ export default function AdminDashboardClient({
       })
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    setContactAddress(liveContent.contactAddressFa);
+  }, [liveContent.contactAddressFa]);
 
   const saveFinance = async () => {
     try {

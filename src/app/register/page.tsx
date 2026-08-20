@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLiveContent } from "@/hooks/useLiveContent";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const liveContent = useLiveContent();
   const [accountType, setAccountType] = useState<"seller" | "buyer">("buyer");
   const [formData, setFormData] = useState({
     fullName: "",
@@ -366,7 +368,7 @@ export default function RegisterPage() {
                   <label className="mb-2 block text-sm font-medium text-gray-700">شهر / استان</label>
                   <input
                     type="text"
-                    placeholder="مثال: آبادان، آبادان"
+                    placeholder={`مثال: ${liveContent.registerCityExampleFa}`}
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-green-500"
