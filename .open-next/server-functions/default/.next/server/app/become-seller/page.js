@@ -1,0 +1,13 @@
+var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/become-seller/page.js")
+R.c("server/chunks/ssr/[root-of-the-server]__1e4rldd._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_esm_build_templates_app-page_195w9h1.js")
+R.c("server/chunks/ssr/[root-of-the-server]__0g5s-90._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__0lpvwqm._.js")
+R.c("server/chunks/ssr/_0y2yovo._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_0wpq8j3._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_0symwr9.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_0l_sp0x.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_0-o-goa.js")
+R.c("server/chunks/ssr/_next-internal_server_app_become-seller_page_actions_0fqa3z2.js")
+R.m(11460)
+module.exports=R.m(11460).exports
