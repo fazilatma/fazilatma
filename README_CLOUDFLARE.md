@@ -25,7 +25,8 @@
 
 1. اسنپ‌شات سورس‌کد را تولید می‌کند (`scripts/generate-source-snapshot.mjs`)
 2. پروژه را برای Workers بیلد می‌کند (`opennextjs-cloudflare build`)
-3. در صورت نبود، KV Namespace با عنوان `optibid-OPTIBID_KV` **می‌سازد** و شناسه
+3. در صورت نبود، KV Namespace با عنوان `OPTIBID_KV` **می‌سازد** (از Cloudflare REST API
+   با `CLOUDFLARE_API_TOKEN` و `CLOUDFLARE_ACCOUNT_ID`/`ACCOUNT_ID`) و شناسه
    آن را در `wrangler.jsonc` ثبت می‌کند (`scripts/cf-ensure-kv.mjs`)
 4. با `wrangler deploy` دیپلوی می‌کند
 

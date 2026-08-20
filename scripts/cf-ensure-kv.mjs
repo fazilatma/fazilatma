@@ -17,7 +17,10 @@ const API_BASE = "https://api.cloudflare.com/client/v4";
 
 function requiredEnv() {
   const token = process.env.CLOUDFLARE_API_TOKEN;
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || process.env.ACCOUNT_ID;
+  const accountId =
+    process.env.CLOUDFLARE_ACCOUNT_ID ||
+    process.env.ACCOUNT_ID ||
+    process.env.CF_ACCOUNT_ID;
   if (!token) {
     throw new Error("CLOUDFLARE_API_TOKEN تنظیم نشده است.");
   }
