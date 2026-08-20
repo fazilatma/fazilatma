@@ -1,7 +1,5 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // پیکربندی Cloudflare Workers برای دیپلوی با OpenNext
-  // مستندات: https://opennext.js.org/cloudflare
   "name": "optibid",
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-04-01",
@@ -10,9 +8,6 @@
     "directory": "./.open-next/assets",
     "binding": "ASSETS"
   },
-  // فضای ذخیره‌سازی KV برای داده‌های JSON و مدارک احراز هویت.
-  // مقدار id با اسکریپت scripts/cf-ensure-kv.mjs به صورت خودکار
-  // هنگام اجرای `npm run deploy:cf` تکمیل می‌شود.
   "kv_namespaces": [
     {
       "binding": "OPTIBID_KV",
@@ -21,8 +16,5 @@
   ],
   "observability": {
     "enabled": true
-  },
-  "limits": {
-    "cpu_ms": 30000
   }
 }
