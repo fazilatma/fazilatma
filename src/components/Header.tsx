@@ -75,16 +75,6 @@ export default function Header() {
             >
               🌐 arena.site
             </Link>
-            <a
-              href="/api/download-source"
-              className="bg-green-100 hover:bg-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-full transition flex items-center gap-1 border border-green-300"
-              title="دانلود سورس‌کد کامل سامانه"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              سورس‌کد (ZIP)
-            </a>
             <Link
               href="/request-purchase"
               className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg transition font-bold text-sm"
