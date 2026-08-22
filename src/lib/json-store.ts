@@ -1408,6 +1408,301 @@ export async function getJsonRequests() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+function percentageChange(current: number, previous: number) {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function average(values: number[]) {
+  return values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function ema(values: number[], period: number) {
+  if (values.length < period) return [] as number[];
+  const multiplier = 2 / (period + 1);
+  const result: number[] = [];
+  let previous = average(values.slice(0, period));
+  result.push(previous);
+  for (let index = period; index < values.length; index += 1) {
+    previous = (values[index] - previous) * multiplier + previous;
+    result.push(previous);
+  }
+  return result;
+}
+
+function calculateRsi(values: number[], period = 14) {
+  if (values.length < period + 1) return null;
+  const slice = values.slice(-period - 1);
+  let gains = 0;
+  let losses = 0;
+  for (let index = 1; index < slice.length; index += 1) {
+    const change = slice[index] - slice[index - 1];
+    if (change >= 0) gains += change;
+    else losses += Math.abs(change);
+  }
+  const avgGain = gains / period;
+  const avgLoss = losses / period;
+  if (avgLoss === 0 && avgGain === 0) return 50;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return Math.round((100 - 100 / (1 + rs)) * 10) / 10;
+}
+
+function calculateMacd(values: number[]) {
+  if (values.length < 35) return null;
+  const ema12 = ema(values, 12);
+  const ema26 = ema(values, 26);
+  const offset = ema12.length - ema26.length;
+  const macdLine = ema26.map((value, index) => ema12[index + offset] - value);
+  const signalLine = ema(macdLine, 9);
+  if (signalLine.length === 0) return null;
+  const macd = macdLine[macdLine.length - 1];
+  const signal = signalLine[signalLine.length - 1];
+  return {
+    macd: Math.round(macd * 10) / 10,
+    signal: Math.round(signal * 10) / 10,
+    histogram: Math.round((macd - signal) * 10) / 10,
+  };
+}
+
+function technicalSignal(rsi: number | null, macd: ReturnType<typeof calculateMacd>) {
+  if (rsi === null && !macd) return "داده ناکافی";
+  if (rsi !== null && rsi >= 70 && macd && macd.histogram > 0) return "تقاضا/قیمت داغ — احتمال اشباع خرید";
+  if (rsi !== null && rsi <= 30 && macd && macd.histogram < 0) return "ضعیف — احتمال افت کوتاه‌مدت";
+  if (macd && macd.histogram > 0) return "مومنتوم مثبت";
+  if (macd && macd.histogram < 0) return "مومنتوم منفی";
+  if (rsi !== null && rsi > 55) return "تمایل صعودی";
+  if (rsi !== null && rsi < 45) return "تمایل نزولی";
+  return "خنثی";
+}
+
+function predictionLabel(score: number) {
+  if (score >= 35) return "افزایش محتمل";
+  if (score <= -20) return "کاهش محتمل";
+  return "ثبات نسبی";
+}
+
+export async function getJsonAdminReports() {
+  const data = await getOptiBidData();
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const recentCutoff = now - 30 * day;
+  const previousCutoff = now - 60 * day;
+  const requestById = new Map(data.requests.map((request) => [request.id, request]));
+
+  type ProductAccumulator = {
+    product: string;
+    category: string;
+    requestsCount: number;
+    openRequests: number;
+    offersCount: number;
+    acceptedOffers: number;
+    completedOrders: number;
+    failedOrders: number;
+    totalSalesAmount: number;
+    totalRequestedBudget: number;
+    recentDemand: number;
+    previousDemand: number;
+    recentPrices: number[];
+    previousPrices: number[];
+    pricePoints: Array<{ at: string; value: number }>;
+    lastActivityAt: string;
+  };
+
+  const products = new Map<string, ProductAccumulator>();
+  const getProduct = (rawTitle: string, category = "سایر") => {
+    const product = rawTitle.trim().replace(/\s+/g, " ") || "کالای بدون عنوان";
+    const existing = products.get(product);
+    if (existing) {
+      if (!existing.category || existing.category === "سایر") existing.category = category || "سایر";
+      return existing;
+    }
+    const created: ProductAccumulator = {
+      product,
+      category: category || "سایر",
+      requestsCount: 0,
+      openRequests: 0,
+      offersCount: 0,
+      acceptedOffers: 0,
+      completedOrders: 0,
+      failedOrders: 0,
+      totalSalesAmount: 0,
+      totalRequestedBudget: 0,
+      recentDemand: 0,
+      previousDemand: 0,
+      recentPrices: [],
+      previousPrices: [],
+      pricePoints: [],
+      lastActivityAt: "",
+    };
+    products.set(product, created);
+    return created;
+  };
+
+  const addDemand = (item: ProductAccumulator, at?: string) => {
+    const time = at ? new Date(at).getTime() : 0;
+    if (time >= recentCutoff) item.recentDemand += 1;
+    else if (time >= previousCutoff) item.previousDemand += 1;
+    if (at && (!item.lastActivityAt || new Date(at).getTime() > new Date(item.lastActivityAt).getTime())) {
+      item.lastActivityAt = at;
+    }
+  };
+
+  const addPrice = (item: ProductAccumulator, value: number, at?: string) => {
+    if (!value) return;
+    const timestamp = at || new Date().toISOString();
+    item.pricePoints.push({ at: timestamp, value });
+    const time = new Date(timestamp).getTime();
+    if (time >= recentCutoff) item.recentPrices.push(value);
+    else if (time >= previousCutoff) item.previousPrices.push(value);
+  };
+
+  for (const request of data.requests) {
+    const item = getProduct(request.title, request.category);
+    item.requestsCount += 1;
+    if (request.status === "open") item.openRequests += 1;
+    item.totalRequestedBudget += money(request.budget);
+    addDemand(item, request.createdAt);
+    addPrice(item, money(request.budget), request.createdAt);
+  }
+
+  for (const offer of data.offers) {
+    const request = requestById.get(offer.requestId);
+    const item = getProduct(request?.title || `درخواست ${offer.requestId}`, request?.category || "سایر");
+    item.offersCount += 1;
+    if (offer.status === "accepted") item.acceptedOffers += 1;
+    addPrice(item, money(offer.amount), offer.createdAt);
+  }
+
+  for (const order of data.orders) {
+    const item = getProduct(order.title, order.category);
+    if (isSuccessfulOrder(order)) {
+      item.completedOrders += 1;
+      item.totalSalesAmount += money(order.totalAmount);
+    }
+    if (isFailedOrder(order, data.transactions)) item.failedOrders += 1;
+    addDemand(item, order.createdAt);
+    addPrice(item, money(order.totalAmount), order.paymentAt || order.createdAt);
+  }
+
+  const productReports = [...products.values()]
+    .map((item) => {
+      const sortedPrices = item.pricePoints
+        .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+        .map((point) => point.value);
+      const rsi = calculateRsi(sortedPrices);
+      const macd = calculateMacd(sortedPrices);
+      const demandTrendPercent = percentageChange(item.recentDemand, item.previousDemand);
+      const recentAveragePrice = average(item.recentPrices);
+      const previousAveragePrice = average(item.previousPrices);
+      const priceTrendPercent = previousAveragePrice ? percentageChange(recentAveragePrice, previousAveragePrice) : recentAveragePrice > 0 ? 100 : 0;
+      const demandScore = demandTrendPercent + item.recentDemand * 12 + item.completedOrders * 8 + item.offersCount * 2;
+      const priceScore = priceTrendPercent + (macd?.histogram || 0) / 1000 + (rsi || 50) - 50;
+      return {
+        product: item.product,
+        category: item.category,
+        requestsCount: item.requestsCount,
+        openRequests: item.openRequests,
+        offersCount: item.offersCount,
+        acceptedOffers: item.acceptedOffers,
+        completedOrders: item.completedOrders,
+        failedOrders: item.failedOrders,
+        totalSalesAmount: item.totalSalesAmount,
+        averageRequestedBudget: Math.round(item.totalRequestedBudget / Math.max(1, item.requestsCount)),
+        averageSaleAmount: Math.round(item.totalSalesAmount / Math.max(1, item.completedOrders)),
+        recentDemand: item.recentDemand,
+        previousDemand: item.previousDemand,
+        demandTrendPercent,
+        priceTrendPercent,
+        rsi,
+        macd,
+        technicalSignal: technicalSignal(rsi, macd),
+        aiDemandForecast: predictionLabel(demandScore),
+        aiPriceForecast: predictionLabel(priceScore),
+        aiConfidence: Math.max(20, Math.min(95, Math.round(25 + sortedPrices.length * 4 + item.requestsCount * 3 + item.completedOrders * 5))),
+        dataPoints: sortedPrices.length,
+        lastActivityAt: item.lastActivityAt,
+      };
+    })
+    .sort((a, b) => b.requestsCount - a.requestsCount || b.totalSalesAmount - a.totalSalesAmount);
+
+  const buyerReports = data.users
+    .filter((user) => user.role === "buyer")
+    .map((buyer) => {
+      const requests = data.requests.filter((request) => request.buyerId === buyer.id);
+      const orders = data.orders.filter((order) => order.buyerId === buyer.id);
+      const completedOrders = orders.filter(isSuccessfulOrder);
+      const failedOrders = orders.filter((order) => isFailedOrder(order, data.transactions));
+      const finalOrdersCount = completedOrders.length + failedOrders.length;
+      const totalPurchaseAmount = completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0);
+      return {
+        id: buyer.id,
+        name: buyer.fullName,
+        email: buyer.email,
+        requestsCount: requests.length,
+        activeRequests: requests.filter((request) => request.status === "open").length,
+        completedPurchases: completedOrders.length,
+        failedPurchases: failedOrders.length,
+        totalPurchaseAmount,
+        averagePurchaseAmount: Math.round(totalPurchaseAmount / Math.max(1, completedOrders.length)),
+        successRate: finalOrdersCount === 0 ? 0 : Math.round((completedOrders.length / finalOrdersCount) * 100),
+        reviewsGiven: data.reviews.filter((review) => review.reviewerId === buyer.id).length,
+        reviewsReceived: data.reviews.filter((review) => review.revieweeId === buyer.id).length,
+      };
+    })
+    .sort((a, b) => b.totalPurchaseAmount - a.totalPurchaseAmount || b.completedPurchases - a.completedPurchases);
+
+  const sellerReports = data.users
+    .filter((user) => user.role === "seller")
+    .map((seller) => {
+      const offers = data.offers.filter((offer) => offer.sellerId === seller.id);
+      const orders = data.orders.filter((order) => order.sellerId === seller.id);
+      const completedOrders = orders.filter(isSuccessfulOrder);
+      const failedOrders = orders.filter((order) => isFailedOrder(order, data.transactions));
+      const totalSalesAmount = completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0);
+      const netSellerRevenue = completedOrders.reduce((sum, order) => sum + money(order.sellerAmount), 0);
+      const score = calculateSellerScore(seller.sellerMetrics || createDefaultSellerMetrics());
+      return {
+        id: seller.id,
+        name: seller.fullName,
+        email: seller.email,
+        categories: seller.categories || [],
+        offersCount: offers.length,
+        acceptedOffers: offers.filter((offer) => offer.status === "accepted").length,
+        completedSales: completedOrders.length,
+        failedSales: failedOrders.length,
+        totalSalesAmount,
+        netSellerRevenue,
+        averageSaleAmount: Math.round(totalSalesAmount / Math.max(1, completedOrders.length)),
+        ratingScore: score.finalScore,
+        ratingLabel: score.label,
+      };
+    })
+    .sort((a, b) => b.totalSalesAmount - a.totalSalesAmount || b.completedSales - a.completedSales);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      productsCount: productReports.length,
+      buyersCount: buyerReports.length,
+      sellersCount: sellerReports.length,
+      totalRequests: data.requests.length,
+      activeRequests: data.requests.filter(isPublicRequest).length,
+      completedOrders: data.orders.filter(isSuccessfulOrder).length,
+      failedOrders: data.orders.filter((order) => isFailedOrder(order, data.transactions)).length,
+    },
+    productReports,
+    buyerReports,
+    sellerReports,
+    analytics: {
+      growingItems: [...productReports].sort((a, b) => b.demandTrendPercent - a.demandTrendPercent || b.recentDemand - a.recentDemand).slice(0, 8),
+      mostRequestedItems: [...productReports].sort((a, b) => b.requestsCount - a.requestsCount).slice(0, 8),
+      highestRevenueItems: [...productReports].sort((a, b) => b.totalSalesAmount - a.totalSalesAmount).slice(0, 8),
+      technicalItems: productReports,
+    },
+  };
+}
+
 export function getJsonStorageInfo() {
   return { dataFile };
 }

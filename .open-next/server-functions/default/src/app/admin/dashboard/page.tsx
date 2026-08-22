@@ -1,5 +1,6 @@
 import AdminDashboardClient from "./AdminDashboardClient";
 import {
+  getJsonAdminReports,
   getJsonAdminStats,
   getJsonKycUsers,
   getJsonSellerRankings,
@@ -18,11 +19,33 @@ export default async function AdminDashboardPage() {
 
   let sellerRankings: Awaited<ReturnType<typeof getJsonSellerRankings>> = [];
   let kycUsers: Awaited<ReturnType<typeof getJsonKycUsers>> = [];
+  let adminReports: Awaited<ReturnType<typeof getJsonAdminReports>> = {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      productsCount: 0,
+      buyersCount: 0,
+      sellersCount: 0,
+      totalRequests: 0,
+      activeRequests: 0,
+      completedOrders: 0,
+      failedOrders: 0,
+    },
+    productReports: [],
+    buyerReports: [],
+    sellerReports: [],
+    analytics: {
+      growingItems: [],
+      mostRequestedItems: [],
+      highestRevenueItems: [],
+      technicalItems: [],
+    },
+  };
   try {
-    [realStats, sellerRankings, kycUsers] = await Promise.all([
+    [realStats, sellerRankings, kycUsers, adminReports] = await Promise.all([
       getJsonAdminStats(),
       getJsonSellerRankings(),
       getJsonKycUsers(),
+      getJsonAdminReports(),
     ]);
   } catch (error) {
     console.error("JSON admin stats/rankings/KYC error:", error);
@@ -33,6 +56,7 @@ export default async function AdminDashboardPage() {
       realStats={realStats}
       sellerRankings={sellerRankings}
       initialKycUsers={kycUsers}
+      adminReports={adminReports}
     />
   );
 }

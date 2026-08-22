@@ -9,13 +9,16 @@ export default function AdminDashboardClient({
   realStats,
   sellerRankings,
   initialKycUsers,
+  adminReports,
 }: {
   realStats: any;
   sellerRankings: any[];
   initialKycUsers: any[];
+  adminReports: any;
 }) {
   const liveContent = useLiveContent();
   const [activeTab, setActiveTab] = useState("overview");
+  const [reportView, setReportView] = useState<"products" | "buyers" | "sellers">("products");
   const [pendingVerifications, setPendingVerifications] = useState<any[]>(initialKycUsers);
   const [kycReasons, setKycReasons] = useState<Record<number, string>>({});
   
@@ -137,6 +140,14 @@ export default function AdminDashboardClient({
     { label: "تعداد درخواست‌های خرید باز", value: `${realStats.openRequests.toLocaleString("fa-IR")} درخواست` },
   ];
 
+  const moneyLabel = (value: number | string) => `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
+  const percentLabel = (value: number | string) => `${Number(value || 0).toLocaleString("fa-IR")}%`;
+  const productReports = adminReports?.productReports || [];
+  const buyerReports = adminReports?.buyerReports || [];
+  const sellerReports = adminReports?.sellerReports || [];
+  const analytics = adminReports?.analytics || { growingItems: [], mostRequestedItems: [], highestRevenueItems: [], technicalItems: [] };
+  const reportRows = reportView === "products" ? productReports : reportView === "buyers" ? buyerReports : sellerReports;
+
 
   const categoriesList = [
     { id: 1, name: "کالای دیجیتال", status: "فعال", productsCount: 1250 },
@@ -185,6 +196,12 @@ export default function AdminDashboardClient({
                 </button>
                 <button onClick={() => setActiveTab("sellerScores")} className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "sellerScores" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}>
                   📊 امتیازدهی فروشندگان
+                </button>
+                <button onClick={() => setActiveTab("reports")} className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "reports" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}>
+                  📑 گزارش‌گیری تفکیکی
+                </button>
+                <button onClick={() => setActiveTab("analytics")} className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "analytics" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}>
+                  🤖 تحلیل آماری و AI
                 </button>
                 <button onClick={() => setActiveTab("appearance")} className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "appearance" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}>
                   🎨 تنظیمات ظاهر و محتوا
@@ -253,6 +270,123 @@ export default function AdminDashboardClient({
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Reports */}
+            {activeTab === "reports" && (
+              <div className="animate-in fade-in duration-300 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="mb-6 flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 lg:flex-row lg:items-end">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">📑 گزارش‌گیری تفکیکی</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-600">گزارش واقعی بر اساس درخواست‌ها، سفارش‌ها، پیشنهادها، کیف پول و وضعیت‌های ثبت‌شده در دیتابیس OptiBid.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      ["products", "۱- کالا"],
+                      ["buyers", "۲- خریدهای خریدار"],
+                      ["sellers", "۳- فروش‌های فروشنده"],
+                    ].map(([id, label]) => (
+                      <button
+                        key={id}
+                        onClick={() => setReportView(id as "products" | "buyers" | "sellers")}
+                        className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${reportView === id ? "border-purple-600 bg-purple-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-purple-50"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-6 grid gap-3 md:grid-cols-4">
+                  <div className="rounded-2xl bg-purple-50 p-4 text-center"><p className="text-2xl font-bold text-purple-700">{adminReports?.summary?.productsCount?.toLocaleString("fa-IR") || 0}</p><p className="mt-1 text-xs text-gray-500">کالا/عنوان تحلیل‌شده</p></div>
+                  <div className="rounded-2xl bg-blue-50 p-4 text-center"><p className="text-2xl font-bold text-blue-700">{adminReports?.summary?.buyersCount?.toLocaleString("fa-IR") || 0}</p><p className="mt-1 text-xs text-gray-500">خریدار</p></div>
+                  <div className="rounded-2xl bg-green-50 p-4 text-center"><p className="text-2xl font-bold text-green-700">{adminReports?.summary?.sellersCount?.toLocaleString("fa-IR") || 0}</p><p className="mt-1 text-xs text-gray-500">فروشنده</p></div>
+                  <div className="rounded-2xl bg-amber-50 p-4 text-center"><p className="text-2xl font-bold text-amber-700">{adminReports?.summary?.activeRequests?.toLocaleString("fa-IR") || 0}</p><p className="mt-1 text-xs text-gray-500">درخواست فعال</p></div>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                  <table className="w-full min-w-[920px] text-right text-sm">
+                    <thead className="bg-gray-100 text-xs text-gray-600">
+                      {reportView === "products" ? (
+                        <tr><th className="p-3">کالا</th><th className="p-3">دسته</th><th className="p-3">درخواست</th><th className="p-3">فعال</th><th className="p-3">پیشنهاد</th><th className="p-3">فروش موفق</th><th className="p-3">ناموفق/مرجوع</th><th className="p-3">فروش کل</th><th className="p-3">میانگین بودجه</th></tr>
+                      ) : reportView === "buyers" ? (
+                        <tr><th className="p-3">خریدار</th><th className="p-3">ایمیل</th><th className="p-3">درخواست‌ها</th><th className="p-3">درخواست فعال</th><th className="p-3">خرید موفق</th><th className="p-3">ناموفق</th><th className="p-3">مبلغ خرید</th><th className="p-3">نرخ موفقیت</th><th className="p-3">دیدگاه</th></tr>
+                      ) : (
+                        <tr><th className="p-3">فروشنده</th><th className="p-3">ایمیل</th><th className="p-3">پیشنهادها</th><th className="p-3">پذیرفته‌شده</th><th className="p-3">فروش موفق</th><th className="p-3">ناموفق</th><th className="p-3">فروش ناخالص</th><th className="p-3">درآمد خالص</th><th className="p-3">امتیاز</th></tr>
+                      )}
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {reportRows.length === 0 ? (
+                        <tr><td colSpan={9} className="p-8 text-center text-gray-500">داده‌ای برای این گزارش وجود ندارد.</td></tr>
+                      ) : reportView === "products" ? (
+                        productReports.map((item: any) => (
+                          <tr key={item.product} className="hover:bg-gray-50"><td className="p-3 font-bold text-gray-900">{item.product}</td><td className="p-3">{item.category}</td><td className="p-3">{item.requestsCount}</td><td className="p-3">{item.openRequests}</td><td className="p-3">{item.offersCount}</td><td className="p-3 text-green-700">{item.completedOrders}</td><td className="p-3 text-red-600">{item.failedOrders}</td><td className="p-3 font-bold">{moneyLabel(item.totalSalesAmount)}</td><td className="p-3">{moneyLabel(item.averageRequestedBudget)}</td></tr>
+                        ))
+                      ) : reportView === "buyers" ? (
+                        buyerReports.map((item: any) => (
+                          <tr key={item.id} className="hover:bg-gray-50"><td className="p-3 font-bold text-gray-900">{item.name}</td><td className="p-3" dir="ltr">{item.email}</td><td className="p-3">{item.requestsCount}</td><td className="p-3">{item.activeRequests}</td><td className="p-3 text-green-700">{item.completedPurchases}</td><td className="p-3 text-red-600">{item.failedPurchases}</td><td className="p-3 font-bold">{moneyLabel(item.totalPurchaseAmount)}</td><td className="p-3">{percentLabel(item.successRate)}</td><td className="p-3">داده: {item.reviewsGiven} / گرفته: {item.reviewsReceived}</td></tr>
+                        ))
+                      ) : (
+                        sellerReports.map((item: any) => (
+                          <tr key={item.id} className="hover:bg-gray-50"><td className="p-3 font-bold text-gray-900">{item.name}</td><td className="p-3" dir="ltr">{item.email}</td><td className="p-3">{item.offersCount}</td><td className="p-3">{item.acceptedOffers}</td><td className="p-3 text-green-700">{item.completedSales}</td><td className="p-3 text-red-600">{item.failedSales}</td><td className="p-3 font-bold">{moneyLabel(item.totalSalesAmount)}</td><td className="p-3">{moneyLabel(item.netSellerRevenue)}</td><td className="p-3"><SellerStars score={item.ratingScore} size="sm" /><span className="mr-2 text-xs text-gray-500">{item.ratingLabel}</span></td></tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Analytics */}
+            {activeTab === "analytics" && (
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">🤖 تحلیل جامع آماری و پیش‌بینی AI</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-600">این بخش فعلاً فقط برای ادمین است و بعداً می‌تواند به‌عنوان بخش Pro برای کاربران فعال شود. شاخص‌ها از داده واقعی درخواست‌ها، پیشنهادها و سفارش‌ها محاسبه می‌شوند؛ اگر داده تاریخی کافی نباشد، خروجی تکنیکال «داده ناکافی» نمایش داده می‌شود.</p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <AnalyticsList title="آیتم‌های در حال رشد برای خرید" items={analytics.growingItems} value={(item: any) => `${percentLabel(item.demandTrendPercent)} رشد تقاضا`} />
+                    <AnalyticsList title="آیتم‌های با بیشترین درخواست" items={analytics.mostRequestedItems} value={(item: any) => `${item.requestsCount.toLocaleString("fa-IR")} درخواست`} />
+                    <AnalyticsList title="بیشترین فروش موفق" items={analytics.highestRevenueItems} value={(item: any) => moneyLabel(item.totalSalesAmount)} />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-center">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">تحلیل تکنیکال واقعی هر کالا</h3>
+                      <p className="mt-1 text-xs text-gray-500">RSI، MACD و پیش‌بینی افزایش درخواست/قیمت از سری زمانی قیمت‌های واقعی درخواست، پیشنهاد و سفارش استخراج می‌شود.</p>
+                    </div>
+                    <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">آماده برای نسخه Pro</span>
+                  </div>
+                  <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                    <table className="w-full min-w-[1120px] text-right text-sm">
+                      <thead className="bg-gray-100 text-xs text-gray-600">
+                        <tr><th className="p-3">کالا</th><th className="p-3">داده</th><th className="p-3">رشد تقاضا</th><th className="p-3">روند قیمت</th><th className="p-3">RSI</th><th className="p-3">MACD</th><th className="p-3">سیگنال تکنیکال</th><th className="p-3">پیش‌بینی AI تقاضا</th><th className="p-3">پیش‌بینی AI قیمت</th><th className="p-3">اعتماد</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {analytics.technicalItems.length === 0 ? (
+                          <tr><td colSpan={10} className="p-8 text-center text-gray-500">هنوز کالایی برای تحلیل وجود ندارد.</td></tr>
+                        ) : analytics.technicalItems.map((item: any) => (
+                          <tr key={item.product} className="hover:bg-gray-50">
+                            <td className="p-3 font-bold text-gray-900">{item.product}<p className="mt-1 text-xs font-normal text-gray-500">{item.category}</p></td>
+                            <td className="p-3">{item.dataPoints.toLocaleString("fa-IR")} نقطه</td>
+                            <td className={`p-3 font-bold ${item.demandTrendPercent >= 0 ? "text-green-700" : "text-red-600"}`}>{percentLabel(item.demandTrendPercent)}</td>
+                            <td className={`p-3 font-bold ${item.priceTrendPercent >= 0 ? "text-green-700" : "text-red-600"}`}>{percentLabel(item.priceTrendPercent)}</td>
+                            <td className="p-3">{item.rsi === null ? "داده ناکافی" : item.rsi.toLocaleString("fa-IR")}</td>
+                            <td className="p-3" dir="ltr">{item.macd ? `${item.macd.macd} / ${item.macd.signal} / ${item.macd.histogram}` : "داده ناکافی"}</td>
+                            <td className="p-3"><span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{item.technicalSignal}</span></td>
+                            <td className="p-3">{item.aiDemandForecast}</td>
+                            <td className="p-3">{item.aiPriceForecast}</td>
+                            <td className="p-3">{percentLabel(item.aiConfidence)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -608,6 +742,38 @@ export default function AdminDashboardClient({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AnalyticsList({
+  title,
+  items,
+  value,
+}: {
+  title: string;
+  items: any[];
+  value: (item: any) => string;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+      <h3 className="mb-3 font-bold text-gray-900">{title}</h3>
+      {items.length === 0 ? (
+        <p className="rounded-xl bg-white p-4 text-center text-xs text-gray-500">داده کافی وجود ندارد.</p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div key={`${item.product}-${index}`} className="rounded-xl bg-white p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="line-clamp-1 font-bold text-gray-800">{item.product}</p>
+                <span className="rounded-full bg-purple-50 px-2 py-1 text-[11px] font-bold text-purple-700">#{index + 1}</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">{item.category}</p>
+              <p className="mt-2 text-sm font-bold text-[#003b5c]">{value(item)}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
