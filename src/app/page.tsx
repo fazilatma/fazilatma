@@ -37,6 +37,7 @@ export default async function HomePage() {
   let realStats = {
     requestsCount: 0,
     sellersCount: 0,
+    secureTransactionsCount: 0,
     totalVolume: 0,
     successRate: 0,
   };
@@ -119,8 +120,8 @@ export default async function HomePage() {
               <div className="text-green-200 mt-2">تامین‌کننده فعال</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">{realStats.totalVolume.toLocaleString()}</div>
-              <div className="text-green-200 mt-2">تومان تراکنش امن</div>
+              <div className="text-3xl md:text-4xl font-bold">{realStats.secureTransactionsCount.toLocaleString()}</div>
+              <div className="text-green-200 mt-2">تراکنش امن</div>
             </div>
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold">{realStats.successRate}٪</div>

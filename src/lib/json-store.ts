@@ -1381,6 +1381,7 @@ export async function getJsonHomepageStats() {
   return {
     requestsCount: data.requests.filter(isPublicRequest).length,
     sellersCount: data.users.filter((user) => user.role === "seller" && user.isActive).length,
+    secureTransactionsCount: data.transactions.length,
     totalVolume: completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0),
     successRate: finalOrdersCount === 0 ? 0 : Math.round((completedOrders.length / finalOrdersCount) * 100),
     failedOrdersCount: failedOrders.length,

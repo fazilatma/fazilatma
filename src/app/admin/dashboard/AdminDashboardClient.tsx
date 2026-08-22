@@ -167,7 +167,7 @@ export default function AdminDashboardClient({
   };
 
   const stats = [
-    { label: "مجموع تراکنش‌های موفق", value: `${realStats.totalVolume.toLocaleString("fa-IR")} تومان` },
+    { label: "مبلغ تراکنش‌های موفق", value: `${realStats.totalVolume.toLocaleString("fa-IR")} تومان` },
     { label: "کل کمیسیون دریافت‌شده", value: `${realStats.totalCommission.toLocaleString("fa-IR")} تومان` },
     { label: "مانده حساب پلتفرم OptiBid", value: `${platformFinance.platformWalletBalance.toLocaleString("fa-IR")} تومان` },
     { label: "وجوه امانی نزد پلتفرم (Escrow)", value: `${realStats.escrowHeld.toLocaleString("fa-IR")} تومان` },
