@@ -14,6 +14,7 @@ import {
   type SellerPerformanceMetrics,
 } from "@/lib/seller-rating";
 import { getKvNamespace, kvPutText } from "@/lib/kv-storage";
+import { getExternalMarketSeriesForProduct } from "@/lib/external-market-data";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -1736,7 +1737,7 @@ export async function getJsonAdminReports() {
     addPrice(item, money(order.totalAmount), order.paymentAt || order.createdAt);
   }
 
-  const productReports = [...products.values()]
+  const baseProductReports = [...products.values()]
     .map((item) => {
       const sortedPointObjects = item.pricePoints
         .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
@@ -1784,6 +1785,47 @@ export async function getJsonAdminReports() {
       };
     })
     .sort((a, b) => b.requestsCount - a.requestsCount || b.totalSalesAmount - a.totalSalesAmount);
+
+  const productReports = await Promise.all(
+    baseProductReports.map(async (report) => {
+      const external = await getExternalMarketSeriesForProduct(report.product, report.category);
+      if (!external) {
+        return {
+          ...report,
+          externalSource: null,
+          externalChartPoints: [],
+          externalRsi: null,
+          externalMacd: null,
+          externalTechnicalSignal: "داده بیرونی در دسترس نیست",
+        };
+      }
+
+      const externalValues = external.points.map((point) => point.value);
+      const externalRsi = calculateRsi(externalValues);
+      const externalMacd = calculateMacd(externalValues);
+      const externalChartPoints = buildDailyChartPoints(external.points);
+      return {
+        ...report,
+        externalSource: {
+          sourceName: external.sourceName,
+          sourceTitle: external.sourceTitle,
+          sourceUrl: external.sourceUrl,
+          sourceSlug: external.sourceSlug,
+          matchReason: external.matchReason,
+          isProxy: external.isProxy,
+          currency: external.currency,
+          unit: external.unit,
+          fetchedAt: external.fetchedAt,
+          currentPrice: external.currentPrice,
+          pointsCount: external.points.length,
+        },
+        externalChartPoints,
+        externalRsi,
+        externalMacd,
+        externalTechnicalSignal: technicalSignal(externalRsi, externalMacd),
+      };
+    })
+  );
 
   const buyerReports = data.users
     .filter((user) => user.role === "buyer")

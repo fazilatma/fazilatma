@@ -895,8 +895,15 @@ function ProductAnalysisChart({
   moneyLabel: (value: number | string) => string;
   percentLabel: (value: number | string) => string;
 }) {
-  const chartPoints = (product.chartPoints || []).filter((point: any) => Number(point.price) > 0);
+  const externalAvailable = Array.isArray(product.externalChartPoints) && product.externalChartPoints.length > 0;
+  const [dataSource, setDataSource] = useState<"internal" | "external">("external");
+  const activeDataSource = dataSource === "external" && externalAvailable ? "external" : "internal";
+  const activeSourceInfo = activeDataSource === "external" ? product.externalSource : null;
+  const chartPoints = ((activeDataSource === "external" ? product.externalChartPoints : product.chartPoints) || []).filter((point: any) => Number(point.price) > 0);
   const distribution = (product.chartDistribution || []).filter((item: any) => Number(item.value) > 0);
+  const activeRsi = activeDataSource === "external" ? product.externalRsi : product.rsi;
+  const activeMacd = activeDataSource === "external" ? product.externalMacd : product.macd;
+  const activeSignal = activeDataSource === "external" ? product.externalTechnicalSignal : product.technicalSignal;
   const width = 900;
   const height = 560;
   const left = 62;
@@ -1001,13 +1008,27 @@ function ProductAnalysisChart({
       <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-start">
         <div>
           <h4 className="text-lg font-bold text-gray-900">{product.product}</h4>
-          <p className="mt-1 text-xs text-gray-500">{product.category} · {product.dataPoints?.toLocaleString("fa-IR") || 0} نقطه داده · آخرین سیگنال: {product.technicalSignal}</p>
+          <p className="mt-1 text-xs text-gray-500">{product.category} · {chartPoints.length.toLocaleString("fa-IR")} نقطه داده · آخرین سیگنال: {activeSignal}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
-          <span className="rounded-xl bg-blue-50 px-3 py-2 font-bold text-blue-700">RSI: {product.rsi === null ? "ناکافی" : product.rsi}</span>
-          <span className="rounded-xl bg-purple-50 px-3 py-2 font-bold text-purple-700">MACD: {product.macd ? product.macd.histogram : "ناکافی"}</span>
+          <span className="rounded-xl bg-blue-50 px-3 py-2 font-bold text-blue-700">RSI: {activeRsi === null ? "ناکافی" : activeRsi}</span>
+          <span className="rounded-xl bg-purple-50 px-3 py-2 font-bold text-purple-700">MACD: {activeMacd ? activeMacd.histogram : "ناکافی"}</span>
           <span className="rounded-xl bg-green-50 px-3 py-2 font-bold text-green-700">تقاضا: {product.aiDemandForecast}</span>
           <span className="rounded-xl bg-amber-50 px-3 py-2 font-bold text-amber-700">قیمت: {product.aiPriceForecast}</span>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 text-xs">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setDataSource("internal")} className={`rounded-xl px-3 py-2 font-bold transition ${activeDataSource === "internal" ? "bg-[#003b5c] text-white" : "bg-white text-gray-600 hover:bg-blue-50"}`}>داده داخلی OptiBid</button>
+          <button type="button" disabled={!externalAvailable} onClick={() => setDataSource("external")} className={`rounded-xl px-3 py-2 font-bold transition ${activeDataSource === "external" ? "bg-[#003b5c] text-white" : "bg-white text-gray-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"}`}>داده بیرونی بازار</button>
+        </div>
+        <div className="text-left text-gray-500">
+          {activeSourceInfo ? (
+            <span>منبع: <a href={activeSourceInfo.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[#00a8e8] underline">{activeSourceInfo.sourceName} / {activeSourceInfo.sourceTitle}</a> · {activeSourceInfo.isProxy ? "پروکسی قابل استناد" : "نماد مستقیم"} · {activeSourceInfo.pointsCount?.toLocaleString("fa-IR")} نقطه</span>
+          ) : (
+            <span>منبع: داده‌های داخلی OptiBid از درخواست‌ها، پیشنهادها و سفارش‌ها</span>
+          )}
         </div>
       </div>
 
