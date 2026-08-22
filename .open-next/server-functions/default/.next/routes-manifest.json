@@ -119,6 +119,12 @@
       "namedRegex": "^/api/admin/withdrawals(?:/)?$"
     },
     {
+      "page": "/api/avatar",
+      "regex": "^/api/avatar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/avatar(?:/)?$"
+    },
+    {
       "page": "/api/buyer/profile",
       "regex": "^/api/buyer/profile(?:/)?$",
       "routeKeys": {},

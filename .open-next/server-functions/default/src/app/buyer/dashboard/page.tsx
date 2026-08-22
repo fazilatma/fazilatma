@@ -11,6 +11,7 @@ type BuyerDashboardData = {
     id: number;
     fullName: string;
     email: string;
+    avatarName?: string;
     walletBalance: number;
     defaultAddress?: string;
     bio?: string;
@@ -56,6 +57,8 @@ export default function BuyerDashboardPage() {
   const [messageText, setMessageText] = useState("");
   const [activeChatUserId, setActiveChatUserId] = useState<number | null>(null);
   const [profile, setProfile] = useState({ fullName: "", defaultAddress: "", bio: "", categories: [] as string[] });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const buyerId = typeof window === "undefined" ? 0 : Number(localStorage.getItem("userId") || 0);
 
@@ -77,6 +80,8 @@ export default function BuyerDashboardPage() {
         bio: result.buyer.bio || "",
         categories: result.buyer.categories || [],
       });
+      setAvatarPreview(result.buyer.avatarName ? `/api/avatar?userId=${result.buyer.id}&v=${encodeURIComponent(result.buyer.avatarName)}` : "");
+      setAvatarFile(null);
       const initialCounterpart = result.offers[0]?.seller?.id || result.orders[0]?.sellerId || null;
       setActiveChatUserId((current) => current || initialCounterpart);
       setError("");
@@ -178,16 +183,32 @@ export default function BuyerDashboardPage() {
     }
   };
 
+  const handleAvatarChange = (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("لطفاً یک فایل تصویری معتبر انتخاب کنید.");
+      return;
+    }
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
   const saveProfile = async () => {
     if (!data) return;
     try {
-      const response = await fetch("/api/buyer/profile", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ buyerId: data.buyer.id, ...profile }),
-      });
+      const form = new FormData();
+      form.append("buyerId", String(data.buyer.id));
+      form.append("fullName", profile.fullName);
+      form.append("defaultAddress", profile.defaultAddress);
+      form.append("bio", profile.bio);
+      form.append("categories", JSON.stringify(profile.categories));
+      if (avatarFile) form.append("avatar", avatarFile);
+
+      const response = await fetch("/api/buyer/profile", { method: "PATCH", body: form });
       const result = await response.json();
       if (!result.success) throw new Error(result.message);
       localStorage.setItem("userDisplayName", profile.fullName);
+      setAvatarFile(null);
       alert(result.message);
       await loadDashboard();
     } catch (err) { alert(err instanceof Error ? err.message : "ذخیره پروفایل ناموفق بود"); }
@@ -333,7 +354,28 @@ export default function BuyerDashboardPage() {
 
         {activeTab === "notifications" && <section><h1 className="mb-6 text-2xl font-bold text-[#003b5c]">اعلان‌های واقعی</h1><div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">{data.notifications.length === 0 ? <Empty text="هنوز اعلانی ندارید." /> : data.notifications.map((notification) => <div key={notification.id} className={`border-b p-5 ${notification.readAt ? "bg-gray-50" : "bg-white"}`}><div className="flex justify-between gap-4"><div><p className="font-bold text-[#003b5c]">{notification.title}</p><p className="mt-1 text-sm text-gray-600">{notification.body}</p></div><p className="text-xs text-gray-400">{dateLabel(notification.createdAt)}</p></div></div>)}</div></section>}
 
-        {activeTab === "profile" && <section className="mx-auto max-w-4xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm"><h1 className="mb-6 text-2xl font-bold text-[#003b5c]">پروفایل خریدار</h1><div className="grid gap-4 md:grid-cols-2"><Field label="نام یا نام شرکت" value={profile.fullName} onChange={(value) => setProfile({ ...profile, fullName: value })} /><Field label="آدرس پیش‌فرض ارسال" value={profile.defaultAddress} onChange={(value) => setProfile({ ...profile, defaultAddress: value })} /></div><label className="mt-4 block text-sm font-bold text-gray-700">درباره خریدار</label><textarea value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} className="mt-2 min-h-28 w-full rounded-xl border p-3 outline-none focus:border-[#00a8e8]" /><button onClick={saveProfile} className="mt-5 rounded-xl bg-[#003b5c] px-7 py-3 font-bold text-white">ذخیره پروفایل</button></section>}
+        {activeTab === "profile" && (
+          <section className="mx-auto max-w-4xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+            <h1 className="mb-6 text-2xl font-bold text-[#003b5c]">پروفایل خریدار</h1>
+            <div className="mb-6 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 sm:flex-row sm:items-center">
+              <div className="h-24 w-24 overflow-hidden rounded-3xl border-4 border-white bg-[#003b5c] text-white shadow-sm">
+                {avatarPreview ? <img src={avatarPreview} alt="تصویر پروفایل خریدار" className="h-full w-full object-cover" /> : <div className="grid h-full w-full place-items-center text-3xl font-bold">{profile.fullName.charAt(0) || "👤"}</div>}
+              </div>
+              <div className="flex-1 text-center sm:text-right">
+                <h2 className="font-bold text-gray-900">عکس پروفایل / لوگوی خریدار</h2>
+                <p className="mt-1 text-xs leading-6 text-gray-500">فرمت مجاز JPG، PNG یا WEBP با حداکثر حجم ۳ مگابایت. پس از انتخاب، روی ذخیره پروفایل کلیک کنید.</p>
+                <label className="mt-3 inline-flex cursor-pointer rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-[#00a8e8] hover:bg-blue-100">
+                  انتخاب یا تغییر عکس
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => handleAvatarChange(event.target.files?.[0])} />
+                </label>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2"><Field label="نام یا نام شرکت" value={profile.fullName} onChange={(value) => setProfile({ ...profile, fullName: value })} /><Field label="آدرس پیش‌فرض ارسال" value={profile.defaultAddress} onChange={(value) => setProfile({ ...profile, defaultAddress: value })} /></div>
+            <label className="mt-4 block text-sm font-bold text-gray-700">درباره خریدار</label>
+            <textarea value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} className="mt-2 min-h-28 w-full rounded-xl border p-3 outline-none focus:border-[#00a8e8]" />
+            <button onClick={saveProfile} className="mt-5 rounded-xl bg-[#003b5c] px-7 py-3 font-bold text-white">ذخیره پروفایل</button>
+          </section>
+        )}
 
         {activeTab === "settings" && <section className="mx-auto max-w-4xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm"><h1 className="mb-6 text-2xl font-bold text-[#003b5c]">تنظیمات خریدار</h1><h2 className="border-b pb-3 text-sm font-bold">حوزه‌های خرید مورد علاقه</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">{categoryOptions.map((category) => <label key={category} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm font-bold ${profile.categories.includes(category) ? "border-[#00a8e8] bg-blue-50" : "bg-gray-50"}`}><input type="checkbox" checked={profile.categories.includes(category)} onChange={() => setProfile({ ...profile, categories: profile.categories.includes(category) ? profile.categories.filter((x) => x !== category) : [...profile.categories, category] })} />{category}</label>)}</div><div className="mt-8 border-t pt-5"><h2 className="mb-3 text-sm font-bold">تنظیمات اعلان و پرداخت</h2><label className="mb-2 flex items-center gap-2 text-sm"><input type="checkbox" defaultChecked /> اعلان پیشنهاد جدید از فروشنده</label><label className="mb-2 flex items-center gap-2 text-sm"><input type="checkbox" defaultChecked /> اعلان ارسال کالا و کد رهگیری</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" defaultChecked /> انتقال مستقیم به پرداخت پس از انتخاب پیشنهاد</label></div><button onClick={saveProfile} className="mt-6 rounded-xl bg-[#003b5c] px-7 py-3 font-bold text-white">ذخیره تنظیمات</button></section>}
       </div>

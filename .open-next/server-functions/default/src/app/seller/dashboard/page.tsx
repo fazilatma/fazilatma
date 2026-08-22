@@ -20,6 +20,7 @@ type SellerData = {
     id: number;
     fullName: string;
     email: string;
+    avatarName?: string;
     walletBalance: number;
     bio?: string;
     categories?: string[];
@@ -57,6 +58,8 @@ export default function SellerDashboardPage() {
   const [messageText, setMessageText] = useState("");
   const [activeChatUserId, setActiveChatUserId] = useState<number | null>(null);
   const [settings, setSettings] = useState({ storeName: "", bio: "", categories: [] as string[] });
+  const [storeAvatarFile, setStoreAvatarFile] = useState<File | null>(null);
+  const [storeAvatarPreview, setStoreAvatarPreview] = useState("");
 
   const sellerId = typeof window === "undefined" ? 0 : Number(localStorage.getItem("userId") || 0);
 
@@ -78,6 +81,8 @@ export default function SellerDashboardPage() {
       setData(dashboard);
       if (score.success) setSellerScore(score.score);
       setSettings({ storeName: dashboard.seller.fullName || "", bio: dashboard.seller.bio || "", categories: dashboard.seller.categories || [] });
+      setStoreAvatarPreview(dashboard.seller.avatarName ? `/api/avatar?userId=${dashboard.seller.id}&v=${encodeURIComponent(dashboard.seller.avatarName)}` : "");
+      setStoreAvatarFile(null);
       setActiveChatUserId((current) => current || dashboard.orders[0]?.buyerId || dashboard.matchingRequests[0]?.buyerId || null);
       setQueueIndex(0);
       setTimeLeft(60);
@@ -173,13 +178,31 @@ export default function SellerDashboardPage() {
     catch (err) { alert(err instanceof Error ? err.message : "بایگانی ناموفق بود"); }
   };
 
+  const handleStoreAvatarChange = (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("لطفاً یک فایل تصویری معتبر برای لوگوی فروشگاه انتخاب کنید.");
+      return;
+    }
+    setStoreAvatarFile(file);
+    setStoreAvatarPreview(URL.createObjectURL(file));
+  };
+
   const saveSettings = async () => {
     if (!data) return;
     try {
-      const response = await fetch("/api/seller/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sellerId: data.seller.id, fullName: settings.storeName, bio: settings.bio, categories: settings.categories }) });
+      const form = new FormData();
+      form.append("sellerId", String(data.seller.id));
+      form.append("fullName", settings.storeName);
+      form.append("bio", settings.bio);
+      form.append("categories", JSON.stringify(settings.categories));
+      if (storeAvatarFile) form.append("avatar", storeAvatarFile);
+
+      const response = await fetch("/api/seller/profile", { method: "PATCH", body: form });
       const result = await response.json();
       if (!result.success) throw new Error(result.message);
       localStorage.setItem("userDisplayName", settings.storeName);
+      setStoreAvatarFile(null);
       alert(result.message);
       await loadDashboard();
     } catch (err) { alert(err instanceof Error ? err.message : "ذخیره تنظیمات ناموفق بود"); }
@@ -276,7 +299,30 @@ export default function SellerDashboardPage() {
 
         {activeTab === "notifications" && <section><h1 className="mb-6 text-2xl font-bold text-[#003b5c]">اعلان‌ها</h1><div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">{data.notifications.length === 0 ? <Empty text="هنوز اعلانی ندارید." /> : data.notifications.map((n) => <div key={n.id} className="border-b p-5"><div className="flex justify-between gap-4"><div><p className="font-bold text-[#003b5c]">{n.title}</p><p className="mt-1 text-sm text-gray-600">{n.body}</p></div><p className="text-xs text-gray-400">{dateLabel(n.createdAt)}</p></div></div>)}</div></section>}
 
-        {activeTab === "settings" && <section className="mx-auto max-w-4xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm"><h1 className="mb-6 text-2xl font-bold text-[#003b5c]">تنظیمات فروشگاه</h1><Field label="نام فروشگاه / شرکت" value={settings.storeName} onChange={(value) => setSettings({ ...settings, storeName: value })} /><label className="mt-4 block text-sm font-bold text-gray-700">درباره فروشگاه</label><textarea value={settings.bio} onChange={(e) => setSettings({ ...settings, bio: e.target.value })} className="mt-2 min-h-28 w-full rounded-xl border p-3 outline-none focus:border-[#00a8e8]" /><h2 className="mt-6 border-b pb-3 text-sm font-bold">حوزه‌های فعالیت — فقط این درخواست‌ها به رادار شما می‌آیند</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">{Object.values(categoryMap).map((category) => <label key={category} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm font-bold ${settings.categories.includes(category) ? "border-[#00a8e8] bg-blue-50" : "bg-gray-50"}`}><input type="checkbox" checked={settings.categories.includes(category)} onChange={() => setSettings({ ...settings, categories: settings.categories.includes(category) ? settings.categories.filter((x) => x !== category) : [...settings.categories, category] })} />{category}</label>)}</div><button onClick={saveSettings} className="mt-6 rounded-xl bg-[#003b5c] px-7 py-3 font-bold text-white">ذخیره تنظیمات</button></section>}
+        {activeTab === "settings" && (
+          <section className="mx-auto max-w-4xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+            <h1 className="mb-6 text-2xl font-bold text-[#003b5c]">تنظیمات فروشگاه</h1>
+            <div className="mb-6 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 sm:flex-row sm:items-center">
+              <div className="h-24 w-24 overflow-hidden rounded-3xl border-4 border-white bg-[#003b5c] text-white shadow-sm">
+                {storeAvatarPreview ? <img src={storeAvatarPreview} alt="لوگوی فروشگاه" className="h-full w-full object-cover" /> : <div className="grid h-full w-full place-items-center text-3xl font-bold">{settings.storeName.charAt(0) || "🏪"}</div>}
+              </div>
+              <div className="flex-1 text-center sm:text-right">
+                <h2 className="font-bold text-gray-900">لوگوی فروشگاه / تصویر فروشنده</h2>
+                <p className="mt-1 text-xs leading-6 text-gray-500">فرمت مجاز JPG، PNG یا WEBP با حداکثر حجم ۳ مگابایت. پس از انتخاب، روی ذخیره تنظیمات کلیک کنید.</p>
+                <label className="mt-3 inline-flex cursor-pointer rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-[#00a8e8] hover:bg-blue-100">
+                  انتخاب یا تغییر لوگو
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => handleStoreAvatarChange(event.target.files?.[0])} />
+                </label>
+              </div>
+            </div>
+            <Field label="نام فروشگاه / شرکت" value={settings.storeName} onChange={(value) => setSettings({ ...settings, storeName: value })} />
+            <label className="mt-4 block text-sm font-bold text-gray-700">درباره فروشگاه</label>
+            <textarea value={settings.bio} onChange={(e) => setSettings({ ...settings, bio: e.target.value })} className="mt-2 min-h-28 w-full rounded-xl border p-3 outline-none focus:border-[#00a8e8]" />
+            <h2 className="mt-6 border-b pb-3 text-sm font-bold">حوزه‌های فعالیت — فقط این درخواست‌ها به رادار شما می‌آیند</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">{Object.values(categoryMap).map((category) => <label key={category} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm font-bold ${settings.categories.includes(category) ? "border-[#00a8e8] bg-blue-50" : "bg-gray-50"}`}><input type="checkbox" checked={settings.categories.includes(category)} onChange={() => setSettings({ ...settings, categories: settings.categories.includes(category) ? settings.categories.filter((x) => x !== category) : [...settings.categories, category] })} />{category}</label>)}</div>
+            <button onClick={saveSettings} className="mt-6 rounded-xl bg-[#003b5c] px-7 py-3 font-bold text-white">ذخیره تنظیمات</button>
+          </section>
+        )}
       </div>
     </div>
   );

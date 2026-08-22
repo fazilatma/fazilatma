@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createJsonUser, type JsonKycDocument } from "@/lib/json-store";
 import { removeKycFiles, saveKycFile } from "@/lib/kyc-storage";
+import { removeAvatarFile, saveAvatarFile } from "@/lib/avatar-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ function isValidSheba(value: string) {
 
 export async function POST(request: Request) {
   const savedDocuments: JsonKycDocument[] = [];
+  let savedAvatarName = "";
   try {
     const form = await request.formData();
     const fullName = text(form, "fullName");
@@ -139,13 +141,15 @@ export async function POST(request: Request) {
     }
 
     const profileImage = asFile(form.get("profileImage"));
+    if (profileImage) savedAvatarName = await saveAvatarFile(profileImage);
+
     const { user } = await createJsonUser({
       fullName,
       username,
       email,
       password,
       role,
-      avatarName: profileImage?.name,
+      avatarName: savedAvatarName || undefined,
       city,
       postalCode,
       defaultAddress,
@@ -171,6 +175,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     await removeKycFiles(savedDocuments);
+    if (savedAvatarName) await removeAvatarFile(savedAvatarName);
     const detail = error instanceof Error ? error.message : "Unknown registration error";
     const message = detail.includes("Email already")
       ? "این ایمیل قبلاً ثبت شده است."

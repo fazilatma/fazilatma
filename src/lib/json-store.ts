@@ -696,13 +696,14 @@ export async function createJsonPurchaseRequest(input: {
 
 export async function updateJsonBuyerProfile(
   buyerId: number,
-  updates: { fullName?: string; bio?: string; defaultAddress?: string; categories?: string[] }
+  updates: { fullName?: string; bio?: string; defaultAddress?: string; categories?: string[]; avatarName?: string }
 ) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, buyerId, "buyer");
   if (updates.fullName?.trim()) buyer.fullName = updates.fullName.trim();
   if (typeof updates.bio === "string") buyer.bio = updates.bio.trim();
   if (typeof updates.defaultAddress === "string") buyer.defaultAddress = updates.defaultAddress.trim();
+  if (typeof updates.avatarName === "string" && updates.avatarName.trim()) buyer.avatarName = updates.avatarName.trim();
   if (Array.isArray(updates.categories)) buyer.categories = [...new Set(updates.categories.map((x) => x.trim()).filter(Boolean))];
   await writeOptiBidData(data);
   return buyer;
@@ -771,12 +772,13 @@ export async function updateJsonKycStatus(input: {
 
 export async function updateJsonSellerProfile(
   sellerId: number,
-  updates: { fullName?: string; bio?: string; categories?: string[] }
+  updates: { fullName?: string; bio?: string; categories?: string[]; avatarName?: string }
 ) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, sellerId, "seller");
   if (updates.fullName?.trim()) seller.fullName = updates.fullName.trim();
   if (typeof updates.bio === "string") seller.bio = updates.bio.trim();
+  if (typeof updates.avatarName === "string" && updates.avatarName.trim()) seller.avatarName = updates.avatarName.trim();
   if (Array.isArray(updates.categories)) seller.categories = [...new Set(updates.categories.map((x) => x.trim()).filter(Boolean))];
   const metrics = seller.sellerMetrics || createDefaultSellerMetrics();
   seller.sellerMetrics = {

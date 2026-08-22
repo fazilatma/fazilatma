@@ -7,6 +7,7 @@
   "/api/admin/kyc/route": "app/api/admin/kyc/route.js",
   "/api/admin/seller-metrics/route": "app/api/admin/seller-metrics/route.js",
   "/api/admin/withdrawals/route": "app/api/admin/withdrawals/route.js",
+  "/api/avatar/route": "app/api/avatar/route.js",
   "/api/buyer/profile/route": "app/api/buyer/profile/route.js",
   "/api/dashboard/buyer/route": "app/api/dashboard/buyer/route.js",
   "/api/dashboard/seller/route": "app/api/dashboard/seller/route.js",
