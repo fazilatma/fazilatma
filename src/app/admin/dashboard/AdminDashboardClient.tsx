@@ -5,6 +5,35 @@ import { useEffect, useState } from "react";
 import SellerStars from "@/components/SellerStars";
 import { useLiveContent } from "@/hooks/useLiveContent";
 
+
+const indicatorOptions = [
+  { id: "sma", label: "SMA", description: "میانگین متحرک ساده ۷ و ۲۰ روزه" },
+  { id: "ema", label: "EMA", description: "میانگین متحرک نمایی ۱۲ و ۲۶ روزه" },
+  { id: "bollinger", label: "Bollinger Bands", description: "باندهای بولینگر بر اساس نوسان قیمت" },
+  { id: "rsi", label: "RSI", description: "شاخص قدرت نسبی" },
+  { id: "stochRsi", label: "Stoch RSI", description: "اسیلاتور Stochastic RSI" },
+  { id: "macd", label: "MACD", description: "MACD، سیگنال و هیستوگرام" },
+  { id: "roc", label: "ROC", description: "نرخ تغییر قیمت" },
+  { id: "momentum", label: "Momentum", description: "مومنتوم قیمت" },
+  { id: "atr", label: "ATR", description: "میانگین دامنه نوسان واقعی برآوردی" },
+  { id: "demand", label: "Demand Volume", description: "حجم تقاضای روزانه از داده واقعی درخواست/پیشنهاد/سفارش" },
+] as const;
+
+type IndicatorId = (typeof indicatorOptions)[number]["id"];
+
+const defaultIndicators: Record<IndicatorId, boolean> = {
+  sma: true,
+  ema: false,
+  bollinger: true,
+  rsi: true,
+  stochRsi: true,
+  macd: true,
+  roc: false,
+  momentum: false,
+  atr: false,
+  demand: true,
+};
+
 export default function AdminDashboardClient({
   realStats,
   sellerRankings,
@@ -21,8 +50,9 @@ export default function AdminDashboardClient({
   const [reportView, setReportView] = useState<"products" | "buyers" | "sellers">("products");
   const [chartMode, setChartMode] = useState<"line" | "bar" | "pie">("line");
   const [selectedProductName, setSelectedProductName] = useState("");
-  const [showRsi, setShowRsi] = useState(true);
-  const [showMacd, setShowMacd] = useState(true);
+  const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
+  const [indicatorSearch, setIndicatorSearch] = useState("");
+  const [selectedIndicators, setSelectedIndicators] = useState<Record<IndicatorId, boolean>>(defaultIndicators);
   const [pendingVerifications, setPendingVerifications] = useState<any[]>(initialKycUsers);
   const [kycReasons, setKycReasons] = useState<Record<number, string>>({});
   
@@ -152,6 +182,13 @@ export default function AdminDashboardClient({
   const analytics = adminReports?.analytics || { growingItems: [], mostRequestedItems: [], highestRevenueItems: [], technicalItems: [] };
   const reportRows = reportView === "products" ? productReports : reportView === "buyers" ? buyerReports : sellerReports;
   const selectedProduct = productReports.find((item: any) => item.product === selectedProductName) || productReports[0] || null;
+  const enabledIndicatorsCount = Object.values(selectedIndicators).filter(Boolean).length;
+  const filteredIndicatorOptions = indicatorOptions.filter((option) =>
+    `${option.label} ${option.description}`.toLowerCase().includes(indicatorSearch.trim().toLowerCase())
+  );
+  const toggleIndicator = (id: IndicatorId) => {
+    setSelectedIndicators((current) => ({ ...current, [id]: !current[id] }));
+  };
 
 
   const categoriesList = [
@@ -368,8 +405,32 @@ export default function AdminDashboardClient({
                       {[["line", "خطی"], ["bar", "میله‌ای"], ["pie", "دایره‌ای"]].map(([id, label]) => (
                         <button key={id} onClick={() => setChartMode(id as "line" | "bar" | "pie")} className={`rounded-xl border px-4 py-2 text-xs font-bold transition ${chartMode === id ? "border-[#003b5c] bg-[#003b5c] text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-blue-50"}`}>{label}</button>
                       ))}
-                      <label className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600"><input type="checkbox" checked={showRsi} onChange={(e) => setShowRsi(e.target.checked)} /> RSI</label>
-                      <label className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600"><input type="checkbox" checked={showMacd} onChange={(e) => setShowMacd(e.target.checked)} /> MACD</label>
+                      <div className="relative">
+                        <button type="button" onClick={() => setIndicatorPanelOpen((open) => !open)} className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 transition hover:bg-amber-100">
+                          Indicators · {enabledIndicatorsCount} فعال
+                        </button>
+                        {indicatorPanelOpen && (
+                          <div className="absolute left-0 top-11 z-20 w-80 rounded-2xl border border-gray-200 bg-white p-3 text-right shadow-2xl">
+                            <div className="mb-3 flex items-center justify-between border-b pb-2">
+                              <b className="text-sm text-gray-800">افزودن اندیکاتور</b>
+                              <button type="button" onClick={() => setIndicatorPanelOpen(false)} className="text-gray-400 hover:text-gray-700">✕</button>
+                            </div>
+                            <input value={indicatorSearch} onChange={(e) => setIndicatorSearch(e.target.value)} placeholder="جستجوی اندیکاتور..." className="mb-3 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#00a8e8]" />
+                            <div className="max-h-80 space-y-1 overflow-y-auto">
+                              {filteredIndicatorOptions.map((option) => (
+                                <label key={option.id} className="flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2 text-sm transition hover:bg-gray-50">
+                                  <input type="checkbox" checked={selectedIndicators[option.id]} onChange={() => toggleIndicator(option.id)} className="mt-1" />
+                                  <span>
+                                    <span className="block font-bold text-gray-800" dir="ltr">{option.label}</span>
+                                    <span className="block text-xs leading-5 text-gray-500">{option.description}</span>
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                            <button type="button" onClick={() => setSelectedIndicators(defaultIndicators)} className="mt-3 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200">بازنشانی اندیکاتورها</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -388,7 +449,7 @@ export default function AdminDashboardClient({
                     </aside>
                     <div className="xl:col-span-8">
                       {selectedProduct ? (
-                        <ProductAnalysisChart product={selectedProduct} mode={chartMode} showRsi={showRsi} showMacd={showMacd} moneyLabel={moneyLabel} percentLabel={percentLabel} />
+                        <ProductAnalysisChart product={selectedProduct} mode={chartMode} indicators={selectedIndicators} moneyLabel={moneyLabel} percentLabel={percentLabel} />
                       ) : (
                         <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">یک کالا را برای مشاهده نمودار انتخاب کنید.</div>
                       )}
@@ -824,35 +885,39 @@ function AnalyticsList({
 function ProductAnalysisChart({
   product,
   mode,
-  showRsi,
-  showMacd,
+  indicators,
   moneyLabel,
   percentLabel,
 }: {
   product: any;
   mode: "line" | "bar" | "pie";
-  showRsi: boolean;
-  showMacd: boolean;
+  indicators: Record<IndicatorId, boolean>;
   moneyLabel: (value: number | string) => string;
   percentLabel: (value: number | string) => string;
 }) {
   const chartPoints = (product.chartPoints || []).filter((point: any) => Number(point.price) > 0);
   const distribution = (product.chartDistribution || []).filter((item: any) => Number(item.value) > 0);
-  const width = 820;
-  const height = 460;
-  const left = 56;
-  const right = 28;
+  const width = 900;
+  const height = 560;
+  const left = 62;
+  const right = 34;
   const plotWidth = width - left - right;
-  const priceTop = 28;
-  const priceHeight = 230;
-  const rsiTop = 286;
-  const rsiHeight = 70;
-  const macdTop = 384;
-  const macdHeight = 50;
+  const priceTop = 30;
+  const priceHeight = 250;
+  const oscillatorTop = 316;
+  const oscillatorHeight = 92;
+  const lowerTop = 450;
+  const lowerHeight = 72;
 
-  const prices = chartPoints.map((point: any) => Number(point.price));
-  const minPrice = Math.min(...prices, 0);
-  const maxPrice = Math.max(...prices, 1);
+  const enabled = (id: IndicatorId) => Boolean(indicators[id]);
+  const priceKeys = ["price"];
+  if (enabled("sma")) priceKeys.push("sma7", "sma20");
+  if (enabled("ema")) priceKeys.push("ema12", "ema26");
+  if (enabled("bollinger")) priceKeys.push("bollingerUpper", "bollingerMiddle", "bollingerLower");
+
+  const priceValues = chartPoints.flatMap((point: any) => priceKeys.map((key) => point[key]).filter((value) => value !== null && value !== undefined).map(Number));
+  const minPrice = Math.min(...priceValues, 0);
+  const maxPrice = Math.max(...priceValues, 1);
   const pricePadding = Math.max(1, (maxPrice - minPrice) * 0.12);
   const priceMin = Math.max(0, minPrice - pricePadding);
   const priceMax = maxPrice + pricePadding;
@@ -860,21 +925,35 @@ function ProductAnalysisChart({
 
   const x = (index: number) => left + (index * plotWidth) / Math.max(1, chartPoints.length - 1);
   const priceY = (value: number) => priceTop + priceHeight - ((value - priceMin) / Math.max(1, priceMax - priceMin)) * priceHeight;
-  const rsiY = (value: number) => rsiTop + rsiHeight - (Math.max(0, Math.min(100, value)) / 100) * rsiHeight;
-  const macdValues: number[] = chartPoints.flatMap((point: any) => [point.macd, point.macdSignal, point.macdHistogram].filter((value: unknown) => value !== null && value !== undefined).map(Number));
-  const macdAbsMax = Math.max(1, ...macdValues.map((value: number) => Math.abs(value)));
-  const macdZeroY = macdTop + macdHeight / 2;
-  const macdY = (value: number) => macdZeroY - (value / macdAbsMax) * (macdHeight / 2);
+  const oscillatorY = (value: number) => oscillatorTop + oscillatorHeight - (Math.max(0, Math.min(100, value)) / 100) * oscillatorHeight;
+  const lowerKeys: string[] = [];
+  if (enabled("macd")) lowerKeys.push("macd", "macdSignal", "macdHistogram");
+  if (enabled("roc")) lowerKeys.push("roc");
+  if (enabled("momentum")) lowerKeys.push("momentum");
+  if (enabled("atr")) lowerKeys.push("atr");
+  const lowerValues: number[] = chartPoints.flatMap((point: any) => lowerKeys.map((key) => point[key]).filter((value) => value !== null && value !== undefined).map(Number));
+  const lowerAbsMax = Math.max(1, ...lowerValues.map((value: number) => Math.abs(value)));
+  const lowerZeroY = lowerTop + lowerHeight / 2;
+  const lowerY = (value: number) => lowerZeroY - (value / lowerAbsMax) * (lowerHeight / 2);
 
-  const linePath = (key: string, mapper: (value: number) => number) =>
-    chartPoints
+  const linePath = (key: string, mapper: (value: number) => number) => {
+    let started = false;
+    return chartPoints
       .map((point: any, index: number) => {
         const value = point[key];
         if (value === null || value === undefined || Number.isNaN(Number(value))) return "";
-        return `${index === 0 ? "M" : "L"}${x(index)},${mapper(Number(value))}`;
+        const command = started ? "L" : "M";
+        started = true;
+        return `${command}${x(index)},${mapper(Number(value))}`;
       })
       .filter(Boolean)
       .join(" ");
+  };
+
+  const renderLine = (key: string, color: string, mapper: (value: number) => number, strokeWidth = 2, dash = "") => {
+    const path = linePath(key, mapper);
+    return path ? <path d={path} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={dash} strokeLinecap="round" strokeLinejoin="round" /> : null;
+  };
 
   const pieColors = ["#00a8e8", "#8b5cf6", "#16a34a", "#ef4444", "#f59e0b"];
   const pieTotal = distribution.reduce((sum: number, item: any) => sum + Number(item.value || 0), 0);
@@ -898,6 +977,20 @@ function ProductAnalysisChart({
     const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
     return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
   };
+
+  const legend = [
+    { enabled: true, color: "#00a8e8", label: "Price" },
+    { enabled: enabled("demand") && mode !== "pie", color: "#14b8a6", label: "Demand" },
+    { enabled: enabled("sma") && mode !== "pie", color: "#f59e0b", label: "SMA 7/20" },
+    { enabled: enabled("ema") && mode !== "pie", color: "#8b5cf6", label: "EMA 12/26" },
+    { enabled: enabled("bollinger") && mode !== "pie", color: "#64748b", label: "Bollinger" },
+    { enabled: enabled("rsi") && mode !== "pie", color: "#9333ea", label: "RSI" },
+    { enabled: enabled("stochRsi") && mode !== "pie", color: "#ef4444", label: "Stoch RSI" },
+    { enabled: enabled("macd") && mode !== "pie", color: "#2563eb", label: "MACD" },
+    { enabled: enabled("roc") && mode !== "pie", color: "#0f766e", label: "ROC" },
+    { enabled: enabled("momentum") && mode !== "pie", color: "#be123c", label: "Momentum" },
+    { enabled: enabled("atr") && mode !== "pie", color: "#7c3aed", label: "ATR" },
+  ].filter((item) => item.enabled);
 
   if (chartPoints.length === 0 && mode !== "pie") {
     return <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">برای این کالا هنوز نقطه قیمتی کافی وجود ندارد.</div>;
@@ -940,7 +1033,7 @@ function ProductAnalysisChart({
           </div>
         </div>
       ) : (
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-[460px] w-full rounded-2xl bg-gradient-to-b from-white to-gray-50" role="img" aria-label={`نمودار تحلیلی ${product.product}`}>
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-[560px] w-full rounded-2xl bg-gradient-to-b from-white to-gray-50" role="img" aria-label={`نمودار تحلیلی ${product.product}`}>
           {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
             <g key={tick}>
               <line x1={left} x2={width - right} y1={priceTop + priceHeight * tick} y2={priceTop + priceHeight * tick} stroke="#e5e7eb" strokeDasharray="4 4" />
@@ -949,39 +1042,63 @@ function ProductAnalysisChart({
           ))}
 
           <text x={left} y="18" className="fill-gray-600 text-[11px] font-bold">قیمت / بودجه / پیشنهاد</text>
+          {enabled("demand") && chartPoints.map((point: any, index: number) => {
+            const demandHeight = (Number(point.demand || 0) / maxDemand) * 48;
+            const barWidth = Math.max(5, plotWidth / Math.max(1, chartPoints.length) - 4);
+            return <rect key={`${point.at}-demand`} x={x(index) - barWidth / 2} y={priceTop + priceHeight - demandHeight} width={barWidth} height={demandHeight} rx="3" fill="#14b8a6" opacity="0.22" />;
+          })}
           {mode === "bar" ? chartPoints.map((point: any, index: number) => {
             const barWidth = Math.max(8, plotWidth / Math.max(1, chartPoints.length) - 5);
             const y = priceY(Number(point.price));
             return <rect key={`${point.at}-bar`} x={x(index) - barWidth / 2} y={y} width={barWidth} height={priceTop + priceHeight - y} rx="5" fill="#00a8e8" opacity="0.75" />;
           }) : (
             <>
-              <path d={linePath("price", priceY)} fill="none" stroke="#00a8e8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              {renderLine("price", "#00a8e8", priceY, 4)}
               {chartPoints.map((point: any, index: number) => <circle key={`${point.at}-dot`} cx={x(index)} cy={priceY(Number(point.price))} r="4" fill="#00a8e8" stroke="#fff" strokeWidth="2" />)}
             </>
           )}
+          {enabled("sma") && renderLine("sma7", "#f59e0b", priceY, 2.4)}
+          {enabled("sma") && renderLine("sma20", "#d97706", priceY, 2.2, "6 4")}
+          {enabled("ema") && renderLine("ema12", "#8b5cf6", priceY, 2.3)}
+          {enabled("ema") && renderLine("ema26", "#6d28d9", priceY, 2.1, "6 4")}
+          {enabled("bollinger") && renderLine("bollingerUpper", "#64748b", priceY, 1.8, "5 5")}
+          {enabled("bollinger") && renderLine("bollingerMiddle", "#94a3b8", priceY, 1.5, "3 5")}
+          {enabled("bollinger") && renderLine("bollingerLower", "#64748b", priceY, 1.8, "5 5")}
 
           {chartPoints.map((point: any, index: number) => {
             if (index % Math.max(1, Math.ceil(chartPoints.length / 6)) !== 0) return null;
             return <text key={`${point.at}-label`} x={x(index)} y={priceTop + priceHeight + 20} textAnchor="middle" className="fill-gray-400 text-[10px]">{point.label}</text>;
           })}
 
-          <text x={left} y={rsiTop - 10} className="fill-purple-700 text-[11px] font-bold">RSI</text>
-          <line x1={left} x2={width - right} y1={rsiY(70)} y2={rsiY(70)} stroke="#c084fc" strokeDasharray="5 5" />
-          <line x1={left} x2={width - right} y1={rsiY(30)} y2={rsiY(30)} stroke="#c084fc" strokeDasharray="5 5" />
-          <rect x={left} y={rsiTop} width={plotWidth} height={rsiHeight} fill="#faf5ff" opacity="0.8" />
-          {showRsi && <path d={linePath("rsi", rsiY)} fill="none" stroke="#9333ea" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+          <text x={left} y={oscillatorTop - 10} className="fill-purple-700 text-[11px] font-bold">RSI / Stoch RSI</text>
+          <rect x={left} y={oscillatorTop} width={plotWidth} height={oscillatorHeight} fill="#faf5ff" opacity="0.86" />
+          <line x1={left} x2={width - right} y1={oscillatorY(80)} y2={oscillatorY(80)} stroke="#c084fc" strokeDasharray="5 5" />
+          <line x1={left} x2={width - right} y1={oscillatorY(70)} y2={oscillatorY(70)} stroke="#ddd6fe" strokeDasharray="4 6" />
+          <line x1={left} x2={width - right} y1={oscillatorY(30)} y2={oscillatorY(30)} stroke="#ddd6fe" strokeDasharray="4 6" />
+          <line x1={left} x2={width - right} y1={oscillatorY(20)} y2={oscillatorY(20)} stroke="#c084fc" strokeDasharray="5 5" />
+          {enabled("rsi") && renderLine("rsi", "#9333ea", oscillatorY, 2.6)}
+          {enabled("stochRsi") && renderLine("stochRsiK", "#ef4444", oscillatorY, 2.1)}
+          {enabled("stochRsi") && renderLine("stochRsiD", "#2563eb", oscillatorY, 2.1)}
 
-          <text x={left} y={macdTop - 10} className="fill-rose-700 text-[11px] font-bold">MACD</text>
-          <line x1={left} x2={width - right} y1={macdZeroY} y2={macdZeroY} stroke="#d1d5db" />
-          {showMacd && chartPoints.map((point: any, index: number) => {
+          <text x={left} y={lowerTop - 10} className="fill-rose-700 text-[11px] font-bold">MACD / ROC / Momentum / ATR</text>
+          <rect x={left} y={lowerTop} width={plotWidth} height={lowerHeight} fill="#fff7ed" opacity="0.65" />
+          <line x1={left} x2={width - right} y1={lowerZeroY} y2={lowerZeroY} stroke="#d1d5db" />
+          {enabled("macd") && chartPoints.map((point: any, index: number) => {
             if (point.macdHistogram === null || point.macdHistogram === undefined) return null;
-            const y = macdY(Number(point.macdHistogram));
-            return <rect key={`${point.at}-macd-hist`} x={x(index) - 3} y={Math.min(y, macdZeroY)} width="6" height={Math.abs(macdZeroY - y)} rx="2" fill={Number(point.macdHistogram) >= 0 ? "#16a34a" : "#ef4444"} opacity="0.65" />;
+            const y = lowerY(Number(point.macdHistogram));
+            return <rect key={`${point.at}-macd-hist`} x={x(index) - 3} y={Math.min(y, lowerZeroY)} width="6" height={Math.abs(lowerZeroY - y)} rx="2" fill={Number(point.macdHistogram) >= 0 ? "#16a34a" : "#ef4444"} opacity="0.65" />;
           })}
-          {showMacd && <path d={linePath("macd", macdY)} fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
-          {showMacd && <path d={linePath("macdSignal", macdY)} fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+          {enabled("macd") && renderLine("macd", "#2563eb", lowerY, 2)}
+          {enabled("macd") && renderLine("macdSignal", "#f97316", lowerY, 2)}
+          {enabled("roc") && renderLine("roc", "#0f766e", lowerY, 2.2)}
+          {enabled("momentum") && renderLine("momentum", "#be123c", lowerY, 2.2)}
+          {enabled("atr") && renderLine("atr", "#7c3aed", lowerY, 2.2)}
         </svg>
       )}
+
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+        {legend.map((item) => <span key={item.label} className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2.5 py-1 font-bold text-gray-600"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />{item.label}</span>)}
+      </div>
 
       <div className="mt-4 grid gap-3 text-xs md:grid-cols-4">
         <div className="rounded-xl bg-gray-50 p-3"><b>میانگین بودجه:</b><br />{moneyLabel(product.averageRequestedBudget)}</div>

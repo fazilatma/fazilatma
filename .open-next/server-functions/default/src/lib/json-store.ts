@@ -1476,6 +1476,90 @@ function calculateMacdSeries(values: number[]) {
   return values.map((_, index) => calculateMacd(values.slice(0, index + 1)));
 }
 
+function calculateSmaSeries(values: number[], period: number): Array<number | null> {
+  return values.map((_, index) => {
+    if (index < period - 1) return null;
+    return Math.round(average(values.slice(index - period + 1, index + 1)) * 10) / 10;
+  });
+}
+
+function calculateEmaSeries(values: number[], period: number): Array<number | null> {
+  const result: Array<number | null> = values.map(() => null);
+  if (values.length < period) return result;
+  const multiplier = 2 / (period + 1);
+  let previous = average(values.slice(0, period));
+  result[period - 1] = Math.round(previous * 10) / 10;
+  for (let index = period; index < values.length; index += 1) {
+    previous = (values[index] - previous) * multiplier + previous;
+    result[index] = Math.round(previous * 10) / 10;
+  }
+  return result;
+}
+
+function standardDeviation(values: number[]) {
+  if (values.length === 0) return 0;
+  const avg = average(values);
+  const variance = average(values.map((value) => (value - avg) ** 2));
+  return Math.sqrt(variance);
+}
+
+function calculateBollingerSeries(values: number[], period = 20, multiplier = 2) {
+  return values.map((_, index) => {
+    if (index < period - 1) return { upper: null, middle: null, lower: null };
+    const window = values.slice(index - period + 1, index + 1);
+    const middle = average(window);
+    const deviation = standardDeviation(window) * multiplier;
+    return {
+      upper: Math.round((middle + deviation) * 10) / 10,
+      middle: Math.round(middle * 10) / 10,
+      lower: Math.round(Math.max(0, middle - deviation) * 10) / 10,
+    };
+  });
+}
+
+function calculateStochRsiSeries(rsiSeries: Array<number | null>, period = 14, smoothK = 3, smoothD = 3) {
+  const rawK: Array<number | null> = rsiSeries.map((rsi, index) => {
+    if (rsi === null || index < period - 1) return null;
+    const window = rsiSeries.slice(index - period + 1, index + 1).filter((value): value is number => value !== null);
+    if (window.length < period) return null;
+    const lowest = Math.min(...window);
+    const highest = Math.max(...window);
+    if (highest === lowest) return 50;
+    return Math.round(((rsi - lowest) / (highest - lowest)) * 1000) / 10;
+  });
+
+  const k = rawK.map((_, index) => {
+    const window = rawK.slice(Math.max(0, index - smoothK + 1), index + 1).filter((value): value is number => value !== null);
+    return window.length < smoothK ? null : Math.round(average(window) * 10) / 10;
+  });
+
+  const d = k.map((_, index) => {
+    const window = k.slice(Math.max(0, index - smoothD + 1), index + 1).filter((value): value is number => value !== null);
+    return window.length < smoothD ? null : Math.round(average(window) * 10) / 10;
+  });
+
+  return { k, d };
+}
+
+function calculateRocSeries(values: number[], period = 12): Array<number | null> {
+  return values.map((value, index) => {
+    if (index < period || values[index - period] === 0) return null;
+    return Math.round(((value - values[index - period]) / values[index - period]) * 1000) / 10;
+  });
+}
+
+function calculateMomentumSeries(values: number[], period = 10): Array<number | null> {
+  return values.map((value, index) => (index < period ? null : Math.round((value - values[index - period]) * 10) / 10));
+}
+
+function calculateAtrSeries(values: number[], period = 14): Array<number | null> {
+  const trueRanges = values.map((value, index) => (index === 0 ? 0 : Math.abs(value - values[index - 1])));
+  return trueRanges.map((_, index) => {
+    if (index < period) return null;
+    return Math.round(average(trueRanges.slice(index - period + 1, index + 1)) * 10) / 10;
+  });
+}
+
 function buildDailyChartPoints(points: Array<{ at: string; value: number }>) {
   const buckets = new Map<string, { at: string; priceSum: number; priceCount: number; demand: number }>();
   for (const point of points) {
@@ -1501,13 +1585,34 @@ function buildDailyChartPoints(points: Array<{ at: string; value: number }>) {
   const prices = rows.map((item) => item.price);
   const rsiSeries = calculateRsiSeries(prices);
   const macdSeries = calculateMacdSeries(prices);
+  const sma7Series = calculateSmaSeries(prices, 7);
+  const sma20Series = calculateSmaSeries(prices, 20);
+  const ema12Series = calculateEmaSeries(prices, 12);
+  const ema26Series = calculateEmaSeries(prices, 26);
+  const bollingerSeries = calculateBollingerSeries(prices, 20, 2);
+  const stochRsi = calculateStochRsiSeries(rsiSeries, 14, 3, 3);
+  const rocSeries = calculateRocSeries(prices, 12);
+  const momentumSeries = calculateMomentumSeries(prices, 10);
+  const atrSeries = calculateAtrSeries(prices, 14);
 
   return rows.map((row, index) => ({
     ...row,
+    sma7: sma7Series[index],
+    sma20: sma20Series[index],
+    ema12: ema12Series[index],
+    ema26: ema26Series[index],
+    bollingerUpper: bollingerSeries[index]?.upper ?? null,
+    bollingerMiddle: bollingerSeries[index]?.middle ?? null,
+    bollingerLower: bollingerSeries[index]?.lower ?? null,
     rsi: rsiSeries[index],
+    stochRsiK: stochRsi.k[index],
+    stochRsiD: stochRsi.d[index],
     macd: macdSeries[index]?.macd ?? null,
     macdSignal: macdSeries[index]?.signal ?? null,
     macdHistogram: macdSeries[index]?.histogram ?? null,
+    roc: rocSeries[index],
+    momentum: momentumSeries[index],
+    atr: atrSeries[index],
   }));
 }
 
