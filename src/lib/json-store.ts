@@ -15,6 +15,12 @@ import {
 } from "@/lib/seller-rating";
 import { getKvNamespace, kvPutText } from "@/lib/kv-storage";
 import { getExternalMarketSeriesForProduct } from "@/lib/external-market-data";
+import {
+  estimateFairUsedProductPrice,
+  normalizeProductValuationFactors,
+  type AiPriceEstimate,
+  type ProductValuationFactors,
+} from "@/lib/request-valuation";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -40,6 +46,8 @@ export type JsonRequest = {
   quantity: number;
   deadline: string;
   imageNames: string[];
+  valuationFactors?: ProductValuationFactors;
+  aiPriceEstimate?: AiPriceEstimate;
   status: "open" | "selected" | "paid" | "shipped" | "completed" | "cancelled" | "returned";
   offersCount: number;
   createdAt: string;
@@ -386,7 +394,15 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
   })) as JsonUser[];
 
   return {
-    requests: Array.isArray(parsed.requests) ? parsed.requests : [],
+    requests: Array.isArray(parsed.requests)
+      ? parsed.requests.map((request) => ({
+          ...request,
+          valuationFactors: request.valuationFactors
+            ? normalizeProductValuationFactors(request.valuationFactors)
+            : undefined,
+          aiPriceEstimate: request.aiPriceEstimate,
+        })) as JsonRequest[]
+      : [],
     users,
     offers: Array.isArray(parsed.offers) ? parsed.offers : [],
     sellerRequestActions: Array.isArray(parsed.sellerRequestActions) ? parsed.sellerRequestActions : [],
@@ -650,6 +666,7 @@ export async function createJsonPurchaseRequest(input: {
   imageNames?: string[];
   buyerName?: string;
   buyerId?: number;
+  valuationFactors?: Partial<ProductValuationFactors>;
 }) {
   const data = await getOptiBidData();
   let buyer: JsonUser | undefined;
@@ -673,6 +690,15 @@ export async function createJsonPurchaseRequest(input: {
     }
   }
 
+  const valuationFactors = normalizeProductValuationFactors(input.valuationFactors);
+  const aiPriceEstimate = estimateFairUsedProductPrice({
+    title: input.title,
+    category: input.category,
+    budget: input.budget,
+    quantity: input.quantity || "1",
+    factors: valuationFactors,
+  });
+
   const purchaseRequest: JsonRequest = {
     id: nextNumericId(data.requests),
     buyerId: buyer.id,
@@ -684,6 +710,8 @@ export async function createJsonPurchaseRequest(input: {
     quantity: Math.max(1, Number.parseInt(input.quantity || "1", 10) || 1),
     deadline: input.deadline || "flexible",
     imageNames: input.imageNames || [],
+    valuationFactors,
+    aiPriceEstimate,
     status: "open",
     offersCount: 0,
     createdAt: new Date().toISOString(),

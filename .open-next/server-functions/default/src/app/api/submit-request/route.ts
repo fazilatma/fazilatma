@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       imageNames: Array.isArray(data.imageNames) ? data.imageNames : [],
       buyerName: data.buyerName,
       buyerId: Number(data.buyerId) || undefined,
+      valuationFactors: data.valuationFactors && typeof data.valuationFactors === "object" ? data.valuationFactors : undefined,
     });
 
     revalidatePath("/");

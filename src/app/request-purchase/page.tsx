@@ -15,6 +15,23 @@ export default function RequestPurchasePage() {
     deadline: "",
     quantity: "1",
     attachments: null as File | null,
+    valuationFactors: {
+      productCondition: "used_good",
+      sameNewProductPrice: "",
+      manufactureYear: "",
+      warrantyStatus: "unknown",
+      warrantyMonths: "",
+      partsHealth: "unknown",
+      batteryHealthPercent: "",
+      appearanceGrade: "unknown",
+      repairHistory: "unknown",
+      usageLevel: "unknown",
+      accessoriesStatus: "unknown",
+      originalPackaging: "unknown",
+      purchaseInvoiceAvailable: "unknown",
+      marketAvailability: "unknown",
+      valuationNotes: "",
+    },
   });
 
   const categories = [
@@ -32,6 +49,31 @@ export default function RequestPurchasePage() {
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+
+  const updateValuationFactor = (key: keyof typeof formData.valuationFactors, value: string) => {
+    setFormData((current) => ({
+      ...current,
+      valuationFactors: { ...current.valuationFactors, [key]: value },
+    }));
+  };
+
+  const formatMoneyInput = (value: string) => {
+    const rawValue = value.replace(/\D/g, "");
+    return rawValue ? Number(rawValue).toLocaleString("en-US") : "";
+  };
+
+  const formatEstimate = (estimate: any) => {
+    if (!estimate) return "";
+    return [
+      "تخمین هوشمند قیمت OptiBid:",
+      `قیمت منصفانه هر واحد: ${Number(estimate.estimatedUnitFair || 0).toLocaleString("fa-IR")} تومان`,
+      `بازه پیشنهادی هر واحد: ${Number(estimate.estimatedUnitMin || 0).toLocaleString("fa-IR")} تا ${Number(estimate.estimatedUnitMax || 0).toLocaleString("fa-IR")} تومان`,
+      `بازه کل برای ${formData.quantity || 1} عدد: ${Number(estimate.estimatedTotalMin || 0).toLocaleString("fa-IR")} تا ${Number(estimate.estimatedTotalMax || 0).toLocaleString("fa-IR")} تومان`,
+      `اعتماد تخمین: ${Number(estimate.confidence || 0).toLocaleString("fa-IR")}٪`,
+      estimate.summary || "",
+      ...(Array.isArray(estimate.factors) && estimate.factors.length ? ["", "عوامل موثر:", ...estimate.factors.map((item: string) => `- ${item}`)] : []),
+    ].filter(Boolean).join("\n");
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -103,7 +145,8 @@ export default function RequestPurchasePage() {
       const result = await response.json();
       
       if (result.success) {
-        alert("درخواست خرید شما با موفقیت در دیتابیس ثبت شد!\n\nاکنون می‌توانید آن را در صفحه اصلی و صفحه درخواست‌ها مشاهده کنید.");
+        const estimateText = formatEstimate(result.request?.aiPriceEstimate);
+        alert(`درخواست خرید شما با موفقیت ثبت شد!\n\n${estimateText || "تخمین قیمت برای این درخواست در دسترس نیست."}\n\nاکنون می‌توانید آن را در صفحه درخواست‌ها مشاهده کنید.`);
         window.location.href = "/requests";
       } else {
         alert(result.message || result.error || "خطا در ثبت درخواست در پایگاه داده!");
@@ -252,6 +295,149 @@ export default function RequestPurchasePage() {
               <option value="30">۱ ماه</option>
               <option value="flexible">انعطاف‌پذیر</option>
             </select>
+          </div>
+
+          {/* Valuation Factors */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="mb-5 flex flex-col gap-2 border-b border-gray-100 pb-4">
+              <h2 className="text-xl font-bold">فاکتورهای تشخیص قیمت واقعی کالا</h2>
+              <p className="text-sm leading-7 text-gray-500">
+                این اطلاعات برای ارزش‌گذاری کالای دست‌دوم/استوک استفاده می‌شود. بعد از ثبت درخواست، هوش مصنوعی OptiBid یک قیمت تقریبی و بازه منصفانه پیشنهاد می‌دهد.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-bold text-gray-700">
+                وضعیت کالا
+                <select value={formData.valuationFactors.productCondition} onChange={(e) => updateValuationFactor("productCondition", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="new">نو</option>
+                  <option value="open_box">اپن‌باکس</option>
+                  <option value="refurbished">ریفربیشد / بازسازی‌شده</option>
+                  <option value="used_like_new">دست‌دوم در حد نو</option>
+                  <option value="used_good">دست‌دوم سالم</option>
+                  <option value="used_fair">دست‌دوم معمولی</option>
+                  <option value="for_parts">نیازمند تعمیر / قطعاتی</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                قیمت نوی همان کالا یا مدل مشابه (هر واحد)
+                <div className="relative mt-2">
+                  <input type="text" value={formData.valuationFactors.sameNewProductPrice} onChange={(e) => updateValuationFactor("sameNewProductPrice", formatMoneyInput(e.target.value))} placeholder="مثال: ۳۵,۰۰۰,۰۰۰" className="w-full rounded-lg border border-gray-300 px-4 py-3 pl-20 font-normal outline-none focus:ring-2 focus:ring-green-500" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">تومان</span>
+                </div>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                سال ساخت / تولید
+                <input type="text" value={formData.valuationFactors.manufactureYear} onChange={(e) => updateValuationFactor("manufactureYear", e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="مثال: 2021" className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500" />
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                وضعیت گارانتی
+                <select value={formData.valuationFactors.warrantyStatus} onChange={(e) => updateValuationFactor("warrantyStatus", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="manufacturer">گارانتی رسمی / شرکتی</option>
+                  <option value="seller">گارانتی فروشنده</option>
+                  <option value="test">مهلت تست کوتاه</option>
+                  <option value="none">بدون گارانتی</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                مدت گارانتی باقی‌مانده (ماه)
+                <input type="text" value={formData.valuationFactors.warrantyMonths} onChange={(e) => updateValuationFactor("warrantyMonths", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="مثال: ۶" className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500" />
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                سلامت قطعات اصلی
+                <select value={formData.valuationFactors.partsHealth} onChange={(e) => updateValuationFactor("partsHealth", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="all_healthy">همه قطعات سالم</option>
+                  <option value="minor_issue">ایراد جزئی</option>
+                  <option value="needs_repair">نیازمند تعمیر</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                سلامت باتری (درصد، اگر مرتبط است)
+                <input type="text" value={formData.valuationFactors.batteryHealthPercent} onChange={(e) => updateValuationFactor("batteryHealthPercent", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="مثال: ۸۵" className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500" />
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                گرید ظاهری
+                <select value={formData.valuationFactors.appearanceGrade} onChange={(e) => updateValuationFactor("appearanceGrade", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="A">A - بسیار تمیز</option>
+                  <option value="B">B - خط‌وخش جزئی</option>
+                  <option value="C">C - خط‌وخش/آسیب ظاهری قابل مشاهده</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                سابقه تعمیر
+                <select value={formData.valuationFactors.repairHistory} onChange={(e) => updateValuationFactor("repairHistory", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="none">بدون تعمیر</option>
+                  <option value="minor">تعمیر جزئی</option>
+                  <option value="major">تعمیر اساسی / تعویض قطعه اصلی</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                میزان کارکرد
+                <select value={formData.valuationFactors.usageLevel} onChange={(e) => updateValuationFactor("usageLevel", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="low">کم‌کارکرد</option>
+                  <option value="normal">کارکرد معمولی</option>
+                  <option value="heavy">پرکارکرد</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                لوازم جانبی همراه
+                <select value={formData.valuationFactors.accessoriesStatus} onChange={(e) => updateValuationFactor("accessoriesStatus", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="complete">کامل</option>
+                  <option value="missing_minor">کسری جزئی</option>
+                  <option value="missing_key">کسری مهم مثل شارژر/کابل/ریموت</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                جعبه اصلی
+                <select value={formData.valuationFactors.originalPackaging} onChange={(e) => updateValuationFactor("originalPackaging", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="yes">دارد</option>
+                  <option value="no">ندارد</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                فاکتور خرید / اصالت
+                <select value={formData.valuationFactors.purchaseInvoiceAvailable} onChange={(e) => updateValuationFactor("purchaseInvoiceAvailable", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="yes">فاکتور یا مدرک اصالت دارد</option>
+                  <option value="no">ندارد</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-bold text-gray-700">
+                وضعیت موجودی در بازار
+                <select value={formData.valuationFactors.marketAvailability} onChange={(e) => updateValuationFactor("marketAvailability", e.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="available">موجود و رایج</option>
+                  <option value="rare">کمیاب</option>
+                  <option value="discontinued">توقف تولید / قدیمی</option>
+                  <option value="unknown">نامشخص</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="mt-4 block text-sm font-bold text-gray-700">
+              توضیحات تکمیلی ارزش‌گذاری
+              <textarea value={formData.valuationFactors.valuationNotes} onChange={(e) => updateValuationFactor("valuationNotes", e.target.value)} placeholder="مثلاً: خط روی بدنه، تعویض باتری، شارژر غیر اصل، تست سلامت، شماره سریال، وضعیت پلمب و ..." className="mt-2 min-h-24 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500" />
+            </label>
           </div>
 
           {/* Attachments */}
