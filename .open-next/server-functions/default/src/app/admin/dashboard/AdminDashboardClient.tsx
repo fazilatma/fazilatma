@@ -19,6 +19,10 @@ export default function AdminDashboardClient({
   const liveContent = useLiveContent();
   const [activeTab, setActiveTab] = useState("overview");
   const [reportView, setReportView] = useState<"products" | "buyers" | "sellers">("products");
+  const [chartMode, setChartMode] = useState<"line" | "bar" | "pie">("line");
+  const [selectedProductName, setSelectedProductName] = useState("");
+  const [showRsi, setShowRsi] = useState(true);
+  const [showMacd, setShowMacd] = useState(true);
   const [pendingVerifications, setPendingVerifications] = useState<any[]>(initialKycUsers);
   const [kycReasons, setKycReasons] = useState<Record<number, string>>({});
   
@@ -147,6 +151,7 @@ export default function AdminDashboardClient({
   const sellerReports = adminReports?.sellerReports || [];
   const analytics = adminReports?.analytics || { growingItems: [], mostRequestedItems: [], highestRevenueItems: [], technicalItems: [] };
   const reportRows = reportView === "products" ? productReports : reportView === "buyers" ? buyerReports : sellerReports;
+  const selectedProduct = productReports.find((item: any) => item.product === selectedProductName) || productReports[0] || null;
 
 
   const categoriesList = [
@@ -350,6 +355,44 @@ export default function AdminDashboardClient({
                     <AnalyticsList title="آیتم‌های در حال رشد برای خرید" items={analytics.growingItems} value={(item: any) => `${percentLabel(item.demandTrendPercent)} رشد تقاضا`} />
                     <AnalyticsList title="آیتم‌های با بیشترین درخواست" items={analytics.mostRequestedItems} value={(item: any) => `${item.requestsCount.toLocaleString("fa-IR")} درخواست`} />
                     <AnalyticsList title="بیشترین فروش موفق" items={analytics.highestRevenueItems} value={(item: any) => moneyLabel(item.totalSalesAmount)} />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex flex-col justify-between gap-4 border-b pb-4 xl:flex-row xl:items-center">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">📈 نمودار تحلیلی کالاها</h3>
+                      <p className="mt-1 text-xs leading-6 text-gray-500">مثل صفحه تحلیل کالا، روی هر کالا کلیک کنید و نمودار قیمت، تقاضا، RSI و MACD را به‌صورت خطی، میله‌ای یا دایره‌ای ببینید.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[["line", "خطی"], ["bar", "میله‌ای"], ["pie", "دایره‌ای"]].map(([id, label]) => (
+                        <button key={id} onClick={() => setChartMode(id as "line" | "bar" | "pie")} className={`rounded-xl border px-4 py-2 text-xs font-bold transition ${chartMode === id ? "border-[#003b5c] bg-[#003b5c] text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-blue-50"}`}>{label}</button>
+                      ))}
+                      <label className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600"><input type="checkbox" checked={showRsi} onChange={(e) => setShowRsi(e.target.checked)} /> RSI</label>
+                      <label className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600"><input type="checkbox" checked={showMacd} onChange={(e) => setShowMacd(e.target.checked)} /> MACD</label>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-5 xl:grid-cols-12">
+                    <aside className="xl:col-span-4">
+                      <div className="max-h-[440px] space-y-2 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                        {productReports.length === 0 ? (
+                          <p className="p-6 text-center text-sm text-gray-500">هنوز کالایی برای نمودار وجود ندارد.</p>
+                        ) : productReports.map((item: any) => (
+                          <button key={item.product} onClick={() => setSelectedProductName(item.product)} className={`w-full rounded-xl border p-3 text-right transition ${selectedProduct?.product === item.product ? "border-[#00a8e8] bg-blue-50 shadow-sm" : "border-gray-200 bg-white hover:border-blue-200"}`}>
+                            <div className="flex items-center justify-between gap-2"><span className="line-clamp-1 font-bold text-gray-900">{item.product}</span><span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">{item.dataPoints} نقطه</span></div>
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500"><span>{item.requestsCount} درخواست</span><span>{item.offersCount} پیشنهاد</span><span>{moneyLabel(item.averageRequestedBudget)}</span></div>
+                          </button>
+                        ))}
+                      </div>
+                    </aside>
+                    <div className="xl:col-span-8">
+                      {selectedProduct ? (
+                        <ProductAnalysisChart product={selectedProduct} mode={chartMode} showRsi={showRsi} showMacd={showMacd} moneyLabel={moneyLabel} percentLabel={percentLabel} />
+                      ) : (
+                        <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">یک کالا را برای مشاهده نمودار انتخاب کنید.</div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -774,6 +817,178 @@ function AnalyticsList({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ProductAnalysisChart({
+  product,
+  mode,
+  showRsi,
+  showMacd,
+  moneyLabel,
+  percentLabel,
+}: {
+  product: any;
+  mode: "line" | "bar" | "pie";
+  showRsi: boolean;
+  showMacd: boolean;
+  moneyLabel: (value: number | string) => string;
+  percentLabel: (value: number | string) => string;
+}) {
+  const chartPoints = (product.chartPoints || []).filter((point: any) => Number(point.price) > 0);
+  const distribution = (product.chartDistribution || []).filter((item: any) => Number(item.value) > 0);
+  const width = 820;
+  const height = 460;
+  const left = 56;
+  const right = 28;
+  const plotWidth = width - left - right;
+  const priceTop = 28;
+  const priceHeight = 230;
+  const rsiTop = 286;
+  const rsiHeight = 70;
+  const macdTop = 384;
+  const macdHeight = 50;
+
+  const prices = chartPoints.map((point: any) => Number(point.price));
+  const minPrice = Math.min(...prices, 0);
+  const maxPrice = Math.max(...prices, 1);
+  const pricePadding = Math.max(1, (maxPrice - minPrice) * 0.12);
+  const priceMin = Math.max(0, minPrice - pricePadding);
+  const priceMax = maxPrice + pricePadding;
+  const maxDemand = Math.max(1, ...chartPoints.map((point: any) => Number(point.demand || 0)));
+
+  const x = (index: number) => left + (index * plotWidth) / Math.max(1, chartPoints.length - 1);
+  const priceY = (value: number) => priceTop + priceHeight - ((value - priceMin) / Math.max(1, priceMax - priceMin)) * priceHeight;
+  const rsiY = (value: number) => rsiTop + rsiHeight - (Math.max(0, Math.min(100, value)) / 100) * rsiHeight;
+  const macdValues: number[] = chartPoints.flatMap((point: any) => [point.macd, point.macdSignal, point.macdHistogram].filter((value: unknown) => value !== null && value !== undefined).map(Number));
+  const macdAbsMax = Math.max(1, ...macdValues.map((value: number) => Math.abs(value)));
+  const macdZeroY = macdTop + macdHeight / 2;
+  const macdY = (value: number) => macdZeroY - (value / macdAbsMax) * (macdHeight / 2);
+
+  const linePath = (key: string, mapper: (value: number) => number) =>
+    chartPoints
+      .map((point: any, index: number) => {
+        const value = point[key];
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return "";
+        return `${index === 0 ? "M" : "L"}${x(index)},${mapper(Number(value))}`;
+      })
+      .filter(Boolean)
+      .join(" ");
+
+  const pieColors = ["#00a8e8", "#8b5cf6", "#16a34a", "#ef4444", "#f59e0b"];
+  const pieTotal = distribution.reduce((sum: number, item: any) => sum + Number(item.value || 0), 0);
+  let pieStart = -90;
+  const pieSlices = distribution.map((item: any, index: number) => {
+    const value = Number(item.value || 0);
+    const angle = pieTotal ? (value / pieTotal) * 360 : 0;
+    const start = pieStart;
+    const end = pieStart + angle;
+    pieStart = end;
+    return { ...item, start, end, color: pieColors[index % pieColors.length] };
+  });
+
+  const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
+    const polar = (angle: number) => {
+      const rad = (angle * Math.PI) / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    };
+    const start = polar(startAngle);
+    const end = polar(endAngle);
+    const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+    return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
+  };
+
+  if (chartPoints.length === 0 && mode !== "pie") {
+    return <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">برای این کالا هنوز نقطه قیمتی کافی وجود ندارد.</div>;
+  }
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-start">
+        <div>
+          <h4 className="text-lg font-bold text-gray-900">{product.product}</h4>
+          <p className="mt-1 text-xs text-gray-500">{product.category} · {product.dataPoints?.toLocaleString("fa-IR") || 0} نقطه داده · آخرین سیگنال: {product.technicalSignal}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+          <span className="rounded-xl bg-blue-50 px-3 py-2 font-bold text-blue-700">RSI: {product.rsi === null ? "ناکافی" : product.rsi}</span>
+          <span className="rounded-xl bg-purple-50 px-3 py-2 font-bold text-purple-700">MACD: {product.macd ? product.macd.histogram : "ناکافی"}</span>
+          <span className="rounded-xl bg-green-50 px-3 py-2 font-bold text-green-700">تقاضا: {product.aiDemandForecast}</span>
+          <span className="rounded-xl bg-amber-50 px-3 py-2 font-bold text-amber-700">قیمت: {product.aiPriceForecast}</span>
+        </div>
+      </div>
+
+      {mode === "pie" ? (
+        <div className="grid gap-5 md:grid-cols-2 md:items-center">
+          <svg viewBox="0 0 360 300" className="h-[320px] w-full rounded-2xl bg-gray-50">
+            {pieSlices.length === 0 ? (
+              <text x="180" y="150" textAnchor="middle" className="fill-gray-500 text-sm">داده‌ای برای نمودار دایره‌ای وجود ندارد</text>
+            ) : pieSlices.map((slice: any, index: number) => (
+              <path key={`${slice.label}-${index}`} d={describeArc(180, 150, 110, slice.start, slice.end)} fill={slice.color} stroke="#fff" strokeWidth="3" />
+            ))}
+            <circle cx="180" cy="150" r="54" fill="#fff" />
+            <text x="180" y="145" textAnchor="middle" className="fill-gray-700 text-xs font-bold">توزیع وضعیت</text>
+            <text x="180" y="168" textAnchor="middle" className="fill-gray-500 text-[11px]">{product.product}</text>
+          </svg>
+          <div className="space-y-3">
+            {pieSlices.map((slice: any, index: number) => (
+              <div key={`${slice.label}-legend-${index}`} className="flex items-center justify-between rounded-xl bg-gray-50 p-3 text-sm">
+                <div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: slice.color }} /> <span className="font-bold text-gray-700">{slice.label}</span></div>
+                <span className="text-gray-600">{Number(slice.value).toLocaleString("fa-IR")} ({percentLabel(Math.round((Number(slice.value) / Math.max(1, pieTotal)) * 100))})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-[460px] w-full rounded-2xl bg-gradient-to-b from-white to-gray-50" role="img" aria-label={`نمودار تحلیلی ${product.product}`}>
+          {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
+            <g key={tick}>
+              <line x1={left} x2={width - right} y1={priceTop + priceHeight * tick} y2={priceTop + priceHeight * tick} stroke="#e5e7eb" strokeDasharray="4 4" />
+              <text x={left - 10} y={priceTop + priceHeight * tick + 4} textAnchor="end" className="fill-gray-400 text-[10px]">{Math.round(priceMax - (priceMax - priceMin) * tick).toLocaleString("fa-IR")}</text>
+            </g>
+          ))}
+
+          <text x={left} y="18" className="fill-gray-600 text-[11px] font-bold">قیمت / بودجه / پیشنهاد</text>
+          {mode === "bar" ? chartPoints.map((point: any, index: number) => {
+            const barWidth = Math.max(8, plotWidth / Math.max(1, chartPoints.length) - 5);
+            const y = priceY(Number(point.price));
+            return <rect key={`${point.at}-bar`} x={x(index) - barWidth / 2} y={y} width={barWidth} height={priceTop + priceHeight - y} rx="5" fill="#00a8e8" opacity="0.75" />;
+          }) : (
+            <>
+              <path d={linePath("price", priceY)} fill="none" stroke="#00a8e8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              {chartPoints.map((point: any, index: number) => <circle key={`${point.at}-dot`} cx={x(index)} cy={priceY(Number(point.price))} r="4" fill="#00a8e8" stroke="#fff" strokeWidth="2" />)}
+            </>
+          )}
+
+          {chartPoints.map((point: any, index: number) => {
+            if (index % Math.max(1, Math.ceil(chartPoints.length / 6)) !== 0) return null;
+            return <text key={`${point.at}-label`} x={x(index)} y={priceTop + priceHeight + 20} textAnchor="middle" className="fill-gray-400 text-[10px]">{point.label}</text>;
+          })}
+
+          <text x={left} y={rsiTop - 10} className="fill-purple-700 text-[11px] font-bold">RSI</text>
+          <line x1={left} x2={width - right} y1={rsiY(70)} y2={rsiY(70)} stroke="#c084fc" strokeDasharray="5 5" />
+          <line x1={left} x2={width - right} y1={rsiY(30)} y2={rsiY(30)} stroke="#c084fc" strokeDasharray="5 5" />
+          <rect x={left} y={rsiTop} width={plotWidth} height={rsiHeight} fill="#faf5ff" opacity="0.8" />
+          {showRsi && <path d={linePath("rsi", rsiY)} fill="none" stroke="#9333ea" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+
+          <text x={left} y={macdTop - 10} className="fill-rose-700 text-[11px] font-bold">MACD</text>
+          <line x1={left} x2={width - right} y1={macdZeroY} y2={macdZeroY} stroke="#d1d5db" />
+          {showMacd && chartPoints.map((point: any, index: number) => {
+            if (point.macdHistogram === null || point.macdHistogram === undefined) return null;
+            const y = macdY(Number(point.macdHistogram));
+            return <rect key={`${point.at}-macd-hist`} x={x(index) - 3} y={Math.min(y, macdZeroY)} width="6" height={Math.abs(macdZeroY - y)} rx="2" fill={Number(point.macdHistogram) >= 0 ? "#16a34a" : "#ef4444"} opacity="0.65" />;
+          })}
+          {showMacd && <path d={linePath("macd", macdY)} fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+          {showMacd && <path d={linePath("macdSignal", macdY)} fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+        </svg>
+      )}
+
+      <div className="mt-4 grid gap-3 text-xs md:grid-cols-4">
+        <div className="rounded-xl bg-gray-50 p-3"><b>میانگین بودجه:</b><br />{moneyLabel(product.averageRequestedBudget)}</div>
+        <div className="rounded-xl bg-gray-50 p-3"><b>میانگین فروش:</b><br />{moneyLabel(product.averageSaleAmount)}</div>
+        <div className="rounded-xl bg-gray-50 p-3"><b>رشد تقاضا:</b><br />{percentLabel(product.demandTrendPercent)}</div>
+        <div className="rounded-xl bg-gray-50 p-3"><b>روند قیمت:</b><br />{percentLabel(product.priceTrendPercent)}</div>
+      </div>
     </div>
   );
 }

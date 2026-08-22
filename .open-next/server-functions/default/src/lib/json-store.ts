@@ -1465,6 +1465,52 @@ function calculateMacd(values: number[]) {
   };
 }
 
+function calculateRsiSeries(values: number[], period = 14) {
+  return values.map((_, index) => {
+    if (index < period) return null;
+    return calculateRsi(values.slice(0, index + 1), period);
+  });
+}
+
+function calculateMacdSeries(values: number[]) {
+  return values.map((_, index) => calculateMacd(values.slice(0, index + 1)));
+}
+
+function buildDailyChartPoints(points: Array<{ at: string; value: number }>) {
+  const buckets = new Map<string, { at: string; priceSum: number; priceCount: number; demand: number }>();
+  for (const point of points) {
+    if (!point.value) continue;
+    const date = new Date(point.at);
+    const key = Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : point.at.slice(0, 10);
+    const current = buckets.get(key) || { at: `${key}T00:00:00.000Z`, priceSum: 0, priceCount: 0, demand: 0 };
+    current.priceSum += point.value;
+    current.priceCount += 1;
+    current.demand += 1;
+    buckets.set(key, current);
+  }
+
+  const rows = [...buckets.values()]
+    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+    .map((item) => ({
+      at: item.at,
+      label: new Date(item.at).toLocaleDateString("fa-IR", { month: "short", day: "numeric" }),
+      price: Math.round(item.priceSum / Math.max(1, item.priceCount)),
+      demand: item.demand,
+    }));
+
+  const prices = rows.map((item) => item.price);
+  const rsiSeries = calculateRsiSeries(prices);
+  const macdSeries = calculateMacdSeries(prices);
+
+  return rows.map((row, index) => ({
+    ...row,
+    rsi: rsiSeries[index],
+    macd: macdSeries[index]?.macd ?? null,
+    macdSignal: macdSeries[index]?.signal ?? null,
+    macdHistogram: macdSeries[index]?.histogram ?? null,
+  }));
+}
+
 function technicalSignal(rsi: number | null, macd: ReturnType<typeof calculateMacd>) {
   if (rsi === null && !macd) return "داده ناکافی";
   if (rsi !== null && rsi >= 70 && macd && macd.histogram > 0) return "تقاضا/قیمت داغ — احتمال اشباع خرید";
@@ -1587,9 +1633,10 @@ export async function getJsonAdminReports() {
 
   const productReports = [...products.values()]
     .map((item) => {
-      const sortedPrices = item.pricePoints
-        .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
-        .map((point) => point.value);
+      const sortedPointObjects = item.pricePoints
+        .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+      const sortedPrices = sortedPointObjects.map((point) => point.value);
+      const chartPoints = buildDailyChartPoints(sortedPointObjects);
       const rsi = calculateRsi(sortedPrices);
       const macd = calculateMacd(sortedPrices);
       const demandTrendPercent = percentageChange(item.recentDemand, item.previousDemand);
@@ -1621,6 +1668,13 @@ export async function getJsonAdminReports() {
         aiPriceForecast: predictionLabel(priceScore),
         aiConfidence: Math.max(20, Math.min(95, Math.round(25 + sortedPrices.length * 4 + item.requestsCount * 3 + item.completedOrders * 5))),
         dataPoints: sortedPrices.length,
+        chartPoints,
+        chartDistribution: [
+          { label: "درخواست فعال", value: item.openRequests },
+          { label: "پیشنهاد", value: item.offersCount },
+          { label: "فروش موفق", value: item.completedOrders },
+          { label: "ناموفق/مرجوع", value: item.failedOrders },
+        ],
         lastActivityAt: item.lastActivityAt,
       };
     })
