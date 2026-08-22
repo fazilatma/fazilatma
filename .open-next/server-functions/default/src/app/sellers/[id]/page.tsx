@@ -49,6 +49,9 @@ export default async function SellerProfilePage({ params }: SellerPageProps) {
     activeInLast30Days: false,
   });
 
+  const reviews = data.reviews.filter((review) => review.revieweeId === seller.id && review.reviewerRole === "buyer");
+  const reviewerById = new Map(data.users.map((user) => [user.id, user.fullName]));
+
   const metricRows = [
     { title: "قابلیت اتکا و کیفیت معامله", value: score.metrics.reliability, weight: 30, icon: "🛡️" },
     { title: "ارسال و تحویل", value: score.metrics.fulfilment, weight: 25, icon: "🚚" },
@@ -77,6 +80,7 @@ export default async function SellerProfilePage({ params }: SellerPageProps) {
               <div className="flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <h1 className="text-3xl font-bold">{seller.fullName}</h1>
+                  <SellerStars score={score.finalScore} size="sm" light />
                   {seller.sellerMetrics?.identityVerified && <span className="rounded-full bg-blue-400/20 px-3 py-1 text-xs font-bold">تایید هویت</span>}
                 </div>
                 <p className="text-blue-100">{seller.categories?.join("، ") || "حوزه فعالیت ثبت نشده"}</p>
@@ -103,6 +107,26 @@ export default async function SellerProfilePage({ params }: SellerPageProps) {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h2 className="mb-5 text-xl font-bold text-gray-900">دیدگاه‌ها</h2>
+          {reviews.length === 0 ? (
+            <p className="rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500">هنوز دیدگاهی ثبت نشده است.</p>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <article key={review.id} className="rounded-2xl border border-gray-100 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="font-bold text-gray-900">{reviewerById.get(review.reviewerId) || "خریدار"}</p>
+                    <SellerStars score={review.overall * 20} size="sm" />
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-600">{review.comment || "بدون توضیح"}</p>
+                  <p className="mt-2 text-xs text-gray-400">سفارش {review.orderId}</p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">

@@ -20,7 +20,7 @@ export default async function BuyersPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {rankings.map(({ buyer, rating, reviewsCount, completedOrders, rankingEligible }) => (
               <Link key={buyer.id} href={`/buyers/${buyer.id}`} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-[#00a8e8] hover:shadow-lg">
-                <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-2xl font-bold text-[#003b5c]">{buyer.fullName.charAt(0)}</div><div><h2 className="text-lg font-bold text-gray-900">{buyer.fullName}</h2><p className="mt-1 text-xs text-gray-500">{rankingEligible ? "واجد شرایط رتبه‌بندی" : "در حال ارزیابی"}</p></div></div>
+                <div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-2xl font-bold text-[#003b5c]">{buyer.fullName.charAt(0)}</div><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold text-gray-900">{buyer.fullName}</h2><SellerStars score={rating * 20} size="sm" /></div><p className="mt-1 text-xs text-gray-500">{rankingEligible ? "واجد شرایط رتبه‌بندی" : "در حال ارزیابی"}</p></div></div>
                 <div className="mt-5 rounded-2xl bg-gray-50 p-4"><SellerStars score={rating * 20} /><div className="mt-3 flex justify-between text-xs text-gray-500"><span>{completedOrders} معامله موفق</span><span>{reviewsCount} نظر فروشنده</span></div></div>
               </Link>
             ))}

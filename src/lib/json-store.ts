@@ -25,7 +25,8 @@ export type OrderStatus =
   | "paid"
   | "shipped"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "returned";
 
 export type JsonRequest = {
   id: number;
@@ -38,7 +39,7 @@ export type JsonRequest = {
   quantity: number;
   deadline: string;
   imageNames: string[];
-  status: "open" | "selected" | "paid" | "shipped" | "completed" | "cancelled";
+  status: "open" | "selected" | "paid" | "shipped" | "completed" | "cancelled" | "returned";
   offersCount: number;
   createdAt: string;
 };
@@ -349,6 +350,19 @@ function nextStringId(prefix: string) {
 
 function money(value: string | number) {
   return Math.max(0, Number(String(value).replace(/\D/g, "")) || 0);
+}
+
+function isSuccessfulOrder(order: JsonOrder) {
+  return order.status === "completed";
+}
+
+function isFailedOrder(order: JsonOrder, transactions: JsonEscrowTransaction[] = []) {
+  if (["cancelled", "returned"].includes(order.status)) return true;
+  return transactions.some((transaction) => transaction.orderId === order.id && transaction.status === "refunded");
+}
+
+function isPublicRequest(request: JsonRequest) {
+  return request.status === "open";
 }
 
 function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
@@ -1121,7 +1135,7 @@ export async function cancelJsonOrder(input: { buyerId: number; orderId: string 
 export async function archiveJsonOrder(input: { userId: number; orderId: string; role: "buyer" | "seller" }) {
   const data = await getOptiBidData();
   const order = data.orders.find((item) => item.id === input.orderId && item[`${input.role}Id`] === input.userId);
-  if (!order || !["completed", "cancelled"].includes(order.status)) throw new Error("Only completed or cancelled orders can be archived");
+  if (!order || !["completed", "cancelled", "returned"].includes(order.status)) throw new Error("Only completed, cancelled or returned orders can be archived");
   if (input.role === "buyer") order.buyerArchived = true;
   else order.sellerArchived = true;
   await writeOptiBidData(data);
@@ -1245,8 +1259,18 @@ export async function createJsonReview(input: {
   }
   const revieweeId = reviewerRole === "buyer" ? order.sellerId : order.buyerId;
   const normalize = (value: number) => Math.max(1, Math.min(5, Math.round(value)));
+  const rawScores = Object.entries(input.scores || {});
+  if (rawScores.length === 0 || Number(input.overall) < 1) {
+    throw new Error("Rating scores are required");
+  }
   const safeScores = Object.fromEntries(
-    Object.entries(input.scores || {}).map(([key, value]) => [key, normalize(Number(value))])
+    rawScores.map(([key, value]) => {
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue) || numericValue < 1 || numericValue > 5) {
+        throw new Error("Rating scores must be between 1 and 5");
+      }
+      return [key, normalize(numericValue)];
+    })
   );
   const review: JsonReview = {
     id: nextNumericId(data.reviews),
@@ -1256,7 +1280,7 @@ export async function createJsonReview(input: {
     reviewerRole,
     overall: normalize(input.overall),
     scores: safeScores,
-    comment: input.comment?.trim() || "",
+    comment: typeof input.comment === "string" ? input.comment : "",
     createdAt: new Date().toISOString(),
   };
   data.reviews.unshift(review);
@@ -1347,18 +1371,23 @@ export async function getJsonPlatformFinance() {
 
 export async function getJsonHomepageStats() {
   const data = await getOptiBidData();
-  const completedOrders = data.orders.filter((order) => order.status === "completed");
+  const completedOrders = data.orders.filter(isSuccessfulOrder);
+  const failedOrders = data.orders.filter((order) => isFailedOrder(order, data.transactions));
+  const finalOrdersCount = completedOrders.length + failedOrders.length;
+
   return {
-    requestsCount: data.requests.length,
+    requestsCount: data.requests.filter(isPublicRequest).length,
     sellersCount: data.users.filter((user) => user.role === "seller" && user.isActive).length,
     totalVolume: completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0),
-    successRate: data.orders.length === 0 ? 0 : Math.round((completedOrders.length / data.orders.length) * 100),
+    successRate: finalOrdersCount === 0 ? 0 : Math.round((completedOrders.length / finalOrdersCount) * 100),
+    failedOrdersCount: failedOrders.length,
+    completedOrdersCount: completedOrders.length,
   };
 }
 
 export async function getJsonAdminStats() {
   const data = await getOptiBidData();
-  const completedOrders = data.orders.filter((order) => order.status === "completed");
+  const completedOrders = data.orders.filter(isSuccessfulOrder);
   const heldEscrow = data.transactions.filter((transaction) => transaction.status === "held");
   const totalCommission = data.platformTransactions
     .filter((transaction) => transaction.type === "commission_credit")
@@ -1374,7 +1403,9 @@ export async function getJsonAdminStats() {
 
 export async function getJsonRequests() {
   const data = await getOptiBidData();
-  return [...data.requests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return data.requests
+    .filter(isPublicRequest)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export function getJsonStorageInfo() {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import TradeSurvey from "@/components/TradeSurvey";
+import SellerStars from "@/components/SellerStars";
 import { generateInvoiceHTML } from "@/utils/invoiceGenerator";
 
 type BuyerDashboardData = {
@@ -222,13 +223,15 @@ export default function BuyerDashboardPage() {
   const activeMessages = (data?.messages || []).filter((item) => item.senderId === activeChatUserId || item.receiverId === activeChatUserId);
   const pendingOrders = (data?.orders || []).filter((order) => order.status === "pending_payment");
   const shippedOrders = (data?.orders || []).filter((order) => order.status === "shipped");
-  const archiveOrders = (data?.orders || []).filter((order) => order.buyerArchived || ["completed", "cancelled"].includes(order.status));
+  const archiveOrders = (data?.orders || []).filter((order) => order.buyerArchived || ["completed", "cancelled", "returned"].includes(order.status));
   const invoiceOrders = (data?.orders || []).filter((order) => ["paid", "shipped", "completed"].includes(order.status));
   const reviewedOrderIds = new Set((data?.reviews || []).filter((review) => review.reviewerId === data?.buyer.id).map((review) => review.orderId));
   const pendingSurveys = (data?.orders || []).filter((order) => order.status === "completed" && !reviewedOrderIds.has(order.id));
+  const ordersById = new Map((data?.orders || []).map((order) => [order.id, order]));
+  const receivedReviews = (data?.reviews || []).filter((review) => review.revieweeId === data?.buyer.id);
 
   const tabs = [
-    ["overview", "پیشخوان", "🏠"], ["requests", "درخواست‌ها", "📝"], ["offers", "پیشنهادها", "🎯"], ["orders", "سفارش‌ها", "📦"], ["receive", "دریافت کالا", "📥"], ["wallet", "کیف پول", "💰"], ["messages", "پیام‌ها", "💬"], ["notifications", "اعلان‌ها", "🔔"], ["survey", "نظرسنجی", "⭐"], ["invoices", "فاکتورها", "🧾"], ["archive", "بایگانی", "🗂️"], ["profile", "پروفایل", "👤"], ["settings", "تنظیمات", "⚙️"],
+    ["overview", "پیشخوان", "🏠"], ["requests", "درخواست‌ها", "📝"], ["offers", "پیشنهادها", "🎯"], ["orders", "سفارش‌ها", "📦"], ["receive", "دریافت کالا", "📥"], ["wallet", "کیف پول", "💰"], ["messages", "پیام‌ها", "💬"], ["reviews", "دیدگاه‌ها", "🗣️"], ["notifications", "اعلان‌ها", "🔔"], ["survey", "نظرسنجی", "⭐"], ["invoices", "فاکتورها", "🧾"], ["archive", "بایگانی", "🗂️"], ["profile", "پروفایل", "👤"], ["settings", "تنظیمات", "⚙️"],
   ] as const;
 
   if (loading) return <div dir="rtl" className="grid min-h-[60vh] place-items-center bg-gray-50 text-[#003b5c]">در حال بارگذاری داشبورد واقعی...</div>;
@@ -319,6 +322,8 @@ export default function BuyerDashboardPage() {
             </div>
           </section>
         )}
+
+        {activeTab === "reviews" && <section><h1 className="mb-2 text-2xl font-bold text-[#003b5c]">دیدگاه‌ها</h1><p className="mb-6 text-sm text-gray-500">توضیحاتی که فروشندگان در فرم نظرسنجی درباره شما نوشته‌اند، اینجا نمایش داده می‌شود.</p><div className="space-y-4">{receivedReviews.length === 0 ? <Empty text="هنوز دیدگاهی برای شما ثبت نشده است." /> : receivedReviews.map((review) => { const order = ordersById.get(review.orderId); return <article key={review.id} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-bold text-[#003b5c]">{order?.sellerName || "فروشنده"}</p><p className="mt-1 text-xs text-gray-500">سفارش {review.orderId}</p></div><SellerStars score={review.overall * 20} size="sm" /></div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-600">{review.comment || "بدون توضیح"}</p></article>; })}</div></section>}
 
         {activeTab === "invoices" && <section><h1 className="mb-6 text-2xl font-bold text-[#003b5c]">فاکتورهای معامله</h1><div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">{invoiceOrders.length === 0 ? <Empty text="پس از پرداخت سفارش، فاکتور در این بخش ایجاد می‌شود." /> : invoiceOrders.map((order) => <div key={order.id} className="flex flex-col justify-between gap-4 border-b p-5 sm:flex-row sm:items-center"><div><p className="font-mono font-bold text-[#003b5c]">{order.id}</p><p className="mt-1 font-bold">{order.title}</p><p className="mt-1 text-xs text-gray-500">فروشنده: {order.sellerName} · وضعیت: {order.status}</p></div><button onClick={() => { const html = generateInvoiceHTML({ id: order.id, date: dateLabel(order.paymentAt || order.createdAt), amount: money(order.totalAmount), seller: order.sellerName, product: order.title, status: order.status }); window.open(URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" })), "_blank"); }} className="rounded-xl bg-blue-50 px-4 py-2 font-bold text-[#00a8e8]">چاپ فاکتور</button></div>)}</div></section>}
 

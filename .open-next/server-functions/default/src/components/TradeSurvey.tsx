@@ -29,17 +29,20 @@ const criteria = {
 function Stars({ value, onChange }: { value: number; onChange: (value: number) => void }) {
   return (
     <div className="flex gap-1" dir="ltr">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => onChange(star)}
-          className={`text-3xl transition hover:scale-110 ${star <= value ? "text-amber-400" : "text-gray-200"}`}
-          aria-label={`${star} ستاره`}
-        >
-          ★
-        </button>
-      ))}
+      {[1, 2, 3, 4, 5].map((star) => {
+        const filled = star <= value;
+        return (
+          <button
+            key={star}
+            type="button"
+            onClick={() => onChange(star)}
+            className={`text-3xl transition hover:scale-110 ${filled ? "text-amber-400" : "text-gray-300 hover:text-amber-300"}`}
+            aria-label={`${star} ستاره`}
+          >
+            {filled ? "★" : "☆"}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -47,17 +50,23 @@ function Stars({ value, onChange }: { value: number; onChange: (value: number) =
 export default function TradeSurvey({ role, reviewerId, order, onSaved }: TradeSurveyProps) {
   const rows = criteria[role];
   const [scores, setScores] = useState<Record<string, number>>(
-    Object.fromEntries(rows.map(([key]) => [key, 5]))
+    Object.fromEntries(rows.map(([key]) => [key, 0]))
   );
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const overall = Math.round(
-    Object.values(scores).reduce((sum, value) => sum + value, 0) /
-      Math.max(1, Object.values(scores).length)
-  );
+  const selectedScores = Object.values(scores).filter((value) => value > 0);
+  const allScoresSelected = selectedScores.length === rows.length;
+  const overall = allScoresSelected
+    ? Math.round(selectedScores.reduce((sum, value) => sum + value, 0) / selectedScores.length)
+    : 0;
   const targetName = role === "buyer" ? order.sellerName : order.buyerName;
 
   const submit = async () => {
+    if (!allScoresSelected) {
+      alert("لطفاً برای همه معیارهای نظرسنجی امتیاز ستاره‌ای ثبت کنید.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const response = await fetch("/api/reviews", {
@@ -86,7 +95,9 @@ export default function TradeSurvey({ role, reviewerId, order, onSaved }: TradeS
         </div>
         <div className="rounded-xl bg-amber-50 px-4 py-2 text-center">
           <p className="text-2xl text-amber-400">{"★".repeat(overall)}{"☆".repeat(5 - overall)}</p>
-          <p className="text-xs font-bold text-amber-800">امتیاز نهایی {overall} از ۵</p>
+          <p className="text-xs font-bold text-amber-800">
+            {allScoresSelected ? `امتیاز نهایی ${overall} از ۵` : "هنوز امتیازی ثبت نشده"}
+          </p>
         </div>
       </div>
 
@@ -106,9 +117,12 @@ export default function TradeSurvey({ role, reviewerId, order, onSaved }: TradeS
         placeholder="تجربه واقعی خود از این معامله را بنویسید..."
         className="mt-2 min-h-24 w-full rounded-xl border border-gray-200 p-3 text-sm outline-none focus:border-[#00a8e8]"
       />
+      <p className="mt-2 text-xs leading-6 text-gray-500">
+        متن این بخش دقیقاً در قسمت «دیدگاه‌ها» صفحه طرف مقابل نمایش داده می‌شود.
+      </p>
       <button
         type="button"
-        disabled={submitting}
+        disabled={submitting || !allScoresSelected}
         onClick={submit}
         className="mt-4 rounded-xl bg-[#003b5c] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#002d46] disabled:bg-gray-400"
       >

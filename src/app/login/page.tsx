@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -45,15 +43,13 @@ export default function LoginPage() {
       localStorage.setItem("userDisplayName", result.user.fullName);
 
       const redirectUrl = sessionStorage.getItem("redirectAfterAuth");
-      if (redirectUrl) {
-        sessionStorage.removeItem("redirectAfterAuth");
-        alert("ورود با موفقیت انجام شد. در حال بازگشت به صفحه قبلی...");
-        router.push(redirectUrl);
-      } else {
-        alert(`ورود ${role === "admin" ? "ادمین" : role === "seller" ? "فروشنده" : "خریدار"} با موفقیت انجام شد.`);
-        router.push(`/${role === "admin" ? "admin" : role}/dashboard`);
-      }
-      setTimeout(() => window.location.reload(), 400);
+      const dashboardUrl = `/${role === "admin" ? "admin" : role}/dashboard`;
+      const targetUrl = redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : dashboardUrl;
+      if (redirectUrl) sessionStorage.removeItem("redirectAfterAuth");
+
+      // استفاده از assign باعث می‌شود بعد از ذخیره localStorage، صفحه واقعاً به پیشخوان نقش مربوطه برود
+      // و دیگر reload زودهنگام روی صفحه ورود کاربر را همان‌جا نگه ندارد.
+      window.location.assign(targetUrl);
     } catch {
       alert("خطا در ارتباط با سرور هنگام ورود.");
     } finally {

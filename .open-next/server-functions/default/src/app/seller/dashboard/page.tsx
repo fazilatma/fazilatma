@@ -102,9 +102,11 @@ export default function SellerDashboardPage() {
   const pendingPayment = (data?.orders || []).filter((order) => order.status === "pending_payment");
   const readyToShip = (data?.orders || []).filter((order) => order.status === "paid");
   const shipped = (data?.orders || []).filter((order) => order.status === "shipped");
-  const archiveOrders = (data?.orders || []).filter((order) => order.sellerArchived || ["completed", "cancelled"].includes(order.status));
+  const archiveOrders = (data?.orders || []).filter((order) => order.sellerArchived || ["completed", "cancelled", "returned"].includes(order.status));
   const reviewedOrderIds = new Set((data?.reviews || []).filter((review) => review.reviewerId === data?.seller.id).map((review) => review.orderId));
   const pendingSurveys = (data?.orders || []).filter((order) => order.status === "completed" && !reviewedOrderIds.has(order.id));
+  const ordersById = new Map((data?.orders || []).map((order) => [order.id, order]));
+  const receivedReviews = (data?.reviews || []).filter((review) => review.revieweeId === data?.seller.id);
 
   useEffect(() => {
     if (!currentRequest) return;
@@ -198,7 +200,7 @@ export default function SellerDashboardPage() {
   };
 
   const tabs = [
-    ["overview", "پیشخوان", "🏠"], ["requests", "رادار درخواست‌ها", "📡"], ["orders", "سفارش‌ها", "📦"], ["shipping", "ارسال کالا", "🚚"], ["wallet", "کیف پول", "💰"], ["messages", "پیام‌ها", "💬"], ["notifications", "اعلان‌ها", "🔔"], ["survey", "نظرسنجی", "⭐"], ["archive", "بایگانی", "🗂️"], ["settings", "تنظیمات", "⚙️"],
+    ["overview", "پیشخوان", "🏠"], ["requests", "رادار درخواست‌ها", "📡"], ["orders", "سفارش‌ها", "📦"], ["shipping", "ارسال کالا", "🚚"], ["wallet", "کیف پول", "💰"], ["messages", "پیام‌ها", "💬"], ["reviews", "دیدگاه‌ها", "🗣️"], ["notifications", "اعلان‌ها", "🔔"], ["survey", "نظرسنجی", "⭐"], ["archive", "بایگانی", "🗂️"], ["settings", "تنظیمات", "⚙️"],
   ] as const;
 
   if (loading) return <div dir="rtl" className="grid min-h-[60vh] place-items-center bg-gray-50 text-[#003b5c]">در حال بارگذاری داشبورد فروشنده...</div>;
@@ -265,6 +267,8 @@ export default function SellerDashboardPage() {
             </div>
           </section>
         )}
+
+        {activeTab === "reviews" && <section><h1 className="mb-2 text-2xl font-bold text-[#003b5c]">دیدگاه‌ها</h1><p className="mb-6 text-sm text-gray-500">توضیحاتی که خریداران در فرم نظرسنجی درباره شما نوشته‌اند، اینجا نمایش داده می‌شود.</p><div className="space-y-4">{receivedReviews.length === 0 ? <Empty text="هنوز دیدگاهی برای شما ثبت نشده است." /> : receivedReviews.map((review) => { const order = ordersById.get(review.orderId); return <article key={review.id} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-bold text-[#003b5c]">{order?.buyerName || "خریدار"}</p><p className="mt-1 text-xs text-gray-500">سفارش {review.orderId}</p></div><SellerStars score={review.overall * 20} size="sm" /></div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-600">{review.comment || "بدون توضیح"}</p></article>; })}</div></section>}
 
         {activeTab === "archive" && <section><h1 className="mb-6 text-2xl font-bold text-[#003b5c]">بایگانی فروشنده</h1><div className="space-y-4">{archiveOrders.length === 0 ? <Empty text="پس از تکمیل یا لغو سفارش، امکان بایگانی آن فعال می‌شود." /> : archiveOrders.map((order) => <OrderCard key={order.id} order={order}><button onClick={() => archiveOrder(order.id)} className="mt-4 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold text-gray-600">انتقال به بایگانی</button></OrderCard>)}</div></section>}
 

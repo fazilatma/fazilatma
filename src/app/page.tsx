@@ -112,7 +112,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold">{realStats.requestsCount.toLocaleString()}</div>
-              <div className="text-green-200 mt-2">درخواست خرید ثبت شده</div>
+              <div className="text-green-200 mt-2">درخواست خرید فعال</div>
             </div>
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold">{realStats.sellersCount.toLocaleString()}</div>
