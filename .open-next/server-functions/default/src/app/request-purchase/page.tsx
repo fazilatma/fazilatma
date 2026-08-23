@@ -62,18 +62,7 @@ export default function RequestPurchasePage() {
     return rawValue ? Number(rawValue).toLocaleString("en-US") : "";
   };
 
-  const formatEstimate = (estimate: any) => {
-    if (!estimate) return "";
-    return [
-      "تخمین هوشمند قیمت OptiBid:",
-      `قیمت منصفانه هر واحد: ${Number(estimate.estimatedUnitFair || 0).toLocaleString("fa-IR")} تومان`,
-      `بازه پیشنهادی هر واحد: ${Number(estimate.estimatedUnitMin || 0).toLocaleString("fa-IR")} تا ${Number(estimate.estimatedUnitMax || 0).toLocaleString("fa-IR")} تومان`,
-      `بازه کل برای ${formData.quantity || 1} عدد: ${Number(estimate.estimatedTotalMin || 0).toLocaleString("fa-IR")} تا ${Number(estimate.estimatedTotalMax || 0).toLocaleString("fa-IR")} تومان`,
-      `اعتماد تخمین: ${Number(estimate.confidence || 0).toLocaleString("fa-IR")}٪`,
-      estimate.summary || "",
-      ...(Array.isArray(estimate.factors) && estimate.factors.length ? ["", "عوامل موثر:", ...estimate.factors.map((item: string) => `- ${item}`)] : []),
-    ].filter(Boolean).join("\n");
-  };
+  const formatCurrency = (value: number | string) => `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -111,6 +100,9 @@ export default function RequestPurchasePage() {
   }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedRequest, setSubmittedRequest] = useState<any | null>(null);
+
+  const closeEstimateModal = () => setSubmittedRequest(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,9 +137,9 @@ export default function RequestPurchasePage() {
       const result = await response.json();
       
       if (result.success) {
-        const estimateText = formatEstimate(result.request?.aiPriceEstimate);
-        alert(`درخواست خرید شما با موفقیت ثبت شد!\n\n${estimateText || "تخمین قیمت برای این درخواست در دسترس نیست."}\n\nاکنون می‌توانید آن را در صفحه درخواست‌ها مشاهده کنید.`);
-        window.location.href = "/requests";
+        setSubmittedRequest(result.request || null);
+        setUploadedFiles([]);
+        setPreviews([]);
       } else {
         alert(result.message || result.error || "خطا در ثبت درخواست در پایگاه داده!");
       }
@@ -161,6 +153,89 @@ export default function RequestPurchasePage() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50">
+      {submittedRequest && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 px-4 py-8 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl ring-1 ring-black/10">
+            <div className="relative overflow-hidden rounded-t-[2rem] bg-gradient-to-l from-[#003b5c] via-[#005e94] to-[#00a8e8] p-6 text-white">
+              <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
+              <div className="relative z-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                <div>
+                  <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-blue-50">درخواست با موفقیت ثبت شد</span>
+                  <h2 className="mt-3 text-2xl font-bold">گزارش تخمین قیمت هوشمند</h2>
+                  <p className="mt-2 text-sm leading-7 text-blue-50">این تخمین بر اساس وضعیت کالا، قیمت نوی مشابه، سال ساخت، گارانتی، سلامت قطعات و سایر فاکتورهای ارزش‌گذاری محاسبه شده است.</p>
+                </div>
+                <button type="button" onClick={closeEstimateModal} className="rounded-full bg-white/15 px-3 py-1 text-lg font-bold transition hover:bg-white/25">×</button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-5 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs font-bold text-gray-500">عنوان درخواست</p>
+                <h3 className="mt-1 text-xl font-bold text-[#003b5c]">{submittedRequest.title}</h3>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                  <span className="rounded-full bg-white px-3 py-1">دسته: {submittedRequest.category}</span>
+                  <span className="rounded-full bg-white px-3 py-1">تعداد: {submittedRequest.quantity}</span>
+                  <span className="rounded-full bg-white px-3 py-1">بودجه ثبت‌شده: {formatCurrency(submittedRequest.budget)}</span>
+                </div>
+              </div>
+
+              {submittedRequest.aiPriceEstimate ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-green-100 bg-green-50 p-4 text-center">
+                      <p className="text-xs font-bold text-green-700">قیمت منصفانه هر واحد</p>
+                      <p className="mt-2 text-2xl font-bold text-[#0b9c56]">{formatCurrency(submittedRequest.aiPriceEstimate.estimatedUnitFair)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-center">
+                      <p className="text-xs font-bold text-blue-700">بازه هر واحد</p>
+                      <p className="mt-2 text-lg font-bold text-[#003b5c]">{formatCurrency(submittedRequest.aiPriceEstimate.estimatedUnitMin)} تا {formatCurrency(submittedRequest.aiPriceEstimate.estimatedUnitMax)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-center">
+                      <p className="text-xs font-bold text-purple-700">اعتماد تخمین</p>
+                      <p className="mt-2 text-2xl font-bold text-purple-700">{Number(submittedRequest.aiPriceEstimate.confidence || 0).toLocaleString("fa-IR")}٪</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-100 p-4">
+                      <p className="text-sm font-bold text-gray-800">بازه کل برای {submittedRequest.quantity} عدد</p>
+                      <p className="mt-2 text-xl font-bold text-[#003b5c]">{formatCurrency(submittedRequest.aiPriceEstimate.estimatedTotalMin)} تا {formatCurrency(submittedRequest.aiPriceEstimate.estimatedTotalMax)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 p-4">
+                      <p className="text-sm font-bold text-gray-800">افت نسبت به کالای نو</p>
+                      <p className="mt-2 text-xl font-bold text-amber-600">{Number(submittedRequest.aiPriceEstimate.depreciationPercent || 0).toLocaleString("fa-IR")}٪</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                    <p className="font-bold text-blue-900">جمع‌بندی هوش مصنوعی</p>
+                    <p className="mt-2 text-sm leading-7 text-blue-800">{submittedRequest.aiPriceEstimate.summary}</p>
+                  </div>
+
+                  {submittedRequest.aiPriceEstimate.factors?.length > 0 && (
+                    <div className="mt-4 rounded-2xl border border-gray-100 p-4">
+                      <p className="mb-3 font-bold text-gray-900">عوامل مؤثر روی قیمت</p>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {submittedRequest.aiPriceEstimate.factors.map((factor: string, index: number) => (
+                          <div key={index} className="rounded-xl bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">✓ {factor}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-center text-sm text-amber-800">تخمین قیمت برای این درخواست در دسترس نیست.</div>
+              )}
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link href={`/requests/${submittedRequest.id}`} className="flex-1 rounded-xl bg-[#003b5c] px-5 py-3 text-center font-bold text-white transition hover:bg-[#002d46]">مشاهده صفحه درخواست</Link>
+                <Link href="/requests" className="flex-1 rounded-xl border border-[#00a8e8] px-5 py-3 text-center font-bold text-[#00a8e8] transition hover:bg-blue-50">مشاهده همه درخواست‌ها</Link>
+                <button type="button" onClick={() => { closeEstimateModal(); window.location.href = "/request-purchase"; }} className="flex-1 rounded-xl bg-gray-100 px-5 py-3 font-bold text-gray-700 transition hover:bg-gray-200">ثبت درخواست جدید</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
