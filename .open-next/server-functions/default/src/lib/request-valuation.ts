@@ -10,7 +10,7 @@ export type ProductCondition =
 
 export type ProductValuationFactors = {
   productCondition: ProductCondition;
-  sameNewProductPrice: string;
+  sameNewProductPrice: string; // قیمت مرجع بازار/ترب یا قیمت نوی همان کالا
   manufactureYear: string;
   warrantyStatus: "manufacturer" | "seller" | "test" | "none" | "unknown";
   warrantyMonths: string;
@@ -103,8 +103,11 @@ export function estimateFairUsedProductPrice(input: {
   const factors = normalizeProductValuationFactors(input.factors);
   const quantity = Math.max(1, Number(String(input.quantity || 1).replace(/\D/g, "")) || 1);
   const totalBudget = money(input.budget);
-  const sameNewUnitPrice = money(factors.sameNewProductPrice);
-  const baseUnitPrice = sameNewUnitPrice || Math.round(totalBudget / quantity) || 0;
+  const marketReferenceUnitPrice = money(factors.sameNewProductPrice);
+  const buyerBudgetUnitPrice = Math.round(totalBudget / quantity) || 0;
+  // قیمت مرجع بازار مثل ترب/ایمالز/قیمت نوی همان مدل معیار اصلی است.
+  // بودجه خریدار فقط وقتی قیمت مرجع نداریم به عنوان fallback کم‌اعتماد استفاده می‌شود.
+  const baseUnitPrice = marketReferenceUnitPrice || buyerBudgetUnitPrice || 0;
   const currentYear = new Date().getFullYear();
   const manufactureYear = Number(factors.manufactureYear || 0);
   const age = manufactureYear >= 1990 && manufactureYear <= currentYear + 1 ? Math.max(0, currentYear - manufactureYear) : 0;
@@ -202,14 +205,14 @@ export function estimateFairUsedProductPrice(input: {
 
   depreciation = clamp(depreciation, 0, 0.82);
   const fairUnit = Math.max(0, Math.round(baseUnitPrice * (1 - depreciation)));
-  const rangePercent = clamp(0.1 + unknowns * 0.025 + (sameNewUnitPrice ? 0 : 0.08), 0.1, 0.32);
+  const rangePercent = clamp(0.08 + unknowns * 0.025 + (marketReferenceUnitPrice ? 0 : 0.12), 0.08, 0.35);
   const minUnit = Math.round(fairUnit * (1 - rangePercent));
   const maxUnit = Math.round(fairUnit * (1 + rangePercent));
-  const confidence = clamp(88 - unknowns * 6 + (sameNewUnitPrice ? 8 : -8) + (factors.valuationNotes ? 3 : 0), 25, 95);
+  const confidence = clamp(88 - unknowns * 6 + (marketReferenceUnitPrice ? 9 : -18) + (factors.valuationNotes ? 3 : 0), 20, 95);
 
   return {
     currency: "تومان",
-    source: "OptiBid AI valuation v1 - rule based fair price estimate",
+    source: "OptiBid AI valuation v2 - market reference + condition adjusted fair price",
     generatedAt: new Date().toISOString(),
     estimatedUnitMin: minUnit,
     estimatedUnitFair: fairUnit,
@@ -219,10 +222,15 @@ export function estimateFairUsedProductPrice(input: {
     estimatedTotalMax: maxUnit * quantity,
     confidence,
     depreciationPercent: Math.round(depreciation * 100),
-    summary: sameNewUnitPrice
-      ? `قیمت نو مشابه مبنا قرار گرفت و با افت کیفیت/سن/گارانتی به قیمت منصفانه دست‌دوم تبدیل شد.`
-      : `چون قیمت نو مشابه وارد نشده، بودجه هر واحد مبنای تخمین قرار گرفت و دقت پایین‌تر است.`,
-    factors: factorNotes.slice(0, 10),
+    summary: marketReferenceUnitPrice
+      ? `قیمت مرجع بازار/ترب به‌عنوان معیار اصلی در نظر گرفته شد و سپس با وضعیت کالا، سال ساخت، گارانتی، سلامت قطعات و سایر فاکتورها تعدیل شد.`
+      : `قیمت مرجع بازار وارد نشده است؛ بنابراین بودجه هر واحد فقط به‌عنوان fallback کم‌اعتماد استفاده شد. برای تخمین دقیق‌تر، قیمت ترب/بازار یا قیمت نوی همان مدل را وارد کنید.`,
+    factors: [
+      marketReferenceUnitPrice
+        ? `قیمت مرجع بازار/ترب: ${marketReferenceUnitPrice.toLocaleString("fa-IR")} تومان`
+        : `قیمت مرجع بازار وارد نشده؛ بودجه خریدار معیار قطعی ارزش واقعی نیست`,
+      ...factorNotes,
+    ].slice(0, 10),
   };
 }
 

@@ -162,7 +162,7 @@ export default function RequestPurchasePage() {
                 <div>
                   <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-blue-50">درخواست با موفقیت ثبت شد</span>
                   <h2 className="mt-3 text-2xl font-bold">گزارش تخمین قیمت هوشمند</h2>
-                  <p className="mt-2 text-sm leading-7 text-blue-50">این تخمین بر اساس وضعیت کالا، قیمت نوی مشابه، سال ساخت، گارانتی، سلامت قطعات و سایر فاکتورهای ارزش‌گذاری محاسبه شده است.</p>
+                  <p className="mt-2 text-sm leading-7 text-blue-50">این تخمین بر اساس قیمت مرجع بازار مثل ترب، وضعیت کالا، سال ساخت، گارانتی، سلامت قطعات و سایر فاکتورهای ارزش‌گذاری محاسبه شده است.</p>
                 </div>
                 <button type="button" onClick={closeEstimateModal} className="rounded-full bg-white/15 px-3 py-1 text-lg font-bold transition hover:bg-white/25">×</button>
               </div>
@@ -377,7 +377,7 @@ export default function RequestPurchasePage() {
             <div className="mb-5 flex flex-col gap-2 border-b border-gray-100 pb-4">
               <h2 className="text-xl font-bold">فاکتورهای تشخیص قیمت واقعی کالا</h2>
               <p className="text-sm leading-7 text-gray-500">
-                این اطلاعات برای ارزش‌گذاری کالای دست‌دوم/استوک استفاده می‌شود. بعد از ثبت درخواست، هوش مصنوعی OptiBid یک قیمت تقریبی و بازه منصفانه پیشنهاد می‌دهد.
+                این اطلاعات برای ارزش‌گذاری کالای دست‌دوم/استوک استفاده می‌شود. اگر قیمت مرجع بازار مثل ترب را وارد کنید، هوش مصنوعی OptiBid آن را معیار اصلی قرار می‌دهد و با وضعیت واقعی کالا تعدیل می‌کند.
               </p>
             </div>
 
@@ -397,11 +397,12 @@ export default function RequestPurchasePage() {
               </label>
 
               <label className="block text-sm font-bold text-gray-700">
-                قیمت نوی همان کالا یا مدل مشابه (هر واحد)
+                قیمت مرجع بازار/ترب یا قیمت نوی همان کالا (هر واحد)
                 <div className="relative mt-2">
-                  <input type="text" value={formData.valuationFactors.sameNewProductPrice} onChange={(e) => updateValuationFactor("sameNewProductPrice", formatMoneyInput(e.target.value))} placeholder="مثال: ۳۵,۰۰۰,۰۰۰" className="w-full rounded-lg border border-gray-300 px-4 py-3 pl-20 font-normal outline-none focus:ring-2 focus:ring-green-500" />
+                  <input type="text" value={formData.valuationFactors.sameNewProductPrice} onChange={(e) => updateValuationFactor("sameNewProductPrice", formatMoneyInput(e.target.value))} placeholder="مثال: ۲۶۲,۳۴۹,۹۹۰" className="w-full rounded-lg border border-gray-300 px-4 py-3 pl-20 font-normal outline-none focus:ring-2 focus:ring-green-500" />
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">تومان</span>
                 </div>
+                <p className="mt-2 text-xs leading-5 text-amber-700">برای دقت بالا، قیمت ترب/بازار یا قیمت نوی همان مدل را وارد کنید؛ بودجه خریدار معیار قطعی قیمت واقعی نیست.</p>
               </label>
 
               <label className="block text-sm font-bold text-gray-700">
