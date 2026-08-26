@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOptiBidData } from "@/lib/json-store";
+import { estimateFairUsedProductPrice } from "@/lib/request-valuation";
 import OfferAction from "./OfferAction";
 
 interface RequestDetailPageProps { params: Promise<{ id: string }> }
@@ -14,6 +15,15 @@ export default async function RequestDetailPage({ params }: RequestDetailPagePro
   if (!request) notFound();
 
   const offers = data.offers.filter((item) => item.requestId === request.id);
+  const currentAiPriceEstimate = request.valuationFactors
+    ? estimateFairUsedProductPrice({
+        title: request.title,
+        category: request.category,
+        budget: request.budget,
+        quantity: String(request.quantity),
+        factors: request.valuationFactors,
+      })
+    : request.aiPriceEstimate;
   const sellerById = new Map(data.users.filter((user) => user.role === "seller").map((user) => [user.id, user]));
 
   return (
@@ -26,7 +36,7 @@ export default async function RequestDetailPage({ params }: RequestDetailPagePro
               <div className="mb-4 flex flex-wrap gap-2"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{request.category}</span><span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">تعداد: {request.quantity}</span><span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">{request.status}</span></div>
               <h1 className="text-3xl font-bold text-[#003b5c]">{request.title}</h1>
               <p className="mt-5 whitespace-pre-line leading-8 text-gray-700">{request.description}</p>
-              {request.aiPriceEstimate && <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5"><h2 className="mb-3 font-bold text-[#003b5c]">🤖 تخمین قیمت هوشمند OptiBid</h2><div className="grid gap-3 text-sm md:grid-cols-2"><div className="rounded-xl bg-white p-3"><span className="text-gray-500">قیمت منصفانه هر واحد:</span><b className="mt-1 block text-[#0b9c56]">{request.aiPriceEstimate.estimatedUnitFair.toLocaleString("fa-IR")} تومان</b></div><div className="rounded-xl bg-white p-3"><span className="text-gray-500">بازه کل:</span><b className="mt-1 block text-[#0b9c56]">{request.aiPriceEstimate.estimatedTotalMin.toLocaleString("fa-IR")} تا {request.aiPriceEstimate.estimatedTotalMax.toLocaleString("fa-IR")} تومان</b></div><div className="rounded-xl bg-white p-3"><span className="text-gray-500">اعتماد تخمین:</span><b className="mt-1 block">{request.aiPriceEstimate.confidence.toLocaleString("fa-IR")}٪</b></div><div className="rounded-xl bg-white p-3"><span className="text-gray-500">افت نسبت به نو:</span><b className="mt-1 block">{request.aiPriceEstimate.depreciationPercent.toLocaleString("fa-IR")}٪</b></div></div><p className="mt-3 text-xs leading-6 text-blue-800">{request.aiPriceEstimate.summary}</p></div>}
+              {currentAiPriceEstimate && <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5"><h2 className="mb-3 font-bold text-[#003b5c]">🤖 تخمین قیمت هوشمند OptiBid</h2><div className="grid gap-3 text-sm md:grid-cols-2"><div className="rounded-xl bg-white p-3"><span className="text-gray-500">قیمت منصفانه هر واحد:</span><b className="mt-1 block text-[#0b9c56]">{currentAiPriceEstimate.estimatedUnitFair.toLocaleString("fa-IR")} تومان</b></div><div className="rounded-xl bg-white p-3"><span className="text-gray-500">بازه کل:</span><b className="mt-1 block text-[#0b9c56]">{currentAiPriceEstimate.estimatedTotalMin.toLocaleString("fa-IR")} تا {currentAiPriceEstimate.estimatedTotalMax.toLocaleString("fa-IR")} تومان</b></div><div className="rounded-xl bg-white p-3"><span className="text-gray-500">اعتماد تخمین:</span><b className="mt-1 block">{currentAiPriceEstimate.confidence.toLocaleString("fa-IR")}٪</b></div><div className="rounded-xl bg-white p-3"><span className="text-gray-500">افت نسبت به نو:</span><b className="mt-1 block">{currentAiPriceEstimate.depreciationPercent.toLocaleString("fa-IR")}٪</b></div></div><p className="mt-3 text-xs leading-6 text-blue-800">{currentAiPriceEstimate.summary}</p></div>}
               {request.valuationFactors && <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-5"><h2 className="mb-3 font-bold text-gray-800">فاکتورهای ثبت‌شده برای ارزش‌گذاری</h2><div className="grid gap-2 text-xs text-gray-600 md:grid-cols-2"><span>قیمت مرجع بازار/ترب: <b>{request.valuationFactors.sameNewProductPrice || "—"}</b></span><span>سال ساخت: <b>{request.valuationFactors.manufactureYear || "—"}</b></span><span>گارانتی: <b>{request.valuationFactors.warrantyStatus}</b></span><span>سلامت قطعات: <b>{request.valuationFactors.partsHealth}</b></span><span>گرید ظاهری: <b>{request.valuationFactors.appearanceGrade}</b></span><span>سابقه تعمیر: <b>{request.valuationFactors.repairHistory}</b></span></div></div>}
               {request.imageNames.length > 0 && <div className="mt-6 border-t pt-5"><h2 className="mb-3 font-bold">پیوست‌های درخواست</h2><div className="flex flex-wrap gap-2">{request.imageNames.map((name) => <span key={name} className="rounded-xl bg-gray-100 px-4 py-2 text-sm text-gray-600">📎 {name}</span>)}</div></div>}
             </section>

@@ -1343,7 +1343,19 @@ export async function getJsonBuyerDashboard(buyerId: number) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, buyerId, "buyer");
   const requests = data.requests.filter((item) => item.buyerId === buyer.id);
-  const requestIds = new Set(requests.map((item) => item.id));
+  const enrichedRequests = requests.map((request) => ({
+    ...request,
+    aiPriceEstimate: request.valuationFactors
+      ? estimateFairUsedProductPrice({
+          title: request.title,
+          category: request.category,
+          budget: request.budget,
+          quantity: String(request.quantity),
+          factors: request.valuationFactors,
+        })
+      : request.aiPriceEstimate,
+  }));
+  const requestIds = new Set(enrichedRequests.map((item) => item.id));
   const offers = data.offers.filter((item) => requestIds.has(item.requestId));
   const sellerById = new Map(
     data.users
@@ -1357,8 +1369,8 @@ export async function getJsonBuyerDashboard(buyerId: number) {
   const { password: _buyerPassword, ...safeBuyer } = buyer;
   return {
     buyer: safeBuyer,
-    requests,
-    offers: offers.map((offer) => ({ ...offer, request: requests.find((item) => item.id === offer.requestId), seller: sellerById.get(offer.sellerId) })),
+    requests: enrichedRequests,
+    offers: offers.map((offer) => ({ ...offer, request: enrichedRequests.find((item) => item.id === offer.requestId), seller: sellerById.get(offer.sellerId) })),
     orders,
     transactions: data.walletTransactions.filter((item) => item.userId === buyer.id),
     withdrawals: data.withdrawals.filter((item) => item.userId === buyer.id),
