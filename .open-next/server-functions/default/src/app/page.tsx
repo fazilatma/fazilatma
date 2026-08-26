@@ -1,12 +1,14 @@
 import Link from "next/link";
 import SellerStars from "@/components/SellerStars";
 import { ProductThumb } from "@/components/ProductImages";
+import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 import {
   getJsonBuyerRankings,
   getJsonHomepageStats,
   getJsonRequests,
   getJsonSellerRankings,
+  getOptiBidData,
 } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +35,8 @@ export default async function HomePage() {
     timeAgo: string;
     offers: number;
     productImages?: ProductImageAttachment[];
+    buyer?: { id: number; fullName: string; avatarName?: string };
+    latestSeller?: { id: number; fullName: string; avatarName?: string };
   }> = [];
   let displayCategories = sampleCategories;
   let topSellers: Awaited<ReturnType<typeof getJsonSellerRankings>> = [];
@@ -46,12 +50,13 @@ export default async function HomePage() {
   };
 
   try {
-    const [stats, jsonRequests, sellerRankings, buyerRankings] =
+    const [stats, jsonRequests, sellerRankings, buyerRankings, data] =
       await Promise.all([
         getJsonHomepageStats(),
         getJsonRequests(),
         getJsonSellerRankings(),
         getJsonBuyerRankings(),
+        getOptiBidData(),
       ]);
 
     realStats = stats;
@@ -61,16 +66,36 @@ export default async function HomePage() {
     topBuyers = buyerRankings
       .filter((item) => item.rankingEligible)
       .slice(0, 4);
-    displayRequests = jsonRequests.slice(0, 3).map((request) => ({
-      id: request.id,
-      title: request.title,
-      description: request.description,
-      budget: Number(request.budget || 0).toLocaleString("fa-IR") + " تومان",
-      category: request.category || "سایر",
-      timeAgo: "جدید",
-      offers: request.offersCount,
-      productImages: request.productImages || [],
-    }));
+    const publicUsers = new Map(
+      data.users.map((user) => [
+        user.id,
+        { id: user.id, fullName: user.fullName, avatarName: user.avatarName },
+      ]),
+    );
+    const offersByRequest = new Map<number, typeof data.offers>();
+    for (const offer of data.offers) {
+      const list = offersByRequest.get(offer.requestId) || [];
+      list.push(offer);
+      offersByRequest.set(offer.requestId, list);
+    }
+
+    displayRequests = jsonRequests.slice(0, 3).map((request) => {
+      const latestOffer = offersByRequest.get(request.id)?.[0];
+      return {
+        id: request.id,
+        title: request.title,
+        description: request.description,
+        budget: Number(request.budget || 0).toLocaleString("fa-IR") + " تومان",
+        category: request.category || "سایر",
+        timeAgo: "جدید",
+        offers: request.offersCount,
+        productImages: request.productImages || [],
+        buyer: publicUsers.get(request.buyerId),
+        latestSeller: latestOffer
+          ? publicUsers.get(latestOffer.sellerId)
+          : undefined,
+      };
+    });
 
     const categoryCountMap = new Map<string, number>();
     for (const request of jsonRequests) {
@@ -233,6 +258,38 @@ export default async function HomePage() {
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                   {request.description}
                 </p>
+                <div className="mb-4 grid gap-2 rounded-2xl bg-gray-50 p-3 text-xs text-gray-600">
+                  {request.buyer && (
+                    <div className="flex items-center gap-2">
+                      <UserAvatar
+                        user={request.buyer}
+                        className="h-9 w-9"
+                        rounded="rounded-full"
+                      />
+                      <span>
+                        خریدار:{" "}
+                        <b className="text-gray-800">
+                          {request.buyer.fullName}
+                        </b>
+                      </span>
+                    </div>
+                  )}
+                  {request.latestSeller && (
+                    <div className="flex items-center gap-2">
+                      <UserAvatar
+                        user={request.latestSeller}
+                        className="h-9 w-9"
+                        rounded="rounded-full"
+                      />
+                      <span>
+                        آخرین فروشنده پیشنهاددهنده:{" "}
+                        <b className="text-gray-800">
+                          {request.latestSeller.fullName}
+                        </b>
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center justify-between pt-4 border-t">
                   <span className="font-bold text-green-600">
                     {request.budget}
@@ -344,8 +401,12 @@ export default async function HomePage() {
                   href={`/sellers/${seller.id}`}
                   className="card-hover rounded-2xl border border-gray-100 bg-white p-6 text-center"
                 >
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#003b5c] text-3xl font-bold text-white">
-                    {seller.fullName.charAt(0)}
+                  <div className="mx-auto mb-4 w-fit">
+                    <UserAvatar
+                      user={seller}
+                      className="h-20 w-20"
+                      rounded="rounded-2xl"
+                    />
                   </div>
                   <h3 className="font-bold text-gray-800">{seller.fullName}</h3>
                   <p className="mb-3 mt-1 line-clamp-1 text-sm text-gray-500">
@@ -408,8 +469,12 @@ export default async function HomePage() {
                     href={`/buyers/${buyer.id}`}
                     className="card-hover rounded-2xl border border-gray-100 bg-gray-50 p-6 text-center"
                   >
-                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-3xl font-bold text-[#003b5c]">
-                      {buyer.fullName.charAt(0)}
+                    <div className="mx-auto mb-4 w-fit">
+                      <UserAvatar
+                        user={buyer}
+                        className="h-20 w-20"
+                        rounded="rounded-full"
+                      />
                     </div>
                     <h3 className="font-bold text-gray-800">
                       {buyer.fullName}

@@ -1,103 +1,9 @@
-import { getCachedLiveContent } from "@/hooks/useLiveContent";
-
-const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
-const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
-
-function normalizeDigits(value: string) {
-  return value
-    .replace(/[۰-۹]/g, (digit) => String(persianDigits.indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String(arabicDigits.indexOf(digit)));
-}
-
-function numericMoney(value: unknown) {
-  if (typeof value === "number") return Math.max(0, Math.round(value));
-  const normalized = normalizeDigits(String(value || ""));
-  return Math.max(0, Number(normalized.replace(/\D/g, "")) || 0);
-}
-
-function formatMoney(value: unknown) {
-  const amount = numericMoney(value);
-  return amount ? `${amount.toLocaleString("fa-IR")} تومان` : "۰ تومان";
-}
-
-function escapeHtml(value: unknown) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function statusLabel(status?: string) {
-  const labels: Record<string, string> = {
-    pending_payment: "در انتظار پرداخت",
-    paid: "پرداخت‌شده و آماده ارسال",
-    shipped: "ارسال‌شده",
-    completed: "تکمیل‌شده",
-    cancelled: "لغوشده",
-    returned: "مرجوع‌شده",
-  };
-  return labels[status || ""] || status || "ثبت‌شده";
-}
-
-function specRow(label: string, value: unknown) {
-  if (!value) return "";
-  return `<div class="spec-row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`;
-}
-
-export const generateInvoiceHTML = (invoiceData: any) => {
-  const liveContent = getCachedLiveContent();
-  const documentId = invoiceData.id || invoiceData.orderId || `INV-${Date.now()}`;
-  const date = invoiceData.date || new Date().toLocaleDateString("fa-IR");
-  const sellerName = invoiceData.sellerName || invoiceData.seller || "فروشنده OptiBid";
-  const buyerName = invoiceData.buyerName || invoiceData.buyer || "خریدار OptiBid";
-  const productTitle = invoiceData.product || invoiceData.title || "کالای مورد معامله";
-  const description = invoiceData.description || invoiceData.productDescription || "";
-  const category = invoiceData.category || "کالا / خدمات";
-  const quantity = Math.max(1, Number(invoiceData.quantity || 1) || 1);
-  const totalAmount = numericMoney(invoiceData.totalAmount ?? invoiceData.amount);
-  const unitAmount = numericMoney(invoiceData.unitAmount) || Math.round(totalAmount / quantity);
-  const platformFee = numericMoney(invoiceData.platformFee);
-  const sellerAmount = numericMoney(invoiceData.sellerAmount) || Math.max(0, totalAmount - platformFee);
-  const taxAmount = numericMoney(invoiceData.taxAmount);
-  const shippingAmount = numericMoney(invoiceData.shippingAmount);
-  const payableAmount = totalAmount + taxAmount + shippingAmount;
-  const specs = invoiceData.productSpecs || {};
-  const verificationUrl = `https://optibid.fazilat-ma.workers.dev/verify/${encodeURIComponent(documentId)}`;
-
-  const brand = specs.brand || invoiceData.brand || "—";
-  const itemSubtitle = [specs.exactModel, specs.cpu, specs.ram, specs.storage]
-    .filter(Boolean)
-    .join(" · ");
-
-  const specsHtml = [
-    specRow("برند", specs.brand),
-    specRow("مدل دقیق", specs.exactModel),
-    specRow("کد مدل / کانفیگ", specs.serialOrConfig),
-    specRow("پردازنده", specs.cpu),
-    specRow("رم", specs.ram),
-    specRow("حافظه", specs.storage),
-    specRow("گرافیک", specs.gpu),
-    specRow("نمایشگر", specs.display),
-    specRow("سال ساخت", specs.manufactureYear),
-    specRow("وضعیت کالا", specs.productCondition),
-    specRow("گارانتی", specs.warrantyStatus),
-    specRow("سلامت کلی قطعات", specs.partsHealth),
-    specRow("سلامت باتری", specs.batteryHealthPercent ? `${specs.batteryHealthPercent}%` : ""),
-    specRow("گرید ظاهری", specs.appearanceGrade),
-    specRow("سابقه تعمیر", specs.repairHistory),
-    specRow("مهلت تست", specs.testDeadlineDays ? `${specs.testDeadlineDays} روز` : ""),
-  ]
-    .filter(Boolean)
-    .join("");
-
-  return `<!DOCTYPE html>
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,56722,e=>{"use strict";var t=e.i(19614);function i(e){return"number"==typeof e?Math.max(0,Math.round(e)):Math.max(0,Number(String(e||"").replace(/[۰-۹]/g,e=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(e))).replace(/[٠-٩]/g,e=>String("٠١٢٣٤٥٦٧٨٩".indexOf(e))).replace(/\D/g,""))||0)}function a(e){let t=i(e);return t?`${t.toLocaleString("fa-IR")} تومان`:"۰ تومان"}function r(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}function s(e,t){return t?`<div class="spec-row"><span>${r(e)}</span><b>${r(t)}</b></div>`:""}e.s(["generateInvoiceHTML",0,e=>{var o;let l=(0,t.getCachedLiveContent)(),d=e.id||e.orderId||`INV-${Date.now()}`,n=e.date||new Date().toLocaleDateString("fa-IR"),p=e.sellerName||e.seller||"فروشنده OptiBid",c=e.buyerName||e.buyer||"خریدار OptiBid",b=e.product||e.title||"کالای مورد معامله",x=e.description||e.productDescription||"",g=e.category||"کالا / خدمات",m=Math.max(1,Number(e.quantity||1)||1),h=i(e.totalAmount??e.amount),f=i(e.unitAmount)||Math.round(h/m),u=i(e.platformFee),v=i(e.sellerAmount)||Math.max(0,h-u),y=i(e.taxAmount),w=i(e.shippingAmount),j=h+y+w,k=e.productSpecs||{},N=`https://optibid.fazilat-ma.workers.dev/verify/${encodeURIComponent(d)}`,z=k.brand||e.brand||"—",$=[k.exactModel,k.cpu,k.ram,k.storage].filter(Boolean).join(" · "),A=[s("برند",k.brand),s("مدل دقیق",k.exactModel),s("کد مدل / کانفیگ",k.serialOrConfig),s("پردازنده",k.cpu),s("رم",k.ram),s("حافظه",k.storage),s("گرافیک",k.gpu),s("نمایشگر",k.display),s("سال ساخت",k.manufactureYear),s("وضعیت کالا",k.productCondition),s("گارانتی",k.warrantyStatus),s("سلامت کلی قطعات",k.partsHealth),s("سلامت باتری",k.batteryHealthPercent?`${k.batteryHealthPercent}%`:""),s("گرید ظاهری",k.appearanceGrade),s("سابقه تعمیر",k.repairHistory),s("مهلت تست",k.testDeadlineDays?`${k.testDeadlineDays} روز`:"")].filter(Boolean).join("");return`<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>فاکتور رسمی معامله - ${escapeHtml(documentId)}</title>
+  <title>فاکتور رسمی معامله - ${r(d)}</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v32.103/Vazirmatn-font-face.css" rel="stylesheet" />
   <style>
     @page { size: A4; margin: 0; }
@@ -269,9 +175,9 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           <h2>Official Transaction Invoice</h2>
         </div>
         <div class="meta">
-          <div class="meta-row"><span>شماره سند / Document No.</span><b>${escapeHtml(documentId)}</b></div>
-          <div class="meta-row"><span>تاریخ / Date</span><b>${escapeHtml(date)}</b></div>
-          <div class="meta-row"><span>وضعیت / Status</span><b>${escapeHtml(statusLabel(invoiceData.status))}</b></div>
+          <div class="meta-row"><span>شماره سند / Document No.</span><b>${r(d)}</b></div>
+          <div class="meta-row"><span>تاریخ / Date</span><b>${r(n)}</b></div>
+          <div class="meta-row"><span>وضعیت / Status</span><b>${r({pending_payment:"در انتظار پرداخت",paid:"پرداخت‌شده و آماده ارسال",shipped:"ارسال‌شده",completed:"تکمیل‌شده",cancelled:"لغوشده",returned:"مرجوع‌شده"}[(o=e.status)||""]||o||"ثبت‌شده")}</b></div>
           <div class="meta-row"><span>اعتبار سند / Validity</span><b>15 Days</b></div>
         </div>
       </header>
@@ -279,18 +185,18 @@ export const generateInvoiceHTML = (invoiceData: any) => {
       <section class="party-grid">
         <article class="party-card">
           <div class="section-title"><span>اطلاعات فروشنده</span><small>Seller Information</small></div>
-          <div class="info-row"><span>نام فروشنده</span><b>${escapeHtml(sellerName)}</b></div>
-          <div class="info-row"><span>آدرس</span><b>${escapeHtml(liveContent.invoiceCompanyAddressFa)}</b></div>
+          <div class="info-row"><span>نام فروشنده</span><b>${r(p)}</b></div>
+          <div class="info-row"><span>آدرس</span><b>${r(l.invoiceCompanyAddressFa)}</b></div>
           <div class="info-row"><span>تلفن</span><b dir="ltr">021-12345678</b></div>
           <div class="info-row"><span>ایمیل</span><b dir="ltr">seller@optibid.ir</b></div>
           <div class="info-row"><span>شناسه مالیاتی</span><b dir="ltr">123456789012</b></div>
         </article>
         <article class="party-card">
           <div class="section-title"><span>اطلاعات خریدار</span><small>Customer Information</small></div>
-          <div class="info-row"><span>نام خریدار</span><b>${escapeHtml(buyerName)}</b></div>
-          <div class="info-row"><span>آدرس تحویل</span><b>${escapeHtml(invoiceData.shippingAddress || liveContent.invoiceShippingAddressFa)}</b></div>
-          <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${escapeHtml(documentId)}</b></div>
-          <div class="info-row"><span>روش پرداخت</span><b>${escapeHtml(invoiceData.paymentMethod === "wallet" ? "کیف پول" : invoiceData.paymentMethod === "gateway" ? "درگاه پرداخت" : "پرداخت امانی OptiBid")}</b></div>
+          <div class="info-row"><span>نام خریدار</span><b>${r(c)}</b></div>
+          <div class="info-row"><span>آدرس تحویل</span><b>${r(e.shippingAddress||l.invoiceShippingAddressFa)}</b></div>
+          <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${r(d)}</b></div>
+          <div class="info-row"><span>روش پرداخت</span><b>${r("wallet"===e.paymentMethod?"کیف پول":"gateway"===e.paymentMethod?"درگاه پرداخت":"پرداخت امانی OptiBid")}</b></div>
           <div class="info-row"><span>حساب امانی</span><b>وجه تا تایید دریافت نزد OptiBid امانت است</b></div>
         </article>
       </section>
@@ -312,16 +218,16 @@ export const generateInvoiceHTML = (invoiceData: any) => {
             <tr>
               <td>1</td>
               <td class="item">
-                <b>${escapeHtml(productTitle)}</b>
-                ${itemSubtitle ? `<small>${escapeHtml(itemSubtitle)}</small>` : ""}
-                ${description ? `<div style="font-size:10px;color:#64748b;margin-top:5px">${escapeHtml(description).slice(0, 180)}</div>` : ""}
+                <b>${r(b)}</b>
+                ${$?`<small>${r($)}</small>`:""}
+                ${x?`<div style="font-size:10px;color:#64748b;margin-top:5px">${r(x).slice(0,180)}</div>`:""}
                 <div style="margin-top:7px"><span class="status-pill">🔒 پرداخت امانی / Escrow</span></div>
               </td>
-              <td>${escapeHtml(brand === "—" ? category : brand)}</td>
-              <td><b>${quantity.toLocaleString("fa-IR")}</b></td>
-              <td>${formatMoney(unitAmount)}</td>
-              <td>${taxAmount ? formatMoney(taxAmount) : "۰٪"}</td>
-              <td><b>${formatMoney(totalAmount)}</b></td>
+              <td>${r("—"===z?g:z)}</td>
+              <td><b>${m.toLocaleString("fa-IR")}</b></td>
+              <td>${a(f)}</td>
+              <td>${y?a(y):"۰٪"}</td>
+              <td><b>${a(h)}</b></td>
             </tr>
           </tbody>
         </table>
@@ -338,16 +244,16 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           </ul>
         </article>
         <article class="totals">
-          <div class="total-row"><span>جمع مبلغ کالا</span><b>${formatMoney(totalAmount)}</b></div>
-          <div class="total-row"><span>مالیات / عوارض</span><b>${taxAmount ? formatMoney(taxAmount) : "۰ تومان"}</b></div>
-          <div class="total-row"><span>هزینه حمل</span><b>${shippingAmount ? formatMoney(shippingAmount) : "طبق توافق / رایگان"}</b></div>
-          <div class="total-row highlight"><span>جمع کل قابل پرداخت</span><b>${formatMoney(payableAmount)}</b></div>
-          <div class="total-row"><span>کمیسیون پلتفرم</span><b>${formatMoney(platformFee)}</b></div>
-          <div class="total-row payable"><span>سهم خالص فروشنده پس از کمیسیون</span><b>${formatMoney(sellerAmount)}</b></div>
+          <div class="total-row"><span>جمع مبلغ کالا</span><b>${a(h)}</b></div>
+          <div class="total-row"><span>مالیات / عوارض</span><b>${y?a(y):"۰ تومان"}</b></div>
+          <div class="total-row"><span>هزینه حمل</span><b>${w?a(w):"طبق توافق / رایگان"}</b></div>
+          <div class="total-row highlight"><span>جمع کل قابل پرداخت</span><b>${a(j)}</b></div>
+          <div class="total-row"><span>کمیسیون پلتفرم</span><b>${a(u)}</b></div>
+          <div class="total-row payable"><span>سهم خالص فروشنده پس از کمیسیون</span><b>${a(v)}</b></div>
         </article>
       </section>
 
-      ${specsHtml ? `<section class="specs"><h3>مشخصات کالای تاییدشده قبل از پرداخت</h3><div class="spec-grid">${specsHtml}</div>${specs.returnPolicy ? `<div style="margin-top:10px;border-radius:12px;background:#ecfdf5;padding:10px;font-size:11px;color:#166534"><b>شرایط مرجوعی:</b> ${escapeHtml(specs.returnPolicy)}</div>` : ""}</section>` : ""}
+      ${A?`<section class="specs"><h3>مشخصات کالای تاییدشده قبل از پرداخت</h3><div class="spec-grid">${A}</div>${k.returnPolicy?`<div style="margin-top:10px;border-radius:12px;background:#ecfdf5;padding:10px;font-size:11px;color:#166534"><b>شرایط مرجوعی:</b> ${r(k.returnPolicy)}</div>`:""}</section>`:""}
 
       <section class="verification">
         <article class="box">
@@ -365,9 +271,9 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           <div class="verify-inner">
             <div style="font-size:11px;line-height:2;color:#334155">
               برای بررسی اعتبار این فاکتور، کد QR را اسکن کنید یا شماره سند را در سامانه وارد کنید.
-              <div dir="ltr" style="margin-top:8px;color:#003b5c;font-weight:800">${escapeHtml(documentId)}</div>
+              <div dir="ltr" style="margin-top:8px;color:#003b5c;font-weight:800">${r(d)}</div>
             </div>
-            <div class="qr"><img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(verificationUrl)}" /></div>
+            <div class="qr"><img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(N)}" /></div>
           </div>
         </article>
       </section>
@@ -381,5 +287,4 @@ export const generateInvoiceHTML = (invoiceData: any) => {
     </footer>
   </main>
 </body>
-</html>`;
-};
+</html>`}])},98585,e=>{"use strict";var t=e.i(43476),i=e.i(22016),a=e.i(71645),r=e.i(56722);e.s(["default",0,function(){let[e,s]=(0,a.useState)("all"),o=[{id:"ORD-1403-001",buyer:"شرکت فناوران نوین",product:"لپ‌تاپ استوک Lenovo ThinkPad T480 × 5 عدد",totalAmount:"۱۴۰,۰۰۰,۰۰۰ تومان",feeAmount:"۷,۰۰۰,۰۰۰ تومان (۵٪ کمیسیون)",sellerReceives:"۱۳۳,۰۰۰,۰۰۰ تومان",status:"delivered",statusLabel:"در انتظار تایید نهایی خریدار",statusColor:"bg-orange-100 text-orange-700",paidAt:"۱۴۰۳/۰۸/۱۵",needShipment:!1,canGetPaid:!0},{id:"ORD-1403-002",buyer:"رستوران سنتی بهارستان",product:"تجهیزات آشپزخانه صنعتی × ۱ ست",totalAmount:"۸۰,۰۰۰,۰۰۰ تومان",feeAmount:"۴,۰۰۰,۰۰۰ تومان",sellerReceives:"۷۶,۰۰۰,۰۰۰ تومان",status:"paid",statusLabel:"پرداخت شده - آماده ارسال",statusColor:"bg-blue-100 text-blue-700",paidAt:"۱۴۰۳/۰۸/۱۸",needShipment:!0,canGetPaid:!1},{id:"ORD-1403-003",buyer:"سارا احمدی",product:"آیپد پرو ۲۰۲۲ × ۱ عدد",totalAmount:"۴۲,۰۰۰,۰۰۰ تومان",feeAmount:"۲,۱۰۰,۰۰۰ تومان",sellerReceives:"۳۹,۹۰۰,۰۰۰ تومان",status:"completed",statusLabel:"تکمیل شده - مبلغ واریز شد",statusColor:"bg-green-100 text-green-700",paidAt:"۱۴۰۳/۰۷/۱۰",needShipment:!1,canGetPaid:!1}],l="all"===e?o:o.filter(t=>t.status===e);return(0,t.jsx)("div",{dir:"rtl",className:"min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8",children:(0,t.jsxs)("div",{className:"max-w-7xl mx-auto",children:[(0,t.jsxs)("div",{className:"mb-8",children:[(0,t.jsx)("h1",{className:"text-3xl font-bold text-gray-900 mb-2",children:"فروش‌های من"}),(0,t.jsx)("p",{className:"text-gray-600",children:"مدیریت معاملات، ارسال کالا و پیگیری تسویه حساب کمیسیون."})]}),(0,t.jsxs)("div",{className:"bg-gradient-to-l from-green-50 to-blue-50 border border-green-200 rounded-xl p-5 mb-6",children:[(0,t.jsx)("h3",{className:"font-bold text-green-800 mb-2",children:"🔒 نحوه تسویه حساب با فروشنده:"}),(0,t.jsxs)("ul",{className:"text-sm text-green-700 space-y-1 mr-5 list-disc",children:[(0,t.jsx)("li",{children:"وجه توسط خریدار به حساب امانی پلتفرم واریز می‌شود."}),(0,t.jsx)("li",{children:"شما کالا را ارسال کرده و کد رهگیری را ثبت می‌کنید."}),(0,t.jsx)("li",{children:"پس از تایید نهایی تحویل توسط خریدار، مبلغ نهایی (با کسر ۵٪ کمیسیون پلتفرم) به کیف پول شما واریز می‌گردد."})]})]}),(0,t.jsx)("div",{className:"flex flex-wrap gap-2 mb-6 bg-white rounded-xl p-2 border border-gray-200",children:[{id:"all",label:"همه فروش‌ها"},{id:"paid",label:"پرداخت شده / در انتظار ارسال"},{id:"shipped",label:"ارسال شده"},{id:"delivered",label:"در انتظار تایید خریدار"},{id:"completed",label:"تکمیل شده (وجه واریز شده)"}].map(i=>(0,t.jsx)("button",{onClick:()=>s(i.id),className:`px-4 py-2 rounded-lg text-sm font-bold transition ${e===i.id?"bg-blue-600 text-white":"text-gray-600 hover:bg-gray-100"}`,children:i.label},i.id))}),(0,t.jsx)("div",{className:"space-y-4",children:0===l.length?(0,t.jsxs)("div",{className:"bg-white rounded-2xl p-16 text-center border border-gray-100",children:[(0,t.jsx)("div",{className:"text-5xl mb-4",children:"💼"}),(0,t.jsx)("h3",{className:"font-bold text-gray-800 mb-2",children:"هنوز فروشی در این بخش ندارید"}),(0,t.jsx)(i.default,{href:"/requests",className:"text-blue-600 font-bold hover:underline",children:"مشاهده درخواست‌های خرید جدید"})]}):l.map(e=>(0,t.jsxs)("div",{className:"bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden",children:[(0,t.jsx)("div",{className:"bg-gray-50 p-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3",children:(0,t.jsxs)("div",{className:"flex flex-wrap items-center gap-3",children:[(0,t.jsx)("span",{className:"font-mono font-bold text-gray-800",dir:"ltr",children:e.id}),(0,t.jsx)("span",{className:`px-3 py-1 rounded-full text-xs font-bold ${e.statusColor}`,children:e.statusLabel}),(0,t.jsxs)("span",{className:"text-sm text-gray-500",children:["خریدار: ",e.buyer]})]})}),(0,t.jsxs)("div",{className:"p-5",children:[(0,t.jsx)("p",{className:"font-bold text-gray-800 mb-4",children:e.product}),(0,t.jsxs)("div",{className:"grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4 p-4 bg-gray-50 rounded-xl",children:[(0,t.jsxs)("div",{children:[(0,t.jsx)("span",{className:"text-gray-500 block",children:"مبلغ کل پرداختی خریدار:"}),(0,t.jsx)("span",{className:"font-bold text-green-700",children:e.totalAmount})]}),(0,t.jsxs)("div",{children:[(0,t.jsx)("span",{className:"text-gray-500 block",children:"کمیسیون پلتفرم (۵٪):"}),(0,t.jsx)("span",{className:"font-bold text-red-600 line-through",children:e.feeAmount})]}),(0,t.jsxs)("div",{children:[(0,t.jsx)("span",{className:"text-gray-500 block",children:"مبلغ قابل دریافت شما:"}),(0,t.jsx)("span",{className:"font-bold text-green-700 text-lg",children:e.sellerReceives})]}),(0,t.jsxs)("div",{children:[(0,t.jsx)("span",{className:"text-gray-500 block",children:"تاریخ پرداخت:"}),(0,t.jsx)("span",{className:"font-medium",children:e.paidAt})]})]}),(0,t.jsxs)("div",{className:"flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100",children:[(0,t.jsxs)("button",{onClick:()=>{let t=new Blob([(0,r.generateInvoiceHTML)({id:e.id,date:e.paidAt,totalAmount:e.totalAmount,sellerName:"شما",buyerName:e.buyer,product:e.product,status:e.status,sellerAmount:e.sellerReceives,platformFee:e.feeAmount})],{type:"text/html;charset=utf-8"}),i=URL.createObjectURL(t);window.open(i,"_blank")},className:"border border-[#00a8e8] text-[#00a8e8] px-5 py-2.5 rounded-lg font-bold hover:bg-blue-50 transition text-center flex items-center justify-center gap-2",children:[(0,t.jsx)("svg",{className:"w-5 h-5",fill:"none",stroke:"currentColor",viewBox:"0 0 24 24",children:(0,t.jsx)("path",{strokeLinecap:"round",strokeLinejoin:"round",strokeWidth:2,d:"M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"})}),"چاپ پیش‌فاکتور"]}),(0,t.jsx)(i.default,{href:"#",className:"border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition text-center",children:"جزئیات"}),e.needShipment&&(0,t.jsx)("button",{className:"bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold transition flex-1 sm:flex-none",children:"ثبت کد رهگیری و ارسال کالا"}),e.canGetPaid&&(0,t.jsx)("div",{className:"text-sm text-orange-700 bg-orange-50 px-4 py-2.5 rounded-lg flex-1 flex items-center justify-center",children:"پس از تایید نهایی خریدار، مبلغ به کیف پول شما واریز می‌شود."}),"completed"===e.status&&(0,t.jsxs)("button",{className:"bg-green-600 text-white px-5 py-2.5 rounded-lg font-bold flex-1 sm:flex-none flex items-center justify-center gap-2",children:[(0,t.jsx)("svg",{className:"w-5 h-5",fill:"none",stroke:"currentColor",viewBox:"0 0 24 24",children:(0,t.jsx)("path",{strokeLinecap:"round",strokeLinejoin:"round",strokeWidth:2,d:"M5 13l4 4L19 7"})}),"مبلغ به کیف پول واریز شد"]})]})]})]},e.id))})]})})}])}]);

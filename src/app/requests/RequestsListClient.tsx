@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
+import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
 interface SellerOfferSummary {
@@ -15,6 +16,7 @@ interface SellerOfferSummary {
   message: string;
   productSpecs?: any;
   productImages?: ProductImageAttachment[];
+  seller?: { id: number; fullName: string; avatarName?: string };
 }
 
 interface RequestItem {
@@ -27,6 +29,8 @@ interface RequestItem {
   offers: number;
   buyer: string;
   buyerRating: number;
+  buyerUser?: { id: number; fullName: string; avatarName?: string };
+  latestSeller?: { id: number; fullName: string; avatarName?: string };
   quantity: number;
   deadline: string;
   sellerOffers: SellerOfferSummary[];
@@ -304,30 +308,37 @@ export default function RequestsListClient({
                         <span className="font-bold text-xl md:text-2xl text-green-600">
                           {request.budget}
                         </span>
-                        <div className="flex items-center gap-1 text-gray-500 text-sm">
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                          <div className="flex items-center gap-2 rounded-xl bg-white px-2 py-1">
+                            <UserAvatar
+                              user={request.buyerUser}
+                              label={request.buyer}
+                              className="h-9 w-9"
+                              rounded="rounded-full"
                             />
-                          </svg>
-                          <span>{request.buyer}</span>
-                          <span className="flex items-center gap-1 text-yellow-500 font-bold mr-1">
-                            <svg
-                              className="w-3 h-3 fill-current"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            {request.buyerRating}
-                          </span>
+                            <span>
+                              خریدار:{" "}
+                              <b className="text-gray-800">{request.buyer}</b>
+                            </span>
+                            <span className="flex items-center gap-1 text-yellow-500 font-bold mr-1">
+                              ★ {request.buyerRating}
+                            </span>
+                          </div>
+                          {request.latestSeller && (
+                            <div className="flex items-center gap-2 rounded-xl bg-white px-2 py-1">
+                              <UserAvatar
+                                user={request.latestSeller}
+                                className="h-9 w-9"
+                                rounded="rounded-full"
+                              />
+                              <span>
+                                فروشنده پیشنهاددهنده:{" "}
+                                <b className="text-gray-800">
+                                  {request.latestSeller.fullName}
+                                </b>
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
@@ -420,9 +431,17 @@ function OfferSpecsModal({
               >
                 <div className="mb-4 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-start">
                   <div>
-                    <h3 className="text-lg font-bold text-[#003b5c]">
-                      {offer.sellerName}
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        user={offer.seller}
+                        label={offer.sellerName}
+                        className="h-11 w-11"
+                        rounded="rounded-full"
+                      />
+                      <h3 className="text-lg font-bold text-[#003b5c]">
+                        {offer.sellerName}
+                      </h3>
+                    </div>
                     <p className="mt-1 text-xs text-gray-500">
                       زمان تحویل: {offer.deliveryDays} روز · وضعیت پیشنهاد:{" "}
                       {offer.status}

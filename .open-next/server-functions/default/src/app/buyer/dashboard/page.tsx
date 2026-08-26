@@ -1069,12 +1069,20 @@ export default function BuyerDashboardPage() {
                     <button
                       onClick={() => {
                         const html = generateInvoiceHTML({
+                          ...order,
                           id: order.id,
                           date: dateLabel(order.paymentAt || order.createdAt),
-                          amount: money(order.totalAmount),
-                          seller: order.sellerName,
+                          totalAmount: order.totalAmount,
+                          platformFee: order.platformFee,
+                          sellerAmount: order.sellerAmount,
+                          sellerName: order.sellerName,
+                          buyerName: data.buyer.fullName,
                           product: order.title,
                           status: order.status,
+                          quantity: order.quantity,
+                          category: order.category,
+                          shippingAddress: order.shippingAddress,
+                          productSpecs: order.productSpecs,
                         });
                         window.open(
                           URL.createObjectURL(

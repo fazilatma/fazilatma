@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
+import UserAvatar from "@/components/UserAvatar";
 import { getOptiBidData } from "@/lib/json-store";
 import { estimateFairUsedProductPrice } from "@/lib/request-valuation";
 import OfferAction from "./OfferAction";
@@ -34,6 +35,7 @@ export default async function RequestDetailPage({
       .filter((user) => user.role === "seller")
       .map((user) => [user.id, user]),
   );
+  const buyer = data.users.find((user) => user.id === request.buyerId);
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50 pb-16">
@@ -64,6 +66,22 @@ export default async function RequestDetailPage({
                   {request.status}
                 </span>
               </div>
+
+              {buyer && (
+                <div className="mb-5 flex items-center gap-3 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600">
+                  <UserAvatar
+                    user={buyer}
+                    className="h-12 w-12"
+                    rounded="rounded-full"
+                  />
+                  <div>
+                    <span className="text-xs text-gray-500">
+                      ثبت‌شده توسط خریدار
+                    </span>
+                    <p className="font-bold text-gray-900">{buyer.fullName}</p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                 <ProductThumb
@@ -225,6 +243,12 @@ export default async function RequestDetailPage({
                                 title={request.title}
                                 className="h-20 w-20"
                               />
+                              <UserAvatar
+                                user={seller}
+                                label={offer.sellerName}
+                                className="h-12 w-12"
+                                rounded="rounded-full"
+                              />
                               <div>
                                 <h3 className="font-bold text-[#003b5c]">
                                   {offer.sellerName}
@@ -322,6 +346,19 @@ export default async function RequestDetailPage({
           <aside className="space-y-5">
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="mb-4 font-bold">خلاصه درخواست</h2>
+              {buyer && (
+                <div className="mb-4 flex items-center gap-2 rounded-2xl bg-blue-50 p-3">
+                  <UserAvatar
+                    user={buyer}
+                    className="h-10 w-10"
+                    rounded="rounded-full"
+                  />
+                  <div className="text-xs">
+                    <p className="text-gray-500">خریدار</p>
+                    <b className="text-[#003b5c]">{buyer.fullName}</b>
+                  </div>
+                </div>
+              )}
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">بودجه:</span>

@@ -1,103 +1,9 @@
-import { getCachedLiveContent } from "@/hooks/useLiveContent";
-
-const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
-const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
-
-function normalizeDigits(value: string) {
-  return value
-    .replace(/[۰-۹]/g, (digit) => String(persianDigits.indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String(arabicDigits.indexOf(digit)));
-}
-
-function numericMoney(value: unknown) {
-  if (typeof value === "number") return Math.max(0, Math.round(value));
-  const normalized = normalizeDigits(String(value || ""));
-  return Math.max(0, Number(normalized.replace(/\D/g, "")) || 0);
-}
-
-function formatMoney(value: unknown) {
-  const amount = numericMoney(value);
-  return amount ? `${amount.toLocaleString("fa-IR")} تومان` : "۰ تومان";
-}
-
-function escapeHtml(value: unknown) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function statusLabel(status?: string) {
-  const labels: Record<string, string> = {
-    pending_payment: "در انتظار پرداخت",
-    paid: "پرداخت‌شده و آماده ارسال",
-    shipped: "ارسال‌شده",
-    completed: "تکمیل‌شده",
-    cancelled: "لغوشده",
-    returned: "مرجوع‌شده",
-  };
-  return labels[status || ""] || status || "ثبت‌شده";
-}
-
-function specRow(label: string, value: unknown) {
-  if (!value) return "";
-  return `<div class="spec-row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`;
-}
-
-export const generateInvoiceHTML = (invoiceData: any) => {
-  const liveContent = getCachedLiveContent();
-  const documentId = invoiceData.id || invoiceData.orderId || `INV-${Date.now()}`;
-  const date = invoiceData.date || new Date().toLocaleDateString("fa-IR");
-  const sellerName = invoiceData.sellerName || invoiceData.seller || "فروشنده OptiBid";
-  const buyerName = invoiceData.buyerName || invoiceData.buyer || "خریدار OptiBid";
-  const productTitle = invoiceData.product || invoiceData.title || "کالای مورد معامله";
-  const description = invoiceData.description || invoiceData.productDescription || "";
-  const category = invoiceData.category || "کالا / خدمات";
-  const quantity = Math.max(1, Number(invoiceData.quantity || 1) || 1);
-  const totalAmount = numericMoney(invoiceData.totalAmount ?? invoiceData.amount);
-  const unitAmount = numericMoney(invoiceData.unitAmount) || Math.round(totalAmount / quantity);
-  const platformFee = numericMoney(invoiceData.platformFee);
-  const sellerAmount = numericMoney(invoiceData.sellerAmount) || Math.max(0, totalAmount - platformFee);
-  const taxAmount = numericMoney(invoiceData.taxAmount);
-  const shippingAmount = numericMoney(invoiceData.shippingAmount);
-  const payableAmount = totalAmount + taxAmount + shippingAmount;
-  const specs = invoiceData.productSpecs || {};
-  const verificationUrl = `https://optibid.fazilat-ma.workers.dev/verify/${encodeURIComponent(documentId)}`;
-
-  const brand = specs.brand || invoiceData.brand || "—";
-  const itemSubtitle = [specs.exactModel, specs.cpu, specs.ram, specs.storage]
-    .filter(Boolean)
-    .join(" · ");
-
-  const specsHtml = [
-    specRow("برند", specs.brand),
-    specRow("مدل دقیق", specs.exactModel),
-    specRow("کد مدل / کانفیگ", specs.serialOrConfig),
-    specRow("پردازنده", specs.cpu),
-    specRow("رم", specs.ram),
-    specRow("حافظه", specs.storage),
-    specRow("گرافیک", specs.gpu),
-    specRow("نمایشگر", specs.display),
-    specRow("سال ساخت", specs.manufactureYear),
-    specRow("وضعیت کالا", specs.productCondition),
-    specRow("گارانتی", specs.warrantyStatus),
-    specRow("سلامت کلی قطعات", specs.partsHealth),
-    specRow("سلامت باتری", specs.batteryHealthPercent ? `${specs.batteryHealthPercent}%` : ""),
-    specRow("گرید ظاهری", specs.appearanceGrade),
-    specRow("سابقه تعمیر", specs.repairHistory),
-    specRow("مهلت تست", specs.testDeadlineDays ? `${specs.testDeadlineDays} روز` : ""),
-  ]
-    .filter(Boolean)
-    .join("");
-
-  return `<!DOCTYPE html>
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,12682,65816,t=>{"use strict";var e=t.i(43476);function a(t){if(!t?.storedName)return"";let e=t.id||t.storedName;return`/api/product-image?name=${encodeURIComponent(t.storedName)}&v=${encodeURIComponent(e)}`}t.s(["productImageUrl",0,a],65816),t.s(["ProductImageStrip",0,function({images:t,title:i,label:r="عکس‌های محصول",emptyText:o}){return t&&0!==t.length?(0,e.jsxs)("div",{className:"mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4",children:[(0,e.jsxs)("div",{className:"mb-3 flex items-center justify-between gap-3",children:[(0,e.jsx)("h3",{className:"font-bold text-gray-900",children:r}),(0,e.jsxs)("span",{className:"rounded-full bg-white px-3 py-1 text-xs font-bold text-gray-500",children:[t.length.toLocaleString("fa-IR")," عکس"]})]}),(0,e.jsx)("div",{className:"grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4",children:t.map(t=>(0,e.jsxs)("a",{href:a(t),target:"_blank",rel:"noreferrer",className:"group overflow-hidden rounded-2xl border border-white bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",children:[(0,e.jsx)("div",{className:"aspect-square overflow-hidden bg-gray-100",children:(0,e.jsx)("img",{src:a(t),alt:`${i} - ${t.originalName}`,className:"h-full w-full object-cover transition duration-300 group-hover:scale-105",loading:"lazy"})}),(0,e.jsxs)("p",{className:"truncate px-3 py-2 text-xs text-gray-500",children:["seller"===t.uploadedByRole?"فروشنده":"buyer"===t.uploadedByRole?"خریدار":"محصول"," ","· ",t.originalName]})]},t.id||t.storedName))})]}):o?(0,e.jsx)("div",{className:"rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500",children:o}):null},"ProductThumb",0,function({images:t,title:i,className:r="h-20 w-20"}){let o=t?.[0];return(0,e.jsx)("div",{className:`shrink-0 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 ${r}`,children:o?(0,e.jsx)("img",{src:a(o),alt:`عکس محصول ${i}`,className:"h-full w-full object-cover",loading:"lazy"}):(0,e.jsx)("div",{className:"grid h-full w-full place-items-center bg-gradient-to-br from-gray-50 to-gray-200 text-2xl text-gray-400",children:"📦"})})}],12682)},11777,t=>{"use strict";var e=t.i(43476);let a={sm:"text-sm",md:"text-lg",lg:"text-2xl"};t.s(["default",0,function({score:t,size:i="md",showLabel:r=!0,light:o=!1,className:s=""}){let l=Math.max(0,Math.min(5,t/20)),n=Math.round(l);return(0,e.jsxs)("div",{className:`inline-flex items-center gap-1.5 ${s}`,"aria-label":`امتیاز ${l.toFixed(1)} از ۵`,children:[(0,e.jsx)("span",{className:`tracking-tight text-amber-400 ${a[i]}`,"aria-hidden":"true",children:Array.from({length:5},(t,e)=>e<n?"★":"☆").join("")}),r&&(0,e.jsxs)("span",{className:`font-bold ${o?"text-white":"text-[#003b5c]"}`,children:[l.toLocaleString("fa-IR",{minimumFractionDigits:1,maximumFractionDigits:1}),(0,e.jsx)("span",{className:`mr-0.5 text-xs font-normal ${o?"text-blue-100":"text-gray-500"}`,children:"از ۵"})]})]})}])},59411,t=>{"use strict";var e=t.i(43476),a=t.i(71645);let i={buyer:[["quality","کیفیت و سلامت کالا"],["match","تطابق کالا با پیشنهاد"],["shipping","سرعت و تعهد در ارسال"],["packaging","بسته‌بندی و تحویل"],["communication","پاسخ‌گویی و رفتار فروشنده"]],seller:[["clarity","شفافیت و دقت درخواست"],["cooperation","همکاری در فرایند معامله"],["communication","ارتباط و پاسخ‌گویی خریدار"],["receipt","سرعت بررسی و تایید دریافت"],["conduct","رفتار حرفه‌ای در معامله"]]};function r({value:t,onChange:a}){return(0,e.jsx)("div",{className:"flex gap-1",dir:"ltr",children:[1,2,3,4,5].map(i=>{let r=i<=t;return(0,e.jsx)("button",{type:"button",onClick:()=>a(i),className:`text-3xl transition hover:scale-110 ${r?"text-amber-400":"text-gray-300 hover:text-amber-300"}`,"aria-label":`${i} ستاره`,children:r?"★":"☆"},i)})})}t.s(["default",0,function({role:t,reviewerId:o,order:s,onSaved:l}){let n=i[t],[d,p]=(0,a.useState)(Object.fromEntries(n.map(([t])=>[t,0]))),[c,g]=(0,a.useState)(""),[m,b]=(0,a.useState)(!1),x=Object.values(d).filter(t=>t>0),h=x.length===n.length,f=h?Math.round(x.reduce((t,e)=>t+e,0)/x.length):0,u="buyer"===t?s.sellerName:s.buyerName,v=async()=>{if(!h)return void alert("لطفاً برای همه معیارهای نظرسنجی امتیاز ستاره‌ای ثبت کنید.");b(!0);try{let t=await fetch("/api/reviews",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:s.id,reviewerId:o,overall:f,scores:d,comment:c})}),e=await t.json();if(!e.success)throw Error(e.message);alert(e.message),await l()}catch(t){alert(t instanceof Error?t.message:"ثبت نظرسنجی ناموفق بود.")}finally{b(!1)}};return(0,e.jsxs)("article",{className:"rounded-3xl border border-gray-200 bg-white p-6 shadow-sm",children:[(0,e.jsxs)("div",{className:"mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center",children:[(0,e.jsxs)("div",{children:[(0,e.jsxs)("p",{className:"text-xs font-bold text-[#00a8e8]",children:["سفارش ",s.id]}),(0,e.jsxs)("h3",{className:"mt-1 text-lg font-bold text-[#003b5c]",children:["ارزیابی ",u]}),(0,e.jsx)("p",{className:"mt-1 text-sm text-gray-500",children:s.title})]}),(0,e.jsxs)("div",{className:"rounded-xl bg-amber-50 px-4 py-2 text-center",children:[(0,e.jsxs)("p",{className:"text-2xl text-amber-400",children:["★".repeat(f),"☆".repeat(5-f)]}),(0,e.jsx)("p",{className:"text-xs font-bold text-amber-800",children:h?`امتیاز نهایی ${f} از ۵`:"هنوز امتیازی ثبت نشده"})]})]}),(0,e.jsx)("div",{className:"space-y-3 border-y border-gray-100 py-5",children:n.map(([t,a])=>(0,e.jsxs)("div",{className:"flex flex-col justify-between gap-2 rounded-xl bg-gray-50 px-4 py-3 sm:flex-row sm:items-center",children:[(0,e.jsx)("span",{className:"text-sm font-bold text-gray-700",children:a}),(0,e.jsx)(r,{value:d[t],onChange:e=>p({...d,[t]:e})})]},t))}),(0,e.jsx)("label",{className:"mt-5 block text-sm font-bold text-gray-700",children:"توضیحات شما (اختیاری)"}),(0,e.jsx)("textarea",{value:c,onChange:t=>g(t.target.value),placeholder:"تجربه واقعی خود از این معامله را بنویسید...",className:"mt-2 min-h-24 w-full rounded-xl border border-gray-200 p-3 text-sm outline-none focus:border-[#00a8e8]"}),(0,e.jsx)("p",{className:"mt-2 text-xs leading-6 text-gray-500",children:"متن این بخش دقیقاً در قسمت «دیدگاه‌ها» صفحه طرف مقابل نمایش داده می‌شود."}),(0,e.jsx)("button",{type:"button",disabled:m||!h,onClick:v,className:"mt-4 rounded-xl bg-[#003b5c] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#002d46] disabled:bg-gray-400",children:m?"در حال ثبت...":"ثبت نهایی امتیاز و نظر"})]})}])},56722,t=>{"use strict";var e=t.i(19614);function a(t){return"number"==typeof t?Math.max(0,Math.round(t)):Math.max(0,Number(String(t||"").replace(/[۰-۹]/g,t=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(t))).replace(/[٠-٩]/g,t=>String("٠١٢٣٤٥٦٧٨٩".indexOf(t))).replace(/\D/g,""))||0)}function i(t){let e=a(t);return e?`${e.toLocaleString("fa-IR")} تومان`:"۰ تومان"}function r(t){return String(t??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}function o(t,e){return e?`<div class="spec-row"><span>${r(t)}</span><b>${r(e)}</b></div>`:""}t.s(["generateInvoiceHTML",0,t=>{var s;let l=(0,e.getCachedLiveContent)(),n=t.id||t.orderId||`INV-${Date.now()}`,d=t.date||new Date().toLocaleDateString("fa-IR"),p=t.sellerName||t.seller||"فروشنده OptiBid",c=t.buyerName||t.buyer||"خریدار OptiBid",g=t.product||t.title||"کالای مورد معامله",m=t.description||t.productDescription||"",b=t.category||"کالا / خدمات",x=Math.max(1,Number(t.quantity||1)||1),h=a(t.totalAmount??t.amount),f=a(t.unitAmount)||Math.round(h/x),u=a(t.platformFee),v=a(t.sellerAmount)||Math.max(0,h-u),y=a(t.taxAmount),w=a(t.shippingAmount),j=h+y+w,$=t.productSpecs||{},N=`https://optibid.fazilat-ma.workers.dev/verify/${encodeURIComponent(n)}`,k=$.brand||t.brand||"—",z=[$.exactModel,$.cpu,$.ram,$.storage].filter(Boolean).join(" · "),S=[o("برند",$.brand),o("مدل دقیق",$.exactModel),o("کد مدل / کانفیگ",$.serialOrConfig),o("پردازنده",$.cpu),o("رم",$.ram),o("حافظه",$.storage),o("گرافیک",$.gpu),o("نمایشگر",$.display),o("سال ساخت",$.manufactureYear),o("وضعیت کالا",$.productCondition),o("گارانتی",$.warrantyStatus),o("سلامت کلی قطعات",$.partsHealth),o("سلامت باتری",$.batteryHealthPercent?`${$.batteryHealthPercent}%`:""),o("گرید ظاهری",$.appearanceGrade),o("سابقه تعمیر",$.repairHistory),o("مهلت تست",$.testDeadlineDays?`${$.testDeadlineDays} روز`:"")].filter(Boolean).join("");return`<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>فاکتور رسمی معامله - ${escapeHtml(documentId)}</title>
+  <title>فاکتور رسمی معامله - ${r(n)}</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v32.103/Vazirmatn-font-face.css" rel="stylesheet" />
   <style>
     @page { size: A4; margin: 0; }
@@ -269,9 +175,9 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           <h2>Official Transaction Invoice</h2>
         </div>
         <div class="meta">
-          <div class="meta-row"><span>شماره سند / Document No.</span><b>${escapeHtml(documentId)}</b></div>
-          <div class="meta-row"><span>تاریخ / Date</span><b>${escapeHtml(date)}</b></div>
-          <div class="meta-row"><span>وضعیت / Status</span><b>${escapeHtml(statusLabel(invoiceData.status))}</b></div>
+          <div class="meta-row"><span>شماره سند / Document No.</span><b>${r(n)}</b></div>
+          <div class="meta-row"><span>تاریخ / Date</span><b>${r(d)}</b></div>
+          <div class="meta-row"><span>وضعیت / Status</span><b>${r({pending_payment:"در انتظار پرداخت",paid:"پرداخت‌شده و آماده ارسال",shipped:"ارسال‌شده",completed:"تکمیل‌شده",cancelled:"لغوشده",returned:"مرجوع‌شده"}[(s=t.status)||""]||s||"ثبت‌شده")}</b></div>
           <div class="meta-row"><span>اعتبار سند / Validity</span><b>15 Days</b></div>
         </div>
       </header>
@@ -279,18 +185,18 @@ export const generateInvoiceHTML = (invoiceData: any) => {
       <section class="party-grid">
         <article class="party-card">
           <div class="section-title"><span>اطلاعات فروشنده</span><small>Seller Information</small></div>
-          <div class="info-row"><span>نام فروشنده</span><b>${escapeHtml(sellerName)}</b></div>
-          <div class="info-row"><span>آدرس</span><b>${escapeHtml(liveContent.invoiceCompanyAddressFa)}</b></div>
+          <div class="info-row"><span>نام فروشنده</span><b>${r(p)}</b></div>
+          <div class="info-row"><span>آدرس</span><b>${r(l.invoiceCompanyAddressFa)}</b></div>
           <div class="info-row"><span>تلفن</span><b dir="ltr">021-12345678</b></div>
           <div class="info-row"><span>ایمیل</span><b dir="ltr">seller@optibid.ir</b></div>
           <div class="info-row"><span>شناسه مالیاتی</span><b dir="ltr">123456789012</b></div>
         </article>
         <article class="party-card">
           <div class="section-title"><span>اطلاعات خریدار</span><small>Customer Information</small></div>
-          <div class="info-row"><span>نام خریدار</span><b>${escapeHtml(buyerName)}</b></div>
-          <div class="info-row"><span>آدرس تحویل</span><b>${escapeHtml(invoiceData.shippingAddress || liveContent.invoiceShippingAddressFa)}</b></div>
-          <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${escapeHtml(documentId)}</b></div>
-          <div class="info-row"><span>روش پرداخت</span><b>${escapeHtml(invoiceData.paymentMethod === "wallet" ? "کیف پول" : invoiceData.paymentMethod === "gateway" ? "درگاه پرداخت" : "پرداخت امانی OptiBid")}</b></div>
+          <div class="info-row"><span>نام خریدار</span><b>${r(c)}</b></div>
+          <div class="info-row"><span>آدرس تحویل</span><b>${r(t.shippingAddress||l.invoiceShippingAddressFa)}</b></div>
+          <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${r(n)}</b></div>
+          <div class="info-row"><span>روش پرداخت</span><b>${r("wallet"===t.paymentMethod?"کیف پول":"gateway"===t.paymentMethod?"درگاه پرداخت":"پرداخت امانی OptiBid")}</b></div>
           <div class="info-row"><span>حساب امانی</span><b>وجه تا تایید دریافت نزد OptiBid امانت است</b></div>
         </article>
       </section>
@@ -312,16 +218,16 @@ export const generateInvoiceHTML = (invoiceData: any) => {
             <tr>
               <td>1</td>
               <td class="item">
-                <b>${escapeHtml(productTitle)}</b>
-                ${itemSubtitle ? `<small>${escapeHtml(itemSubtitle)}</small>` : ""}
-                ${description ? `<div style="font-size:10px;color:#64748b;margin-top:5px">${escapeHtml(description).slice(0, 180)}</div>` : ""}
+                <b>${r(g)}</b>
+                ${z?`<small>${r(z)}</small>`:""}
+                ${m?`<div style="font-size:10px;color:#64748b;margin-top:5px">${r(m).slice(0,180)}</div>`:""}
                 <div style="margin-top:7px"><span class="status-pill">🔒 پرداخت امانی / Escrow</span></div>
               </td>
-              <td>${escapeHtml(brand === "—" ? category : brand)}</td>
-              <td><b>${quantity.toLocaleString("fa-IR")}</b></td>
-              <td>${formatMoney(unitAmount)}</td>
-              <td>${taxAmount ? formatMoney(taxAmount) : "۰٪"}</td>
-              <td><b>${formatMoney(totalAmount)}</b></td>
+              <td>${r("—"===k?b:k)}</td>
+              <td><b>${x.toLocaleString("fa-IR")}</b></td>
+              <td>${i(f)}</td>
+              <td>${y?i(y):"۰٪"}</td>
+              <td><b>${i(h)}</b></td>
             </tr>
           </tbody>
         </table>
@@ -338,16 +244,16 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           </ul>
         </article>
         <article class="totals">
-          <div class="total-row"><span>جمع مبلغ کالا</span><b>${formatMoney(totalAmount)}</b></div>
-          <div class="total-row"><span>مالیات / عوارض</span><b>${taxAmount ? formatMoney(taxAmount) : "۰ تومان"}</b></div>
-          <div class="total-row"><span>هزینه حمل</span><b>${shippingAmount ? formatMoney(shippingAmount) : "طبق توافق / رایگان"}</b></div>
-          <div class="total-row highlight"><span>جمع کل قابل پرداخت</span><b>${formatMoney(payableAmount)}</b></div>
-          <div class="total-row"><span>کمیسیون پلتفرم</span><b>${formatMoney(platformFee)}</b></div>
-          <div class="total-row payable"><span>سهم خالص فروشنده پس از کمیسیون</span><b>${formatMoney(sellerAmount)}</b></div>
+          <div class="total-row"><span>جمع مبلغ کالا</span><b>${i(h)}</b></div>
+          <div class="total-row"><span>مالیات / عوارض</span><b>${y?i(y):"۰ تومان"}</b></div>
+          <div class="total-row"><span>هزینه حمل</span><b>${w?i(w):"طبق توافق / رایگان"}</b></div>
+          <div class="total-row highlight"><span>جمع کل قابل پرداخت</span><b>${i(j)}</b></div>
+          <div class="total-row"><span>کمیسیون پلتفرم</span><b>${i(u)}</b></div>
+          <div class="total-row payable"><span>سهم خالص فروشنده پس از کمیسیون</span><b>${i(v)}</b></div>
         </article>
       </section>
 
-      ${specsHtml ? `<section class="specs"><h3>مشخصات کالای تاییدشده قبل از پرداخت</h3><div class="spec-grid">${specsHtml}</div>${specs.returnPolicy ? `<div style="margin-top:10px;border-radius:12px;background:#ecfdf5;padding:10px;font-size:11px;color:#166534"><b>شرایط مرجوعی:</b> ${escapeHtml(specs.returnPolicy)}</div>` : ""}</section>` : ""}
+      ${S?`<section class="specs"><h3>مشخصات کالای تاییدشده قبل از پرداخت</h3><div class="spec-grid">${S}</div>${$.returnPolicy?`<div style="margin-top:10px;border-radius:12px;background:#ecfdf5;padding:10px;font-size:11px;color:#166534"><b>شرایط مرجوعی:</b> ${r($.returnPolicy)}</div>`:""}</section>`:""}
 
       <section class="verification">
         <article class="box">
@@ -365,9 +271,9 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           <div class="verify-inner">
             <div style="font-size:11px;line-height:2;color:#334155">
               برای بررسی اعتبار این فاکتور، کد QR را اسکن کنید یا شماره سند را در سامانه وارد کنید.
-              <div dir="ltr" style="margin-top:8px;color:#003b5c;font-weight:800">${escapeHtml(documentId)}</div>
+              <div dir="ltr" style="margin-top:8px;color:#003b5c;font-weight:800">${r(n)}</div>
             </div>
-            <div class="qr"><img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(verificationUrl)}" /></div>
+            <div class="qr"><img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(N)}" /></div>
           </div>
         </article>
       </section>
@@ -381,5 +287,4 @@ export const generateInvoiceHTML = (invoiceData: any) => {
     </footer>
   </main>
 </body>
-</html>`;
-};
+</html>`}])}]);
