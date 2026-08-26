@@ -55,6 +55,14 @@
       "namedRegex": "^/requests/(?<nxtPid>[^/]+?)/checkout(?:/)?$"
     },
     {
+      "page": "/requests/[id]/offer",
+      "regex": "^/requests/([^/]+?)/offer(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/requests/(?<nxtPid>[^/]+?)/offer(?:/)?$"
+    },
+    {
       "page": "/sellers/[id]",
       "regex": "^/sellers/([^/]+?)(?:/)?$",
       "routeKeys": {

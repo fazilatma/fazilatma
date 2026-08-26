@@ -54,6 +54,7 @@
   "/register/page": "/register",
   "/request-purchase/page": "/request-purchase",
   "/requests/[id]/checkout/page": "/requests/[id]/checkout",
+  "/requests/[id]/offer/page": "/requests/[id]/offer",
   "/requests/[id]/page": "/requests/[id]",
   "/requests/page": "/requests",
   "/seller/dashboard/page": "/seller/dashboard",

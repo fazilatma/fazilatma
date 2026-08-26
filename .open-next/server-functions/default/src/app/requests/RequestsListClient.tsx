@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface SellerOfferSummary {
   id: number;
@@ -33,6 +33,11 @@ export default function RequestsListClient({ initialRequests, allCategories }: {
   const [selectedCategory, setSelectedCategory] = useState("همه دسته‌بندی‌ها");
   const [searchQuery, setSearchQuery] = useState("");
   const [specsRequest, setSpecsRequest] = useState<RequestItem | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserRole(localStorage.getItem("userRole"));
+  }, []);
 
   // فیلتر کردن زنده (Instant Filter)
   const filteredRequests = initialRequests.filter(req => {
@@ -205,7 +210,14 @@ export default function RequestsListClient({ initialRequests, allCategories }: {
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="text-gray-500 text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-lg">{request.offers} پیشنهاد</span>
-                        {request.offers > 0 && (
+                        {userRole === "seller" ? (
+                          <Link
+                            href={`/requests/${request.id}/offer`}
+                            className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-sm font-bold text-[#00a8e8] hover:bg-blue-100 transition"
+                          >
+                            مشخصات کالای پیشنهادی
+                          </Link>
+                        ) : request.offers > 0 ? (
                           <button
                             type="button"
                             onClick={() => setSpecsRequest(request)}
@@ -213,7 +225,7 @@ export default function RequestsListClient({ initialRequests, allCategories }: {
                           >
                             مشخصات کامل محصول پیشنهادی
                           </button>
-                        )}
+                        ) : null}
                         <Link href={`/requests/${request.id}`} className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-green-700 transition">
                           مشاهده و ارسال پیشنهاد
                         </Link>

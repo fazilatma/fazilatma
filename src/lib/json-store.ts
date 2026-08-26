@@ -1019,11 +1019,21 @@ export async function createJsonSellerOffer(input: { sellerId: number; requestId
   const request = data.requests.find((item) => item.id === input.requestId && item.status === "open");
   if (!request) throw new Error("Open request not found");
   if (!(seller.categories || []).includes(request.category)) throw new Error("Seller category does not match request category");
-  if (data.offers.some((offer) => offer.sellerId === seller.id && offer.requestId === request.id)) throw new Error("Offer already exists for this request");
+  const existingOffer = data.offers.find((offer) => offer.sellerId === seller.id && offer.requestId === request.id);
   const productSpecs = normalizeOfferProductSpecs(input.productSpecs);
   const missingSpecs = validateOfferProductSpecs(productSpecs);
   if (missingSpecs.length > 0) {
     throw new Error(`Product specs incomplete: ${missingSpecs.join("، ")}`);
+  }
+
+  if (existingOffer) {
+    if (existingOffer.status !== "pending") throw new Error("Offer cannot be edited after selection");
+    existingOffer.amount = String(money(input.amount));
+    existingOffer.deliveryDays = Math.max(1, Math.floor(input.deliveryDays || 1));
+    existingOffer.message = input.message?.trim() || "";
+    existingOffer.productSpecs = productSpecs;
+    await writeOptiBidData(data);
+    return existingOffer;
   }
 
   const offer: JsonOffer = {
