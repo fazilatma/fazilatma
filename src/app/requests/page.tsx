@@ -1,5 +1,5 @@
 import RequestsListClient from "./RequestsListClient";
-import { getJsonRequests } from "@/lib/json-store";
+import { getJsonRequests, getOptiBidData } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +16,26 @@ export default async function RequestsPage() {
     buyerRating: number;
     quantity: number;
     deadline: string;
+    sellerOffers: any[];
   }> = [];
 
   try {
-    const requests = await getJsonRequests();
+    const [requests, data] = await Promise.all([getJsonRequests(), getOptiBidData()]);
+    const offersByRequest = new Map<number, any[]>();
+    for (const offer of data.offers) {
+      const list = offersByRequest.get(offer.requestId) || [];
+      list.push({
+        id: offer.id,
+        sellerId: offer.sellerId,
+        sellerName: offer.sellerName,
+        amount: offer.amount,
+        deliveryDays: offer.deliveryDays,
+        status: offer.status,
+        message: offer.message,
+        productSpecs: offer.productSpecs,
+      });
+      offersByRequest.set(offer.requestId, list);
+    }
     allRequests = requests.map((request) => ({
       id: request.id,
       title: request.title,
@@ -32,6 +48,7 @@ export default async function RequestsPage() {
       buyerRating: 0,
       quantity: request.quantity,
       deadline: request.deadline === "flexible" ? "انعطاف‌پذیر" : request.deadline,
+      sellerOffers: offersByRequest.get(request.id) || [],
     }));
   } catch (error) {
     console.error("JSON request list error:", error);

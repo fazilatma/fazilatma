@@ -3,6 +3,17 @@
 import Link from "next/link";
 import { useState } from "react";
 
+interface SellerOfferSummary {
+  id: number;
+  sellerId: number;
+  sellerName: string;
+  amount: string;
+  deliveryDays: number;
+  status: "pending" | "accepted" | "rejected";
+  message: string;
+  productSpecs?: any;
+}
+
 interface RequestItem {
   id: string | number;
   title: string;
@@ -15,11 +26,13 @@ interface RequestItem {
   buyerRating: number;
   quantity: number;
   deadline: string;
+  sellerOffers: SellerOfferSummary[];
 }
 
 export default function RequestsListClient({ initialRequests, allCategories }: { initialRequests: RequestItem[], allCategories: string[] }) {
   const [selectedCategory, setSelectedCategory] = useState("همه دسته‌بندی‌ها");
   const [searchQuery, setSearchQuery] = useState("");
+  const [specsRequest, setSpecsRequest] = useState<RequestItem | null>(null);
 
   // فیلتر کردن زنده (Instant Filter)
   const filteredRequests = initialRequests.filter(req => {
@@ -34,6 +47,7 @@ export default function RequestsListClient({ initialRequests, allCategories }: {
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50">
+      {specsRequest && <OfferSpecsModal request={specsRequest} onClose={() => setSpecsRequest(null)} />}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -189,8 +203,17 @@ export default function RequestsListClient({ initialRequests, allCategories }: {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <span className="text-gray-500 text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-lg">{request.offers} پیشنهاد</span>
+                        {request.offers > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSpecsRequest(request)}
+                            className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-sm font-bold text-[#00a8e8] hover:bg-blue-100 transition"
+                          >
+                            مشخصات کامل محصول پیشنهادی
+                          </button>
+                        )}
                         <Link href={`/requests/${request.id}`} className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-green-700 transition">
                           مشاهده و ارسال پیشنهاد
                         </Link>
@@ -203,6 +226,74 @@ export default function RequestsListClient({ initialRequests, allCategories }: {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function OfferSpecsModal({ request, onClose }: { request: RequestItem; onClose: () => void }) {
+  const offers = request.sellerOffers || [];
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 px-4 py-8 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl ring-1 ring-black/10">
+        <div className="bg-gradient-to-l from-[#003b5c] to-[#00a8e8] p-6 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{request.offers} پیشنهاد فروشنده</span>
+              <h2 className="mt-3 text-2xl font-bold">مشخصات کامل محصول پیشنهادی</h2>
+              <p className="mt-2 text-sm leading-7 text-blue-50">{request.title}</p>
+            </div>
+            <button type="button" onClick={onClose} className="rounded-full bg-white/15 px-3 py-1 text-lg font-bold hover:bg-white/25">×</button>
+          </div>
+        </div>
+        <div className="space-y-4 p-6">
+          {offers.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">هنوز پیشنهادی برای این درخواست ثبت نشده است.</div>
+          ) : offers.map((offer) => (
+            <article key={offer.id} className="rounded-3xl border border-gray-200 p-5">
+              <div className="mb-4 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-start">
+                <div>
+                  <h3 className="text-lg font-bold text-[#003b5c]">{offer.sellerName}</h3>
+                  <p className="mt-1 text-xs text-gray-500">زمان تحویل: {offer.deliveryDays} روز · وضعیت پیشنهاد: {offer.status}</p>
+                  {offer.message && <p className="mt-2 text-sm text-gray-600">{offer.message}</p>}
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-bold text-[#0b9c56]">{Number(offer.amount || 0).toLocaleString("fa-IR")} تومان</p>
+                  <a href={`/sellers/${offer.sellerId}`} className="mt-2 inline-block text-xs font-bold text-[#00a8e8]">مشاهده پروفایل فروشنده</a>
+                </div>
+              </div>
+              <OfferSpecsDetails specs={offer.productSpecs} />
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OfferSpecsDetails({ specs }: { specs?: any }) {
+  if (!specs) {
+    return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-800">فروشنده هنوز فرم مشخصات کامل محصول پیشنهادی را تکمیل نکرده است. تا تکمیل این فرم، خریدار نباید این پیشنهاد را برای پرداخت انتخاب کند.</div>;
+  }
+  const rows = [
+    ["برند", specs.brand], ["مدل دقیق", specs.exactModel], ["کد مدل/کانفیگ", specs.serialOrConfig],
+    ["CPU", specs.cpu], ["RAM", specs.ram], ["حافظه", specs.storage], ["GPU", specs.gpu], ["نمایشگر", specs.display],
+    ["سال ساخت", specs.manufactureYear], ["وضعیت کالا", specs.productCondition], ["گارانتی", specs.warrantyStatus],
+    ["سلامت کلی", specs.partsHealth], ["سلامت CPU", specs.cpuHealth], ["سلامت مادربرد", specs.motherboardHealth],
+    ["سلامت نمایشگر", specs.displayHealth], ["سلامت SSD/HDD", specs.storageHealth], ["سلامت RAM", specs.ramHealth],
+    ["سلامت GPU", specs.gpuHealth], ["کیبورد/تاچ‌پد", specs.keyboardTouchpadHealth], ["بدنه/لولا", specs.bodyHingeHealth],
+    ["باتری", specs.batteryHealthPercent ? `${specs.batteryHealthPercent}%` : "—"], ["گرید ظاهری", specs.appearanceGrade],
+    ["سابقه تعمیر", specs.repairHistory], ["کارکرد", specs.usageLevel], ["لوازم جانبی", specs.accessoriesStatus],
+    ["شارژر", specs.chargerStatus], ["جعبه", specs.originalPackaging], ["فاکتور/اصالت", specs.purchaseInvoiceAvailable],
+    ["مهلت تست", specs.testDeadlineDays ? `${specs.testDeadlineDays} روز` : "—"],
+  ];
+  return (
+    <div>
+      <h4 className="mb-3 font-bold text-gray-900">فرم مشخصات کامل محصول پیشنهادی فروشنده</h4>
+      <div className="grid gap-2 text-xs md:grid-cols-2 lg:grid-cols-3">
+        {rows.map(([label, value]) => <div key={`${label}-${value}`} className="flex justify-between gap-2 rounded-xl bg-gray-50 px-3 py-2"><span className="text-gray-500">{label}:</span><b className="text-gray-800">{value || "—"}</b></div>)}
+      </div>
+      {specs.returnPolicy && <p className="mt-3 rounded-xl bg-green-50 p-3 text-xs leading-6 text-green-800"><b>شرایط مرجوعی:</b> {specs.returnPolicy}</p>}
+      {specs.notes && <p className="mt-2 rounded-xl bg-gray-50 p-3 text-xs leading-6 text-gray-600"><b>توضیحات:</b> {specs.notes}</p>}
     </div>
   );
 }
