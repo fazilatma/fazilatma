@@ -22,6 +22,7 @@ export default async function SellerOfferPage({ params }: { params: Promise<{ id
       message: offer.message,
       status: offer.status,
       productSpecs: offer.productSpecs,
+      productImages: offer.productImages || [],
     }));
 
   return <OfferFormClient request={request} existingOffers={offers} />;

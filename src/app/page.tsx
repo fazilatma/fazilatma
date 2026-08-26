@@ -1,5 +1,7 @@
 import Link from "next/link";
 import SellerStars from "@/components/SellerStars";
+import { ProductThumb } from "@/components/ProductImages";
+import type { ProductImageAttachment } from "@/lib/product-image-shared";
 import {
   getJsonBuyerRankings,
   getJsonHomepageStats,
@@ -30,6 +32,7 @@ export default async function HomePage() {
     category: string;
     timeAgo: string;
     offers: number;
+    productImages?: ProductImageAttachment[];
   }> = [];
   let displayCategories = sampleCategories;
   let topSellers: Awaited<ReturnType<typeof getJsonSellerRankings>> = [];
@@ -43,16 +46,21 @@ export default async function HomePage() {
   };
 
   try {
-    const [stats, jsonRequests, sellerRankings, buyerRankings] = await Promise.all([
-      getJsonHomepageStats(),
-      getJsonRequests(),
-      getJsonSellerRankings(),
-      getJsonBuyerRankings(),
-    ]);
+    const [stats, jsonRequests, sellerRankings, buyerRankings] =
+      await Promise.all([
+        getJsonHomepageStats(),
+        getJsonRequests(),
+        getJsonSellerRankings(),
+        getJsonBuyerRankings(),
+      ]);
 
     realStats = stats;
-    topSellers = sellerRankings.filter((item) => item.rating.rankingEligible).slice(0, 4);
-    topBuyers = buyerRankings.filter((item) => item.rankingEligible).slice(0, 4);
+    topSellers = sellerRankings
+      .filter((item) => item.rating.rankingEligible)
+      .slice(0, 4);
+    topBuyers = buyerRankings
+      .filter((item) => item.rankingEligible)
+      .slice(0, 4);
     displayRequests = jsonRequests.slice(0, 3).map((request) => ({
       id: request.id,
       title: request.title,
@@ -61,13 +69,14 @@ export default async function HomePage() {
       category: request.category || "سایر",
       timeAgo: "جدید",
       offers: request.offersCount,
+      productImages: request.productImages || [],
     }));
 
     const categoryCountMap = new Map<string, number>();
     for (const request of jsonRequests) {
       categoryCountMap.set(
         request.category,
-        (categoryCountMap.get(request.category) || 0) + 1
+        (categoryCountMap.get(request.category) || 0) + 1,
       );
     }
 
@@ -89,9 +98,10 @@ export default async function HomePage() {
               پلتفرم درخواست خرید و تامین کالا
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-green-100">
-              درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و با پرداخت امن امانی خرید کنید
+              درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت
+              دریافت کنید و با پرداخت امن امانی خرید کنید
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
               <Link
                 href="/request-purchase"
@@ -106,25 +116,32 @@ export default async function HomePage() {
                 💼 ورود به پنل فروشنده
               </Link>
             </div>
-
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">{realStats.requestsCount.toLocaleString()}</div>
+              <div className="text-3xl md:text-4xl font-bold">
+                {realStats.requestsCount.toLocaleString()}
+              </div>
               <div className="text-green-200 mt-2">درخواست خرید فعال</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">{realStats.sellersCount.toLocaleString()}</div>
+              <div className="text-3xl md:text-4xl font-bold">
+                {realStats.sellersCount.toLocaleString()}
+              </div>
               <div className="text-green-200 mt-2">تامین‌کننده فعال</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">{realStats.secureTransactionsCount.toLocaleString()}</div>
+              <div className="text-3xl md:text-4xl font-bold">
+                {realStats.secureTransactionsCount.toLocaleString()}
+              </div>
               <div className="text-green-200 mt-2">تراکنش امن</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">{realStats.successRate}٪</div>
+              <div className="text-3xl md:text-4xl font-bold">
+                {realStats.successRate}٪
+              </div>
               <div className="text-green-200 mt-2">معاملات موفق</div>
             </div>
           </div>
@@ -134,9 +151,13 @@ export default async function HomePage() {
       {/* Categories Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-4">دسته‌بندی‌های تخصصی</h2>
-          <p className="text-gray-600 text-center mb-12">درخواست خرید خود را در دسته‌بندی مورد نظر ثبت کنید</p>
-          
+          <h2 className="text-3xl font-bold text-center mb-4">
+            دسته‌بندی‌های تخصصی
+          </h2>
+          <p className="text-gray-600 text-center mb-12">
+            درخواست خرید خود را در دسته‌بندی مورد نظر ثبت کنید
+          </p>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {displayCategories.map((cat) => (
               <Link
@@ -146,7 +167,9 @@ export default async function HomePage() {
               >
                 <div className="text-4xl mb-3">{cat.icon}</div>
                 <h3 className="font-bold text-gray-800">{cat.nameFa}</h3>
-                <p className="text-sm text-gray-500 mt-2">{cat.count.toLocaleString()} درخواست</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  {cat.count.toLocaleString()} درخواست
+                </p>
               </Link>
             ))}
           </div>
@@ -166,8 +189,18 @@ export default async function HomePage() {
               className="text-green-600 hover:text-green-700 font-bold flex items-center gap-2"
             >
               مشاهده همه
-              <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-5 h-5 rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </Link>
           </div>
@@ -183,13 +216,30 @@ export default async function HomePage() {
                   <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
                     {request.category}
                   </span>
-                  <span className="text-gray-400 text-sm">{request.timeAgo}</span>
+                  <span className="text-gray-400 text-sm">
+                    {request.timeAgo}
+                  </span>
                 </div>
-                <h3 className="font-bold text-lg mb-2 text-gray-800">{request.title}</h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{request.description}</p>
+                <div className="mb-3 flex items-center gap-3">
+                  <ProductThumb
+                    images={request.productImages}
+                    title={request.title}
+                    className="h-16 w-16"
+                  />
+                  <h3 className="font-bold text-lg text-gray-800">
+                    {request.title}
+                  </h3>
+                </div>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                  {request.description}
+                </p>
                 <div className="flex items-center justify-between pt-4 border-t">
-                  <span className="font-bold text-green-600">{request.budget}</span>
-                  <span className="text-gray-500 text-sm">{request.offers} پیشنهاد قیمت</span>
+                  <span className="font-bold text-green-600">
+                    {request.budget}
+                  </span>
+                  <span className="text-gray-500 text-sm">
+                    {request.offers} پیشنهاد قیمت
+                  </span>
                 </div>
               </Link>
             ))}
@@ -201,21 +251,49 @@ export default async function HomePage() {
       <section className="bg-gradient-to-l from-[#003b5c] to-[#005e94] py-16 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-12 max-w-3xl text-center">
-            <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-blue-100">چرا OptiBid؟</span>
-            <h2 className="mt-5 text-3xl font-bold">تصمیم بهتر با داده واقعی، نه ادعای تبلیغاتی</h2>
-            <p className="mt-4 leading-8 text-blue-100">قیمت رقابتی فروشندگان، امتیاز واقعی طرفین، پرداخت امانی و اسناد شفاف معامله در یک محیط یکپارچه.</p>
+            <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-blue-100">
+              چرا OptiBid؟
+            </span>
+            <h2 className="mt-5 text-3xl font-bold">
+              تصمیم بهتر با داده واقعی، نه ادعای تبلیغاتی
+            </h2>
+            <p className="mt-4 leading-8 text-blue-100">
+              قیمت رقابتی فروشندگان، امتیاز واقعی طرفین، پرداخت امانی و اسناد
+              شفاف معامله در یک محیط یکپارچه.
+            </p>
           </div>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: "⚖️", title: "رقابت واقعی قیمت", text: "چند فروشنده برای یک درخواست واقعی پیشنهاد می‌دهند و خریدار مقایسه می‌کند." },
-              { icon: "⭐", title: "اعتبار دوطرفه", text: "خریدار و فروشنده فقط پس از معامله تکمیل‌شده به یکدیگر امتیاز می‌دهند." },
-              { icon: "🔒", title: "وجه امانی امن", text: "پول تا تایید دریافت کالا نزد OptiBid می‌ماند و سپس تسویه می‌شود." },
-              { icon: "🧾", title: "سند و فاکتور شفاف", text: "سفارش، کمیسیون، رهگیری، تراکنش و فاکتور هر معامله قابل پیگیری است." },
+              {
+                icon: "⚖️",
+                title: "رقابت واقعی قیمت",
+                text: "چند فروشنده برای یک درخواست واقعی پیشنهاد می‌دهند و خریدار مقایسه می‌کند.",
+              },
+              {
+                icon: "⭐",
+                title: "اعتبار دوطرفه",
+                text: "خریدار و فروشنده فقط پس از معامله تکمیل‌شده به یکدیگر امتیاز می‌دهند.",
+              },
+              {
+                icon: "🔒",
+                title: "وجه امانی امن",
+                text: "پول تا تایید دریافت کالا نزد OptiBid می‌ماند و سپس تسویه می‌شود.",
+              },
+              {
+                icon: "🧾",
+                title: "سند و فاکتور شفاف",
+                text: "سفارش، کمیسیون، رهگیری، تراکنش و فاکتور هر معامله قابل پیگیری است.",
+              },
             ].map((item) => (
-              <div key={item.title} className="rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-sm">
+              <div
+                key={item.title}
+                className="rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-sm"
+              >
                 <div className="text-4xl">{item.icon}</div>
                 <h3 className="mt-4 text-lg font-bold">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-blue-100">{item.text}</p>
+                <p className="mt-3 text-sm leading-7 text-blue-100">
+                  {item.text}
+                </p>
               </div>
             ))}
           </div>
@@ -228,30 +306,56 @@ export default async function HomePage() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-3xl font-bold">تامین‌کنندگان برتر</h2>
-              <p className="text-gray-600 mt-2">بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم</p>
+              <p className="text-gray-600 mt-2">
+                بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم
+              </p>
             </div>
             <Link
               href="/sellers"
               className="text-green-600 hover:text-green-700 font-bold flex items-center gap-2"
             >
               مشاهده همه
-              <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-5 h-5 rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </Link>
           </div>
 
           {topSellers.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500">هنوز فروشنده‌ای حداقل داده لازم برای ورود به رتبه‌بندی برتر را ندارد.</div>
+            <div className="rounded-3xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500">
+              هنوز فروشنده‌ای حداقل داده لازم برای ورود به رتبه‌بندی برتر را
+              ندارد.
+            </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {topSellers.map(({ seller, rating }) => (
-                <Link key={seller.id} href={`/sellers/${seller.id}`} className="card-hover rounded-2xl border border-gray-100 bg-white p-6 text-center">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#003b5c] text-3xl font-bold text-white">{seller.fullName.charAt(0)}</div>
+                <Link
+                  key={seller.id}
+                  href={`/sellers/${seller.id}`}
+                  className="card-hover rounded-2xl border border-gray-100 bg-white p-6 text-center"
+                >
+                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#003b5c] text-3xl font-bold text-white">
+                    {seller.fullName.charAt(0)}
+                  </div>
                   <h3 className="font-bold text-gray-800">{seller.fullName}</h3>
-                  <p className="mb-3 mt-1 line-clamp-1 text-sm text-gray-500">{seller.categories?.join("، ") || "تامین‌کننده OptiBid"}</p>
+                  <p className="mb-3 mt-1 line-clamp-1 text-sm text-gray-500">
+                    {seller.categories?.join("، ") || "تامین‌کننده OptiBid"}
+                  </p>
                   <SellerStars score={rating.finalScore} size="sm" />
-                  <p className="mt-2 text-xs text-gray-500">{seller.sellerMetrics?.completedOrdersLifetime || 0} معامله موفق</p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {seller.sellerMetrics?.completedOrdersLifetime || 0} معامله
+                    موفق
+                  </p>
                 </Link>
               ))}
             </div>
@@ -265,32 +369,61 @@ export default async function HomePage() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-3xl font-bold">خریداران برتر پلتفرم</h2>
-              <p className="text-gray-600 mt-2">شرکت‌ها و خریداران عمده خوش‌حساب</p>
+              <p className="text-gray-600 mt-2">
+                شرکت‌ها و خریداران عمده خوش‌حساب
+              </p>
             </div>
             <Link
               href="/buyers"
               className="text-green-600 hover:text-green-700 font-bold flex items-center gap-2"
             >
               مشاهده همه
-              <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-5 h-5 rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </Link>
           </div>
 
           {topBuyers.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">هنوز خریداری حداقل ۳ معامله تکمیل‌شده و ۳ نظر فروشنده را برای ورود به رتبه‌بندی ندارد.</div>
+            <div className="rounded-3xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">
+              هنوز خریداری حداقل ۳ معامله تکمیل‌شده و ۳ نظر فروشنده را برای ورود
+              به رتبه‌بندی ندارد.
+            </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {topBuyers.map(({ buyer, rating, completedOrders, reviewsCount }) => (
-                <Link key={buyer.id} href={`/buyers/${buyer.id}`} className="card-hover rounded-2xl border border-gray-100 bg-gray-50 p-6 text-center">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-3xl font-bold text-[#003b5c]">{buyer.fullName.charAt(0)}</div>
-                  <h3 className="font-bold text-gray-800">{buyer.fullName}</h3>
-                  <p className="mb-3 mt-1 text-sm text-gray-500">خریدار تاییدشده OptiBid</p>
-                  <SellerStars score={rating * 20} size="sm" />
-                  <p className="mt-2 text-xs text-gray-500">{completedOrders} معامله موفق · {reviewsCount} نظر فروشنده</p>
-                </Link>
-              ))}
+              {topBuyers.map(
+                ({ buyer, rating, completedOrders, reviewsCount }) => (
+                  <Link
+                    key={buyer.id}
+                    href={`/buyers/${buyer.id}`}
+                    className="card-hover rounded-2xl border border-gray-100 bg-gray-50 p-6 text-center"
+                  >
+                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-3xl font-bold text-[#003b5c]">
+                      {buyer.fullName.charAt(0)}
+                    </div>
+                    <h3 className="font-bold text-gray-800">
+                      {buyer.fullName}
+                    </h3>
+                    <p className="mb-3 mt-1 text-sm text-gray-500">
+                      خریدار تاییدشده OptiBid
+                    </p>
+                    <SellerStars score={rating * 20} size="sm" />
+                    <p className="mt-2 text-xs text-gray-500">
+                      {completedOrders} معامله موفق · {reviewsCount} نظر فروشنده
+                    </p>
+                  </Link>
+                ),
+              )}
             </div>
           )}
         </div>
@@ -299,8 +432,13 @@ export default async function HomePage() {
       {/* CTA Section */}
       <section className="py-16 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">آماده شروع هستید؟</h2>
-          <p className="text-xl text-gray-400 mb-8">به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            آماده شروع هستید؟
+          </h2>
+          <p className="text-xl text-gray-400 mb-8">
+            به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت
+            بفرستید
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/register"

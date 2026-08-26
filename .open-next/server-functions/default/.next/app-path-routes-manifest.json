@@ -27,6 +27,7 @@
   "/api/orders/ship/route": "/api/orders/ship",
   "/api/password/forgot/route": "/api/password/forgot",
   "/api/password/reset/route": "/api/password/reset",
+  "/api/product-image/route": "/api/product-image",
   "/api/register/route": "/api/register",
   "/api/reviews/route": "/api/reviews",
   "/api/seller-matching-requests/route": "/api/seller-matching-requests",

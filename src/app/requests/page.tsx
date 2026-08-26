@@ -1,5 +1,6 @@
 import RequestsListClient from "./RequestsListClient";
 import { getJsonRequests, getOptiBidData } from "@/lib/json-store";
+import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,14 @@ export default async function RequestsPage() {
     quantity: number;
     deadline: string;
     sellerOffers: any[];
+    productImages?: ProductImageAttachment[];
   }> = [];
 
   try {
-    const [requests, data] = await Promise.all([getJsonRequests(), getOptiBidData()]);
+    const [requests, data] = await Promise.all([
+      getJsonRequests(),
+      getOptiBidData(),
+    ]);
     const offersByRequest = new Map<number, any[]>();
     for (const offer of data.offers) {
       const list = offersByRequest.get(offer.requestId) || [];
@@ -33,6 +38,7 @@ export default async function RequestsPage() {
         status: offer.status,
         message: offer.message,
         productSpecs: offer.productSpecs,
+        productImages: offer.productImages || [],
       });
       offersByRequest.set(offer.requestId, list);
     }
@@ -47,8 +53,10 @@ export default async function RequestsPage() {
       buyer: request.buyerName || "خریدار",
       buyerRating: 0,
       quantity: request.quantity,
-      deadline: request.deadline === "flexible" ? "انعطاف‌پذیر" : request.deadline,
+      deadline:
+        request.deadline === "flexible" ? "انعطاف‌پذیر" : request.deadline,
       sellerOffers: offersByRequest.get(request.id) || [],
+      productImages: request.productImages || [],
     }));
   } catch (error) {
     console.error("JSON request list error:", error);
@@ -68,5 +76,10 @@ export default async function RequestsPage() {
     "سایر",
   ];
 
-  return <RequestsListClient initialRequests={allRequests} allCategories={allCategories} />;
+  return (
+    <RequestsListClient
+      initialRequests={allRequests}
+      allCategories={allCategories}
+    />
+  );
 }

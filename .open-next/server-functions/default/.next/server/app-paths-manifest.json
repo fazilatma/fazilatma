@@ -27,6 +27,7 @@
   "/api/orders/ship/route": "app/api/orders/ship/route.js",
   "/api/password/forgot/route": "app/api/password/forgot/route.js",
   "/api/password/reset/route": "app/api/password/reset/route.js",
+  "/api/product-image/route": "app/api/product-image/route.js",
   "/api/register/route": "app/api/register/route.js",
   "/api/reviews/route": "app/api/reviews/route.js",
   "/api/seller-matching-requests/route": "app/api/seller-matching-requests/route.js",

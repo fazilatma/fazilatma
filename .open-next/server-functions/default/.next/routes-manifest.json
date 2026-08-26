@@ -247,6 +247,12 @@
       "namedRegex": "^/api/password/reset(?:/)?$"
     },
     {
+      "page": "/api/product-image",
+      "regex": "^/api/product\\-image(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/product\\-image(?:/)?$"
+    },
+    {
       "page": "/api/register",
       "regex": "^/api/register(?:/)?$",
       "routeKeys": {},

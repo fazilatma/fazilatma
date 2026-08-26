@@ -21,6 +21,10 @@ import {
   type AiPriceEstimate,
   type ProductValuationFactors,
 } from "@/lib/request-valuation";
+import {
+  normalizeProductImageAttachments,
+  type ProductImageAttachment,
+} from "@/lib/product-image-shared";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -46,9 +50,17 @@ export type JsonRequest = {
   quantity: number;
   deadline: string;
   imageNames: string[];
+  productImages?: ProductImageAttachment[];
   valuationFactors?: ProductValuationFactors;
   aiPriceEstimate?: AiPriceEstimate;
-  status: "open" | "selected" | "paid" | "shipped" | "completed" | "cancelled" | "returned";
+  status:
+    | "open"
+    | "selected"
+    | "paid"
+    | "shipped"
+    | "completed"
+    | "cancelled"
+    | "returned";
   offersCount: number;
   createdAt: string;
 };
@@ -154,6 +166,7 @@ export type JsonOffer = {
   deliveryDays: number;
   message: string;
   productSpecs?: OfferProductSpecs;
+  productImages?: ProductImageAttachment[];
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
 };
@@ -177,6 +190,8 @@ export type JsonOrder = {
   description: string;
   category: string;
   quantity: number;
+  requestImages?: ProductImageAttachment[];
+  productImages?: ProductImageAttachment[];
   totalAmount: string;
   platformFee: string;
   sellerAmount: string;
@@ -252,7 +267,14 @@ export type JsonMessage = {
 export type JsonNotification = {
   id: number;
   userId: number;
-  type: "offer" | "order" | "payment" | "shipment" | "delivery" | "wallet" | "message";
+  type:
+    | "offer"
+    | "order"
+    | "payment"
+    | "shipment"
+    | "delivery"
+    | "wallet"
+    | "message";
   title: string;
   body: string;
   createdAt: string;
@@ -343,7 +365,10 @@ function encryptBankValue(value?: string) {
   if (!value || value.startsWith("enc:")) return value || "";
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey, iv);
-  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(value, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return `enc:${iv.toString("base64")}:${tag.toString("base64")}:${encrypted.toString("base64")}`;
 }
@@ -352,7 +377,11 @@ function decryptBankValue(value?: string) {
   if (!value || !value.startsWith("enc:")) return value || "";
   try {
     const [, ivValue, tagValue, encryptedValue] = value.split(":");
-    const decipher = createDecipheriv("aes-256-gcm", encryptionKey, Buffer.from(ivValue, "base64"));
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      encryptionKey,
+      Buffer.from(ivValue, "base64"),
+    );
     decipher.setAuthTag(Buffer.from(tagValue, "base64"));
     return Buffer.concat([
       decipher.update(Buffer.from(encryptedValue, "base64")),
@@ -381,7 +410,10 @@ function verifyPassword(password: string, storedPassword?: string) {
     const [, salt, expectedHash] = storedPassword.split(":");
     const actualHash = scryptSync(password, salt, 64);
     const expected = Buffer.from(expectedHash, "hex");
-    return expected.length === actualHash.length && timingSafeEqual(expected, actualHash);
+    return (
+      expected.length === actualHash.length &&
+      timingSafeEqual(expected, actualHash)
+    );
   } catch {
     return false;
   }
@@ -403,9 +435,15 @@ function isSuccessfulOrder(order: JsonOrder) {
   return order.status === "completed";
 }
 
-function isFailedOrder(order: JsonOrder, transactions: JsonEscrowTransaction[] = []) {
+function isFailedOrder(
+  order: JsonOrder,
+  transactions: JsonEscrowTransaction[] = [],
+) {
   if (["cancelled", "returned"].includes(order.status)) return true;
-  return transactions.some((transaction) => transaction.orderId === order.id && transaction.status === "refunded");
+  return transactions.some(
+    (transaction) =>
+      transaction.orderId === order.id && transaction.status === "refunded",
+  );
 }
 
 function isPublicRequest(request: JsonRequest) {
@@ -413,39 +451,59 @@ function isPublicRequest(request: JsonRequest) {
 }
 
 function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
-  const users = (Array.isArray(parsed.users) ? parsed.users : []).map((user) => ({
-    ...user,
-    username: user.username || "",
-    kycStatus: user.kycStatus || "approved",
-    kycDocuments: Array.isArray(user.kycDocuments) ? user.kycDocuments : [],
-    kycRejectReason: user.kycRejectReason || "",
-    walletBalance: Number(user.walletBalance || 0),
-    city: user.city || "",
-    postalCode: user.postalCode || "",
-    defaultAddress: user.defaultAddress || "",
-    bankAccountHolder: decryptBankValue(user.bankAccountHolder),
-    bankName: decryptBankValue(user.bankName),
-    bankAccountNumber: decryptBankValue(user.bankAccountNumber),
-    bankCardNumber: decryptBankValue(user.bankCardNumber),
-    bankShebaNumber: decryptBankValue(user.bankShebaNumber),
-    bankDetailsVerified: Boolean(user.bankDetailsVerified),
-  })) as JsonUser[];
+  const users = (Array.isArray(parsed.users) ? parsed.users : []).map(
+    (user) => ({
+      ...user,
+      username: user.username || "",
+      kycStatus: user.kycStatus || "approved",
+      kycDocuments: Array.isArray(user.kycDocuments) ? user.kycDocuments : [],
+      kycRejectReason: user.kycRejectReason || "",
+      walletBalance: Number(user.walletBalance || 0),
+      city: user.city || "",
+      postalCode: user.postalCode || "",
+      defaultAddress: user.defaultAddress || "",
+      bankAccountHolder: decryptBankValue(user.bankAccountHolder),
+      bankName: decryptBankValue(user.bankName),
+      bankAccountNumber: decryptBankValue(user.bankAccountNumber),
+      bankCardNumber: decryptBankValue(user.bankCardNumber),
+      bankShebaNumber: decryptBankValue(user.bankShebaNumber),
+      bankDetailsVerified: Boolean(user.bankDetailsVerified),
+    }),
+  ) as JsonUser[];
 
   return {
     requests: Array.isArray(parsed.requests)
-      ? parsed.requests.map((request) => ({
-          ...request,
-          valuationFactors: request.valuationFactors
-            ? normalizeProductValuationFactors(request.valuationFactors)
-            : undefined,
-          aiPriceEstimate: request.aiPriceEstimate,
-        })) as JsonRequest[]
+      ? (parsed.requests.map((request) => {
+          const productImages = normalizeProductImageAttachments(
+            (request as { productImages?: unknown }).productImages,
+          );
+          return {
+            ...request,
+            imageNames: Array.isArray(request.imageNames)
+              ? request.imageNames
+              : productImages.map((image) => image.originalName),
+            productImages,
+            valuationFactors: request.valuationFactors
+              ? normalizeProductValuationFactors(request.valuationFactors)
+              : undefined,
+            aiPriceEstimate: request.aiPriceEstimate,
+          };
+        }) as JsonRequest[])
       : [],
     users,
-    offers: Array.isArray(parsed.offers) ? parsed.offers : [],
-    sellerRequestActions: Array.isArray(parsed.sellerRequestActions) ? parsed.sellerRequestActions : [],
+    offers: Array.isArray(parsed.offers)
+      ? (parsed.offers.map((offer) => ({
+          ...offer,
+          productImages: normalizeProductImageAttachments(
+            (offer as { productImages?: unknown }).productImages,
+          ),
+        })) as JsonOffer[])
+      : [],
+    sellerRequestActions: Array.isArray(parsed.sellerRequestActions)
+      ? parsed.sellerRequestActions
+      : [],
     orders: Array.isArray(parsed.orders)
-      ? parsed.orders.map((order) => ({
+      ? (parsed.orders.map((order) => ({
           ...order,
           offerId: Number(order.offerId || 0),
           buyerName: order.buyerName || "خریدار",
@@ -456,13 +514,21 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           quantity: Number(order.quantity || 1),
           shippingAddress: order.shippingAddress || "",
           useAlternateAddress: Boolean(order.useAlternateAddress),
+          requestImages: normalizeProductImageAttachments(
+            (order as { requestImages?: unknown }).requestImages,
+          ),
+          productImages: normalizeProductImageAttachments(
+            (order as { productImages?: unknown }).productImages,
+          ),
           productSpecs: order.productSpecs,
           productSpecsConfirmedAt: order.productSpecsConfirmedAt || "",
           buyerArchived: Boolean(order.buyerArchived),
           sellerArchived: Boolean(order.sellerArchived),
-        })) as JsonOrder[]
+        })) as JsonOrder[])
       : [],
-    walletTransactions: Array.isArray(parsed.walletTransactions) ? parsed.walletTransactions : [],
+    walletTransactions: Array.isArray(parsed.walletTransactions)
+      ? parsed.walletTransactions
+      : [],
     withdrawals: Array.isArray(parsed.withdrawals)
       ? parsed.withdrawals.map((withdrawal) => ({
           ...withdrawal,
@@ -474,15 +540,28 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         }))
       : [],
     transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
-    platformTransactions: Array.isArray(parsed.platformTransactions) ? parsed.platformTransactions : [],
+    platformTransactions: Array.isArray(parsed.platformTransactions)
+      ? parsed.platformTransactions
+      : [],
     messages: Array.isArray(parsed.messages) ? parsed.messages : [],
-    notifications: Array.isArray(parsed.notifications) ? parsed.notifications : [],
+    notifications: Array.isArray(parsed.notifications)
+      ? parsed.notifications
+      : [],
     reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
-    passwordResets: Array.isArray(parsed.passwordResets) ? parsed.passwordResets : [],
+    passwordResets: Array.isArray(parsed.passwordResets)
+      ? parsed.passwordResets
+      : [],
     settings: {
-      commissionRate: typeof parsed.settings?.commissionRate === "number" ? parsed.settings.commissionRate : 5,
-      platformWalletBalance: Number(parsed.settings?.platformWalletBalance || 0),
-      adminAccountHolder: decryptBankValue(parsed.settings?.adminAccountHolder) || "مدیر پلتفرم OptiBid",
+      commissionRate:
+        typeof parsed.settings?.commissionRate === "number"
+          ? parsed.settings.commissionRate
+          : 5,
+      platformWalletBalance: Number(
+        parsed.settings?.platformWalletBalance || 0,
+      ),
+      adminAccountHolder:
+        decryptBankValue(parsed.settings?.adminAccountHolder) ||
+        "مدیر پلتفرم OptiBid",
       adminBankName: decryptBankValue(parsed.settings?.adminBankName),
       adminSheba: decryptBankValue(parsed.settings?.adminSheba),
       adminCardNumber: decryptBankValue(parsed.settings?.adminCardNumber),
@@ -562,13 +641,17 @@ export async function writeOptiBidData(data: OptiBidJsonData) {
   // حالت Node: نوشتن اتمیک روی دیسک (فایل موقت + rename)
   await fs.mkdir(path.dirname(dataFile), { recursive: true });
   const temporaryFile = `${dataFile}.tmp`;
-  await fs.writeFile(temporaryFile, JSON.stringify(encryptedData, null, 2), "utf8");
+  await fs.writeFile(
+    temporaryFile,
+    JSON.stringify(encryptedData, null, 2),
+    "utf8",
+  );
   await fs.rename(temporaryFile, dataFile);
 }
 
 function addNotification(
   data: OptiBidJsonData,
-  input: Omit<JsonNotification, "id" | "createdAt">
+  input: Omit<JsonNotification, "id" | "createdAt">,
 ) {
   data.notifications.unshift({
     id: nextNumericId(data.notifications),
@@ -579,7 +662,7 @@ function addNotification(
 
 function addWalletTransaction(
   data: OptiBidJsonData,
-  input: Omit<JsonWalletTransaction, "id" | "createdAt">
+  input: Omit<JsonWalletTransaction, "id" | "createdAt">,
 ) {
   data.walletTransactions.unshift({
     id: nextStringId("WLT"),
@@ -588,13 +671,20 @@ function addWalletTransaction(
   });
 }
 
-function addMessage(data: OptiBidJsonData, input: Omit<JsonMessage, "id" | "createdAt">) {
-  data.messages.unshift({ id: nextNumericId(data.messages), createdAt: new Date().toISOString(), ...input });
+function addMessage(
+  data: OptiBidJsonData,
+  input: Omit<JsonMessage, "id" | "createdAt">,
+) {
+  data.messages.unshift({
+    id: nextNumericId(data.messages),
+    createdAt: new Date().toISOString(),
+    ...input,
+  });
 }
 
 function addPlatformTransaction(
   data: OptiBidJsonData,
-  input: Omit<JsonPlatformTransaction, "id" | "createdAt" | "balanceAfter">
+  input: Omit<JsonPlatformTransaction, "id" | "createdAt" | "balanceAfter">,
 ) {
   data.settings.platformWalletBalance += input.amount;
   data.platformTransactions.unshift({
@@ -606,7 +696,9 @@ function addPlatformTransaction(
 }
 
 function getUserOrThrow(data: OptiBidJsonData, id: number, role?: UserRole) {
-  const user = data.users.find((item) => item.id === id && (!role || item.role === role));
+  const user = data.users.find(
+    (item) => item.id === id && (!role || item.role === role),
+  );
   if (!user) throw new Error("User not found");
   return user;
 }
@@ -633,10 +725,12 @@ export async function createJsonUser(input: {
   const data = await getOptiBidData();
   const normalizedEmail = input.email.trim().toLowerCase();
   const normalizedUsername = input.username.trim().toLowerCase();
-  const existingEmail = data.users.find((user) => user.email.toLowerCase() === normalizedEmail);
+  const existingEmail = data.users.find(
+    (user) => user.email.toLowerCase() === normalizedEmail,
+  );
   if (existingEmail) throw new Error("Email already registered");
   const existingUsername = data.users.find(
-    (user) => (user.username || "").toLowerCase() === normalizedUsername
+    (user) => (user.username || "").toLowerCase() === normalizedUsername,
   );
   if (existingUsername) throw new Error("Username already registered");
 
@@ -664,7 +758,8 @@ export async function createJsonUser(input: {
     bankShebaNumber: input.bankShebaNumber || "",
     bankDetailsVerified: false,
     walletBalance: 0,
-    sellerMetrics: input.role === "seller" ? createDefaultSellerMetrics() : undefined,
+    sellerMetrics:
+      input.role === "seller" ? createDefaultSellerMetrics() : undefined,
     createdAt: new Date().toISOString(),
   };
   data.users.push(user);
@@ -672,17 +767,22 @@ export async function createJsonUser(input: {
   return { user, created: true };
 }
 
-export async function authenticateJsonUser(input: { identifier: string; password: string }) {
+export async function authenticateJsonUser(input: {
+  identifier: string;
+  password: string;
+}) {
   const data = await getOptiBidData();
   const identifier = input.identifier.trim().toLowerCase();
   const user = data.users.find(
     (item) =>
       item.email.toLowerCase() === identifier ||
-      (item.username || "").toLowerCase() === identifier
+      (item.username || "").toLowerCase() === identifier,
   );
   if (!user || !verifyPassword(input.password, user.password)) return null;
   if (user.kycStatus === "rejected") {
-    throw new Error(`KYC_REJECTED:${user.kycRejectReason || "مدارک نیازمند اصلاح است"}`);
+    throw new Error(
+      `KYC_REJECTED:${user.kycRejectReason || "مدارک نیازمند اصلاح است"}`,
+    );
   }
   if (user.kycStatus === "pending" || !user.isActive) {
     throw new Error("KYC_PENDING");
@@ -704,6 +804,7 @@ export async function createJsonPurchaseRequest(input: {
   quantity?: string;
   deadline?: string;
   imageNames?: string[];
+  productImages?: ProductImageAttachment[];
   buyerName?: string;
   buyerId?: number;
   valuationFactors?: Partial<ProductValuationFactors>;
@@ -711,7 +812,10 @@ export async function createJsonPurchaseRequest(input: {
   const data = await getOptiBidData();
   let buyer: JsonUser | undefined;
 
-  if (input.buyerId) buyer = data.users.find((user) => user.id === input.buyerId && user.role === "buyer");
+  if (input.buyerId)
+    buyer = data.users.find(
+      (user) => user.id === input.buyerId && user.role === "buyer",
+    );
   if (!buyer) {
     const buyerEmail = "buyer@optibid.local";
     buyer = data.users.find((user) => user.email === buyerEmail);
@@ -730,7 +834,9 @@ export async function createJsonPurchaseRequest(input: {
     }
   }
 
-  const valuationFactors = normalizeProductValuationFactors(input.valuationFactors);
+  const valuationFactors = normalizeProductValuationFactors(
+    input.valuationFactors,
+  );
   const aiPriceEstimate = estimateFairUsedProductPrice({
     title: input.title,
     category: input.category,
@@ -738,6 +844,7 @@ export async function createJsonPurchaseRequest(input: {
     quantity: input.quantity || "1",
     factors: valuationFactors,
   });
+  const productImages = normalizeProductImageAttachments(input.productImages);
 
   const purchaseRequest: JsonRequest = {
     id: nextNumericId(data.requests),
@@ -749,7 +856,10 @@ export async function createJsonPurchaseRequest(input: {
     budget: String(money(input.budget)),
     quantity: Math.max(1, Number.parseInt(input.quantity || "1", 10) || 1),
     deadline: input.deadline || "flexible",
-    imageNames: input.imageNames || [],
+    imageNames: input.imageNames?.length
+      ? input.imageNames
+      : productImages.map((image) => image.originalName),
+    productImages,
     valuationFactors,
     aiPriceEstimate,
     status: "open",
@@ -764,15 +874,26 @@ export async function createJsonPurchaseRequest(input: {
 
 export async function updateJsonBuyerProfile(
   buyerId: number,
-  updates: { fullName?: string; bio?: string; defaultAddress?: string; categories?: string[]; avatarName?: string }
+  updates: {
+    fullName?: string;
+    bio?: string;
+    defaultAddress?: string;
+    categories?: string[];
+    avatarName?: string;
+  },
 ) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, buyerId, "buyer");
   if (updates.fullName?.trim()) buyer.fullName = updates.fullName.trim();
   if (typeof updates.bio === "string") buyer.bio = updates.bio.trim();
-  if (typeof updates.defaultAddress === "string") buyer.defaultAddress = updates.defaultAddress.trim();
-  if (typeof updates.avatarName === "string" && updates.avatarName.trim()) buyer.avatarName = updates.avatarName.trim();
-  if (Array.isArray(updates.categories)) buyer.categories = [...new Set(updates.categories.map((x) => x.trim()).filter(Boolean))];
+  if (typeof updates.defaultAddress === "string")
+    buyer.defaultAddress = updates.defaultAddress.trim();
+  if (typeof updates.avatarName === "string" && updates.avatarName.trim())
+    buyer.avatarName = updates.avatarName.trim();
+  if (Array.isArray(updates.categories))
+    buyer.categories = [
+      ...new Set(updates.categories.map((x) => x.trim()).filter(Boolean)),
+    ];
   await writeOptiBidData(data);
   return buyer;
 }
@@ -791,7 +912,10 @@ export async function getJsonKycUsers() {
       } = user;
       return safeUser;
     })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 }
 
 export async function updateJsonKycStatus(input: {
@@ -800,7 +924,9 @@ export async function updateJsonKycStatus(input: {
   reason?: string;
 }) {
   const data = await getOptiBidData();
-  const user = data.users.find((item) => item.id === input.userId && item.role !== "admin");
+  const user = data.users.find(
+    (item) => item.id === input.userId && item.role !== "admin",
+  );
   if (!user) throw new Error("KYC user not found");
   if (input.status === "rejected" && !input.reason?.trim()) {
     throw new Error("Rejection reason is required");
@@ -808,7 +934,8 @@ export async function updateJsonKycStatus(input: {
 
   user.kycStatus = input.status;
   user.isActive = input.status === "approved";
-  user.kycRejectReason = input.status === "rejected" ? input.reason!.trim() : "";
+  user.kycRejectReason =
+    input.status === "rejected" ? input.reason!.trim() : "";
   user.kycReviewedAt = new Date().toISOString();
   user.bankDetailsVerified = input.status === "approved";
   if (user.role === "seller") {
@@ -817,7 +944,10 @@ export async function updateJsonKycStatus(input: {
       ...metrics,
       identityVerified: input.status === "approved",
       bankAccountVerified: input.status === "approved",
-      profileCompletenessPercent: Math.max(metrics.profileCompletenessPercent, 80),
+      profileCompletenessPercent: Math.max(
+        metrics.profileCompletenessPercent,
+        80,
+      ),
     };
   }
 
@@ -840,27 +970,45 @@ export async function updateJsonKycStatus(input: {
 
 export async function updateJsonSellerProfile(
   sellerId: number,
-  updates: { fullName?: string; bio?: string; categories?: string[]; avatarName?: string }
+  updates: {
+    fullName?: string;
+    bio?: string;
+    categories?: string[];
+    avatarName?: string;
+  },
 ) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, sellerId, "seller");
   if (updates.fullName?.trim()) seller.fullName = updates.fullName.trim();
   if (typeof updates.bio === "string") seller.bio = updates.bio.trim();
-  if (typeof updates.avatarName === "string" && updates.avatarName.trim()) seller.avatarName = updates.avatarName.trim();
-  if (Array.isArray(updates.categories)) seller.categories = [...new Set(updates.categories.map((x) => x.trim()).filter(Boolean))];
+  if (typeof updates.avatarName === "string" && updates.avatarName.trim())
+    seller.avatarName = updates.avatarName.trim();
+  if (Array.isArray(updates.categories))
+    seller.categories = [
+      ...new Set(updates.categories.map((x) => x.trim()).filter(Boolean)),
+    ];
   const metrics = seller.sellerMetrics || createDefaultSellerMetrics();
   seller.sellerMetrics = {
     ...metrics,
-    profileCompletenessPercent: Math.max(metrics.profileCompletenessPercent, seller.bio && seller.categories?.length ? 75 : 40),
+    profileCompletenessPercent: Math.max(
+      metrics.profileCompletenessPercent,
+      seller.bio && seller.categories?.length ? 75 : 40,
+    ),
   };
   await writeOptiBidData(data);
   return seller;
 }
 
-export async function updateJsonSellerMetrics(sellerId: number, updates: Partial<SellerPerformanceMetrics>) {
+export async function updateJsonSellerMetrics(
+  sellerId: number,
+  updates: Partial<SellerPerformanceMetrics>,
+) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, sellerId, "seller");
-  seller.sellerMetrics = { ...(seller.sellerMetrics || createDefaultSellerMetrics()), ...updates };
+  seller.sellerMetrics = {
+    ...(seller.sellerMetrics || createDefaultSellerMetrics()),
+    ...updates,
+  };
   await writeOptiBidData(data);
   return seller;
 }
@@ -881,28 +1029,61 @@ export async function getJsonSellerRankings() {
       } = seller;
       return {
         seller: publicSeller,
-        rating: calculateSellerScore(seller.sellerMetrics || createDefaultSellerMetrics()),
+        rating: calculateSellerScore(
+          seller.sellerMetrics || createDefaultSellerMetrics(),
+        ),
       };
     })
-    .sort((a, b) => Number(b.rating.rankingEligible) - Number(a.rating.rankingEligible) || b.rating.finalScore - a.rating.finalScore);
+    .sort(
+      (a, b) =>
+        Number(b.rating.rankingEligible) - Number(a.rating.rankingEligible) ||
+        b.rating.finalScore - a.rating.finalScore,
+    );
 }
 
-export async function getJsonMatchingRequestsForSeller(sellerId: number, limit = 5) {
+export async function getJsonMatchingRequestsForSeller(
+  sellerId: number,
+  limit = 5,
+) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, sellerId, "seller");
   const categories = new Set(seller.categories || []);
   if (categories.size === 0) return [];
-  const excluded = new Set(data.sellerRequestActions.filter((item) => item.sellerId === sellerId).map((item) => item.requestId));
+  const excluded = new Set(
+    data.sellerRequestActions
+      .filter((item) => item.sellerId === sellerId)
+      .map((item) => item.requestId),
+  );
   return data.requests
-    .filter((item) => item.status === "open" && categories.has(item.category) && !excluded.has(item.id))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .filter(
+      (item) =>
+        item.status === "open" &&
+        categories.has(item.category) &&
+        !excluded.has(item.id),
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
     .slice(0, Math.max(1, Math.min(5, limit)));
 }
 
-export async function rejectJsonSellerRequest(sellerId: number, requestId: number) {
+export async function rejectJsonSellerRequest(
+  sellerId: number,
+  requestId: number,
+) {
   const data = await getOptiBidData();
-  if (!data.sellerRequestActions.some((item) => item.sellerId === sellerId && item.requestId === requestId)) {
-    data.sellerRequestActions.push({ sellerId, requestId, action: "rejected", createdAt: new Date().toISOString() });
+  if (
+    !data.sellerRequestActions.some(
+      (item) => item.sellerId === sellerId && item.requestId === requestId,
+    )
+  ) {
+    data.sellerRequestActions.push({
+      sellerId,
+      requestId,
+      action: "rejected",
+      createdAt: new Date().toISOString(),
+    });
     await writeOptiBidData(data);
   }
 }
@@ -942,9 +1123,14 @@ const offerSpecLabels: Record<keyof OfferProductSpecs, string> = {
   notes: "توضیحات تکمیلی",
 };
 
-function normalizeOfferProductSpecs(input: Partial<OfferProductSpecs> | undefined | null): OfferProductSpecs {
+function normalizeOfferProductSpecs(
+  input: Partial<OfferProductSpecs> | undefined | null,
+): OfferProductSpecs {
   const source = input || {};
-  const text = (key: keyof OfferProductSpecs, max = 120) => String(source[key] || "").trim().slice(0, max);
+  const text = (key: keyof OfferProductSpecs, max = 120) =>
+    String(source[key] || "")
+      .trim()
+      .slice(0, max);
   return {
     brand: text("brand"),
     exactModel: text("exactModel"),
@@ -967,7 +1153,9 @@ function normalizeOfferProductSpecs(input: Partial<OfferProductSpecs> | undefine
     gpuHealth: text("gpuHealth"),
     keyboardTouchpadHealth: text("keyboardTouchpadHealth"),
     bodyHingeHealth: text("bodyHingeHealth"),
-    batteryHealthPercent: text("batteryHealthPercent", 3).replace(/\D/g, "").slice(0, 3),
+    batteryHealthPercent: text("batteryHealthPercent", 3)
+      .replace(/\D/g, "")
+      .slice(0, 3),
     appearanceGrade: text("appearanceGrade"),
     repairHistory: text("repairHistory"),
     usageLevel: text("usageLevel"),
@@ -975,7 +1163,9 @@ function normalizeOfferProductSpecs(input: Partial<OfferProductSpecs> | undefine
     chargerStatus: text("chargerStatus"),
     originalPackaging: text("originalPackaging"),
     purchaseInvoiceAvailable: text("purchaseInvoiceAvailable"),
-    testDeadlineDays: text("testDeadlineDays", 3).replace(/\D/g, "").slice(0, 3),
+    testDeadlineDays: text("testDeadlineDays", 3)
+      .replace(/\D/g, "")
+      .slice(0, 3),
     returnPolicy: text("returnPolicy"),
     notes: text("notes", 1000),
   };
@@ -1006,32 +1196,55 @@ function validateOfferProductSpecs(specs: OfferProductSpecs) {
     "chargerStatus",
     "returnPolicy",
   ];
-  return required.filter((key) => !specs[key] || specs[key] === "unknown").map((key) => offerSpecLabels[key]);
+  return required
+    .filter((key) => !specs[key] || specs[key] === "unknown")
+    .map((key) => offerSpecLabels[key]);
 }
 
 export function publicOfferSpecLabels() {
   return offerSpecLabels;
 }
 
-export async function createJsonSellerOffer(input: { sellerId: number; requestId: number; amount: string; deliveryDays: number; message?: string; productSpecs?: Partial<OfferProductSpecs> }) {
+export async function createJsonSellerOffer(input: {
+  sellerId: number;
+  requestId: number;
+  amount: string;
+  deliveryDays: number;
+  message?: string;
+  productSpecs?: Partial<OfferProductSpecs>;
+  productImages?: ProductImageAttachment[];
+}) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, input.sellerId, "seller");
-  const request = data.requests.find((item) => item.id === input.requestId && item.status === "open");
+  const request = data.requests.find(
+    (item) => item.id === input.requestId && item.status === "open",
+  );
   if (!request) throw new Error("Open request not found");
-  if (!(seller.categories || []).includes(request.category)) throw new Error("Seller category does not match request category");
-  const existingOffer = data.offers.find((offer) => offer.sellerId === seller.id && offer.requestId === request.id);
+  if (!(seller.categories || []).includes(request.category))
+    throw new Error("Seller category does not match request category");
+  const existingOffer = data.offers.find(
+    (offer) => offer.sellerId === seller.id && offer.requestId === request.id,
+  );
   const productSpecs = normalizeOfferProductSpecs(input.productSpecs);
   const missingSpecs = validateOfferProductSpecs(productSpecs);
   if (missingSpecs.length > 0) {
     throw new Error(`Product specs incomplete: ${missingSpecs.join("، ")}`);
   }
+  const productImages = input.productImages
+    ? normalizeProductImageAttachments(input.productImages)
+    : undefined;
 
   if (existingOffer) {
-    if (existingOffer.status !== "pending") throw new Error("Offer cannot be edited after selection");
+    if (existingOffer.status !== "pending")
+      throw new Error("Offer cannot be edited after selection");
     existingOffer.amount = String(money(input.amount));
-    existingOffer.deliveryDays = Math.max(1, Math.floor(input.deliveryDays || 1));
+    existingOffer.deliveryDays = Math.max(
+      1,
+      Math.floor(input.deliveryDays || 1),
+    );
     existingOffer.message = input.message?.trim() || "";
     existingOffer.productSpecs = productSpecs;
+    if (productImages) existingOffer.productImages = productImages;
     await writeOptiBidData(data);
     return existingOffer;
   }
@@ -1045,12 +1258,18 @@ export async function createJsonSellerOffer(input: { sellerId: number; requestId
     deliveryDays: Math.max(1, Math.floor(input.deliveryDays || 1)),
     message: input.message?.trim() || "",
     productSpecs,
+    productImages: productImages || [],
     status: "pending",
     createdAt: new Date().toISOString(),
   };
   data.offers.unshift(offer);
   request.offersCount += 1;
-  data.sellerRequestActions.push({ sellerId: seller.id, requestId: request.id, action: "offered", createdAt: new Date().toISOString() });
+  data.sellerRequestActions.push({
+    sellerId: seller.id,
+    requestId: request.id,
+    action: "offered",
+    createdAt: new Date().toISOString(),
+  });
   addNotification(data, {
     userId: request.buyerId,
     type: "offer",
@@ -1062,24 +1281,44 @@ export async function createJsonSellerOffer(input: { sellerId: number; requestId
   return offer;
 }
 
-export async function selectJsonOffer(input: { buyerId: number; offerId: number; shippingAddress?: string; useAlternateAddress?: boolean; buyerConfirmedProductSpecs?: boolean }) {
+export async function selectJsonOffer(input: {
+  buyerId: number;
+  offerId: number;
+  shippingAddress?: string;
+  useAlternateAddress?: boolean;
+  buyerConfirmedProductSpecs?: boolean;
+}) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, input.buyerId, "buyer");
-  const offer = data.offers.find((item) => item.id === input.offerId && item.status === "pending");
+  const offer = data.offers.find(
+    (item) => item.id === input.offerId && item.status === "pending",
+  );
   if (!offer) throw new Error("Pending offer not found");
-  if (!offer.productSpecs) throw new Error("Product specs are required before selection");
-  if (!input.buyerConfirmedProductSpecs) throw new Error("Product specs confirmation required");
-  const request = data.requests.find((item) => item.id === offer.requestId && item.status === "open" && item.buyerId === buyer.id);
+  if (!offer.productSpecs)
+    throw new Error("Product specs are required before selection");
+  if (!input.buyerConfirmedProductSpecs)
+    throw new Error("Product specs confirmation required");
+  const request = data.requests.find(
+    (item) =>
+      item.id === offer.requestId &&
+      item.status === "open" &&
+      item.buyerId === buyer.id,
+  );
   if (!request) throw new Error("Request not available for buyer");
   const seller = getUserOrThrow(data, offer.sellerId, "seller");
 
   const amount = money(offer.amount);
   const fee = Math.round(amount * (data.settings.commissionRate / 100));
-  const address = input.useAlternateAddress ? (input.shippingAddress || "").trim() : buyer.defaultAddress || "";
+  const address = input.useAlternateAddress
+    ? (input.shippingAddress || "").trim()
+    : buyer.defaultAddress || "";
   if (!address) throw new Error("Shipping address is required");
 
   offer.status = "accepted";
-  for (const other of data.offers.filter((item) => item.requestId === request.id && item.id !== offer.id)) other.status = "rejected";
+  for (const other of data.offers.filter(
+    (item) => item.requestId === request.id && item.id !== offer.id,
+  ))
+    other.status = "rejected";
   request.status = "selected";
 
   const order: JsonOrder = {
@@ -1094,6 +1333,8 @@ export async function selectJsonOffer(input: { buyerId: number; offerId: number;
     description: request.description,
     category: request.category,
     quantity: request.quantity,
+    requestImages: request.productImages || [],
+    productImages: offer.productImages || [],
     totalAmount: String(amount),
     platformFee: String(fee),
     sellerAmount: String(amount - fee),
@@ -1107,19 +1348,35 @@ export async function selectJsonOffer(input: { buyerId: number; offerId: number;
     createdAt: new Date().toISOString(),
   };
   data.orders.unshift(order);
-  addNotification(data, { userId: buyer.id, type: "payment", title: "سفارش آماده پرداخت است", body: `پیشنهاد ${seller.fullName} برای «${request.title}» انتخاب شد. پرداخت امانی را تکمیل کنید.`, href: "/buyer/dashboard" });
-  addNotification(data, { userId: seller.id, type: "order", title: "پیشنهاد شما انتخاب شد", body: `خریدار پیشنهاد شما را انتخاب کرد؛ پس از پرداخت خریدار، سفارش برای ارسال آماده می‌شود.`, href: "/seller/dashboard" });
+  addNotification(data, {
+    userId: buyer.id,
+    type: "payment",
+    title: "سفارش آماده پرداخت است",
+    body: `پیشنهاد ${seller.fullName} برای «${request.title}» انتخاب شد. پرداخت امانی را تکمیل کنید.`,
+    href: "/buyer/dashboard",
+  });
+  addNotification(data, {
+    userId: seller.id,
+    type: "order",
+    title: "پیشنهاد شما انتخاب شد",
+    body: `خریدار پیشنهاد شما را انتخاب کرد؛ پس از پرداخت خریدار، سفارش برای ارسال آماده می‌شود.`,
+    href: "/seller/dashboard",
+  });
   await writeOptiBidData(data);
   return order;
 }
 
-export async function createJsonWithdrawalRequest(userId: number, amount: number) {
+export async function createJsonWithdrawalRequest(
+  userId: number,
+  amount: number,
+) {
   const data = await getOptiBidData();
   const user = getUserOrThrow(data, userId);
   const value = Math.max(0, Math.floor(amount));
 
   if (!value) throw new Error("Valid withdrawal amount required");
-  if (user.walletBalance < value) throw new Error("Insufficient wallet balance");
+  if (user.walletBalance < value)
+    throw new Error("Insufficient wallet balance");
   if (
     !user.bankAccountHolder ||
     !user.bankName ||
@@ -1172,7 +1429,7 @@ export async function resolveJsonWithdrawal(input: {
 }) {
   const data = await getOptiBidData();
   const withdrawal = data.withdrawals.find(
-    (item) => item.id === input.withdrawalId && item.status === "pending"
+    (item) => item.id === input.withdrawalId && item.status === "pending",
   );
   if (!withdrawal) throw new Error("Pending withdrawal not found");
   const user = getUserOrThrow(data, withdrawal.userId);
@@ -1227,45 +1484,112 @@ export async function topUpJsonWallet(userId: number, amount: number) {
   const value = Math.max(0, Math.floor(amount));
   if (!value) throw new Error("Valid topup amount required");
   user.walletBalance += value;
-  addWalletTransaction(data, { userId, type: "topup", amount: value, balanceAfter: user.walletBalance, description: "افزایش موجودی کیف پول" });
-  addNotification(data, { userId, type: "wallet", title: "کیف پول شارژ شد", body: `${value.toLocaleString("fa-IR")} تومان به کیف پول شما افزوده شد.`, href: `/${user.role}/dashboard` });
+  addWalletTransaction(data, {
+    userId,
+    type: "topup",
+    amount: value,
+    balanceAfter: user.walletBalance,
+    description: "افزایش موجودی کیف پول",
+  });
+  addNotification(data, {
+    userId,
+    type: "wallet",
+    title: "کیف پول شارژ شد",
+    body: `${value.toLocaleString("fa-IR")} تومان به کیف پول شما افزوده شد.`,
+    href: `/${user.role}/dashboard`,
+  });
   await writeOptiBidData(data);
   return user;
 }
 
-export async function payJsonOrder(input: { buyerId: number; orderId: string; paymentMethod: "wallet" | "gateway" }) {
+export async function payJsonOrder(input: {
+  buyerId: number;
+  orderId: string;
+  paymentMethod: "wallet" | "gateway";
+}) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, input.buyerId, "buyer");
-  const order = data.orders.find((item) => item.id === input.orderId && item.buyerId === buyer.id && item.status === "pending_payment");
+  const order = data.orders.find(
+    (item) =>
+      item.id === input.orderId &&
+      item.buyerId === buyer.id &&
+      item.status === "pending_payment",
+  );
   if (!order) throw new Error("Pending payment order not found");
   const amount = money(order.totalAmount);
 
   if (input.paymentMethod === "wallet") {
-    if (buyer.walletBalance < amount) throw new Error("Insufficient wallet balance");
+    if (buyer.walletBalance < amount)
+      throw new Error("Insufficient wallet balance");
     buyer.walletBalance -= amount;
-    addWalletTransaction(data, { userId: buyer.id, type: "escrow_hold", amount: -amount, balanceAfter: buyer.walletBalance, description: `بلوکه شدن وجه امانی سفارش ${order.id}`, orderId: order.id });
+    addWalletTransaction(data, {
+      userId: buyer.id,
+      type: "escrow_hold",
+      amount: -amount,
+      balanceAfter: buyer.walletBalance,
+      description: `بلوکه شدن وجه امانی سفارش ${order.id}`,
+      orderId: order.id,
+    });
   } else {
     // In production this transition happens only after a verified payment gateway callback.
-    addWalletTransaction(data, { userId: buyer.id, type: "gateway_payment", amount: -amount, balanceAfter: buyer.walletBalance, description: `پرداخت اینترنتی سفارش ${order.id}`, orderId: order.id });
+    addWalletTransaction(data, {
+      userId: buyer.id,
+      type: "gateway_payment",
+      amount: -amount,
+      balanceAfter: buyer.walletBalance,
+      description: `پرداخت اینترنتی سفارش ${order.id}`,
+      orderId: order.id,
+    });
   }
 
   order.status = "paid";
   order.paymentMethod = input.paymentMethod;
   order.paymentAt = new Date().toISOString();
-  const escrow: JsonEscrowTransaction = { id: nextStringId("ESC"), orderId: order.id, buyerId: buyer.id, sellerId: order.sellerId, amount, platformFee: money(order.platformFee), sellerAmount: money(order.sellerAmount), status: "held", createdAt: new Date().toISOString() };
+  const escrow: JsonEscrowTransaction = {
+    id: nextStringId("ESC"),
+    orderId: order.id,
+    buyerId: buyer.id,
+    sellerId: order.sellerId,
+    amount,
+    platformFee: money(order.platformFee),
+    sellerAmount: money(order.sellerAmount),
+    status: "held",
+    createdAt: new Date().toISOString(),
+  };
   data.transactions.unshift(escrow);
   const request = data.requests.find((item) => item.id === order.requestId);
   if (request) request.status = "paid";
-  addNotification(data, { userId: order.sellerId, type: "payment", title: "وجه سفارش امانی شد", body: `خریدار مبلغ سفارش «${order.title}» را پرداخت کرد. اکنون کالا را به آدرس ثبت‌شده ارسال کنید.`, href: "/seller/dashboard" });
-  addNotification(data, { userId: buyer.id, type: "payment", title: "پرداخت امانی موفق", body: "وجه نزد OptiBid امانت است؛ فروشنده پس از ارسال، کد رهگیری ثبت می‌کند.", href: "/buyer/dashboard" });
+  addNotification(data, {
+    userId: order.sellerId,
+    type: "payment",
+    title: "وجه سفارش امانی شد",
+    body: `خریدار مبلغ سفارش «${order.title}» را پرداخت کرد. اکنون کالا را به آدرس ثبت‌شده ارسال کنید.`,
+    href: "/seller/dashboard",
+  });
+  addNotification(data, {
+    userId: buyer.id,
+    type: "payment",
+    title: "پرداخت امانی موفق",
+    body: "وجه نزد OptiBid امانت است؛ فروشنده پس از ارسال، کد رهگیری ثبت می‌کند.",
+    href: "/buyer/dashboard",
+  });
   await writeOptiBidData(data);
   return order;
 }
 
-export async function shipJsonOrder(input: { sellerId: number; orderId: string; trackingCode: string }) {
+export async function shipJsonOrder(input: {
+  sellerId: number;
+  orderId: string;
+  trackingCode: string;
+}) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, input.sellerId, "seller");
-  const order = data.orders.find((item) => item.id === input.orderId && item.sellerId === seller.id && item.status === "paid");
+  const order = data.orders.find(
+    (item) =>
+      item.id === input.orderId &&
+      item.sellerId === seller.id &&
+      item.status === "paid",
+  );
   if (!order) throw new Error("Order is not ready for shipment");
   if (!input.trackingCode.trim()) throw new Error("Tracking code is required");
 
@@ -1275,20 +1599,47 @@ export async function shipJsonOrder(input: { sellerId: number; orderId: string; 
   const request = data.requests.find((item) => item.id === order.requestId);
   if (request) request.status = "shipped";
   const metrics = seller.sellerMetrics || createDefaultSellerMetrics();
-  seller.sellerMetrics = { ...metrics, shippedOrders90d: metrics.shippedOrders90d + 1, onTimeShipments90d: metrics.onTimeShipments90d + 1, trackedShipments90d: metrics.trackedShipments90d + 1, validTrackedShipments90d: metrics.validTrackedShipments90d + 1 };
-  addNotification(data, { userId: order.buyerId, type: "shipment", title: "کالا توسط فروشنده ارسال شد", body: `سفارش «${order.title}» ارسال شد. کد رهگیری: ${order.trackingCode}`, href: "/buyer/dashboard" });
-  addMessage(data, { senderId: seller.id, receiverId: order.buyerId, orderId: order.id, content: `کالای شما ارسال شد. کد رهگیری: ${order.trackingCode}` });
+  seller.sellerMetrics = {
+    ...metrics,
+    shippedOrders90d: metrics.shippedOrders90d + 1,
+    onTimeShipments90d: metrics.onTimeShipments90d + 1,
+    trackedShipments90d: metrics.trackedShipments90d + 1,
+    validTrackedShipments90d: metrics.validTrackedShipments90d + 1,
+  };
+  addNotification(data, {
+    userId: order.buyerId,
+    type: "shipment",
+    title: "کالا توسط فروشنده ارسال شد",
+    body: `سفارش «${order.title}» ارسال شد. کد رهگیری: ${order.trackingCode}`,
+    href: "/buyer/dashboard",
+  });
+  addMessage(data, {
+    senderId: seller.id,
+    receiverId: order.buyerId,
+    orderId: order.id,
+    content: `کالای شما ارسال شد. کد رهگیری: ${order.trackingCode}`,
+  });
   await writeOptiBidData(data);
   return order;
 }
 
-export async function confirmJsonOrderReceived(input: { buyerId: number; orderId: string }) {
+export async function confirmJsonOrderReceived(input: {
+  buyerId: number;
+  orderId: string;
+}) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, input.buyerId, "buyer");
-  const order = data.orders.find((item) => item.id === input.orderId && item.buyerId === buyer.id && item.status === "shipped");
+  const order = data.orders.find(
+    (item) =>
+      item.id === input.orderId &&
+      item.buyerId === buyer.id &&
+      item.status === "shipped",
+  );
   if (!order) throw new Error("Shipped order not found");
   const seller = getUserOrThrow(data, order.sellerId, "seller");
-  const escrow = data.transactions.find((item) => item.orderId === order.id && item.status === "held");
+  const escrow = data.transactions.find(
+    (item) => item.orderId === order.id && item.status === "held",
+  );
   if (!escrow) throw new Error("Escrow transaction not found");
 
   order.status = "completed";
@@ -1305,17 +1656,49 @@ export async function confirmJsonOrderReceived(input: { buyerId: number; orderId
   const request = data.requests.find((item) => item.id === order.requestId);
   if (request) request.status = "completed";
   const metrics = seller.sellerMetrics || createDefaultSellerMetrics();
-  seller.sellerMetrics = { ...metrics, completedOrders90d: metrics.completedOrders90d + 1, completedOrdersLifetime: metrics.completedOrdersLifetime + 1, activeInLast30Days: true };
-  addWalletTransaction(data, { userId: seller.id, type: "escrow_release", amount: money(order.sellerAmount), balanceAfter: seller.walletBalance, description: `واریز وجه پس از تایید دریافت خریدار؛ سفارش ${order.id}`, orderId: order.id });
-  addNotification(data, { userId: seller.id, type: "delivery", title: "وجه سفارش آزاد شد", body: `${money(order.sellerAmount).toLocaleString("fa-IR")} تومان پس از کسر کمیسیون به کیف پول شما واریز شد.`, href: "/seller/dashboard" });
-  addNotification(data, { userId: buyer.id, type: "delivery", title: "دریافت کالا تایید شد", body: "معامله تکمیل شد و وجه پس از کسر کمیسیون به فروشنده واریز گردید.", href: "/buyer/dashboard" });
+  seller.sellerMetrics = {
+    ...metrics,
+    completedOrders90d: metrics.completedOrders90d + 1,
+    completedOrdersLifetime: metrics.completedOrdersLifetime + 1,
+    activeInLast30Days: true,
+  };
+  addWalletTransaction(data, {
+    userId: seller.id,
+    type: "escrow_release",
+    amount: money(order.sellerAmount),
+    balanceAfter: seller.walletBalance,
+    description: `واریز وجه پس از تایید دریافت خریدار؛ سفارش ${order.id}`,
+    orderId: order.id,
+  });
+  addNotification(data, {
+    userId: seller.id,
+    type: "delivery",
+    title: "وجه سفارش آزاد شد",
+    body: `${money(order.sellerAmount).toLocaleString("fa-IR")} تومان پس از کسر کمیسیون به کیف پول شما واریز شد.`,
+    href: "/seller/dashboard",
+  });
+  addNotification(data, {
+    userId: buyer.id,
+    type: "delivery",
+    title: "دریافت کالا تایید شد",
+    body: "معامله تکمیل شد و وجه پس از کسر کمیسیون به فروشنده واریز گردید.",
+    href: "/buyer/dashboard",
+  });
   await writeOptiBidData(data);
   return order;
 }
 
-export async function cancelJsonOrder(input: { buyerId: number; orderId: string }) {
+export async function cancelJsonOrder(input: {
+  buyerId: number;
+  orderId: string;
+}) {
   const data = await getOptiBidData();
-  const order = data.orders.find((item) => item.id === input.orderId && item.buyerId === input.buyerId && item.status === "pending_payment");
+  const order = data.orders.find(
+    (item) =>
+      item.id === input.orderId &&
+      item.buyerId === input.buyerId &&
+      item.status === "pending_payment",
+  );
   if (!order) throw new Error("Only pending payment order can be cancelled");
 
   order.status = "cancelled";
@@ -1324,28 +1707,60 @@ export async function cancelJsonOrder(input: { buyerId: number; orderId: string 
   const offer = data.offers.find((item) => item.id === order.offerId);
   if (request) request.status = "open";
   if (offer) offer.status = "pending";
-  addNotification(data, { userId: order.sellerId, type: "order", title: "خریدار سفارش را لغو کرد", body: `سفارش «${order.title}» پیش از پرداخت لغو شد.`, href: "/seller/dashboard" });
+  addNotification(data, {
+    userId: order.sellerId,
+    type: "order",
+    title: "خریدار سفارش را لغو کرد",
+    body: `سفارش «${order.title}» پیش از پرداخت لغو شد.`,
+    href: "/seller/dashboard",
+  });
   await writeOptiBidData(data);
   return order;
 }
 
-export async function archiveJsonOrder(input: { userId: number; orderId: string; role: "buyer" | "seller" }) {
+export async function archiveJsonOrder(input: {
+  userId: number;
+  orderId: string;
+  role: "buyer" | "seller";
+}) {
   const data = await getOptiBidData();
-  const order = data.orders.find((item) => item.id === input.orderId && item[`${input.role}Id`] === input.userId);
-  if (!order || !["completed", "cancelled", "returned"].includes(order.status)) throw new Error("Only completed, cancelled or returned orders can be archived");
+  const order = data.orders.find(
+    (item) =>
+      item.id === input.orderId && item[`${input.role}Id`] === input.userId,
+  );
+  if (!order || !["completed", "cancelled", "returned"].includes(order.status))
+    throw new Error(
+      "Only completed, cancelled or returned orders can be archived",
+    );
   if (input.role === "buyer") order.buyerArchived = true;
   else order.sellerArchived = true;
   await writeOptiBidData(data);
   return order;
 }
 
-export async function sendJsonMessage(input: { senderId: number; receiverId: number; content: string; orderId?: string }) {
+export async function sendJsonMessage(input: {
+  senderId: number;
+  receiverId: number;
+  content: string;
+  orderId?: string;
+}) {
   const data = await getOptiBidData();
   const sender = getUserOrThrow(data, input.senderId);
   const receiver = getUserOrThrow(data, input.receiverId);
   if (!input.content.trim()) throw new Error("Message cannot be empty");
-  addMessage(data, { senderId: sender.id, receiverId: receiver.id, content: input.content.trim(), orderId: input.orderId });
-  addNotification(data, { userId: receiver.id, type: "message", title: "پیام جدید", body: `${sender.fullName}: ${input.content.trim().slice(0, 80)}`, href: `/${receiver.role}/dashboard` });
+  addMessage(data, {
+    senderId: sender.id,
+    receiverId: receiver.id,
+    content: input.content.trim(),
+    orderId: input.orderId,
+  });
+  addNotification(data, {
+    userId: receiver.id,
+    type: "message",
+    title: "پیام جدید",
+    body: `${sender.fullName}: ${input.content.trim().slice(0, 80)}`,
+    href: `/${receiver.role}/dashboard`,
+  });
   await writeOptiBidData(data);
 }
 
@@ -1373,20 +1788,32 @@ export async function getJsonBuyerDashboard(buyerId: number) {
       .map((item) => {
         const { password: _password, ...safeSeller } = item;
         return [item.id, safeSeller];
-      })
+      }),
   );
   const orders = data.orders.filter((item) => item.buyerId === buyer.id);
   const { password: _buyerPassword, ...safeBuyer } = buyer;
   return {
     buyer: safeBuyer,
     requests: enrichedRequests,
-    offers: offers.map((offer) => ({ ...offer, request: enrichedRequests.find((item) => item.id === offer.requestId), seller: sellerById.get(offer.sellerId) })),
+    offers: offers.map((offer) => ({
+      ...offer,
+      request: enrichedRequests.find((item) => item.id === offer.requestId),
+      seller: sellerById.get(offer.sellerId),
+    })),
     orders,
-    transactions: data.walletTransactions.filter((item) => item.userId === buyer.id),
+    transactions: data.walletTransactions.filter(
+      (item) => item.userId === buyer.id,
+    ),
     withdrawals: data.withdrawals.filter((item) => item.userId === buyer.id),
-    notifications: data.notifications.filter((item) => item.userId === buyer.id),
-    messages: data.messages.filter((item) => item.senderId === buyer.id || item.receiverId === buyer.id),
-    reviews: data.reviews.filter((item) => item.reviewerId === buyer.id || item.revieweeId === buyer.id),
+    notifications: data.notifications.filter(
+      (item) => item.userId === buyer.id,
+    ),
+    messages: data.messages.filter(
+      (item) => item.senderId === buyer.id || item.receiverId === buyer.id,
+    ),
+    reviews: data.reviews.filter(
+      (item) => item.reviewerId === buyer.id || item.revieweeId === buyer.id,
+    ),
   };
 }
 
@@ -1399,25 +1826,38 @@ export async function getJsonSellerDashboard(sellerId: number) {
     matchingRequests: await getJsonMatchingRequestsForSeller(sellerId, 5),
     orders: data.orders.filter((item) => item.sellerId === sellerId),
     offers: data.offers.filter((item) => item.sellerId === sellerId),
-    transactions: data.walletTransactions.filter((item) => item.userId === sellerId),
+    transactions: data.walletTransactions.filter(
+      (item) => item.userId === sellerId,
+    ),
     withdrawals: data.withdrawals.filter((item) => item.userId === sellerId),
-    notifications: data.notifications.filter((item) => item.userId === sellerId),
-    messages: data.messages.filter((item) => item.senderId === sellerId || item.receiverId === sellerId),
-    reviews: data.reviews.filter((item) => item.reviewerId === sellerId || item.revieweeId === sellerId),
+    notifications: data.notifications.filter(
+      (item) => item.userId === sellerId,
+    ),
+    messages: data.messages.filter(
+      (item) => item.senderId === sellerId || item.receiverId === sellerId,
+    ),
+    reviews: data.reviews.filter(
+      (item) => item.reviewerId === sellerId || item.revieweeId === sellerId,
+    ),
   };
 }
 
 export async function createJsonPasswordReset(email: string) {
   const data = await getOptiBidData();
   const normalizedEmail = email.trim().toLowerCase();
-  const user = data.users.find((item) => item.email.toLowerCase() === normalizedEmail);
+  const user = data.users.find(
+    (item) => item.email.toLowerCase() === normalizedEmail,
+  );
 
   // پاسخ درخواست فراموشی رمز نباید وجود یا عدم وجود ایمیل را افشا کند.
   if (!user) return null;
 
   const now = Date.now();
   data.passwordResets = data.passwordResets.filter(
-    (item) => new Date(item.expiresAt).getTime() > now && !item.usedAt && item.userId !== user.id
+    (item) =>
+      new Date(item.expiresAt).getTime() > now &&
+      !item.usedAt &&
+      item.userId !== user.id,
   );
 
   const token = randomBytes(32).toString("hex");
@@ -1439,7 +1879,7 @@ export async function resetJsonPassword(token: string, newPassword: string) {
     (item) =>
       item.tokenHash === tokenHash &&
       !item.usedAt &&
-      new Date(item.expiresAt).getTime() > Date.now()
+      new Date(item.expiresAt).getTime() > Date.now(),
   );
   if (!reset) throw new Error("Reset token is invalid or expired");
   const user = data.users.find((item) => item.id === reset.userId);
@@ -1459,15 +1899,28 @@ export async function createJsonReview(input: {
   comment?: string;
 }) {
   const data = await getOptiBidData();
-  const order = data.orders.find((item) => item.id === input.orderId && item.status === "completed");
+  const order = data.orders.find(
+    (item) => item.id === input.orderId && item.status === "completed",
+  );
   if (!order) throw new Error("Completed order not found");
-  const reviewerRole = order.buyerId === input.reviewerId ? "buyer" : order.sellerId === input.reviewerId ? "seller" : null;
+  const reviewerRole =
+    order.buyerId === input.reviewerId
+      ? "buyer"
+      : order.sellerId === input.reviewerId
+        ? "seller"
+        : null;
   if (!reviewerRole) throw new Error("Reviewer is not part of order");
-  if (data.reviews.some((item) => item.orderId === order.id && item.reviewerId === input.reviewerId)) {
+  if (
+    data.reviews.some(
+      (item) =>
+        item.orderId === order.id && item.reviewerId === input.reviewerId,
+    )
+  ) {
     throw new Error("Review already submitted");
   }
   const revieweeId = reviewerRole === "buyer" ? order.sellerId : order.buyerId;
-  const normalize = (value: number) => Math.max(1, Math.min(5, Math.round(value)));
+  const normalize = (value: number) =>
+    Math.max(1, Math.min(5, Math.round(value)));
   const rawScores = Object.entries(input.scores || {});
   if (rawScores.length === 0 || Number(input.overall) < 1) {
     throw new Error("Rating scores are required");
@@ -1475,11 +1928,15 @@ export async function createJsonReview(input: {
   const safeScores = Object.fromEntries(
     rawScores.map(([key, value]) => {
       const numericValue = Number(value);
-      if (!Number.isFinite(numericValue) || numericValue < 1 || numericValue > 5) {
+      if (
+        !Number.isFinite(numericValue) ||
+        numericValue < 1 ||
+        numericValue > 5
+      ) {
         throw new Error("Rating scores must be between 1 and 5");
       }
       return [key, normalize(numericValue)];
-    })
+    }),
   );
   const review: JsonReview = {
     id: nextNumericId(data.reviews),
@@ -1502,7 +1959,8 @@ export async function createJsonReview(input: {
       ...metrics,
       reviewsCount90d: reviewsCount,
       ratingAverage90d:
-        (metrics.ratingAverage90d * metrics.reviewsCount90d + review.overall) / reviewsCount,
+        (metrics.ratingAverage90d * metrics.reviewsCount90d + review.overall) /
+        reviewsCount,
     };
   }
 
@@ -1522,12 +1980,18 @@ export async function getJsonBuyerRankings() {
   return data.users
     .filter((user) => user.role === "buyer" && user.isActive)
     .map((buyer) => {
-      const reviews = data.reviews.filter((review) => review.revieweeId === buyer.id && review.reviewerRole === "seller");
-      const completedOrders = data.orders.filter((order) => order.buyerId === buyer.id && order.status === "completed").length;
+      const reviews = data.reviews.filter(
+        (review) =>
+          review.revieweeId === buyer.id && review.reviewerRole === "seller",
+      );
+      const completedOrders = data.orders.filter(
+        (order) => order.buyerId === buyer.id && order.status === "completed",
+      ).length;
       const prior = 4.2;
       const priorWeight = 5;
       const total = reviews.reduce((sum, review) => sum + review.overall, 0);
-      const rating = (total + prior * priorWeight) / (reviews.length + priorWeight);
+      const rating =
+        (total + prior * priorWeight) / (reviews.length + priorWeight);
       return {
         buyer: (({
           password: _password,
@@ -1546,7 +2010,12 @@ export async function getJsonBuyerRankings() {
         rankingEligible: reviews.length >= 3 && completedOrders >= 3,
       };
     })
-    .sort((a, b) => Number(b.rankingEligible) - Number(a.rankingEligible) || b.rating - a.rating || b.completedOrders - a.completedOrders);
+    .sort(
+      (a, b) =>
+        Number(b.rankingEligible) - Number(a.rankingEligible) ||
+        b.rating - a.rating ||
+        b.completedOrders - a.completedOrders,
+    );
 }
 
 export async function updateJsonPlatformFinanceSettings(updates: {
@@ -1558,12 +2027,19 @@ export async function updateJsonPlatformFinanceSettings(updates: {
 }) {
   const data = await getOptiBidData();
   if (typeof updates.commissionRate === "number") {
-    data.settings.commissionRate = Math.max(0, Math.min(30, updates.commissionRate));
+    data.settings.commissionRate = Math.max(
+      0,
+      Math.min(30, updates.commissionRate),
+    );
   }
-  if (typeof updates.adminAccountHolder === "string") data.settings.adminAccountHolder = updates.adminAccountHolder.trim();
-  if (typeof updates.adminBankName === "string") data.settings.adminBankName = updates.adminBankName.trim();
-  if (typeof updates.adminSheba === "string") data.settings.adminSheba = updates.adminSheba.trim();
-  if (typeof updates.adminCardNumber === "string") data.settings.adminCardNumber = updates.adminCardNumber.trim();
+  if (typeof updates.adminAccountHolder === "string")
+    data.settings.adminAccountHolder = updates.adminAccountHolder.trim();
+  if (typeof updates.adminBankName === "string")
+    data.settings.adminBankName = updates.adminBankName.trim();
+  if (typeof updates.adminSheba === "string")
+    data.settings.adminSheba = updates.adminSheba.trim();
+  if (typeof updates.adminCardNumber === "string")
+    data.settings.adminCardNumber = updates.adminCardNumber.trim();
   await writeOptiBidData(data);
   return data.settings;
 }
@@ -1581,15 +2057,25 @@ export async function getJsonPlatformFinance() {
 export async function getJsonHomepageStats() {
   const data = await getOptiBidData();
   const completedOrders = data.orders.filter(isSuccessfulOrder);
-  const failedOrders = data.orders.filter((order) => isFailedOrder(order, data.transactions));
+  const failedOrders = data.orders.filter((order) =>
+    isFailedOrder(order, data.transactions),
+  );
   const finalOrdersCount = completedOrders.length + failedOrders.length;
 
   return {
     requestsCount: data.requests.filter(isPublicRequest).length,
-    sellersCount: data.users.filter((user) => user.role === "seller" && user.isActive).length,
+    sellersCount: data.users.filter(
+      (user) => user.role === "seller" && user.isActive,
+    ).length,
     secureTransactionsCount: data.transactions.length,
-    totalVolume: completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0),
-    successRate: finalOrdersCount === 0 ? 0 : Math.round((completedOrders.length / finalOrdersCount) * 100),
+    totalVolume: completedOrders.reduce(
+      (sum, order) => sum + money(order.totalAmount),
+      0,
+    ),
+    successRate:
+      finalOrdersCount === 0
+        ? 0
+        : Math.round((completedOrders.length / finalOrdersCount) * 100),
     failedOrdersCount: failedOrders.length,
     completedOrdersCount: completedOrders.length,
   };
@@ -1598,16 +2084,25 @@ export async function getJsonHomepageStats() {
 export async function getJsonAdminStats() {
   const data = await getOptiBidData();
   const completedOrders = data.orders.filter(isSuccessfulOrder);
-  const heldEscrow = data.transactions.filter((transaction) => transaction.status === "held");
+  const heldEscrow = data.transactions.filter(
+    (transaction) => transaction.status === "held",
+  );
   const totalCommission = data.platformTransactions
     .filter((transaction) => transaction.type === "commission_credit")
     .reduce((sum, transaction) => sum + transaction.amount, 0);
   return {
-    totalVolume: completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0),
+    totalVolume: completedOrders.reduce(
+      (sum, order) => sum + money(order.totalAmount),
+      0,
+    ),
     totalCommission,
     platformWalletBalance: data.settings.platformWalletBalance,
-    escrowHeld: heldEscrow.reduce((sum, transaction) => sum + transaction.amount, 0),
-    openRequests: data.requests.filter((request) => request.status === "open").length,
+    escrowHeld: heldEscrow.reduce(
+      (sum, transaction) => sum + transaction.amount,
+      0,
+    ),
+    openRequests: data.requests.filter((request) => request.status === "open")
+      .length,
   };
 }
 
@@ -1615,7 +2110,10 @@ export async function getJsonRequests() {
   const data = await getOptiBidData();
   return data.requests
     .filter(isPublicRequest)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 }
 
 function percentageChange(current: number, previous: number) {
@@ -1624,7 +2122,9 @@ function percentageChange(current: number, previous: number) {
 }
 
 function average(values: number[]) {
-  return values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
+  return values.length === 0
+    ? 0
+    : values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function ema(values: number[], period: number) {
@@ -1686,14 +2186,22 @@ function calculateMacdSeries(values: number[]) {
   return values.map((_, index) => calculateMacd(values.slice(0, index + 1)));
 }
 
-function calculateSmaSeries(values: number[], period: number): Array<number | null> {
+function calculateSmaSeries(
+  values: number[],
+  period: number,
+): Array<number | null> {
   return values.map((_, index) => {
     if (index < period - 1) return null;
-    return Math.round(average(values.slice(index - period + 1, index + 1)) * 10) / 10;
+    return (
+      Math.round(average(values.slice(index - period + 1, index + 1)) * 10) / 10
+    );
   });
 }
 
-function calculateEmaSeries(values: number[], period: number): Array<number | null> {
+function calculateEmaSeries(
+  values: number[],
+  period: number,
+): Array<number | null> {
   const result: Array<number | null> = values.map(() => null);
   if (values.length < period) return result;
   const multiplier = 2 / (period + 1);
@@ -1713,7 +2221,11 @@ function standardDeviation(values: number[]) {
   return Math.sqrt(variance);
 }
 
-function calculateBollingerSeries(values: number[], period = 20, multiplier = 2) {
+function calculateBollingerSeries(
+  values: number[],
+  period = 20,
+  multiplier = 2,
+) {
   return values.map((_, index) => {
     if (index < period - 1) return { upper: null, middle: null, lower: null };
     const window = values.slice(index - period + 1, index + 1);
@@ -1727,10 +2239,17 @@ function calculateBollingerSeries(values: number[], period = 20, multiplier = 2)
   });
 }
 
-function calculateStochRsiSeries(rsiSeries: Array<number | null>, period = 14, smoothK = 3, smoothD = 3) {
+function calculateStochRsiSeries(
+  rsiSeries: Array<number | null>,
+  period = 14,
+  smoothK = 3,
+  smoothD = 3,
+) {
   const rawK: Array<number | null> = rsiSeries.map((rsi, index) => {
     if (rsi === null || index < period - 1) return null;
-    const window = rsiSeries.slice(index - period + 1, index + 1).filter((value): value is number => value !== null);
+    const window = rsiSeries
+      .slice(index - period + 1, index + 1)
+      .filter((value): value is number => value !== null);
     if (window.length < period) return null;
     const lowest = Math.min(...window);
     const highest = Math.max(...window);
@@ -1739,44 +2258,85 @@ function calculateStochRsiSeries(rsiSeries: Array<number | null>, period = 14, s
   });
 
   const k = rawK.map((_, index) => {
-    const window = rawK.slice(Math.max(0, index - smoothK + 1), index + 1).filter((value): value is number => value !== null);
-    return window.length < smoothK ? null : Math.round(average(window) * 10) / 10;
+    const window = rawK
+      .slice(Math.max(0, index - smoothK + 1), index + 1)
+      .filter((value): value is number => value !== null);
+    return window.length < smoothK
+      ? null
+      : Math.round(average(window) * 10) / 10;
   });
 
   const d = k.map((_, index) => {
-    const window = k.slice(Math.max(0, index - smoothD + 1), index + 1).filter((value): value is number => value !== null);
-    return window.length < smoothD ? null : Math.round(average(window) * 10) / 10;
+    const window = k
+      .slice(Math.max(0, index - smoothD + 1), index + 1)
+      .filter((value): value is number => value !== null);
+    return window.length < smoothD
+      ? null
+      : Math.round(average(window) * 10) / 10;
   });
 
   return { k, d };
 }
 
-function calculateRocSeries(values: number[], period = 12): Array<number | null> {
+function calculateRocSeries(
+  values: number[],
+  period = 12,
+): Array<number | null> {
   return values.map((value, index) => {
     if (index < period || values[index - period] === 0) return null;
-    return Math.round(((value - values[index - period]) / values[index - period]) * 1000) / 10;
+    return (
+      Math.round(
+        ((value - values[index - period]) / values[index - period]) * 1000,
+      ) / 10
+    );
   });
 }
 
-function calculateMomentumSeries(values: number[], period = 10): Array<number | null> {
-  return values.map((value, index) => (index < period ? null : Math.round((value - values[index - period]) * 10) / 10));
+function calculateMomentumSeries(
+  values: number[],
+  period = 10,
+): Array<number | null> {
+  return values.map((value, index) =>
+    index < period
+      ? null
+      : Math.round((value - values[index - period]) * 10) / 10,
+  );
 }
 
-function calculateAtrSeries(values: number[], period = 14): Array<number | null> {
-  const trueRanges = values.map((value, index) => (index === 0 ? 0 : Math.abs(value - values[index - 1])));
+function calculateAtrSeries(
+  values: number[],
+  period = 14,
+): Array<number | null> {
+  const trueRanges = values.map((value, index) =>
+    index === 0 ? 0 : Math.abs(value - values[index - 1]),
+  );
   return trueRanges.map((_, index) => {
     if (index < period) return null;
-    return Math.round(average(trueRanges.slice(index - period + 1, index + 1)) * 10) / 10;
+    return (
+      Math.round(
+        average(trueRanges.slice(index - period + 1, index + 1)) * 10,
+      ) / 10
+    );
   });
 }
 
 function buildDailyChartPoints(points: Array<{ at: string; value: number }>) {
-  const buckets = new Map<string, { at: string; priceSum: number; priceCount: number; demand: number }>();
+  const buckets = new Map<
+    string,
+    { at: string; priceSum: number; priceCount: number; demand: number }
+  >();
   for (const point of points) {
     if (!point.value) continue;
     const date = new Date(point.at);
-    const key = Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : point.at.slice(0, 10);
-    const current = buckets.get(key) || { at: `${key}T00:00:00.000Z`, priceSum: 0, priceCount: 0, demand: 0 };
+    const key = Number.isFinite(date.getTime())
+      ? date.toISOString().slice(0, 10)
+      : point.at.slice(0, 10);
+    const current = buckets.get(key) || {
+      at: `${key}T00:00:00.000Z`,
+      priceSum: 0,
+      priceCount: 0,
+      demand: 0,
+    };
     current.priceSum += point.value;
     current.priceCount += 1;
     current.demand += 1;
@@ -1787,7 +2347,10 @@ function buildDailyChartPoints(points: Array<{ at: string; value: number }>) {
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
     .map((item) => ({
       at: item.at,
-      label: new Date(item.at).toLocaleDateString("fa-IR", { month: "short", day: "numeric" }),
+      label: new Date(item.at).toLocaleDateString("fa-IR", {
+        month: "short",
+        day: "numeric",
+      }),
       price: Math.round(item.priceSum / Math.max(1, item.priceCount)),
       demand: item.demand,
     }));
@@ -1826,10 +2389,15 @@ function buildDailyChartPoints(points: Array<{ at: string; value: number }>) {
   }));
 }
 
-function technicalSignal(rsi: number | null, macd: ReturnType<typeof calculateMacd>) {
+function technicalSignal(
+  rsi: number | null,
+  macd: ReturnType<typeof calculateMacd>,
+) {
   if (rsi === null && !macd) return "داده ناکافی";
-  if (rsi !== null && rsi >= 70 && macd && macd.histogram > 0) return "تقاضا/قیمت داغ — احتمال اشباع خرید";
-  if (rsi !== null && rsi <= 30 && macd && macd.histogram < 0) return "ضعیف — احتمال افت کوتاه‌مدت";
+  if (rsi !== null && rsi >= 70 && macd && macd.histogram > 0)
+    return "تقاضا/قیمت داغ — احتمال اشباع خرید";
+  if (rsi !== null && rsi <= 30 && macd && macd.histogram < 0)
+    return "ضعیف — احتمال افت کوتاه‌مدت";
   if (macd && macd.histogram > 0) return "مومنتوم مثبت";
   if (macd && macd.histogram < 0) return "مومنتوم منفی";
   if (rsi !== null && rsi > 55) return "تمایل صعودی";
@@ -1849,7 +2417,9 @@ export async function getJsonAdminReports() {
   const day = 24 * 60 * 60 * 1000;
   const recentCutoff = now - 30 * day;
   const previousCutoff = now - 60 * day;
-  const requestById = new Map(data.requests.map((request) => [request.id, request]));
+  const requestById = new Map(
+    data.requests.map((request) => [request.id, request]),
+  );
 
   type ProductAccumulator = {
     product: string;
@@ -1875,7 +2445,8 @@ export async function getJsonAdminReports() {
     const product = rawTitle.trim().replace(/\s+/g, " ") || "کالای بدون عنوان";
     const existing = products.get(product);
     if (existing) {
-      if (!existing.category || existing.category === "سایر") existing.category = category || "سایر";
+      if (!existing.category || existing.category === "سایر")
+        existing.category = category || "سایر";
       return existing;
     }
     const created: ProductAccumulator = {
@@ -1904,7 +2475,11 @@ export async function getJsonAdminReports() {
     const time = at ? new Date(at).getTime() : 0;
     if (time >= recentCutoff) item.recentDemand += 1;
     else if (time >= previousCutoff) item.previousDemand += 1;
-    if (at && (!item.lastActivityAt || new Date(at).getTime() > new Date(item.lastActivityAt).getTime())) {
+    if (
+      at &&
+      (!item.lastActivityAt ||
+        new Date(at).getTime() > new Date(item.lastActivityAt).getTime())
+    ) {
       item.lastActivityAt = at;
     }
   };
@@ -1929,7 +2504,10 @@ export async function getJsonAdminReports() {
 
   for (const offer of data.offers) {
     const request = requestById.get(offer.requestId);
-    const item = getProduct(request?.title || `درخواست ${offer.requestId}`, request?.category || "سایر");
+    const item = getProduct(
+      request?.title || `درخواست ${offer.requestId}`,
+      request?.category || "سایر",
+    );
     item.offersCount += 1;
     if (offer.status === "accepted") item.acceptedOffers += 1;
     addPrice(item, money(offer.amount), offer.createdAt);
@@ -1943,23 +2521,40 @@ export async function getJsonAdminReports() {
     }
     if (isFailedOrder(order, data.transactions)) item.failedOrders += 1;
     addDemand(item, order.createdAt);
-    addPrice(item, money(order.totalAmount), order.paymentAt || order.createdAt);
+    addPrice(
+      item,
+      money(order.totalAmount),
+      order.paymentAt || order.createdAt,
+    );
   }
 
   const baseProductReports = [...products.values()]
     .map((item) => {
-      const sortedPointObjects = item.pricePoints
-        .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+      const sortedPointObjects = item.pricePoints.sort(
+        (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
+      );
       const sortedPrices = sortedPointObjects.map((point) => point.value);
       const chartPoints = buildDailyChartPoints(sortedPointObjects);
       const rsi = calculateRsi(sortedPrices);
       const macd = calculateMacd(sortedPrices);
-      const demandTrendPercent = percentageChange(item.recentDemand, item.previousDemand);
+      const demandTrendPercent = percentageChange(
+        item.recentDemand,
+        item.previousDemand,
+      );
       const recentAveragePrice = average(item.recentPrices);
       const previousAveragePrice = average(item.previousPrices);
-      const priceTrendPercent = previousAveragePrice ? percentageChange(recentAveragePrice, previousAveragePrice) : recentAveragePrice > 0 ? 100 : 0;
-      const demandScore = demandTrendPercent + item.recentDemand * 12 + item.completedOrders * 8 + item.offersCount * 2;
-      const priceScore = priceTrendPercent + (macd?.histogram || 0) / 1000 + (rsi || 50) - 50;
+      const priceTrendPercent = previousAveragePrice
+        ? percentageChange(recentAveragePrice, previousAveragePrice)
+        : recentAveragePrice > 0
+          ? 100
+          : 0;
+      const demandScore =
+        demandTrendPercent +
+        item.recentDemand * 12 +
+        item.completedOrders * 8 +
+        item.offersCount * 2;
+      const priceScore =
+        priceTrendPercent + (macd?.histogram || 0) / 1000 + (rsi || 50) - 50;
       return {
         product: item.product,
         category: item.category,
@@ -1970,8 +2565,12 @@ export async function getJsonAdminReports() {
         completedOrders: item.completedOrders,
         failedOrders: item.failedOrders,
         totalSalesAmount: item.totalSalesAmount,
-        averageRequestedBudget: Math.round(item.totalRequestedBudget / Math.max(1, item.requestsCount)),
-        averageSaleAmount: Math.round(item.totalSalesAmount / Math.max(1, item.completedOrders)),
+        averageRequestedBudget: Math.round(
+          item.totalRequestedBudget / Math.max(1, item.requestsCount),
+        ),
+        averageSaleAmount: Math.round(
+          item.totalSalesAmount / Math.max(1, item.completedOrders),
+        ),
         recentDemand: item.recentDemand,
         previousDemand: item.previousDemand,
         demandTrendPercent,
@@ -1981,7 +2580,18 @@ export async function getJsonAdminReports() {
         technicalSignal: technicalSignal(rsi, macd),
         aiDemandForecast: predictionLabel(demandScore),
         aiPriceForecast: predictionLabel(priceScore),
-        aiConfidence: Math.max(20, Math.min(95, Math.round(25 + sortedPrices.length * 4 + item.requestsCount * 3 + item.completedOrders * 5))),
+        aiConfidence: Math.max(
+          20,
+          Math.min(
+            95,
+            Math.round(
+              25 +
+                sortedPrices.length * 4 +
+                item.requestsCount * 3 +
+                item.completedOrders * 5,
+            ),
+          ),
+        ),
         dataPoints: sortedPrices.length,
         chartPoints,
         chartDistribution: [
@@ -1993,11 +2603,18 @@ export async function getJsonAdminReports() {
         lastActivityAt: item.lastActivityAt,
       };
     })
-    .sort((a, b) => b.requestsCount - a.requestsCount || b.totalSalesAmount - a.totalSalesAmount);
+    .sort(
+      (a, b) =>
+        b.requestsCount - a.requestsCount ||
+        b.totalSalesAmount - a.totalSalesAmount,
+    );
 
   const productReports = await Promise.all(
     baseProductReports.map(async (report) => {
-      const external = await getExternalMarketSeriesForProduct(report.product, report.category);
+      const external = await getExternalMarketSeriesForProduct(
+        report.product,
+        report.category,
+      );
       if (!external) {
         return {
           ...report,
@@ -2033,62 +2650,104 @@ export async function getJsonAdminReports() {
         externalMacd,
         externalTechnicalSignal: technicalSignal(externalRsi, externalMacd),
       };
-    })
+    }),
   );
 
   const buyerReports = data.users
     .filter((user) => user.role === "buyer")
     .map((buyer) => {
-      const requests = data.requests.filter((request) => request.buyerId === buyer.id);
+      const requests = data.requests.filter(
+        (request) => request.buyerId === buyer.id,
+      );
       const orders = data.orders.filter((order) => order.buyerId === buyer.id);
       const completedOrders = orders.filter(isSuccessfulOrder);
-      const failedOrders = orders.filter((order) => isFailedOrder(order, data.transactions));
+      const failedOrders = orders.filter((order) =>
+        isFailedOrder(order, data.transactions),
+      );
       const finalOrdersCount = completedOrders.length + failedOrders.length;
-      const totalPurchaseAmount = completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0);
+      const totalPurchaseAmount = completedOrders.reduce(
+        (sum, order) => sum + money(order.totalAmount),
+        0,
+      );
       return {
         id: buyer.id,
         name: buyer.fullName,
         email: buyer.email,
         requestsCount: requests.length,
-        activeRequests: requests.filter((request) => request.status === "open").length,
+        activeRequests: requests.filter((request) => request.status === "open")
+          .length,
         completedPurchases: completedOrders.length,
         failedPurchases: failedOrders.length,
         totalPurchaseAmount,
-        averagePurchaseAmount: Math.round(totalPurchaseAmount / Math.max(1, completedOrders.length)),
-        successRate: finalOrdersCount === 0 ? 0 : Math.round((completedOrders.length / finalOrdersCount) * 100),
-        reviewsGiven: data.reviews.filter((review) => review.reviewerId === buyer.id).length,
-        reviewsReceived: data.reviews.filter((review) => review.revieweeId === buyer.id).length,
+        averagePurchaseAmount: Math.round(
+          totalPurchaseAmount / Math.max(1, completedOrders.length),
+        ),
+        successRate:
+          finalOrdersCount === 0
+            ? 0
+            : Math.round((completedOrders.length / finalOrdersCount) * 100),
+        reviewsGiven: data.reviews.filter(
+          (review) => review.reviewerId === buyer.id,
+        ).length,
+        reviewsReceived: data.reviews.filter(
+          (review) => review.revieweeId === buyer.id,
+        ).length,
       };
     })
-    .sort((a, b) => b.totalPurchaseAmount - a.totalPurchaseAmount || b.completedPurchases - a.completedPurchases);
+    .sort(
+      (a, b) =>
+        b.totalPurchaseAmount - a.totalPurchaseAmount ||
+        b.completedPurchases - a.completedPurchases,
+    );
 
   const sellerReports = data.users
     .filter((user) => user.role === "seller")
     .map((seller) => {
-      const offers = data.offers.filter((offer) => offer.sellerId === seller.id);
-      const orders = data.orders.filter((order) => order.sellerId === seller.id);
+      const offers = data.offers.filter(
+        (offer) => offer.sellerId === seller.id,
+      );
+      const orders = data.orders.filter(
+        (order) => order.sellerId === seller.id,
+      );
       const completedOrders = orders.filter(isSuccessfulOrder);
-      const failedOrders = orders.filter((order) => isFailedOrder(order, data.transactions));
-      const totalSalesAmount = completedOrders.reduce((sum, order) => sum + money(order.totalAmount), 0);
-      const netSellerRevenue = completedOrders.reduce((sum, order) => sum + money(order.sellerAmount), 0);
-      const score = calculateSellerScore(seller.sellerMetrics || createDefaultSellerMetrics());
+      const failedOrders = orders.filter((order) =>
+        isFailedOrder(order, data.transactions),
+      );
+      const totalSalesAmount = completedOrders.reduce(
+        (sum, order) => sum + money(order.totalAmount),
+        0,
+      );
+      const netSellerRevenue = completedOrders.reduce(
+        (sum, order) => sum + money(order.sellerAmount),
+        0,
+      );
+      const score = calculateSellerScore(
+        seller.sellerMetrics || createDefaultSellerMetrics(),
+      );
       return {
         id: seller.id,
         name: seller.fullName,
         email: seller.email,
         categories: seller.categories || [],
         offersCount: offers.length,
-        acceptedOffers: offers.filter((offer) => offer.status === "accepted").length,
+        acceptedOffers: offers.filter((offer) => offer.status === "accepted")
+          .length,
         completedSales: completedOrders.length,
         failedSales: failedOrders.length,
         totalSalesAmount,
         netSellerRevenue,
-        averageSaleAmount: Math.round(totalSalesAmount / Math.max(1, completedOrders.length)),
+        averageSaleAmount: Math.round(
+          totalSalesAmount / Math.max(1, completedOrders.length),
+        ),
         ratingScore: score.finalScore,
         ratingLabel: score.label,
       };
     })
-    .sort((a, b) => b.totalSalesAmount - a.totalSalesAmount || b.completedSales - a.completedSales);
+    .sort(
+      (a, b) =>
+        b.totalSalesAmount - a.totalSalesAmount ||
+        b.completedSales - a.completedSales,
+    );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -2099,15 +2758,27 @@ export async function getJsonAdminReports() {
       totalRequests: data.requests.length,
       activeRequests: data.requests.filter(isPublicRequest).length,
       completedOrders: data.orders.filter(isSuccessfulOrder).length,
-      failedOrders: data.orders.filter((order) => isFailedOrder(order, data.transactions)).length,
+      failedOrders: data.orders.filter((order) =>
+        isFailedOrder(order, data.transactions),
+      ).length,
     },
     productReports,
     buyerReports,
     sellerReports,
     analytics: {
-      growingItems: [...productReports].sort((a, b) => b.demandTrendPercent - a.demandTrendPercent || b.recentDemand - a.recentDemand).slice(0, 8),
-      mostRequestedItems: [...productReports].sort((a, b) => b.requestsCount - a.requestsCount).slice(0, 8),
-      highestRevenueItems: [...productReports].sort((a, b) => b.totalSalesAmount - a.totalSalesAmount).slice(0, 8),
+      growingItems: [...productReports]
+        .sort(
+          (a, b) =>
+            b.demandTrendPercent - a.demandTrendPercent ||
+            b.recentDemand - a.recentDemand,
+        )
+        .slice(0, 8),
+      mostRequestedItems: [...productReports]
+        .sort((a, b) => b.requestsCount - a.requestsCount)
+        .slice(0, 8),
+      highestRevenueItems: [...productReports]
+        .sort((a, b) => b.totalSalesAmount - a.totalSalesAmount)
+        .slice(0, 8),
       technicalItems: productReports,
     },
   };
