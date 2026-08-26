@@ -7,9 +7,10 @@ type OfferActionProps = {
   offerStatus: "pending" | "accepted" | "rejected";
   offerSellerId: number;
   requestBuyerId: number;
+  hasProductSpecs: boolean;
 };
 
-export default function OfferAction({ offerStatus, offerSellerId, requestBuyerId }: OfferActionProps) {
+export default function OfferAction({ offerStatus, offerSellerId, requestBuyerId, hasProductSpecs }: OfferActionProps) {
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<number>(0);
 
@@ -17,6 +18,10 @@ export default function OfferAction({ offerStatus, offerSellerId, requestBuyerId
     setRole(localStorage.getItem("userRole"));
     setUserId(Number(localStorage.getItem("userId") || 0));
   }, []);
+
+  if (!hasProductSpecs) {
+    return <span className="mt-3 inline-block rounded-xl bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">فروشنده باید مشخصات کامل کالا را ثبت کند تا خریدار بتواند انتخاب کند</span>;
+  }
 
   if (offerStatus === "accepted") {
     return <span className="mt-3 inline-block rounded-xl bg-green-50 px-4 py-2 text-xs font-bold text-green-700">این پیشنهاد انتخاب شده است</span>;

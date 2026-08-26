@@ -15,6 +15,50 @@ const categoryMap: Record<string, string> = {
   digital: "کالای دیجیتال", clothing: "مد و پوشاک", home: "خانه و آشپزخانه", beauty: "زیبایی و سلامت", books: "کتاب و لوازم تحریر", sports: "ورزش و سفر", toys: "اسباب‌بازی و کودک", auto: "خودرو و موتور", industrial: "صنعتی و اداری", other: "سایر",
 };
 
+const defaultOfferSpecs = {
+  brand: "",
+  exactModel: "",
+  serialOrConfig: "",
+  cpu: "",
+  ram: "",
+  storage: "",
+  gpu: "ندارد / نامرتبط",
+  display: "",
+  manufactureYear: "",
+  productCondition: "used_good",
+  warrantyStatus: "test",
+  warrantyMonths: "",
+  partsHealth: "all_healthy",
+  cpuHealth: "healthy",
+  motherboardHealth: "healthy",
+  displayHealth: "healthy",
+  storageHealth: "healthy",
+  ramHealth: "healthy",
+  gpuHealth: "not_applicable",
+  keyboardTouchpadHealth: "healthy",
+  bodyHingeHealth: "healthy",
+  batteryHealthPercent: "",
+  appearanceGrade: "A",
+  repairHistory: "none",
+  usageLevel: "normal",
+  accessoriesStatus: "complete",
+  chargerStatus: "original",
+  originalPackaging: "unknown",
+  purchaseInvoiceAvailable: "unknown",
+  testDeadlineDays: "7",
+  returnPolicy: "در صورت مغایرت مشخصات یا خرابی اعلام‌نشده، مرجوعی پذیرفته می‌شود.",
+  notes: "",
+};
+
+type OfferSpecs = typeof defaultOfferSpecs;
+
+const healthOptions = [
+  ["healthy", "سالم"],
+  ["minor_issue", "ایراد جزئی"],
+  ["needs_repair", "نیازمند تعمیر"],
+  ["not_applicable", "نامرتبط"],
+] as const;
+
 type SellerData = {
   seller: {
     id: number;
@@ -52,6 +96,7 @@ export default function SellerDashboardPage() {
   const [offerAmount, setOfferAmount] = useState("");
   const [offerDeliveryDays, setOfferDeliveryDays] = useState("3");
   const [offerMessage, setOfferMessage] = useState("");
+  const [offerSpecs, setOfferSpecs] = useState<OfferSpecs>({ ...defaultOfferSpecs });
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [trackingByOrder, setTrackingByOrder] = useState<Record<string, string>>({});
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
@@ -101,6 +146,16 @@ export default function SellerDashboardPage() {
     return result;
   };
 
+  const updateOfferSpec = (key: keyof OfferSpecs, value: string) => {
+    setOfferSpecs((current) => ({ ...current, [key]: value }));
+  };
+
+  const resetOfferForm = () => {
+    setOfferAmount("");
+    setOfferMessage("");
+    setOfferSpecs({ ...defaultOfferSpecs });
+  };
+
   const queue = data?.matchingRequests || [];
   const currentRequest = queue[queueIndex] || null;
   const remainingQueue = queue.slice(queueIndex);
@@ -125,8 +180,7 @@ export default function SellerDashboardPage() {
     try { await action("/api/seller-request-action", { sellerId: data.seller.id, requestId: currentRequest.id, action: "rejected" }); } catch { /* progress locally even if API transiently fails */ }
     setQueueIndex((value) => value + 1);
     setTimeLeft(60);
-    setOfferAmount("");
-    setOfferMessage("");
+    resetOfferForm();
   };
 
   const submitOffer = async () => {
@@ -135,12 +189,11 @@ export default function SellerDashboardPage() {
     if (!amount) { alert("قیمت پیشنهادی را وارد کنید."); return; }
     setIsSubmittingOffer(true);
     try {
-      const result = await action("/api/submit-offer", { sellerId: data.seller.id, requestId: currentRequest.id, amount, deliveryDays: Number(offerDeliveryDays), message: offerMessage });
+      const result = await action("/api/submit-offer", { sellerId: data.seller.id, requestId: currentRequest.id, amount, deliveryDays: Number(offerDeliveryDays), message: offerMessage, productSpecs: offerSpecs });
       alert(result.message);
       setQueueIndex((value) => value + 1);
       setTimeLeft(60);
-      setOfferAmount("");
-      setOfferMessage("");
+      resetOfferForm();
       await loadDashboard();
     } catch (err) { alert(err instanceof Error ? err.message : "ثبت پیشنهاد ناموفق بود"); }
     finally { setIsSubmittingOffer(false); }
@@ -231,7 +284,7 @@ export default function SellerDashboardPage() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f8fcfb] pb-16">
-      {currentRequest && <section className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"><div className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[2rem] border-4 border-[#0b9c56] bg-white p-6 shadow-2xl"><div className="absolute -right-10 -top-10 h-32 w-32 animate-ping rounded-full bg-green-500/20" /><div className="relative z-10 mb-4 flex justify-between"><span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white animate-pulse">درخواست مرتبط {queueIndex + 1} از {queue.length}</span><span className={`font-mono text-2xl font-bold ${timeLeft <= 10 ? "animate-bounce text-red-600" : "text-gray-800"}`}>00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}</span></div><h2 className="relative z-10 text-xl font-bold text-[#003b5c]">{currentRequest.title}</h2><p className="relative z-10 mt-2 text-sm leading-7 text-gray-600">{currentRequest.description}</p><div className="relative z-10 mt-4 space-y-2 rounded-2xl bg-gray-50 p-4 text-sm"><p>دسته: <b className="text-blue-700">{currentRequest.category}</b></p><p>خریدار: <b>{currentRequest.buyerName}</b></p><p>تعداد: <b>{currentRequest.quantity}</b></p><p className="border-t pt-2">بودجه: <b className="text-lg text-green-600">{money(currentRequest.budget)}</b></p></div><div className="relative z-10 mt-4 space-y-3 rounded-2xl bg-blue-50 p-4"><p className="font-bold text-[#003b5c]">قیمت پیشنهادی خود را ثبت کنید</p><div className="grid grid-cols-2 gap-3"><input value={offerAmount} onChange={(e) => setOfferAmount(e.target.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ","))} placeholder="مبلغ (تومان)" className="rounded-xl border bg-white p-3 text-sm outline-none focus:border-[#00a8e8]" /><select value={offerDeliveryDays} onChange={(e) => setOfferDeliveryDays(e.target.value)} className="rounded-xl border bg-white p-3 text-sm"><option value="1">تحویل ۱ روزه</option><option value="2">تحویل ۲ روزه</option><option value="3">تحویل ۳ روزه</option><option value="5">تحویل ۵ روزه</option><option value="7">تحویل ۷ روزه</option></select></div><textarea value={offerMessage} onChange={(e) => setOfferMessage(e.target.value)} placeholder="گارانتی، توضیحات یا شرایط ارسال" className="min-h-20 w-full rounded-xl border bg-white p-3 text-sm" /></div><div className="relative z-10 mt-4 flex gap-3"><button onClick={rejectCurrent} className="flex-1 rounded-xl bg-gray-100 py-3 font-bold text-gray-700">رد و مورد بعدی</button><button disabled={isSubmittingOffer} onClick={submitOffer} className="flex-[2] rounded-xl bg-[#0b9c56] py-3 font-bold text-white disabled:bg-gray-400">{isSubmittingOffer ? "در حال ثبت..." : "ثبت پیشنهاد و مورد بعدی"}</button></div><div className="absolute bottom-0 left-0 h-1.5 bg-[#0b9c56]" style={{ width: `${(timeLeft / 60) * 100}%` }} /></div></section>}
+      {currentRequest && <section className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"><div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border-4 border-[#0b9c56] bg-white p-6 shadow-2xl"><div className="absolute -right-10 -top-10 h-32 w-32 animate-ping rounded-full bg-green-500/20" /><div className="relative z-10 mb-4 flex justify-between"><span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white animate-pulse">درخواست مرتبط {queueIndex + 1} از {queue.length}</span><span className={`font-mono text-2xl font-bold ${timeLeft <= 10 ? "animate-bounce text-red-600" : "text-gray-800"}`}>00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}</span></div><h2 className="relative z-10 text-xl font-bold text-[#003b5c]">{currentRequest.title}</h2><p className="relative z-10 mt-2 text-sm leading-7 text-gray-600">{currentRequest.description}</p><div className="relative z-10 mt-4 space-y-2 rounded-2xl bg-gray-50 p-4 text-sm"><p>دسته: <b className="text-blue-700">{currentRequest.category}</b></p><p>خریدار: <b>{currentRequest.buyerName}</b></p><p>تعداد: <b>{currentRequest.quantity}</b></p><p className="border-t pt-2">بودجه: <b className="text-lg text-green-600">{money(currentRequest.budget)}</b></p></div><div className="relative z-10 mt-4 space-y-3 rounded-2xl bg-blue-50 p-4"><p className="font-bold text-[#003b5c]">قیمت پیشنهادی خود را ثبت کنید</p><div className="grid grid-cols-2 gap-3"><input value={offerAmount} onChange={(e) => setOfferAmount(e.target.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ","))} placeholder="مبلغ (تومان)" className="rounded-xl border bg-white p-3 text-sm outline-none focus:border-[#00a8e8]" /><select value={offerDeliveryDays} onChange={(e) => setOfferDeliveryDays(e.target.value)} className="rounded-xl border bg-white p-3 text-sm"><option value="1">تحویل ۱ روزه</option><option value="2">تحویل ۲ روزه</option><option value="3">تحویل ۳ روزه</option><option value="5">تحویل ۵ روزه</option><option value="7">تحویل ۷ روزه</option></select></div><OfferSpecsForm specs={offerSpecs} onChange={updateOfferSpec} /><textarea value={offerMessage} onChange={(e) => setOfferMessage(e.target.value)} placeholder="توضیحات تکمیلی فروشنده، محدودیت‌ها، شرایط ارسال یا نکات مهم" className="min-h-20 w-full rounded-xl border bg-white p-3 text-sm" /></div><div className="relative z-10 mt-4 flex gap-3"><button onClick={rejectCurrent} className="flex-1 rounded-xl bg-gray-100 py-3 font-bold text-gray-700">رد و مورد بعدی</button><button disabled={isSubmittingOffer} onClick={submitOffer} className="flex-[2] rounded-xl bg-[#0b9c56] py-3 font-bold text-white disabled:bg-gray-400">{isSubmittingOffer ? "در حال ثبت..." : "ثبت پیشنهاد و مورد بعدی"}</button></div><div className="absolute bottom-0 left-0 h-1.5 bg-[#0b9c56]" style={{ width: `${(timeLeft / 60) * 100}%` }} /></div></section>}
 
       <div className="border-b bg-white px-4 py-3 shadow-sm"><div className="mx-auto flex max-w-6xl justify-between text-sm text-gray-500"><span>OptiBid / داشبورد فروشنده</span><span>{data.seller.fullName}</span></div></div>
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -332,3 +385,57 @@ function Metric({ value, label, color }: { value: string | number; label: string
 function Empty({ text }: { text: string }) { return <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">{text}</div>; }
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="block text-sm font-bold text-gray-700">{label}<input value={value} onChange={(e) => onChange(e.target.value)} className="mt-2 w-full rounded-xl border p-3 font-normal outline-none focus:border-[#00a8e8]" /></label>; }
 function OrderCard({ order, children }: { order: any; children: ReactNode }) { return <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm"><div className="flex flex-col justify-between gap-3 sm:flex-row"><div><div className="mb-2 flex gap-2"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{order.status}</span><span className="rounded-full bg-gray-100 px-3 py-1 font-mono text-xs">{order.id}</span></div><h2 className="text-xl font-bold text-[#003b5c]">{order.title}</h2><p className="mt-1 text-sm text-gray-600">خریدار: {order.buyerName}</p><p className="mt-1 text-xs text-gray-500">آدرس ارسال: {order.shippingAddress}</p></div><div className="text-left"><p className="text-xl font-bold text-[#0b9c56]">{money(order.totalAmount)}</p><p className="mt-1 text-xs text-gray-500">خالص فروشنده پس از کمیسیون: {money(order.sellerAmount)}</p></div></div>{children}</div>; }
+
+
+function OfferSpecsForm({ specs, onChange }: { specs: OfferSpecs; onChange: (key: keyof OfferSpecs, value: string) => void }) {
+  return (
+    <div className="rounded-2xl border border-blue-100 bg-white p-4 text-right">
+      <div className="mb-4 border-b border-gray-100 pb-3">
+        <h3 className="font-bold text-[#003b5c]">مشخصات واقعی کالای پیشنهادی فروشنده</h3>
+        <p className="mt-1 text-xs leading-6 text-gray-500">این مشخصات قبل از پرداخت به خریدار نمایش داده می‌شود و خریدار باید آن را تایید کند. تمام فیلدهای اصلی را دقیق وارد کنید.</p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <SpecInput label="برند" value={specs.brand} onChange={(value) => onChange("brand", value)} placeholder="Lenovo" />
+        <SpecInput label="مدل دقیق" value={specs.exactModel} onChange={(value) => onChange("exactModel", value)} placeholder="ThinkPad E14" />
+        <SpecInput label="کد مدل / کانفیگ" value={specs.serialOrConfig} onChange={(value) => onChange("serialOrConfig", value)} placeholder="E14 Gen / 155H / 16/512" />
+        <SpecInput label="پردازنده CPU" value={specs.cpu} onChange={(value) => onChange("cpu", value)} placeholder="Core Ultra 7 155H" />
+        <SpecInput label="RAM" value={specs.ram} onChange={(value) => onChange("ram", value)} placeholder="16GB" />
+        <SpecInput label="حافظه SSD/HDD" value={specs.storage} onChange={(value) => onChange("storage", value)} placeholder="512GB SSD" />
+        <SpecInput label="GPU / گرافیک" value={specs.gpu} onChange={(value) => onChange("gpu", value)} placeholder="Intel Arc / ندارد" />
+        <SpecInput label="نمایشگر" value={specs.display} onChange={(value) => onChange("display", value)} placeholder="14 inch FHD" />
+        <SpecInput label="سال ساخت" value={specs.manufactureYear} onChange={(value) => onChange("manufactureYear", value.replace(/\D/g, "").slice(0, 4))} placeholder="2023" />
+        <SpecSelect label="وضعیت کالا" value={specs.productCondition} onChange={(value) => onChange("productCondition", value)} options={[["new", "نو"], ["open_box", "اپن‌باکس"], ["refurbished", "ریفربیشد"], ["used_like_new", "دست‌دوم در حد نو"], ["used_good", "دست‌دوم سالم"], ["used_fair", "دست‌دوم معمولی"], ["for_parts", "قطعاتی/نیازمند تعمیر"]]} />
+        <SpecSelect label="گارانتی" value={specs.warrantyStatus} onChange={(value) => onChange("warrantyStatus", value)} options={[["manufacturer", "رسمی/شرکتی"], ["seller", "گارانتی فروشنده"], ["test", "مهلت تست"], ["none", "بدون گارانتی"]]} />
+        <SpecInput label="مدت گارانتی/تست (ماه/روز)" value={specs.warrantyMonths} onChange={(value) => onChange("warrantyMonths", value.replace(/\D/g, "").slice(0, 3))} placeholder="3" />
+        <SpecSelect label="سلامت کلی قطعات" value={specs.partsHealth} onChange={(value) => onChange("partsHealth", value)} options={[["all_healthy", "همه قطعات سالم"], ["minor_issue", "ایراد جزئی"], ["needs_repair", "نیازمند تعمیر"]]} />
+        <SpecSelect label="سلامت CPU" value={specs.cpuHealth} onChange={(value) => onChange("cpuHealth", value)} options={healthOptions} />
+        <SpecSelect label="سلامت مادربرد" value={specs.motherboardHealth} onChange={(value) => onChange("motherboardHealth", value)} options={healthOptions} />
+        <SpecSelect label="سلامت نمایشگر" value={specs.displayHealth} onChange={(value) => onChange("displayHealth", value)} options={healthOptions} />
+        <SpecSelect label="سلامت SSD/HDD" value={specs.storageHealth} onChange={(value) => onChange("storageHealth", value)} options={healthOptions} />
+        <SpecSelect label="سلامت RAM" value={specs.ramHealth} onChange={(value) => onChange("ramHealth", value)} options={healthOptions} />
+        <SpecSelect label="سلامت GPU" value={specs.gpuHealth} onChange={(value) => onChange("gpuHealth", value)} options={healthOptions} />
+        <SpecSelect label="کیبورد/تاچ‌پد" value={specs.keyboardTouchpadHealth} onChange={(value) => onChange("keyboardTouchpadHealth", value)} options={healthOptions} />
+        <SpecSelect label="بدنه/لولا" value={specs.bodyHingeHealth} onChange={(value) => onChange("bodyHingeHealth", value)} options={healthOptions} />
+        <SpecInput label="سلامت باتری (%)" value={specs.batteryHealthPercent} onChange={(value) => onChange("batteryHealthPercent", value.replace(/\D/g, "").slice(0, 3))} placeholder="85" />
+        <SpecSelect label="گرید ظاهری" value={specs.appearanceGrade} onChange={(value) => onChange("appearanceGrade", value)} options={[["A", "A - بسیار تمیز"], ["B", "B - خط‌وخش جزئی"], ["C", "C - آسیب قابل مشاهده"]]} />
+        <SpecSelect label="سابقه تعمیر" value={specs.repairHistory} onChange={(value) => onChange("repairHistory", value)} options={[["none", "بدون تعمیر"], ["minor", "تعمیر جزئی"], ["major", "تعمیر اساسی"]]} />
+        <SpecSelect label="میزان کارکرد" value={specs.usageLevel} onChange={(value) => onChange("usageLevel", value)} options={[["low", "کم‌کارکرد"], ["normal", "معمولی"], ["heavy", "پرکارکرد"]]} />
+        <SpecSelect label="لوازم جانبی" value={specs.accessoriesStatus} onChange={(value) => onChange("accessoriesStatus", value)} options={[["complete", "کامل"], ["missing_minor", "کسری جزئی"], ["missing_key", "کسری مهم"]]} />
+        <SpecSelect label="شارژر/آداپتور" value={specs.chargerStatus} onChange={(value) => onChange("chargerStatus", value)} options={[["original", "اصل"], ["compatible", "سازگار/غیراصل"], ["missing", "ندارد"], ["not_applicable", "نامرتبط"]]} />
+        <SpecSelect label="جعبه اصلی" value={specs.originalPackaging} onChange={(value) => onChange("originalPackaging", value)} options={[["yes", "دارد"], ["no", "ندارد"], ["unknown", "نامشخص"]]} />
+        <SpecSelect label="فاکتور/اصالت" value={specs.purchaseInvoiceAvailable} onChange={(value) => onChange("purchaseInvoiceAvailable", value)} options={[["yes", "دارد"], ["no", "ندارد"], ["unknown", "نامشخص"]]} />
+        <SpecInput label="مهلت تست/مرجوعی (روز)" value={specs.testDeadlineDays} onChange={(value) => onChange("testDeadlineDays", value.replace(/\D/g, "").slice(0, 3))} placeholder="7" />
+      </div>
+      <label className="mt-3 block text-xs font-bold text-gray-700">شرایط مرجوعی/تعهد فروشنده<textarea value={specs.returnPolicy} onChange={(e) => onChange("returnPolicy", e.target.value)} className="mt-1 min-h-16 w-full rounded-xl border p-2 font-normal outline-none focus:border-[#00a8e8]" /></label>
+      <label className="mt-3 block text-xs font-bold text-gray-700">توضیحات تکمیلی مشخصات<textarea value={specs.notes} onChange={(e) => onChange("notes", e.target.value)} placeholder="مثلاً شارژر اصل است، خط روی قاب دارد، باتری تست شده، پورت‌ها سالم هستند..." className="mt-1 min-h-16 w-full rounded-xl border p-2 font-normal outline-none focus:border-[#00a8e8]" /></label>
+    </div>
+  );
+}
+
+function SpecInput({ label, value, onChange, placeholder = "" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+  return <label className="block text-xs font-bold text-gray-700">{label}<input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="mt-1 w-full rounded-xl border p-2 font-normal outline-none focus:border-[#00a8e8]" /></label>;
+}
+
+function SpecSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: readonly (readonly [string, string])[] }) {
+  return <label className="block text-xs font-bold text-gray-700">{label}<select value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-xl border bg-white p-2 font-normal outline-none focus:border-[#00a8e8]">{options.map(([id, text]) => <option key={id} value={id}>{text}</option>)}</select></label>;
+}

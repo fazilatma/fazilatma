@@ -110,6 +110,41 @@ export type JsonWithdrawalRequest = {
   adminNote?: string;
 };
 
+export type OfferProductSpecs = {
+  brand: string;
+  exactModel: string;
+  serialOrConfig: string;
+  cpu: string;
+  ram: string;
+  storage: string;
+  gpu: string;
+  display: string;
+  manufactureYear: string;
+  productCondition: string;
+  warrantyStatus: string;
+  warrantyMonths: string;
+  partsHealth: string;
+  cpuHealth: string;
+  motherboardHealth: string;
+  displayHealth: string;
+  storageHealth: string;
+  ramHealth: string;
+  gpuHealth: string;
+  keyboardTouchpadHealth: string;
+  bodyHingeHealth: string;
+  batteryHealthPercent: string;
+  appearanceGrade: string;
+  repairHistory: string;
+  usageLevel: string;
+  accessoriesStatus: string;
+  chargerStatus: string;
+  originalPackaging: string;
+  purchaseInvoiceAvailable: string;
+  testDeadlineDays: string;
+  returnPolicy: string;
+  notes: string;
+};
+
 export type JsonOffer = {
   id: number;
   requestId: number;
@@ -118,6 +153,7 @@ export type JsonOffer = {
   amount: string;
   deliveryDays: number;
   message: string;
+  productSpecs?: OfferProductSpecs;
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
 };
@@ -148,6 +184,8 @@ export type JsonOrder = {
   paymentMethod?: "wallet" | "gateway";
   shippingAddress: string;
   useAlternateAddress: boolean;
+  productSpecs?: OfferProductSpecs;
+  productSpecsConfirmedAt?: string;
   trackingCode?: string;
   paymentAt?: string;
   shippedAt?: string;
@@ -418,6 +456,8 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           quantity: Number(order.quantity || 1),
           shippingAddress: order.shippingAddress || "",
           useAlternateAddress: Boolean(order.useAlternateAddress),
+          productSpecs: order.productSpecs,
+          productSpecsConfirmedAt: order.productSpecsConfirmedAt || "",
           buyerArchived: Boolean(order.buyerArchived),
           sellerArchived: Boolean(order.sellerArchived),
         })) as JsonOrder[]
@@ -867,13 +907,124 @@ export async function rejectJsonSellerRequest(sellerId: number, requestId: numbe
   }
 }
 
-export async function createJsonSellerOffer(input: { sellerId: number; requestId: number; amount: string; deliveryDays: number; message?: string }) {
+const offerSpecLabels: Record<keyof OfferProductSpecs, string> = {
+  brand: "برند",
+  exactModel: "مدل دقیق",
+  serialOrConfig: "کد مدل/کانفیگ",
+  cpu: "پردازنده",
+  ram: "رم",
+  storage: "حافظه ذخیره‌سازی",
+  gpu: "کارت گرافیک",
+  display: "نمایشگر",
+  manufactureYear: "سال ساخت",
+  productCondition: "وضعیت کالا",
+  warrantyStatus: "وضعیت گارانتی",
+  warrantyMonths: "مدت گارانتی",
+  partsHealth: "سلامت کلی قطعات",
+  cpuHealth: "سلامت CPU",
+  motherboardHealth: "سلامت مادربرد",
+  displayHealth: "سلامت نمایشگر",
+  storageHealth: "سلامت SSD/HDD",
+  ramHealth: "سلامت RAM",
+  gpuHealth: "سلامت GPU",
+  keyboardTouchpadHealth: "سلامت کیبورد/تاچ‌پد",
+  bodyHingeHealth: "سلامت بدنه/لولا",
+  batteryHealthPercent: "سلامت باتری",
+  appearanceGrade: "گرید ظاهری",
+  repairHistory: "سابقه تعمیر",
+  usageLevel: "میزان کارکرد",
+  accessoriesStatus: "لوازم جانبی",
+  chargerStatus: "شارژر/آداپتور",
+  originalPackaging: "جعبه اصلی",
+  purchaseInvoiceAvailable: "فاکتور/اصالت",
+  testDeadlineDays: "مهلت تست",
+  returnPolicy: "شرایط مرجوعی",
+  notes: "توضیحات تکمیلی",
+};
+
+function normalizeOfferProductSpecs(input: Partial<OfferProductSpecs> | undefined | null): OfferProductSpecs {
+  const source = input || {};
+  const text = (key: keyof OfferProductSpecs, max = 120) => String(source[key] || "").trim().slice(0, max);
+  return {
+    brand: text("brand"),
+    exactModel: text("exactModel"),
+    serialOrConfig: text("serialOrConfig"),
+    cpu: text("cpu"),
+    ram: text("ram"),
+    storage: text("storage"),
+    gpu: text("gpu"),
+    display: text("display"),
+    manufactureYear: text("manufactureYear", 4).replace(/\D/g, "").slice(0, 4),
+    productCondition: text("productCondition"),
+    warrantyStatus: text("warrantyStatus"),
+    warrantyMonths: text("warrantyMonths", 3).replace(/\D/g, "").slice(0, 3),
+    partsHealth: text("partsHealth"),
+    cpuHealth: text("cpuHealth"),
+    motherboardHealth: text("motherboardHealth"),
+    displayHealth: text("displayHealth"),
+    storageHealth: text("storageHealth"),
+    ramHealth: text("ramHealth"),
+    gpuHealth: text("gpuHealth"),
+    keyboardTouchpadHealth: text("keyboardTouchpadHealth"),
+    bodyHingeHealth: text("bodyHingeHealth"),
+    batteryHealthPercent: text("batteryHealthPercent", 3).replace(/\D/g, "").slice(0, 3),
+    appearanceGrade: text("appearanceGrade"),
+    repairHistory: text("repairHistory"),
+    usageLevel: text("usageLevel"),
+    accessoriesStatus: text("accessoriesStatus"),
+    chargerStatus: text("chargerStatus"),
+    originalPackaging: text("originalPackaging"),
+    purchaseInvoiceAvailable: text("purchaseInvoiceAvailable"),
+    testDeadlineDays: text("testDeadlineDays", 3).replace(/\D/g, "").slice(0, 3),
+    returnPolicy: text("returnPolicy"),
+    notes: text("notes", 1000),
+  };
+}
+
+function validateOfferProductSpecs(specs: OfferProductSpecs) {
+  const required: Array<keyof OfferProductSpecs> = [
+    "brand",
+    "exactModel",
+    "cpu",
+    "ram",
+    "storage",
+    "manufactureYear",
+    "productCondition",
+    "warrantyStatus",
+    "partsHealth",
+    "cpuHealth",
+    "motherboardHealth",
+    "displayHealth",
+    "storageHealth",
+    "ramHealth",
+    "keyboardTouchpadHealth",
+    "bodyHingeHealth",
+    "appearanceGrade",
+    "repairHistory",
+    "usageLevel",
+    "accessoriesStatus",
+    "chargerStatus",
+    "returnPolicy",
+  ];
+  return required.filter((key) => !specs[key] || specs[key] === "unknown").map((key) => offerSpecLabels[key]);
+}
+
+export function publicOfferSpecLabels() {
+  return offerSpecLabels;
+}
+
+export async function createJsonSellerOffer(input: { sellerId: number; requestId: number; amount: string; deliveryDays: number; message?: string; productSpecs?: Partial<OfferProductSpecs> }) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, input.sellerId, "seller");
   const request = data.requests.find((item) => item.id === input.requestId && item.status === "open");
   if (!request) throw new Error("Open request not found");
   if (!(seller.categories || []).includes(request.category)) throw new Error("Seller category does not match request category");
   if (data.offers.some((offer) => offer.sellerId === seller.id && offer.requestId === request.id)) throw new Error("Offer already exists for this request");
+  const productSpecs = normalizeOfferProductSpecs(input.productSpecs);
+  const missingSpecs = validateOfferProductSpecs(productSpecs);
+  if (missingSpecs.length > 0) {
+    throw new Error(`Product specs incomplete: ${missingSpecs.join("، ")}`);
+  }
 
   const offer: JsonOffer = {
     id: nextNumericId(data.offers),
@@ -883,6 +1034,7 @@ export async function createJsonSellerOffer(input: { sellerId: number; requestId
     amount: String(money(input.amount)),
     deliveryDays: Math.max(1, Math.floor(input.deliveryDays || 1)),
     message: input.message?.trim() || "",
+    productSpecs,
     status: "pending",
     createdAt: new Date().toISOString(),
   };
@@ -900,11 +1052,13 @@ export async function createJsonSellerOffer(input: { sellerId: number; requestId
   return offer;
 }
 
-export async function selectJsonOffer(input: { buyerId: number; offerId: number; shippingAddress?: string; useAlternateAddress?: boolean }) {
+export async function selectJsonOffer(input: { buyerId: number; offerId: number; shippingAddress?: string; useAlternateAddress?: boolean; buyerConfirmedProductSpecs?: boolean }) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, input.buyerId, "buyer");
   const offer = data.offers.find((item) => item.id === input.offerId && item.status === "pending");
   if (!offer) throw new Error("Pending offer not found");
+  if (!offer.productSpecs) throw new Error("Product specs are required before selection");
+  if (!input.buyerConfirmedProductSpecs) throw new Error("Product specs confirmation required");
   const request = data.requests.find((item) => item.id === offer.requestId && item.status === "open" && item.buyerId === buyer.id);
   if (!request) throw new Error("Request not available for buyer");
   const seller = getUserOrThrow(data, offer.sellerId, "seller");
@@ -936,6 +1090,8 @@ export async function selectJsonOffer(input: { buyerId: number; offerId: number;
     status: "pending_payment",
     shippingAddress: address,
     useAlternateAddress: Boolean(input.useAlternateAddress),
+    productSpecs: offer.productSpecs,
+    productSpecsConfirmedAt: new Date().toISOString(),
     buyerArchived: false,
     sellerArchived: false,
     createdAt: new Date().toISOString(),

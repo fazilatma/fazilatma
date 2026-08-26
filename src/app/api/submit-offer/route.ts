@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       amount: String(body.amount),
       deliveryDays,
       message: String(body.message || ""),
+      productSpecs: body.productSpecs && typeof body.productSpecs === "object" ? body.productSpecs : undefined,
     });
 
     revalidatePath("/");
@@ -35,10 +36,15 @@ export async function POST(request: Request) {
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown offer error";
     const alreadyOffered = detail.includes("Offer already exists");
+    const incompleteSpecs = detail.includes("Product specs incomplete");
     return NextResponse.json(
       {
         success: false,
-        message: alreadyOffered ? "شما قبلاً برای این درخواست پیشنهاد ثبت کرده‌اید." : "ثبت پیشنهاد قیمت ناموفق بود.",
+        message: alreadyOffered
+          ? "شما قبلاً برای این درخواست پیشنهاد ثبت کرده‌اید."
+          : incompleteSpecs
+            ? `مشخصات کالا کامل نیست. ${detail.replace("Product specs incomplete:", "موارد ناقص:")}`
+            : "ثبت پیشنهاد قیمت ناموفق بود.",
         detail,
       },
       { status: alreadyOffered ? 409 : 500 }
