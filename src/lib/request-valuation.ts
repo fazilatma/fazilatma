@@ -93,6 +93,19 @@ export function normalizeProductValuationFactors(input: Partial<ProductValuation
   };
 }
 
+function isDigitalProduct(title: string, category: string) {
+  const text = `${title} ${category}`.toLowerCase();
+  return /دیجیتال|لپ|لب|موبایل|گوشی|thinkpad|lenovo|hp|dell|asus|acer|macbook|core|intel|ryzen|ssd|ram|monitor|printer|tablet/.test(text);
+}
+
+function inferredMinimumManufactureYear(title: string) {
+  const text = title.toLowerCase();
+  if (/core\s*ultra|155h|125h|135h|165h/.test(text)) return 2023;
+  if (/12th|13th|14th|نسل\s*۱۲|نسل\s*۱۳|نسل\s*۱۴/.test(text)) return 2021;
+  if (/11th|نسل\s*۱۱/.test(text)) return 2020;
+  return null;
+}
+
 export function estimateFairUsedProductPrice(input: {
   title: string;
   category: string;
@@ -110,12 +123,26 @@ export function estimateFairUsedProductPrice(input: {
   const baseUnitPrice = marketReferenceUnitPrice || buyerBudgetUnitPrice || 0;
   const currentYear = new Date().getFullYear();
   const manufactureYear = Number(factors.manufactureYear || 0);
-  const age = manufactureYear >= 1990 && manufactureYear <= currentYear + 1 ? Math.max(0, currentYear - manufactureYear) : 0;
+  const digitalProduct = isDigitalProduct(input.title, input.category);
+  const minYearByTitle = inferredMinimumManufactureYear(input.title);
+  const yearLooksInconsistent = Boolean(minYearByTitle && manufactureYear > 0 && manufactureYear < minYearByTitle);
+  const effectiveManufactureYear = yearLooksInconsistent ? 0 : manufactureYear;
+  const age = effectiveManufactureYear >= 1990 && effectiveManufactureYear <= currentYear + 1 ? Math.max(0, currentYear - effectiveManufactureYear) : 0;
   const factorNotes: string[] = [];
   let depreciation = 0;
   let unknowns = 0;
 
-  const conditionPenalty: Record<ProductCondition, number> = {
+  const conservativeConditionPenalty: Record<ProductCondition, number> = {
+    new: 0,
+    open_box: 0.06,
+    refurbished: 0.14,
+    used_like_new: 0.16,
+    used_good: 0.24,
+    used_fair: 0.38,
+    for_parts: 0.68,
+    unknown: 0.24,
+  };
+  const defaultConditionPenalty: Record<ProductCondition, number> = {
     new: 0,
     open_box: 0.08,
     refurbished: 0.18,
@@ -125,13 +152,17 @@ export function estimateFairUsedProductPrice(input: {
     for_parts: 0.68,
     unknown: 0.28,
   };
+  const conditionPenalty = marketReferenceUnitPrice && digitalProduct ? conservativeConditionPenalty : defaultConditionPenalty;
   depreciation += conditionPenalty[factors.productCondition];
   if (factors.productCondition === "unknown") unknowns += 1;
   else factorNotes.push(`وضعیت کالا: ${conditionLabel(factors.productCondition)}`);
 
-  const ageRate = input.category.includes("دیجیتال") ? 0.055 : input.category.includes("خودرو") ? 0.045 : 0.035;
-  if (age > 0) {
-    const agePenalty = clamp(age * ageRate, 0, 0.42);
+  const ageRate = digitalProduct ? (marketReferenceUnitPrice ? 0.035 : 0.05) : input.category.includes("خودرو") ? 0.045 : 0.035;
+  if (yearLooksInconsistent) {
+    factorNotes.push(`سال ساخت ${manufactureYear} با نسل/عنوان کالا هم‌خوان نیست؛ برای جلوگیری از افت غیرواقعی، جریمه سن لحاظ نشد`);
+    unknowns += 1;
+  } else if (age > 0) {
+    const agePenalty = clamp(age * ageRate, 0, marketReferenceUnitPrice && digitalProduct ? 0.28 : 0.42);
     depreciation += agePenalty;
     factorNotes.push(`سال ساخت ${manufactureYear} و افت سنی حدود ${Math.round(agePenalty * 100)}٪`);
   } else {
@@ -148,7 +179,7 @@ export function estimateFairUsedProductPrice(input: {
     depreciation -= 0.015;
     factorNotes.push("مهلت تست کوتاه لحاظ شد");
   } else if (factors.warrantyStatus === "none") {
-    depreciation += 0.08;
+    depreciation += marketReferenceUnitPrice && digitalProduct ? 0.06 : 0.08;
     factorNotes.push("نداشتن گارانتی باعث افت قیمت شد");
   } else {
     unknowns += 1;
@@ -160,7 +191,7 @@ export function estimateFairUsedProductPrice(input: {
   if (factors.partsHealth === "all_healthy") {
     factorNotes.push("سلامت کامل قطعات امتیاز مثبت دارد");
   } else if (factors.partsHealth === "minor_issue") {
-    depreciation += 0.08;
+    depreciation += marketReferenceUnitPrice && digitalProduct ? 0.06 : 0.08;
     factorNotes.push("ایراد جزئی قطعات لحاظ شد");
   } else if (factors.partsHealth === "needs_repair") {
     depreciation += 0.25;
@@ -202,6 +233,15 @@ export function estimateFairUsedProductPrice(input: {
   if (factors.purchaseInvoiceAvailable === "yes") depreciation -= 0.015;
   if (factors.marketAvailability === "rare") depreciation -= 0.04;
   else if (factors.marketAvailability === "discontinued") depreciation += 0.04;
+
+  const hasSevereIssue = factors.productCondition === "for_parts" || factors.partsHealth === "needs_repair" || factors.repairHistory === "major" || factors.appearanceGrade === "C";
+  if (marketReferenceUnitPrice && digitalProduct && !hasSevereIssue) {
+    const maxDigitalDepreciation = yearLooksInconsistent ? 0.48 : 0.62;
+    if (depreciation > maxDigitalDepreciation) {
+      factorNotes.push(`افت محاسباتی برای کالای دیجیتال بدون ایراد جدی بیش از حد بود؛ سقف ${Math.round(maxDigitalDepreciation * 100)}٪ اعمال شد`);
+      depreciation = maxDigitalDepreciation;
+    }
+  }
 
   depreciation = clamp(depreciation, 0, 0.82);
   const fairUnit = Math.max(0, Math.round(baseUnitPrice * (1 - depreciation)));
