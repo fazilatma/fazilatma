@@ -23,6 +23,13 @@ const dateLabel = (value?: string) =>
       })
     : "—";
 
+const paymentMethodLabel = (method?: string) => {
+  if (method === "wallet") return "کیف پول";
+  if (method === "zarinpal") return "زرین‌پال";
+  if (method === "gateway") return "درگاه آزمایشی";
+  return "در انتظار پرداخت";
+};
+
 const categoryMap: Record<string, string> = {
   digital: "کالای دیجیتال",
   clothing: "مد و پوشاک",
@@ -1353,6 +1360,12 @@ function OrderCard({ order, children }: { order: any; children: ReactNode }) {
               </p>
               <p className="mt-1 text-xs text-gray-500">
                 آدرس ارسال: {order.shippingAddress}
+              </p>
+              <p className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                روش پرداخت خریدار: {paymentMethodLabel(order.paymentMethod)}
+                {order.gatewayRefId
+                  ? ` · کد زرین‌پال: ${order.gatewayRefId}`
+                  : ""}
               </p>
             </div>
           </div>
