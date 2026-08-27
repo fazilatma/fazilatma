@@ -1,9 +1,9 @@
-(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,56722,e=>{"use strict";var t=e.i(19614);function i(e){return"number"==typeof e?Math.max(0,Math.round(e)):Math.max(0,Number(String(e||"").replace(/[۰-۹]/g,e=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(e))).replace(/[٠-٩]/g,e=>String("٠١٢٣٤٥٦٧٨٩".indexOf(e))).replace(/\D/g,""))||0)}function a(e){let t=i(e);return t?`${t.toLocaleString("fa-IR")} تومان`:"۰ تومان"}function r(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}function s(e,t){return t?`<div class="spec-row"><span>${r(e)}</span><b>${r(t)}</b></div>`:""}e.s(["generateInvoiceHTML",0,e=>{var o;let l=(0,t.getCachedLiveContent)(),d=e.id||e.orderId||`INV-${Date.now()}`,n=e.date||new Date().toLocaleDateString("fa-IR"),p=e.sellerName||e.seller||"فروشنده OptiBid",c=e.buyerName||e.buyer||"خریدار OptiBid",b=e.product||e.title||"کالای مورد معامله",x=e.description||e.productDescription||"",g=e.category||"کالا / خدمات",m=Math.max(1,Number(e.quantity||1)||1),h=i(e.totalAmount??e.amount),f=i(e.unitAmount)||Math.round(h/m),u=i(e.platformFee),v=i(e.sellerAmount)||Math.max(0,h-u),y=i(e.taxAmount),w=i(e.shippingAmount),j=h+y+w,k=e.productSpecs||{},N=`https://optibid.fazilat-ma.workers.dev/verify/${encodeURIComponent(d)}`,z=k.brand||e.brand||"—",$=[k.exactModel,k.cpu,k.ram,k.storage].filter(Boolean).join(" · "),A=[s("برند",k.brand),s("مدل دقیق",k.exactModel),s("کد مدل / کانفیگ",k.serialOrConfig),s("پردازنده",k.cpu),s("رم",k.ram),s("حافظه",k.storage),s("گرافیک",k.gpu),s("نمایشگر",k.display),s("سال ساخت",k.manufactureYear),s("وضعیت کالا",k.productCondition),s("گارانتی",k.warrantyStatus),s("سلامت کلی قطعات",k.partsHealth),s("سلامت باتری",k.batteryHealthPercent?`${k.batteryHealthPercent}%`:""),s("گرید ظاهری",k.appearanceGrade),s("سابقه تعمیر",k.repairHistory),s("مهلت تست",k.testDeadlineDays?`${k.testDeadlineDays} روز`:"")].filter(Boolean).join("");return`<!DOCTYPE html>
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,56722,e=>{"use strict";var t=e.i(19614);function i(e){return"number"==typeof e?Math.max(0,Math.round(e)):Math.max(0,Number(String(e||"").replace(/[۰-۹]/g,e=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(e))).replace(/[٠-٩]/g,e=>String("٠١٢٣٤٥٦٧٨٩".indexOf(e))).replace(/\D/g,""))||0)}function a(e){let t=i(e);return t?`${t.toLocaleString("fa-IR")} تومان`:"۰ تومان"}function r(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}function s(e,t){return t?`<div class="spec-row"><span>${r(e)}</span><b>${r(t)}</b></div>`:""}e.s(["generateInvoiceHTML",0,e=>{var o;let l=(0,t.getCachedLiveContent)(),n=e.id||e.orderId||`INV-${Date.now()}`,d=e.date||new Date().toLocaleDateString("fa-IR"),p=e.sellerName||e.seller||"فروشنده OptiBid",c=e.buyerName||e.buyer||"خریدار OptiBid",b=e.product||e.title||"کالای مورد معامله",x=e.description||e.productDescription||"",g=e.category||"کالا / خدمات",m=Math.max(1,Number(e.quantity||1)||1),h=i(e.totalAmount??e.amount),f=i(e.unitAmount)||Math.round(h/m),u=i(e.platformFee),v=i(e.sellerAmount)||Math.max(0,h-u),y=i(e.taxAmount),w=i(e.shippingAmount),j=h+y+w,k=e.productSpecs||{},N=`https://optibid.fazilat-ma.workers.dev/verify/${encodeURIComponent(n)}`,z=k.brand||e.brand||"—",$=[k.exactModel,k.cpu,k.ram,k.storage].filter(Boolean).join(" · "),A=[s("برند",k.brand),s("مدل دقیق",k.exactModel),s("کد مدل / کانفیگ",k.serialOrConfig),s("پردازنده",k.cpu),s("رم",k.ram),s("حافظه",k.storage),s("گرافیک",k.gpu),s("نمایشگر",k.display),s("سال ساخت",k.manufactureYear),s("وضعیت کالا",k.productCondition),s("گارانتی",k.warrantyStatus),s("سلامت کلی قطعات",k.partsHealth),s("سلامت باتری",k.batteryHealthPercent?`${k.batteryHealthPercent}%`:""),s("گرید ظاهری",k.appearanceGrade),s("سابقه تعمیر",k.repairHistory),s("مهلت تست",k.testDeadlineDays?`${k.testDeadlineDays} روز`:"")].filter(Boolean).join("");return`<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>فاکتور رسمی معامله - ${r(d)}</title>
+  <title>فاکتور رسمی معامله - ${r(n)}</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v32.103/Vazirmatn-font-face.css" rel="stylesheet" />
   <style>
     @page { size: A4; margin: 0; }
@@ -175,8 +175,8 @@
           <h2>Official Transaction Invoice</h2>
         </div>
         <div class="meta">
-          <div class="meta-row"><span>شماره سند / Document No.</span><b>${r(d)}</b></div>
-          <div class="meta-row"><span>تاریخ / Date</span><b>${r(n)}</b></div>
+          <div class="meta-row"><span>شماره سند / Document No.</span><b>${r(n)}</b></div>
+          <div class="meta-row"><span>تاریخ / Date</span><b>${r(d)}</b></div>
           <div class="meta-row"><span>وضعیت / Status</span><b>${r({pending_payment:"در انتظار پرداخت",paid:"پرداخت‌شده و آماده ارسال",shipped:"ارسال‌شده",completed:"تکمیل‌شده",cancelled:"لغوشده",returned:"مرجوع‌شده"}[(o=e.status)||""]||o||"ثبت‌شده")}</b></div>
           <div class="meta-row"><span>اعتبار سند / Validity</span><b>15 Days</b></div>
         </div>
@@ -195,8 +195,8 @@
           <div class="section-title"><span>اطلاعات خریدار</span><small>Customer Information</small></div>
           <div class="info-row"><span>نام خریدار</span><b>${r(c)}</b></div>
           <div class="info-row"><span>آدرس تحویل</span><b>${r(e.shippingAddress||l.invoiceShippingAddressFa)}</b></div>
-          <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${r(d)}</b></div>
-          <div class="info-row"><span>روش پرداخت</span><b>${r("wallet"===e.paymentMethod?"کیف پول":"gateway"===e.paymentMethod?"درگاه پرداخت":"پرداخت امانی OptiBid")}</b></div>
+          <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${r(n)}</b></div>
+          <div class="info-row"><span>روش پرداخت</span><b>${r("wallet"===e.paymentMethod?"کیف پول":"zarinpal"===e.paymentMethod?"زرین‌پال":"gateway"===e.paymentMethod?"درگاه پرداخت آزمایشی":"پرداخت امانی OptiBid")}</b></div>
           <div class="info-row"><span>حساب امانی</span><b>وجه تا تایید دریافت نزد OptiBid امانت است</b></div>
         </article>
       </section>
@@ -271,7 +271,7 @@
           <div class="verify-inner">
             <div style="font-size:11px;line-height:2;color:#334155">
               برای بررسی اعتبار این فاکتور، کد QR را اسکن کنید یا شماره سند را در سامانه وارد کنید.
-              <div dir="ltr" style="margin-top:8px;color:#003b5c;font-weight:800">${r(d)}</div>
+              <div dir="ltr" style="margin-top:8px;color:#003b5c;font-weight:800">${r(n)}</div>
             </div>
             <div class="qr"><img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(N)}" /></div>
           </div>

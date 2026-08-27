@@ -143,3 +143,30 @@ npx wrangler tail        # مشاهده لاگ‌های زنده ورکر دیپ
 npx wrangler kv key list --binding OPTIBID_KV   # مشاهده کلیدهای KV
 npx wrangler login       # ورود برای اجرای دستی wrangler روی سیستم خودتان
 ```
+
+## اتصال زرین‌پال
+
+برای فعال‌سازی پرداخت خریدار از طریق زرین‌پال:
+
+1. در پنل زرین‌پال یک پذیرنده بسازید و `Merchant ID` را دریافت کنید.
+2. در ادمین OptiBid مسیر **تنظیمات مالی و کمیسیون → اتصال درگاه پرداخت زرین‌پال** را باز کنید.
+3. `Merchant ID`، حالت Sandbox/Production و آدرس پایه سایت را ثبت کنید.
+4. آدرس Callback که در ادمین نمایش داده می‌شود باید در تنظیمات پذیرنده/دامنه زرین‌پال معتبر باشد:
+
+```text
+https://optibid.fazilat-ma.workers.dev/api/payments/zarinpal/callback
+```
+
+5. در حالت عملیاتی، دامنه باید HTTPS و تاییدشده باشد. برای Worker فعلی مقدار پیشنهادی `NEXT_PUBLIC_SITE_URL`:
+
+```text
+https://optibid.fazilat-ma.workers.dev
+```
+
+به جای ذخیره Merchant ID در JSON، می‌توانید آن را به عنوان Secret در Cloudflare Workers تنظیم کنید:
+
+```text
+ZARINPAL_MERCHANT_ID = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ZARINPAL_SANDBOX = true|false
+NEXT_PUBLIC_SITE_URL = https://optibid.fazilat-ma.workers.dev
+```

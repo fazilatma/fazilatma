@@ -27,6 +27,7 @@
   "/api/orders/ship/route": "/api/orders/ship",
   "/api/password/forgot/route": "/api/password/forgot",
   "/api/password/reset/route": "/api/password/reset",
+  "/api/payments/zarinpal/callback/route": "/api/payments/zarinpal/callback",
   "/api/product-image/route": "/api/product-image",
   "/api/register/route": "/api/register",
   "/api/reviews/route": "/api/reviews",

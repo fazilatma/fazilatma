@@ -196,13 +196,15 @@ export type JsonOrder = {
   platformFee: string;
   sellerAmount: string;
   status: OrderStatus;
-  paymentMethod?: "wallet" | "gateway";
+  paymentMethod?: PaymentMethod;
   shippingAddress: string;
   useAlternateAddress: boolean;
   productSpecs?: OfferProductSpecs;
   productSpecsConfirmedAt?: string;
   trackingCode?: string;
   paymentAt?: string;
+  gatewayAuthority?: string;
+  gatewayRefId?: string;
   shippedAt?: string;
   deliveredAt?: string;
   cancelledAt?: string;
@@ -253,6 +255,44 @@ export type JsonPlatformTransaction = {
   orderId?: string;
   createdAt: string;
 };
+
+export type JsonZarinpalPayment = {
+  id: string;
+  orderId: string;
+  buyerId: number;
+  amount: number;
+  authority: string;
+  callbackUrl: string;
+  mode: "sandbox" | "production";
+  status: "pending" | "verified" | "failed" | "cancelled";
+  refId?: string;
+  cardPan?: string;
+  fee?: number;
+  code?: number;
+  message?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ZarinpalAdminSettings = {
+  zarinpalEnabled: boolean;
+  zarinpalSandbox: boolean;
+  zarinpalMerchantId: string;
+  zarinpalCallbackBaseUrl: string;
+  zarinpalDescription: string;
+};
+
+export type ZarinpalPrerequisites = ZarinpalAdminSettings & {
+  hasMerchantId: boolean;
+  callbackUrl: string;
+  requestEndpoint: string;
+  verifyEndpoint: string;
+  startPayBaseUrl: string;
+  ready: boolean;
+  missingItems: string[];
+};
+
+export type PaymentMethod = "wallet" | "gateway" | "zarinpal";
 
 export type JsonMessage = {
   id: number;
@@ -313,6 +353,7 @@ export type OptiBidJsonData = {
   withdrawals: JsonWithdrawalRequest[];
   transactions: JsonEscrowTransaction[];
   platformTransactions: JsonPlatformTransaction[];
+  zarinpalPayments: JsonZarinpalPayment[];
   messages: JsonMessage[];
   notifications: JsonNotification[];
   reviews: JsonReview[];
@@ -324,6 +365,11 @@ export type OptiBidJsonData = {
     adminBankName: string;
     adminSheba: string;
     adminCardNumber: string;
+    zarinpalEnabled: boolean;
+    zarinpalSandbox: boolean;
+    zarinpalMerchantId: string;
+    zarinpalCallbackBaseUrl: string;
+    zarinpalDescription: string;
   };
 };
 
@@ -337,6 +383,7 @@ const emptyData = (): OptiBidJsonData => ({
   withdrawals: [],
   transactions: [],
   platformTransactions: [],
+  zarinpalPayments: [],
   messages: [],
   notifications: [],
   reviews: [],
@@ -348,6 +395,11 @@ const emptyData = (): OptiBidJsonData => ({
     adminBankName: "",
     adminSheba: "",
     adminCardNumber: "",
+    zarinpalEnabled: false,
+    zarinpalSandbox: true,
+    zarinpalMerchantId: "",
+    zarinpalCallbackBaseUrl: "https://optibid.fazilat-ma.workers.dev",
+    zarinpalDescription: "پرداخت امانی سفارش OptiBid",
   },
 });
 
@@ -543,6 +595,12 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
     platformTransactions: Array.isArray(parsed.platformTransactions)
       ? parsed.platformTransactions
       : [],
+    zarinpalPayments: Array.isArray(
+      (parsed as { zarinpalPayments?: unknown }).zarinpalPayments,
+    )
+      ? (parsed as { zarinpalPayments?: JsonZarinpalPayment[] })
+          .zarinpalPayments || []
+      : [],
     messages: Array.isArray(parsed.messages) ? parsed.messages : [],
     notifications: Array.isArray(parsed.notifications)
       ? parsed.notifications
@@ -565,6 +623,32 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       adminBankName: decryptBankValue(parsed.settings?.adminBankName),
       adminSheba: decryptBankValue(parsed.settings?.adminSheba),
       adminCardNumber: decryptBankValue(parsed.settings?.adminCardNumber),
+      zarinpalEnabled: Boolean(
+        (parsed.settings as Partial<ZarinpalAdminSettings> | undefined)
+          ?.zarinpalEnabled,
+      ),
+      zarinpalSandbox:
+        typeof (parsed.settings as Partial<ZarinpalAdminSettings> | undefined)
+          ?.zarinpalSandbox === "boolean"
+          ? Boolean(
+              (parsed.settings as Partial<ZarinpalAdminSettings> | undefined)
+                ?.zarinpalSandbox,
+            )
+          : true,
+      zarinpalMerchantId:
+        process.env.ZARINPAL_MERCHANT_ID ||
+        decryptBankValue(
+          (parsed.settings as Partial<ZarinpalAdminSettings> | undefined)
+            ?.zarinpalMerchantId,
+        ),
+      zarinpalCallbackBaseUrl:
+        (parsed.settings as Partial<ZarinpalAdminSettings> | undefined)
+          ?.zarinpalCallbackBaseUrl ||
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        "https://optibid.fazilat-ma.workers.dev",
+      zarinpalDescription:
+        (parsed.settings as Partial<ZarinpalAdminSettings> | undefined)
+          ?.zarinpalDescription || "پرداخت امانی سفارش OptiBid",
     },
   };
 }
@@ -629,6 +713,7 @@ export async function writeOptiBidData(data: OptiBidJsonData) {
       adminBankName: encryptBankValue(data.settings.adminBankName),
       adminSheba: encryptBankValue(data.settings.adminSheba),
       adminCardNumber: encryptBankValue(data.settings.adminCardNumber),
+      zarinpalMerchantId: encryptBankValue(data.settings.zarinpalMerchantId),
     },
   };
 
@@ -1505,7 +1590,9 @@ export async function topUpJsonWallet(userId: number, amount: number) {
 export async function payJsonOrder(input: {
   buyerId: number;
   orderId: string;
-  paymentMethod: "wallet" | "gateway";
+  paymentMethod: PaymentMethod;
+  gatewayAuthority?: string;
+  gatewayRefId?: string;
 }) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, input.buyerId, "buyer");
@@ -1537,13 +1624,18 @@ export async function payJsonOrder(input: {
       type: "gateway_payment",
       amount: -amount,
       balanceAfter: buyer.walletBalance,
-      description: `پرداخت اینترنتی سفارش ${order.id}`,
+      description:
+        input.paymentMethod === "zarinpal"
+          ? `پرداخت اینترنتی زرین‌پال سفارش ${order.id}`
+          : `پرداخت اینترنتی سفارش ${order.id}`,
       orderId: order.id,
     });
   }
 
   order.status = "paid";
   order.paymentMethod = input.paymentMethod;
+  order.gatewayAuthority = input.gatewayAuthority || order.gatewayAuthority;
+  order.gatewayRefId = input.gatewayRefId || order.gatewayRefId;
   order.paymentAt = new Date().toISOString();
   const escrow: JsonEscrowTransaction = {
     id: nextStringId("ESC"),
@@ -2018,12 +2110,269 @@ export async function getJsonBuyerRankings() {
     );
 }
 
+function zarinpalEndpoints(sandbox: boolean) {
+  return {
+    requestEndpoint: sandbox
+      ? "https://sandbox.zarinpal.com/pg/v4/payment/request.json"
+      : "https://api.zarinpal.com/pg/v4/payment/request.json",
+    verifyEndpoint: sandbox
+      ? "https://sandbox.zarinpal.com/pg/v4/payment/verify.json"
+      : "https://api.zarinpal.com/pg/v4/payment/verify.json",
+    startPayBaseUrl: sandbox
+      ? "https://sandbox.zarinpal.com/pg/StartPay"
+      : "https://www.zarinpal.com/pg/StartPay",
+  };
+}
+
+function normalizeBaseUrl(value?: string) {
+  return (
+    value ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://optibid.fazilat-ma.workers.dev"
+  ).replace(/\/+$/, "");
+}
+
+function buildZarinpalPrerequisites(
+  settings: OptiBidJsonData["settings"],
+): ZarinpalPrerequisites {
+  const zarinpalSandbox =
+    typeof process.env.ZARINPAL_SANDBOX === "string"
+      ? process.env.ZARINPAL_SANDBOX !== "false"
+      : settings.zarinpalSandbox;
+  const zarinpalMerchantId =
+    process.env.ZARINPAL_MERCHANT_ID || settings.zarinpalMerchantId || "";
+  const zarinpalCallbackBaseUrl = normalizeBaseUrl(
+    settings.zarinpalCallbackBaseUrl,
+  );
+  const endpoints = zarinpalEndpoints(zarinpalSandbox);
+  const missingItems: string[] = [];
+  if (!settings.zarinpalEnabled)
+    missingItems.push("فعال‌سازی درگاه زرین‌پال در پنل ادمین");
+  if (!zarinpalMerchantId.trim()) missingItems.push("Merchant ID زرین‌پال");
+  if (!zarinpalCallbackBaseUrl.startsWith("https://"))
+    missingItems.push("آدرس HTTPS سایت/Callback");
+  return {
+    zarinpalEnabled: settings.zarinpalEnabled,
+    zarinpalSandbox,
+    zarinpalMerchantId,
+    zarinpalCallbackBaseUrl,
+    zarinpalDescription:
+      settings.zarinpalDescription || "پرداخت امانی سفارش OptiBid",
+    hasMerchantId: Boolean(zarinpalMerchantId.trim()),
+    callbackUrl: `${zarinpalCallbackBaseUrl}/api/payments/zarinpal/callback`,
+    ...endpoints,
+    ready: missingItems.length === 0,
+    missingItems,
+  };
+}
+
+export async function prepareJsonZarinpalPayment(input: {
+  buyerId: number;
+  orderId: string;
+  origin?: string;
+}) {
+  const data = await getOptiBidData();
+  const buyer = getUserOrThrow(data, input.buyerId, "buyer");
+  const order = data.orders.find(
+    (item) =>
+      item.id === input.orderId &&
+      item.buyerId === buyer.id &&
+      item.status === "pending_payment",
+  );
+  if (!order) throw new Error("Pending payment order not found");
+  const prerequisites = buildZarinpalPrerequisites({
+    ...data.settings,
+    zarinpalCallbackBaseUrl:
+      data.settings.zarinpalCallbackBaseUrl || input.origin || "",
+  });
+  if (!prerequisites.ready) {
+    throw new Error(
+      `Zarinpal is not ready: ${prerequisites.missingItems.join("، ")}`,
+    );
+  }
+  return {
+    buyer: { id: buyer.id, fullName: buyer.fullName, email: buyer.email },
+    order,
+    amount: money(order.totalAmount),
+    prerequisites,
+  };
+}
+
+export async function createJsonZarinpalPaymentAttempt(input: {
+  orderId: string;
+  buyerId: number;
+  amount: number;
+  authority: string;
+  callbackUrl: string;
+  mode: "sandbox" | "production";
+  fee?: number;
+  code?: number;
+  message?: string;
+}) {
+  const data = await getOptiBidData();
+  data.zarinpalPayments = (data.zarinpalPayments || []).filter(
+    (item) => !(item.orderId === input.orderId && item.status === "pending"),
+  );
+  const now = new Date().toISOString();
+  const payment: JsonZarinpalPayment = {
+    id: nextStringId("ZRP"),
+    orderId: input.orderId,
+    buyerId: input.buyerId,
+    amount: input.amount,
+    authority: input.authority,
+    callbackUrl: input.callbackUrl,
+    mode: input.mode,
+    status: "pending",
+    fee: input.fee,
+    code: input.code,
+    message: input.message,
+    createdAt: now,
+    updatedAt: now,
+  };
+  data.zarinpalPayments.unshift(payment);
+  addNotification(data, {
+    userId: input.buyerId,
+    type: "payment",
+    title: "انتقال به درگاه زرین‌پال",
+    body: `درخواست پرداخت زرین‌پال برای سفارش ${input.orderId} ایجاد شد.`,
+    href: "/buyer/dashboard",
+  });
+  await writeOptiBidData(data);
+  return payment;
+}
+
+export async function getJsonZarinpalPaymentAttempt(authority: string) {
+  const data = await getOptiBidData();
+  const payment = data.zarinpalPayments.find(
+    (item) => item.authority === authority,
+  );
+  if (!payment) throw new Error("Zarinpal payment not found");
+  return payment;
+}
+
+export async function failJsonZarinpalPayment(input: {
+  authority: string;
+  status: "failed" | "cancelled";
+  message?: string;
+  code?: number;
+}) {
+  const data = await getOptiBidData();
+  const payment = data.zarinpalPayments.find(
+    (item) => item.authority === input.authority,
+  );
+  if (!payment) throw new Error("Zarinpal payment not found");
+  payment.status = input.status;
+  payment.message = input.message || payment.message;
+  payment.code = input.code ?? payment.code;
+  payment.updatedAt = new Date().toISOString();
+  addNotification(data, {
+    userId: payment.buyerId,
+    type: "payment",
+    title:
+      input.status === "cancelled"
+        ? "پرداخت زرین‌پال لغو شد"
+        : "پرداخت زرین‌پال ناموفق بود",
+    body: `پرداخت سفارش ${payment.orderId} تکمیل نشد.${payment.message ? ` ${payment.message}` : ""}`,
+    href: "/buyer/dashboard",
+  });
+  await writeOptiBidData(data);
+  return payment;
+}
+
+export async function completeJsonZarinpalPayment(input: {
+  authority: string;
+  refId: string;
+  cardPan?: string;
+  fee?: number;
+  code?: number;
+  message?: string;
+}) {
+  const data = await getOptiBidData();
+  const payment = data.zarinpalPayments.find(
+    (item) => item.authority === input.authority,
+  );
+  if (!payment) throw new Error("Zarinpal payment not found");
+  const buyer = getUserOrThrow(data, payment.buyerId, "buyer");
+  const order = data.orders.find(
+    (item) => item.id === payment.orderId && item.buyerId === buyer.id,
+  );
+  if (!order) throw new Error("Zarinpal order not found");
+  if (money(order.totalAmount) !== payment.amount)
+    throw new Error("Zarinpal amount mismatch");
+
+  payment.status = "verified";
+  payment.refId = input.refId;
+  payment.cardPan = input.cardPan;
+  payment.fee = input.fee ?? payment.fee;
+  payment.code = input.code ?? payment.code;
+  payment.message = input.message || payment.message;
+  payment.updatedAt = new Date().toISOString();
+
+  if (order.status === "pending_payment") {
+    const amount = money(order.totalAmount);
+    addWalletTransaction(data, {
+      userId: buyer.id,
+      type: "gateway_payment",
+      amount: -amount,
+      balanceAfter: buyer.walletBalance,
+      description: `پرداخت اینترنتی زرین‌پال سفارش ${order.id} - کد رهگیری ${input.refId}`,
+      orderId: order.id,
+    });
+    order.status = "paid";
+    order.paymentMethod = "zarinpal";
+    order.gatewayAuthority = input.authority;
+    order.gatewayRefId = input.refId;
+    order.paymentAt = new Date().toISOString();
+    const escrow: JsonEscrowTransaction = {
+      id: nextStringId("ESC"),
+      orderId: order.id,
+      buyerId: buyer.id,
+      sellerId: order.sellerId,
+      amount,
+      platformFee: money(order.platformFee),
+      sellerAmount: money(order.sellerAmount),
+      status: "held",
+      createdAt: new Date().toISOString(),
+    };
+    data.transactions.unshift(escrow);
+    const request = data.requests.find((item) => item.id === order.requestId);
+    if (request) request.status = "paid";
+    addNotification(data, {
+      userId: order.sellerId,
+      type: "payment",
+      title: "وجه سفارش از زرین‌پال امانی شد",
+      body: `خریدار مبلغ سفارش «${order.title}» را از زرین‌پال پرداخت کرد. اکنون کالا را ارسال کنید.`,
+      href: "/seller/dashboard",
+    });
+    addNotification(data, {
+      userId: buyer.id,
+      type: "payment",
+      title: "پرداخت زرین‌پال موفق بود",
+      body: `پرداخت سفارش «${order.title}» با کد رهگیری ${input.refId} تایید شد و وجه نزد OptiBid امانت است.`,
+      href: "/buyer/dashboard",
+    });
+  }
+
+  await writeOptiBidData(data);
+  return { order, payment };
+}
+
+export async function getJsonZarinpalPrerequisites() {
+  const data = await getOptiBidData();
+  return buildZarinpalPrerequisites(data.settings);
+}
+
 export async function updateJsonPlatformFinanceSettings(updates: {
   commissionRate?: number;
   adminAccountHolder?: string;
   adminBankName?: string;
   adminSheba?: string;
   adminCardNumber?: string;
+  zarinpalEnabled?: boolean;
+  zarinpalSandbox?: boolean;
+  zarinpalMerchantId?: string;
+  zarinpalCallbackBaseUrl?: string;
+  zarinpalDescription?: string;
 }) {
   const data = await getOptiBidData();
   if (typeof updates.commissionRate === "number") {
@@ -2040,6 +2389,19 @@ export async function updateJsonPlatformFinanceSettings(updates: {
     data.settings.adminSheba = updates.adminSheba.trim();
   if (typeof updates.adminCardNumber === "string")
     data.settings.adminCardNumber = updates.adminCardNumber.trim();
+  if (typeof updates.zarinpalEnabled === "boolean")
+    data.settings.zarinpalEnabled = updates.zarinpalEnabled;
+  if (typeof updates.zarinpalSandbox === "boolean")
+    data.settings.zarinpalSandbox = updates.zarinpalSandbox;
+  if (typeof updates.zarinpalMerchantId === "string")
+    data.settings.zarinpalMerchantId = updates.zarinpalMerchantId.trim();
+  if (typeof updates.zarinpalCallbackBaseUrl === "string")
+    data.settings.zarinpalCallbackBaseUrl = normalizeBaseUrl(
+      updates.zarinpalCallbackBaseUrl,
+    );
+  if (typeof updates.zarinpalDescription === "string")
+    data.settings.zarinpalDescription =
+      updates.zarinpalDescription.trim() || "پرداخت امانی سفارش OptiBid";
   await writeOptiBidData(data);
   return data.settings;
 }
@@ -2051,6 +2413,8 @@ export async function getJsonPlatformFinance() {
     platformTransactions: data.platformTransactions,
     escrowTransactions: data.transactions,
     withdrawals: data.withdrawals,
+    zarinpalPayments: data.zarinpalPayments || [],
+    zarinpalPrerequisites: buildZarinpalPrerequisites(data.settings),
   };
 }
 

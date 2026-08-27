@@ -73,9 +73,9 @@ export default function BuyerDashboardPage() {
     useState(false);
   const [useAlternateAddress, setUseAlternateAddress] = useState(false);
   const [alternateAddress, setAlternateAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "gateway">(
-    "wallet",
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "wallet" | "zarinpal" | "gateway"
+  >("wallet");
   const [topupAmount, setTopupAmount] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [messageText, setMessageText] = useState("");
@@ -194,6 +194,11 @@ export default function BuyerDashboardPage() {
         orderId,
         paymentMethod,
       });
+      if (result.redirectUrl) {
+        alert(result.message || "به درگاه زرین‌پال منتقل می‌شوید.");
+        window.location.assign(result.redirectUrl);
+        return;
+      }
       alert(result.message);
       await loadDashboard();
     } catch (err) {
@@ -777,22 +782,31 @@ export default function BuyerDashboardPage() {
                         value={paymentMethod}
                         onChange={(e) =>
                           setPaymentMethod(
-                            e.target.value as "wallet" | "gateway",
+                            e.target.value as "wallet" | "zarinpal" | "gateway",
                           )
                         }
                         className="rounded-xl border px-3 py-2 text-sm"
                       >
                         <option value="wallet">پرداخت از کیف پول</option>
+                        <option value="zarinpal">درگاه بانکی زرین‌پال</option>
                         <option value="gateway">
-                          پرداخت اینترنتی (شبیه‌سازی درگاه)
+                          پرداخت اینترنتی آزمایشی (شبیه‌سازی)
                         </option>
                       </select>
                       <button
                         onClick={() => payOrder(order.id)}
                         className="rounded-xl bg-red-500 px-5 py-2 font-bold text-white"
                       >
-                        پرداخت امانی
+                        {paymentMethod === "zarinpal"
+                          ? "پرداخت با زرین‌پال"
+                          : "پرداخت امانی"}
                       </button>
+                      {paymentMethod === "zarinpal" && (
+                        <p className="w-full rounded-xl bg-blue-50 p-3 text-xs leading-6 text-blue-800">
+                          پس از پرداخت در زرین‌پال، به صفحه تایید OptiBid
+                          برمی‌گردید و وجه سفارش به صورت امانی ثبت می‌شود.
+                        </p>
+                      )}
                       <button
                         onClick={() => cancelOrder(order.id)}
                         className="rounded-xl border border-red-200 px-4 py-2 font-bold text-red-600"

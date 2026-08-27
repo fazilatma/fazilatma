@@ -247,6 +247,12 @@
       "namedRegex": "^/api/password/reset(?:/)?$"
     },
     {
+      "page": "/api/payments/zarinpal/callback",
+      "regex": "^/api/payments/zarinpal/callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/payments/zarinpal/callback(?:/)?$"
+    },
+    {
       "page": "/api/product-image",
       "regex": "^/api/product\\-image(?:/)?$",
       "routeKeys": {},

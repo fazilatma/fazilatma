@@ -48,18 +48,28 @@ function specRow(label: string, value: unknown) {
 
 export const generateInvoiceHTML = (invoiceData: any) => {
   const liveContent = getCachedLiveContent();
-  const documentId = invoiceData.id || invoiceData.orderId || `INV-${Date.now()}`;
+  const documentId =
+    invoiceData.id || invoiceData.orderId || `INV-${Date.now()}`;
   const date = invoiceData.date || new Date().toLocaleDateString("fa-IR");
-  const sellerName = invoiceData.sellerName || invoiceData.seller || "فروشنده OptiBid";
-  const buyerName = invoiceData.buyerName || invoiceData.buyer || "خریدار OptiBid";
-  const productTitle = invoiceData.product || invoiceData.title || "کالای مورد معامله";
-  const description = invoiceData.description || invoiceData.productDescription || "";
+  const sellerName =
+    invoiceData.sellerName || invoiceData.seller || "فروشنده OptiBid";
+  const buyerName =
+    invoiceData.buyerName || invoiceData.buyer || "خریدار OptiBid";
+  const productTitle =
+    invoiceData.product || invoiceData.title || "کالای مورد معامله";
+  const description =
+    invoiceData.description || invoiceData.productDescription || "";
   const category = invoiceData.category || "کالا / خدمات";
   const quantity = Math.max(1, Number(invoiceData.quantity || 1) || 1);
-  const totalAmount = numericMoney(invoiceData.totalAmount ?? invoiceData.amount);
-  const unitAmount = numericMoney(invoiceData.unitAmount) || Math.round(totalAmount / quantity);
+  const totalAmount = numericMoney(
+    invoiceData.totalAmount ?? invoiceData.amount,
+  );
+  const unitAmount =
+    numericMoney(invoiceData.unitAmount) || Math.round(totalAmount / quantity);
   const platformFee = numericMoney(invoiceData.platformFee);
-  const sellerAmount = numericMoney(invoiceData.sellerAmount) || Math.max(0, totalAmount - platformFee);
+  const sellerAmount =
+    numericMoney(invoiceData.sellerAmount) ||
+    Math.max(0, totalAmount - platformFee);
   const taxAmount = numericMoney(invoiceData.taxAmount);
   const shippingAmount = numericMoney(invoiceData.shippingAmount);
   const payableAmount = totalAmount + taxAmount + shippingAmount;
@@ -84,10 +94,16 @@ export const generateInvoiceHTML = (invoiceData: any) => {
     specRow("وضعیت کالا", specs.productCondition),
     specRow("گارانتی", specs.warrantyStatus),
     specRow("سلامت کلی قطعات", specs.partsHealth),
-    specRow("سلامت باتری", specs.batteryHealthPercent ? `${specs.batteryHealthPercent}%` : ""),
+    specRow(
+      "سلامت باتری",
+      specs.batteryHealthPercent ? `${specs.batteryHealthPercent}%` : "",
+    ),
     specRow("گرید ظاهری", specs.appearanceGrade),
     specRow("سابقه تعمیر", specs.repairHistory),
-    specRow("مهلت تست", specs.testDeadlineDays ? `${specs.testDeadlineDays} روز` : ""),
+    specRow(
+      "مهلت تست",
+      specs.testDeadlineDays ? `${specs.testDeadlineDays} روز` : "",
+    ),
   ]
     .filter(Boolean)
     .join("");
@@ -290,7 +306,7 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           <div class="info-row"><span>نام خریدار</span><b>${escapeHtml(buyerName)}</b></div>
           <div class="info-row"><span>آدرس تحویل</span><b>${escapeHtml(invoiceData.shippingAddress || liveContent.invoiceShippingAddressFa)}</b></div>
           <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${escapeHtml(documentId)}</b></div>
-          <div class="info-row"><span>روش پرداخت</span><b>${escapeHtml(invoiceData.paymentMethod === "wallet" ? "کیف پول" : invoiceData.paymentMethod === "gateway" ? "درگاه پرداخت" : "پرداخت امانی OptiBid")}</b></div>
+          <div class="info-row"><span>روش پرداخت</span><b>${escapeHtml(invoiceData.paymentMethod === "wallet" ? "کیف پول" : invoiceData.paymentMethod === "zarinpal" ? "زرین‌پال" : invoiceData.paymentMethod === "gateway" ? "درگاه پرداخت آزمایشی" : "پرداخت امانی OptiBid")}</b></div>
           <div class="info-row"><span>حساب امانی</span><b>وجه تا تایید دریافت نزد OptiBid امانت است</b></div>
         </article>
       </section>
