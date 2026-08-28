@@ -7,6 +7,8 @@
   "/api/admin/kyc/route": "/api/admin/kyc",
   "/api/admin/seller-metrics/route": "/api/admin/seller-metrics",
   "/api/admin/withdrawals/route": "/api/admin/withdrawals",
+  "/api/auth/social/[provider]/callback/route": "/api/auth/social/[provider]/callback",
+  "/api/auth/social/[provider]/route": "/api/auth/social/[provider]",
   "/api/avatar/route": "/api/avatar",
   "/api/buyer/profile/route": "/api/buyer/profile",
   "/api/dashboard/buyer/route": "/api/dashboard/buyer",

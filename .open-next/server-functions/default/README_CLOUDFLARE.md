@@ -170,3 +170,24 @@ ZARINPAL_MERCHANT_ID = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ZARINPAL_SANDBOX = true|false
 NEXT_PUBLIC_SITE_URL = https://optibid.fazilat-ma.workers.dev
 ```
+
+## ورود با گوگل و فیسبوک
+
+برای فعال شدن دکمه‌های ورود/ثبت‌نام اجتماعی، این Secretها را در Cloudflare Workers تنظیم کنید:
+
+```text
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+FACEBOOK_CLIENT_ID
+FACEBOOK_CLIENT_SECRET
+NEXT_PUBLIC_SITE_URL=https://optibid.fazilat-ma.workers.dev
+```
+
+Redirect URIهایی که باید در پنل Google Cloud و Facebook Developers ثبت شوند:
+
+```text
+https://optibid.fazilat-ma.workers.dev/api/auth/social/google/callback
+https://optibid.fazilat-ma.workers.dev/api/auth/social/facebook/callback
+```
+
+اگر این Secretها تنظیم نشده باشند، دکمه‌ها دیگر بی‌عمل نیستند و پیام دقیق کمبود تنظیمات را در صفحه ورود نمایش می‌دهند.

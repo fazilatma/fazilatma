@@ -76,6 +76,15 @@ export type JsonKycDocument = {
   uploadedAt: string;
 };
 
+export type SocialAuthProvider = "google" | "facebook";
+
+export type JsonSocialAccount = {
+  provider: SocialAuthProvider;
+  providerUserId: string;
+  email: string;
+  linkedAt: string;
+};
+
 export type JsonUser = {
   id: number;
   fullName: string;
@@ -90,6 +99,7 @@ export type JsonUser = {
   kycReviewedAt?: string;
   createdAt: string;
   avatarName?: string;
+  socialAccounts?: JsonSocialAccount[];
   bio?: string;
   categories?: string[];
   city?: string;
@@ -509,6 +519,17 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       username: user.username || "",
       kycStatus: user.kycStatus || "approved",
       kycDocuments: Array.isArray(user.kycDocuments) ? user.kycDocuments : [],
+      socialAccounts: Array.isArray(
+        (user as { socialAccounts?: unknown }).socialAccounts,
+      )
+        ? (
+            (user as { socialAccounts?: JsonSocialAccount[] }).socialAccounts ||
+            []
+          ).filter(
+            (account) =>
+              account.provider === "google" || account.provider === "facebook",
+          )
+        : [],
       kycRejectReason: user.kycRejectReason || "",
       walletBalance: Number(user.walletBalance || 0),
       city: user.city || "",
@@ -879,6 +900,131 @@ export async function authenticateJsonUser(input: {
     await writeOptiBidData(data);
   }
   return user;
+}
+
+function normalizeUsernameSeed(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, "")
+    .replace(/[^a-z0-9._-]/g, "")
+    .replace(/^[._-]+|[._-]+$/g, "");
+  return normalized.length >= 3
+    ? normalized.slice(0, 24)
+    : `user${Date.now().toString(36)}`;
+}
+
+function uniqueUsername(users: JsonUser[], seed: string) {
+  const base = normalizeUsernameSeed(seed);
+  const existing = new Set(
+    users.map((user) => (user.username || "").toLowerCase()).filter(Boolean),
+  );
+  if (!existing.has(base)) return base;
+  for (let index = 2; index < 1000; index += 1) {
+    const candidate = `${base}${index}`.slice(0, 30);
+    if (!existing.has(candidate)) return candidate;
+  }
+  return `${base.slice(0, 20)}${Math.floor(Math.random() * 900000 + 100000)}`;
+}
+
+export async function authenticateOrCreateJsonSocialUser(input: {
+  provider: SocialAuthProvider;
+  providerUserId: string;
+  email: string;
+  fullName: string;
+  role?: "buyer" | "seller";
+}) {
+  const data = await getOptiBidData();
+  const normalizedEmail = (
+    input.email ||
+    `${input.provider}-${input.providerUserId}@social.optibid.local`
+  )
+    .trim()
+    .toLowerCase();
+  const providerUserId = input.providerUserId.trim();
+  if (!providerUserId) throw new Error("Social provider id is required");
+
+  let user = data.users.find((item) =>
+    (item.socialAccounts || []).some(
+      (account) =>
+        account.provider === input.provider &&
+        account.providerUserId === providerUserId,
+    ),
+  );
+  if (!user)
+    user = data.users.find(
+      (item) => item.email.toLowerCase() === normalizedEmail,
+    );
+
+  if (user) {
+    user.socialAccounts = user.socialAccounts || [];
+    if (
+      !user.socialAccounts.some(
+        (account) =>
+          account.provider === input.provider &&
+          account.providerUserId === providerUserId,
+      )
+    ) {
+      user.socialAccounts.push({
+        provider: input.provider,
+        providerUserId,
+        email: normalizedEmail,
+        linkedAt: new Date().toISOString(),
+      });
+    }
+    if (!user.fullName.trim() && input.fullName.trim())
+      user.fullName = input.fullName.trim();
+    if (user.kycStatus === "rejected")
+      throw new Error(
+        `KYC_REJECTED:${user.kycRejectReason || "مدارک نیازمند اصلاح است"}`,
+      );
+    if (user.kycStatus === "pending" || !user.isActive)
+      throw new Error("KYC_PENDING");
+    await writeOptiBidData(data);
+    return user;
+  }
+
+  const role = input.role === "seller" ? "seller" : "buyer";
+  const createdAt = new Date().toISOString();
+  const socialUser: JsonUser = {
+    id: nextNumericId(data.users),
+    fullName:
+      input.fullName.trim() ||
+      (role === "seller" ? "فروشنده OptiBid" : "خریدار OptiBid"),
+    username: uniqueUsername(data.users, normalizedEmail),
+    email: normalizedEmail,
+    role,
+    isActive: true,
+    kycStatus: "approved",
+    kycDocuments: [],
+    kycRejectReason: "",
+    socialAccounts: [
+      {
+        provider: input.provider,
+        providerUserId,
+        email: normalizedEmail,
+        linkedAt: createdAt,
+      },
+    ],
+    bio:
+      input.provider === "google" ? "ورود با حساب گوگل" : "ورود با حساب فیسبوک",
+    categories: [],
+    city: "",
+    postalCode: "",
+    defaultAddress: "",
+    bankAccountHolder: input.fullName.trim() || "",
+    bankName: "",
+    bankAccountNumber: "",
+    bankCardNumber: "",
+    bankShebaNumber: "",
+    bankDetailsVerified: false,
+    walletBalance: 0,
+    sellerMetrics: role === "seller" ? createDefaultSellerMetrics() : undefined,
+    createdAt,
+  };
+  data.users.push(socialUser);
+  await writeOptiBidData(data);
+  return socialUser;
 }
 
 export async function createJsonPurchaseRequest(input: {

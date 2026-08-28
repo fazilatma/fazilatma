@@ -23,6 +23,22 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/auth/social/[provider]",
+      "regex": "^/api/auth/social/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPprovider": "nxtPprovider"
+      },
+      "namedRegex": "^/api/auth/social/(?<nxtPprovider>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/auth/social/[provider]/callback",
+      "regex": "^/api/auth/social/([^/]+?)/callback(?:/)?$",
+      "routeKeys": {
+        "nxtPprovider": "nxtPprovider"
+      },
+      "namedRegex": "^/api/auth/social/(?<nxtPprovider>[^/]+?)/callback(?:/)?$"
+    },
+    {
       "page": "/buyers/[id]",
       "regex": "^/buyers/([^/]+?)(?:/)?$",
       "routeKeys": {
