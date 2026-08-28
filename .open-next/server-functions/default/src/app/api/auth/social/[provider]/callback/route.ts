@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   authenticateOrCreateJsonSocialUser,
+  getJsonPlatformFinance,
   type SocialAuthProvider,
 } from "@/lib/json-store";
 
@@ -62,14 +63,21 @@ function decodeState(value: string): SocialState | null {
   return null;
 }
 
-function oauthConfig(provider: Provider) {
+async function oauthConfig(provider: Provider) {
+  const finance = await getJsonPlatformFinance().catch(() => null);
+  const settings = finance?.settings;
   if (provider === "google") {
     return {
       clientId:
         process.env.GOOGLE_CLIENT_ID ||
         process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+        settings?.googleOAuthClientId ||
         "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      clientSecret:
+        process.env.GOOGLE_CLIENT_SECRET ||
+        settings?.googleOAuthClientSecret ||
+        "",
+      baseUrl: settings?.socialAuthBaseUrl || "",
       tokenUrl: "https://oauth2.googleapis.com/token",
       userInfoUrl: "https://www.googleapis.com/oauth2/v3/userinfo",
     };
@@ -78,8 +86,13 @@ function oauthConfig(provider: Provider) {
     clientId:
       process.env.FACEBOOK_CLIENT_ID ||
       process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID ||
+      settings?.facebookOAuthClientId ||
       "",
-    clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
+    clientSecret:
+      process.env.FACEBOOK_CLIENT_SECRET ||
+      settings?.facebookOAuthClientSecret ||
+      "",
+    baseUrl: settings?.socialAuthBaseUrl || "",
     tokenUrl: "https://graph.facebook.com/v20.0/oauth/access_token",
     userInfoUrl:
       "https://graph.facebook.com/me?fields=id,name,email,picture.width(256).height(256)",
@@ -112,7 +125,7 @@ function resultHtml(input: {
 async function exchangeGoogleCode(
   code: string,
   redirectUri: string,
-  config: ReturnType<typeof oauthConfig>,
+  config: Awaited<ReturnType<typeof oauthConfig>>,
 ) {
   const response = await fetch(config.tokenUrl, {
     method: "POST",
@@ -149,7 +162,7 @@ async function exchangeGoogleCode(
 async function exchangeFacebookCode(
   code: string,
   redirectUri: string,
-  config: ReturnType<typeof oauthConfig>,
+  config: Awaited<ReturnType<typeof oauthConfig>>,
 ) {
   const tokenUrl = new URL(config.tokenUrl);
   tokenUrl.searchParams.set("client_id", config.clientId);
@@ -215,10 +228,10 @@ export async function GET(request: Request, context: RouteContext) {
       throw new Error("State ورود اجتماعی نامعتبر است.");
     if (!code) throw new Error("کد تایید ورود اجتماعی دریافت نشد.");
 
-    const config = oauthConfig(provider);
+    const config = await oauthConfig(provider);
     if (!config.clientId || !config.clientSecret)
       throw new Error("تنظیمات Client ID / Client Secret کامل نیست.");
-    const redirectUri = `${baseUrlFromRequest(request)}/api/auth/social/${provider}/callback`;
+    const redirectUri = `${(config.baseUrl || baseUrlFromRequest(request)).replace(/\/+$/, "")}/api/auth/social/${provider}/callback`;
     const profile =
       provider === "google"
         ? await exchangeGoogleCode(code, redirectUri, config)

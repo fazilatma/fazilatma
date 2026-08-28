@@ -98,6 +98,13 @@ export default function AdminDashboardClient({
     zarinpalMerchantId: "",
     zarinpalCallbackBaseUrl: "https://optibid.fazilat-ma.workers.dev",
     zarinpalDescription: "پرداخت امانی سفارش OptiBid",
+    googleOAuthEnabled: false,
+    googleOAuthClientId: "",
+    googleOAuthClientSecret: "",
+    facebookOAuthEnabled: false,
+    facebookOAuthClientId: "",
+    facebookOAuthClientSecret: "",
+    socialAuthBaseUrl: "https://optibid.fazilat-ma.workers.dev",
   });
   const [platformTransactions, setPlatformTransactions] = useState<any[]>([]);
   const [escrowTransactions, setEscrowTransactions] = useState<any[]>([]);
@@ -384,6 +391,12 @@ export default function AdminDashboardClient({
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "financial" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
                   💵 تنظیمات مالی و کمیسیون
+                </button>
+                <button
+                  onClick={() => setActiveTab("socialAuth")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "socialAuth" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🔐 ورود با گوگل و فیسبوک
                 </button>
                 <button
                   onClick={() => setActiveTab("categories")}
@@ -1907,6 +1920,201 @@ export default function AdminDashboardClient({
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Social Auth Settings */}
+            {activeTab === "socialAuth" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      🔐 تنظیمات ورود با گوگل و فیسبوک
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-600">
+                      برای اینکه آیکون‌های ورود اجتماعی واقعاً کار کنند، Client
+                      ID و Client Secret هر سرویس را اینجا ثبت و همان Callback
+                      URL را در پنل Google/Facebook وارد کنید.
+                    </p>
+                  </div>
+
+                  <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-7 text-blue-900">
+                    <p>
+                      <b>دامنه پایه:</b>{" "}
+                      <span dir="ltr" className="font-mono text-xs">
+                        {platformFinance.socialAuthBaseUrl}
+                      </span>
+                    </p>
+                    <p>
+                      <b>Callback گوگل:</b>{" "}
+                      <span
+                        dir="ltr"
+                        className="font-mono text-xs"
+                      >{`${platformFinance.socialAuthBaseUrl.replace(/\/+$/, "")}/api/auth/social/google/callback`}</span>
+                    </p>
+                    <p>
+                      <b>Callback فیسبوک:</b>{" "}
+                      <span
+                        dir="ltr"
+                        className="font-mono text-xs"
+                      >{`${platformFinance.socialAuthBaseUrl.replace(/\/+$/, "")}/api/auth/social/facebook/callback`}</span>
+                    </p>
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-200 p-5">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-bold text-[#003b5c]">
+                            Google OAuth
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Google Cloud Console → Credentials → OAuth Client
+                          </p>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={platformFinance.googleOAuthEnabled}
+                            onChange={(e) =>
+                              setPlatformFinance({
+                                ...platformFinance,
+                                googleOAuthEnabled: e.target.checked,
+                              })
+                            }
+                          />{" "}
+                          فعال
+                        </label>
+                      </div>
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Google Client ID
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.googleOAuthClientId}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            googleOAuthClientId: e.target.value,
+                          })
+                        }
+                        className="mb-4 w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="xxxx.apps.googleusercontent.com"
+                      />
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Google Client Secret
+                      </label>
+                      <input
+                        dir="ltr"
+                        type="password"
+                        value={platformFinance.googleOAuthClientSecret}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            googleOAuthClientSecret: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="GOCSPX-..."
+                      />
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-200 p-5">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-bold text-[#1877F2]">
+                            Facebook Login
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Meta Developers → Facebook Login → Settings
+                          </p>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={platformFinance.facebookOAuthEnabled}
+                            onChange={(e) =>
+                              setPlatformFinance({
+                                ...platformFinance,
+                                facebookOAuthEnabled: e.target.checked,
+                              })
+                            }
+                          />{" "}
+                          فعال
+                        </label>
+                      </div>
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Facebook App ID
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.facebookOAuthClientId}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            facebookOAuthClientId: e.target.value,
+                          })
+                        }
+                        className="mb-4 w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="1234567890"
+                      />
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Facebook App Secret
+                      </label>
+                      <input
+                        dir="ltr"
+                        type="password"
+                        value={platformFinance.facebookOAuthClientSecret}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            facebookOAuthClientSecret: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="app-secret"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        آدرس پایه سایت برای ورود اجتماعی
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.socialAuthBaseUrl}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            socialAuthBaseUrl: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="https://optibid.fazilat-ma.workers.dev"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                      <b>۱.</b> اپلیکیشن OAuth را در Google و Meta بسازید.
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                      <b>۲.</b> Callback URLهای بالا را دقیقاً ثبت کنید.
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                      <b>۳.</b> تنظیمات را ذخیره کنید؛ دکمه‌های ورود فوراً به
+                      OAuth وصل می‌شوند.
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={saveFinance}
+                    className="mt-6 rounded-lg bg-purple-600 px-7 py-3 font-bold text-white transition hover:bg-purple-700"
+                  >
+                    ذخیره تنظیمات ورود اجتماعی
+                  </button>
+                </div>
               </div>
             )}
 

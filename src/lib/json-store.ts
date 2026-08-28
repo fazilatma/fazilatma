@@ -380,6 +380,13 @@ export type OptiBidJsonData = {
     zarinpalMerchantId: string;
     zarinpalCallbackBaseUrl: string;
     zarinpalDescription: string;
+    googleOAuthEnabled: boolean;
+    googleOAuthClientId: string;
+    googleOAuthClientSecret: string;
+    facebookOAuthEnabled: boolean;
+    facebookOAuthClientId: string;
+    facebookOAuthClientSecret: string;
+    socialAuthBaseUrl: string;
   };
 };
 
@@ -410,6 +417,13 @@ const emptyData = (): OptiBidJsonData => ({
     zarinpalMerchantId: "",
     zarinpalCallbackBaseUrl: "https://optibid.fazilat-ma.workers.dev",
     zarinpalDescription: "پرداخت امانی سفارش OptiBid",
+    googleOAuthEnabled: false,
+    googleOAuthClientId: "",
+    googleOAuthClientSecret: "",
+    facebookOAuthEnabled: false,
+    facebookOAuthClientId: "",
+    facebookOAuthClientSecret: "",
+    socialAuthBaseUrl: "https://optibid.fazilat-ma.workers.dev",
   },
 });
 
@@ -670,6 +684,43 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       zarinpalDescription:
         (parsed.settings as Partial<ZarinpalAdminSettings> | undefined)
           ?.zarinpalDescription || "پرداخت امانی سفارش OptiBid",
+      googleOAuthEnabled: Boolean(
+        (parsed.settings as { googleOAuthEnabled?: boolean } | undefined)
+          ?.googleOAuthEnabled,
+      ),
+      googleOAuthClientId:
+        process.env.GOOGLE_CLIENT_ID ||
+        (parsed.settings as { googleOAuthClientId?: string } | undefined)
+          ?.googleOAuthClientId ||
+        "",
+      googleOAuthClientSecret:
+        process.env.GOOGLE_CLIENT_SECRET ||
+        decryptBankValue(
+          (parsed.settings as { googleOAuthClientSecret?: string } | undefined)
+            ?.googleOAuthClientSecret,
+        ),
+      facebookOAuthEnabled: Boolean(
+        (parsed.settings as { facebookOAuthEnabled?: boolean } | undefined)
+          ?.facebookOAuthEnabled,
+      ),
+      facebookOAuthClientId:
+        process.env.FACEBOOK_CLIENT_ID ||
+        (parsed.settings as { facebookOAuthClientId?: string } | undefined)
+          ?.facebookOAuthClientId ||
+        "",
+      facebookOAuthClientSecret:
+        process.env.FACEBOOK_CLIENT_SECRET ||
+        decryptBankValue(
+          (
+            parsed.settings as
+              { facebookOAuthClientSecret?: string } | undefined
+          )?.facebookOAuthClientSecret,
+        ),
+      socialAuthBaseUrl:
+        (parsed.settings as { socialAuthBaseUrl?: string } | undefined)
+          ?.socialAuthBaseUrl ||
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        "https://optibid.fazilat-ma.workers.dev",
     },
   };
 }
@@ -735,6 +786,12 @@ export async function writeOptiBidData(data: OptiBidJsonData) {
       adminSheba: encryptBankValue(data.settings.adminSheba),
       adminCardNumber: encryptBankValue(data.settings.adminCardNumber),
       zarinpalMerchantId: encryptBankValue(data.settings.zarinpalMerchantId),
+      googleOAuthClientSecret: encryptBankValue(
+        data.settings.googleOAuthClientSecret,
+      ),
+      facebookOAuthClientSecret: encryptBankValue(
+        data.settings.facebookOAuthClientSecret,
+      ),
     },
   };
 
@@ -2519,6 +2576,13 @@ export async function updateJsonPlatformFinanceSettings(updates: {
   zarinpalMerchantId?: string;
   zarinpalCallbackBaseUrl?: string;
   zarinpalDescription?: string;
+  googleOAuthEnabled?: boolean;
+  googleOAuthClientId?: string;
+  googleOAuthClientSecret?: string;
+  facebookOAuthEnabled?: boolean;
+  facebookOAuthClientId?: string;
+  facebookOAuthClientSecret?: string;
+  socialAuthBaseUrl?: string;
 }) {
   const data = await getOptiBidData();
   if (typeof updates.commissionRate === "number") {
@@ -2548,6 +2612,24 @@ export async function updateJsonPlatformFinanceSettings(updates: {
   if (typeof updates.zarinpalDescription === "string")
     data.settings.zarinpalDescription =
       updates.zarinpalDescription.trim() || "پرداخت امانی سفارش OptiBid";
+  if (typeof updates.googleOAuthEnabled === "boolean")
+    data.settings.googleOAuthEnabled = updates.googleOAuthEnabled;
+  if (typeof updates.googleOAuthClientId === "string")
+    data.settings.googleOAuthClientId = updates.googleOAuthClientId.trim();
+  if (typeof updates.googleOAuthClientSecret === "string")
+    data.settings.googleOAuthClientSecret =
+      updates.googleOAuthClientSecret.trim();
+  if (typeof updates.facebookOAuthEnabled === "boolean")
+    data.settings.facebookOAuthEnabled = updates.facebookOAuthEnabled;
+  if (typeof updates.facebookOAuthClientId === "string")
+    data.settings.facebookOAuthClientId = updates.facebookOAuthClientId.trim();
+  if (typeof updates.facebookOAuthClientSecret === "string")
+    data.settings.facebookOAuthClientSecret =
+      updates.facebookOAuthClientSecret.trim();
+  if (typeof updates.socialAuthBaseUrl === "string")
+    data.settings.socialAuthBaseUrl = normalizeBaseUrl(
+      updates.socialAuthBaseUrl,
+    );
   await writeOptiBidData(data);
   return data.settings;
 }

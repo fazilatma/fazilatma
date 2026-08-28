@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getJsonPlatformFinance } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
 
@@ -24,24 +25,48 @@ function baseUrlFromRequest(request: Request) {
   return `${url.protocol}//${url.host}`;
 }
 
-function clientConfig(provider: Provider) {
+async function clientConfig(provider: Provider) {
+  const finance = await getJsonPlatformFinance().catch(() => null);
+  const settings = finance?.settings;
   if (provider === "google") {
+    const clientId =
+      process.env.GOOGLE_CLIENT_ID ||
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+      settings?.googleOAuthClientId ||
+      "";
+    const clientSecret =
+      process.env.GOOGLE_CLIENT_SECRET ||
+      settings?.googleOAuthClientSecret ||
+      "";
     return {
-      clientId:
-        process.env.GOOGLE_CLIENT_ID ||
-        process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-        "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      enabled: Boolean(
+        settings?.googleOAuthEnabled ||
+        (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      ),
+      clientId,
+      clientSecret,
+      baseUrl: settings?.socialAuthBaseUrl || "",
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       scope: "openid email profile",
     };
   }
+  const clientId =
+    process.env.FACEBOOK_CLIENT_ID ||
+    process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID ||
+    settings?.facebookOAuthClientId ||
+    "";
+  const clientSecret =
+    process.env.FACEBOOK_CLIENT_SECRET ||
+    settings?.facebookOAuthClientSecret ||
+    "";
   return {
-    clientId:
-      process.env.FACEBOOK_CLIENT_ID ||
-      process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID ||
-      "",
-    clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
+    enabled: Boolean(
+      settings?.facebookOAuthEnabled ||
+      (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET),
+    ),
+    clientId,
+    clientSecret,
+    baseUrl: settings?.socialAuthBaseUrl || "",
     authUrl: "https://www.facebook.com/v20.0/dialog/oauth",
     scope: "email public_profile",
   };
@@ -66,26 +91,37 @@ export async function GET(request: Request, context: RouteContext) {
   const url = new URL(request.url);
   const role = url.searchParams.get("role") === "seller" ? "seller" : "buyer";
   const redirect = safeRedirect(url.searchParams.get("redirect"));
-  const config = clientConfig(provider);
+  const config = await clientConfig(provider);
   const missing: string[] = [];
+  if (!config.enabled)
+    missing.push(
+      `فعال‌سازی ورود با ${provider === "google" ? "گوگل" : "فیسبوک"} در پنل ادمین`,
+    );
   if (!config.clientId)
     missing.push(
-      provider === "google" ? "GOOGLE_CLIENT_ID" : "FACEBOOK_CLIENT_ID",
+      provider === "google"
+        ? "GOOGLE_CLIENT_ID یا Client ID گوگل در ادمین"
+        : "FACEBOOK_CLIENT_ID یا App ID فیسبوک در ادمین",
     );
   if (!config.clientSecret)
     missing.push(
-      provider === "google" ? "GOOGLE_CLIENT_SECRET" : "FACEBOOK_CLIENT_SECRET",
+      provider === "google"
+        ? "GOOGLE_CLIENT_SECRET یا Client Secret گوگل در ادمین"
+        : "FACEBOOK_CLIENT_SECRET یا App Secret فیسبوک در ادمین",
     );
   if (missing.length > 0) {
     const message = encodeURIComponent(
-      `ورود با ${provider === "google" ? "گوگل" : "فیسبوک"} هنوز کامل تنظیم نشده است. متغیرهای ${missing.join(" و ")} را در Cloudflare Workers اضافه کنید.`,
+      `ورود با ${provider === "google" ? "گوگل" : "فیسبوک"} هنوز کامل تنظیم نشده است. موارد لازم: ${missing.join("، ")}.`,
     );
     return NextResponse.redirect(
       new URL(`/login?social_error=${message}`, request.url),
     );
   }
 
-  const baseUrl = baseUrlFromRequest(request);
+  const baseUrl = (config.baseUrl || baseUrlFromRequest(request)).replace(
+    /\/+$/,
+    "",
+  );
   const callbackUrl = `${baseUrl}/api/auth/social/${provider}/callback`;
   const nonce = randomBytes(16).toString("hex");
   const state = encodeState({ provider, role, redirect, nonce });
