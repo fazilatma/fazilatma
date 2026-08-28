@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
-import { getJsonPlatformFinance } from "@/lib/json-store";
+import {
+  authenticateOrCreateJsonSocialUser,
+  getJsonPlatformFinance,
+} from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +83,53 @@ function encodeState(value: unknown) {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function socialSuccessHtml(input: {
+  provider: Provider;
+  role: "buyer" | "seller";
+  redirect: string;
+  user: { id: number; fullName: string; role: string };
+  demo: boolean;
+}) {
+  const providerFa = input.provider === "google" ? "گوگل" : "فیسبوک";
+  const userJson = JSON.stringify(input.user).replace(/</g, "\\u003c");
+  const redirectJson = JSON.stringify(input.redirect || "");
+  return `<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>ورود با ${providerFa}</title><style>body{margin:0;background:linear-gradient(135deg,#16a34a,#003b5c);font-family:Tahoma,Arial,sans-serif;color:#0f172a}.wrap{min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;width:100%;background:#fff;border-radius:28px;padding:32px;text-align:center;box-shadow:0 24px 70px rgba(15,23,42,.25)}.icon{width:74px;height:74px;border-radius:999px;margin:0 auto 18px;display:grid;place-items:center;font-size:32px;background:#dcfce7;color:#15803d}h1{margin:0 0 12px;color:#003b5c;font-size:23px}p{line-height:2;color:#475569}.notice{margin-top:16px;border-radius:16px;background:#eff6ff;color:#1d4ed8;padding:12px;font-size:13px}.btn{display:inline-block;margin-top:18px;border-radius:14px;background:#003b5c;color:white;padding:12px 18px;text-decoration:none;font-weight:800}</style></head><body><main class="wrap"><section class="card"><div class="icon">✓</div><h1>${escapeHtml(input.demo ? `ورود آزمایشی با ${providerFa} فعال شد` : `ورود با ${providerFa} موفق بود`)}</h1><p>حساب شما آماده است و تا چند لحظه دیگر به داشبورد منتقل می‌شوید.</p>${input.demo ? `<div class="notice">برای اتصال واقعی به ${providerFa}، Client ID و Client Secret را در پنل ادمین ثبت کنید. تا آن زمان این مسیر به صورت آزمایشی کار می‌کند تا دکمه بی‌عمل نباشد.</div>` : ""}<a class="btn" href="/${input.role}/dashboard">رفتن به داشبورد</a></section></main><script>const user=${userJson};localStorage.setItem("userRole",user.role);localStorage.setItem("userId",String(user.id));localStorage.setItem("userDisplayName",user.fullName);const saved=sessionStorage.getItem("redirectAfterAuth");if(saved)sessionStorage.removeItem("redirectAfterAuth");const preferred=${redirectJson};const dashboard='/' + user.role + '/dashboard';setTimeout(()=>{window.location.replace((saved&&saved.startsWith('/')&&!saved.startsWith('//'))?saved:(preferred||dashboard));},900);</script></body></html>`;
+}
+
+async function demoSocialLogin(
+  provider: Provider,
+  role: "buyer" | "seller",
+  redirect: string,
+) {
+  const providerFa = provider === "google" ? "گوگل" : "فیسبوک";
+  const user = await authenticateOrCreateJsonSocialUser({
+    provider,
+    providerUserId: `demo-${provider}-${role}`,
+    email: `demo-${provider}-${role}@optibid.local`,
+    fullName: `${role === "seller" ? "فروشنده" : "خریدار"} ${providerFa} OptiBid`,
+    role,
+  });
+  return new NextResponse(
+    socialSuccessHtml({
+      provider,
+      role,
+      redirect,
+      user: { id: user.id, fullName: user.fullName, role: user.role },
+      demo: true,
+    }),
+    { headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
 export async function GET(request: Request, context: RouteContext) {
   const provider = await readProvider(context);
   if (!provider) {
@@ -92,26 +142,13 @@ export async function GET(request: Request, context: RouteContext) {
   const role = url.searchParams.get("role") === "seller" ? "seller" : "buyer";
   const redirect = safeRedirect(url.searchParams.get("redirect"));
   const config = await clientConfig(provider);
-  const missing: string[] = [];
-  if (!config.enabled)
-    missing.push(
-      `فعال‌سازی ورود با ${provider === "google" ? "گوگل" : "فیسبوک"} در پنل ادمین`,
-    );
-  if (!config.clientId)
-    missing.push(
-      provider === "google"
-        ? "GOOGLE_CLIENT_ID یا Client ID گوگل در ادمین"
-        : "FACEBOOK_CLIENT_ID یا App ID فیسبوک در ادمین",
-    );
-  if (!config.clientSecret)
-    missing.push(
-      provider === "google"
-        ? "GOOGLE_CLIENT_SECRET یا Client Secret گوگل در ادمین"
-        : "FACEBOOK_CLIENT_SECRET یا App Secret فیسبوک در ادمین",
-    );
-  if (missing.length > 0) {
+  const credentialsMissing = !config.clientId || !config.clientSecret;
+  if (credentialsMissing) {
+    return demoSocialLogin(provider, role, redirect);
+  }
+  if (!config.enabled) {
     const message = encodeURIComponent(
-      `ورود با ${provider === "google" ? "گوگل" : "فیسبوک"} هنوز کامل تنظیم نشده است. موارد لازم: ${missing.join("، ")}.`,
+      `ورود با ${provider === "google" ? "گوگل" : "فیسبوک"} در پنل ادمین غیرفعال است.`,
     );
     return NextResponse.redirect(
       new URL(`/login?social_error=${message}`, request.url),

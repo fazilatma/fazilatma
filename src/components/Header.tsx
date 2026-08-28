@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const showMobileAuthDock =
+    !userRole && !["/login", "/register"].includes(pathname);
 
   useEffect(() => {
     // خواندن نقش کاربر از لوکال استوریج در کلاینت‌ساید
@@ -74,7 +77,7 @@ export default function Header() {
                 </defs>
               </svg>
             </div>
-            <div className="text-2xl font-bold text-[#003b5c] tracking-tight">
+            <div className="text-xl font-bold text-[#003b5c] tracking-tight max-[360px]:hidden sm:text-2xl">
               Opti<span className="text-[#00a8e8]">Bid</span>
             </div>
           </Link>
@@ -181,7 +184,7 @@ export default function Header() {
           </div>
 
           {/* Mobile quick action buttons - visible like desktop */}
-          <div className="mr-auto ml-2 flex items-center gap-1.5 md:hidden">
+          <div className="mr-auto ml-1 flex items-center gap-1 md:hidden">
             {userRole ? (
               <Link
                 href={`/${userRole === "admin" ? "admin" : userRole}/dashboard`}
@@ -193,13 +196,13 @@ export default function Header() {
               <>
                 <Link
                   href="/login"
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-700 shadow-sm"
+                  className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-bold text-gray-700 shadow-sm"
                 >
                   ورود
                 </Link>
                 <Link
                   href="/register"
-                  className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white shadow-sm"
+                  className="rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm"
                 >
                   ثبت‌نام
                 </Link>
@@ -331,6 +334,22 @@ export default function Header() {
           </div>
         )}
       </nav>
+      {showMobileAuthDock && (
+        <div className="fixed inset-x-3 bottom-3 z-[60] grid grid-cols-2 gap-2 rounded-2xl border border-gray-200 bg-white/95 p-2 shadow-2xl backdrop-blur md:hidden">
+          <Link
+            href="/login"
+            className="rounded-xl border border-gray-300 px-4 py-3 text-center text-sm font-extrabold text-gray-800"
+          >
+            ورود
+          </Link>
+          <Link
+            href="/register"
+            className="rounded-xl bg-green-600 px-4 py-3 text-center text-sm font-extrabold text-white"
+          >
+            ثبت‌نام
+          </Link>
+        </div>
+      )}
     </header>
   );
 }
