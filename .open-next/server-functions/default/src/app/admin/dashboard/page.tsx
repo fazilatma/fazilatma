@@ -2,6 +2,7 @@ import AdminDashboardClient from "./AdminDashboardClient";
 import {
   getJsonAdminReports,
   getJsonAdminStats,
+  getJsonAdminUsers,
   getJsonKycUsers,
   getJsonSellerRankings,
 } from "@/lib/json-store";
@@ -19,6 +20,17 @@ export default async function AdminDashboardPage() {
 
   let sellerRankings: Awaited<ReturnType<typeof getJsonSellerRankings>> = [];
   let kycUsers: Awaited<ReturnType<typeof getJsonKycUsers>> = [];
+  let adminUsers: Awaited<ReturnType<typeof getJsonAdminUsers>> = {
+    summary: {
+      buyersCount: 0,
+      sellersCount: 0,
+      activeUsersCount: 0,
+      pendingKycCount: 0,
+      blockedUsersCount: 0,
+      socialUsersCount: 0,
+    },
+    users: [],
+  };
   let adminReports: Awaited<ReturnType<typeof getJsonAdminReports>> = {
     generatedAt: new Date().toISOString(),
     summary: {
@@ -41,12 +53,14 @@ export default async function AdminDashboardPage() {
     },
   };
   try {
-    [realStats, sellerRankings, kycUsers, adminReports] = await Promise.all([
-      getJsonAdminStats(),
-      getJsonSellerRankings(),
-      getJsonKycUsers(),
-      getJsonAdminReports(),
-    ]);
+    [realStats, sellerRankings, kycUsers, adminUsers, adminReports] =
+      await Promise.all([
+        getJsonAdminStats(),
+        getJsonSellerRankings(),
+        getJsonKycUsers(),
+        getJsonAdminUsers(),
+        getJsonAdminReports(),
+      ]);
   } catch (error) {
     console.error("JSON admin stats/rankings/KYC error:", error);
   }
@@ -56,6 +70,7 @@ export default async function AdminDashboardPage() {
       realStats={realStats}
       sellerRankings={sellerRankings}
       initialKycUsers={kycUsers}
+      initialManagedUsers={adminUsers}
       adminReports={adminReports}
     />
   );

@@ -137,6 +137,12 @@
       "namedRegex": "^/api/admin/seller\\-metrics(?:/)?$"
     },
     {
+      "page": "/api/admin/users",
+      "regex": "^/api/admin/users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/users(?:/)?$"
+    },
+    {
       "page": "/api/admin/withdrawals",
       "regex": "^/api/admin/withdrawals(?:/)?$",
       "routeKeys": {},

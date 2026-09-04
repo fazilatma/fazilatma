@@ -1186,6 +1186,209 @@ export async function updateJsonBuyerProfile(
   return buyer;
 }
 
+function maskBankValue(value?: string) {
+  if (!value) return "";
+  const cleaned = value.replace(/\s+/g, "");
+  if (cleaned.length <= 8) return cleaned;
+  return `${cleaned.slice(0, 4)}****${cleaned.slice(-4)}`;
+}
+
+function adminUserSummary(data: OptiBidJsonData, user: JsonUser) {
+  const buyerRequests = data.requests.filter(
+    (request) => request.buyerId === user.id,
+  );
+  const sellerOffers = data.offers.filter(
+    (offer) => offer.sellerId === user.id,
+  );
+  const buyerOrders = data.orders.filter((order) => order.buyerId === user.id);
+  const sellerOrders = data.orders.filter(
+    (order) => order.sellerId === user.id,
+  );
+  const completedBuyerOrders = buyerOrders.filter(isSuccessfulOrder);
+  const completedSellerOrders = sellerOrders.filter(isSuccessfulOrder);
+  const socialAccounts = user.socialAccounts || [];
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    username: user.username || "",
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    kycStatus: user.kycStatus || "approved",
+    avatarName: user.avatarName || "",
+    city: user.city || "",
+    postalCode: user.postalCode || "",
+    defaultAddress: user.defaultAddress || "",
+    categories: user.categories || [],
+    walletBalance: Number(user.walletBalance || 0),
+    bankDetailsVerified: Boolean(user.bankDetailsVerified),
+    bankAccountHolder: user.bankAccountHolder || "",
+    bankName: user.bankName || "",
+    bankAccountNumberMasked: maskBankValue(user.bankAccountNumber),
+    bankCardNumberMasked: maskBankValue(user.bankCardNumber),
+    bankShebaNumberMasked: maskBankValue(user.bankShebaNumber),
+    kycDocumentsCount: user.kycDocuments?.length || 0,
+    createdAt: user.createdAt,
+    hasPassword: Boolean(user.password),
+    passwordStatus: user.password
+      ? user.password.startsWith("scrypt:")
+        ? "رمز عبور امن ثبت شده است"
+        : "رمز قدیمی ثبت شده؛ بهتر است بازنشانی شود"
+      : socialAccounts.length > 0
+        ? "ورود اجتماعی / بدون رمز محلی"
+        : "رمز عبور ثبت نشده است",
+    socialProviders: socialAccounts.map((account) => account.provider),
+    stats: {
+      requestsCount: buyerRequests.length,
+      openRequestsCount: buyerRequests.filter(isPublicRequest).length,
+      offersCount: sellerOffers.length,
+      acceptedOffersCount: sellerOffers.filter(
+        (offer) => offer.status === "accepted",
+      ).length,
+      buyerOrdersCount: buyerOrders.length,
+      sellerOrdersCount: sellerOrders.length,
+      completedPurchases: completedBuyerOrders.length,
+      completedSales: completedSellerOrders.length,
+      totalPurchaseAmount: completedBuyerOrders.reduce(
+        (sum, order) => sum + money(order.totalAmount),
+        0,
+      ),
+      totalSalesAmount: completedSellerOrders.reduce(
+        (sum, order) => sum + money(order.totalAmount),
+        0,
+      ),
+      reviewsGiven: data.reviews.filter(
+        (review) => review.reviewerId === user.id,
+      ).length,
+      reviewsReceived: data.reviews.filter(
+        (review) => review.revieweeId === user.id,
+      ).length,
+    },
+  };
+}
+
+export async function getJsonAdminUsers() {
+  const data = await getOptiBidData();
+  const users = data.users
+    .filter((user) => user.role === "buyer" || user.role === "seller")
+    .map((user) => adminUserSummary(data, user))
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  return {
+    summary: {
+      buyersCount: users.filter((user) => user.role === "buyer").length,
+      sellersCount: users.filter((user) => user.role === "seller").length,
+      activeUsersCount: users.filter((user) => user.isActive).length,
+      pendingKycCount: users.filter((user) => user.kycStatus === "pending")
+        .length,
+      blockedUsersCount: users.filter((user) => !user.isActive).length,
+      socialUsersCount: users.filter((user) => user.socialProviders.length > 0)
+        .length,
+    },
+    users,
+  };
+}
+
+export async function updateJsonAdminUser(input: {
+  userId: number;
+  fullName?: string;
+  username?: string;
+  email?: string;
+  isActive?: boolean;
+  kycStatus?: "pending" | "approved" | "rejected";
+  bankDetailsVerified?: boolean;
+  city?: string;
+  defaultAddress?: string;
+  categories?: string[];
+}) {
+  const data = await getOptiBidData();
+  const user = data.users.find(
+    (item) => item.id === input.userId && item.role !== "admin",
+  );
+  if (!user) throw new Error("Admin managed user not found");
+
+  if (typeof input.fullName === "string" && input.fullName.trim())
+    user.fullName = input.fullName.trim();
+  if (typeof input.username === "string") {
+    const username = input.username.trim().toLowerCase();
+    if (username && !/^[a-z0-9._-]{3,30}$/.test(username))
+      throw new Error("Invalid username");
+    if (
+      username &&
+      data.users.some(
+        (item) =>
+          item.id !== user.id &&
+          (item.username || "").toLowerCase() === username,
+      )
+    )
+      throw new Error("Username already registered");
+    if (username) user.username = username;
+  }
+  if (typeof input.email === "string" && input.email.trim()) {
+    const email = input.email.trim().toLowerCase();
+    if (
+      data.users.some(
+        (item) => item.id !== user.id && item.email.toLowerCase() === email,
+      )
+    )
+      throw new Error("Email already registered");
+    user.email = email;
+  }
+  if (typeof input.isActive === "boolean") user.isActive = input.isActive;
+  if (
+    input.kycStatus &&
+    ["pending", "approved", "rejected"].includes(input.kycStatus)
+  ) {
+    user.kycStatus = input.kycStatus;
+    if (input.kycStatus === "approved") user.isActive = true;
+    if (input.kycStatus === "rejected") user.isActive = false;
+    user.kycReviewedAt = new Date().toISOString();
+  }
+  if (typeof input.bankDetailsVerified === "boolean")
+    user.bankDetailsVerified = input.bankDetailsVerified;
+  if (typeof input.city === "string") user.city = input.city.trim();
+  if (typeof input.defaultAddress === "string")
+    user.defaultAddress = input.defaultAddress.trim();
+  if (Array.isArray(input.categories))
+    user.categories = [
+      ...new Set(
+        input.categories.map((item) => String(item).trim()).filter(Boolean),
+      ),
+    ];
+
+  await writeOptiBidData(data);
+  return adminUserSummary(data, user);
+}
+
+export async function resetJsonAdminUserPassword(input: {
+  userId: number;
+  password?: string;
+}) {
+  const data = await getOptiBidData();
+  const user = data.users.find(
+    (item) => item.id === input.userId && item.role !== "admin",
+  );
+  if (!user) throw new Error("Admin managed user not found");
+  const temporaryPassword =
+    input.password?.trim() || `Opti-${randomBytes(4).toString("hex")}`;
+  if (temporaryPassword.length < 8) throw new Error("Password is too short");
+  user.password = hashPassword(temporaryPassword);
+  user.isActive = true;
+  if (!user.kycStatus || user.kycStatus === "rejected")
+    user.kycStatus = "approved";
+  addNotification(data, {
+    userId: user.id,
+    type: "order",
+    title: "رمز عبور شما توسط ادمین بازنشانی شد",
+    body: "برای امنیت بیشتر، پس از ورود رمز عبور خود را تغییر دهید.",
+    href: "/login",
+  });
+  await writeOptiBidData(data);
+  return { user: adminUserSummary(data, user), temporaryPassword };
+}
+
 export async function getJsonKycUsers() {
   const data = await getOptiBidData();
   return data.users

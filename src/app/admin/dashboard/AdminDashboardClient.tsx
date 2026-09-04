@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SellerStars from "@/components/SellerStars";
 import { useLiveContent } from "@/hooks/useLiveContent";
 
@@ -49,11 +49,13 @@ export default function AdminDashboardClient({
   realStats,
   sellerRankings,
   initialKycUsers,
+  initialManagedUsers,
   adminReports,
 }: {
   realStats: any;
   sellerRankings: any[];
   initialKycUsers: any[];
+  initialManagedUsers: { summary: any; users: any[] };
   adminReports: any;
 }) {
   const liveContent = useLiveContent();
@@ -357,6 +359,12 @@ export default function AdminDashboardClient({
                   </span>
                 </button>
                 <button
+                  onClick={() => setActiveTab("users")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "users" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  👥 مدیریت خریداران و فروشندگان
+                </button>
+                <button
                   onClick={() => setActiveTab("sellerScores")}
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "sellerScores" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
@@ -410,6 +418,10 @@ export default function AdminDashboardClient({
 
           {/* Main Content Area */}
           <div className="lg:col-span-3 space-y-6">
+            {activeTab === "users" && (
+              <UserManagementPanel initialManagedUsers={initialManagedUsers} />
+            )}
+
             {/* Seller Scoring & Performance */}
             {activeTab === "sellerScores" && (
               <div className="animate-in fade-in duration-300 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -2160,6 +2172,658 @@ export default function AdminDashboardClient({
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function adminMoney(value: number | string) {
+  return `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
+}
+
+function adminDate(value?: string) {
+  return value
+    ? new Date(value).toLocaleString("fa-IR", {
+        dateStyle: "short",
+        timeStyle: "short",
+      })
+    : "—";
+}
+
+function roleLabel(role: string) {
+  if (role === "seller") return "فروشنده";
+  if (role === "buyer") return "خریدار";
+  return role || "کاربر";
+}
+
+function kycLabel(status: string) {
+  if (status === "approved") return "تاییدشده";
+  if (status === "rejected") return "ردشده";
+  return "در انتظار بررسی";
+}
+
+function userAvatarUrl(user: any) {
+  return user?.avatarName
+    ? `/api/avatar?userId=${user.id}&v=${encodeURIComponent(user.avatarName)}`
+    : "";
+}
+
+function UserManagementPanel({
+  initialManagedUsers,
+}: {
+  initialManagedUsers: { summary: any; users: any[] };
+}) {
+  const [users, setUsers] = useState<any[]>(initialManagedUsers?.users || []);
+  const [summary, setSummary] = useState<any>(
+    initialManagedUsers?.summary || {},
+  );
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "buyer" | "seller">(
+    "all",
+  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "blocked" | "pending"
+  >("all");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [drafts, setDrafts] = useState<Record<number, any>>({});
+  const [lastPasswords, setLastPasswords] = useState<Record<number, string>>(
+    {},
+  );
+  const [loading, setLoading] = useState(false);
+
+  const categoryOptions = [
+    "کالای دیجیتال",
+    "مد و پوشاک",
+    "خانه و آشپزخانه",
+    "زیبایی و سلامت",
+    "کتاب و لوازم تحریر",
+    "ورزش و سفر",
+    "اسباب‌بازی و کودک",
+    "خودرو و موتور",
+    "صنعتی و اداری",
+    "سایر",
+  ];
+
+  const refreshUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/users", { cache: "no-store" });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "دریافت کاربران ناموفق بود.");
+      setUsers(result.users || []);
+      setSummary(result.summary || {});
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : "دریافت کاربران ناموفق بود.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredUsers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return users.filter((user) => {
+      const roleOk = roleFilter === "all" || user.role === roleFilter;
+      const statusOk =
+        statusFilter === "all" ||
+        (statusFilter === "active" && user.isActive) ||
+        (statusFilter === "blocked" && !user.isActive) ||
+        (statusFilter === "pending" && user.kycStatus === "pending");
+      const text =
+        `${user.fullName} ${user.username} ${user.email} ${user.city}`.toLowerCase();
+      return roleOk && statusOk && (!query || text.includes(query));
+    });
+  }, [users, search, roleFilter, statusFilter]);
+
+  const startEdit = (user: any) => {
+    setEditingId(user.id);
+    setDrafts((current) => ({
+      ...current,
+      [user.id]: {
+        fullName: user.fullName || "",
+        username: user.username || "",
+        email: user.email || "",
+        isActive: Boolean(user.isActive),
+        kycStatus: user.kycStatus || "pending",
+        bankDetailsVerified: Boolean(user.bankDetailsVerified),
+        city: user.city || "",
+        defaultAddress: user.defaultAddress || "",
+        categories: user.categories || [],
+      },
+    }));
+  };
+
+  const updateDraft = (userId: number, key: string, value: any) => {
+    setDrafts((current) => ({
+      ...current,
+      [userId]: { ...(current[userId] || {}), [key]: value },
+    }));
+  };
+
+  const toggleDraftCategory = (userId: number, category: string) => {
+    const categories = drafts[userId]?.categories || [];
+    updateDraft(
+      userId,
+      "categories",
+      categories.includes(category)
+        ? categories.filter((item: string) => item !== category)
+        : [...categories, category],
+    );
+  };
+
+  const mergeUpdatedUser = (updated: any) => {
+    setUsers((current) =>
+      current.map((user) => (user.id === updated.id ? updated : user)),
+    );
+  };
+
+  const saveUser = async (userId: number, partial?: any) => {
+    const body = { userId, ...(partial || drafts[userId] || {}) };
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "ذخیره کاربر ناموفق بود.");
+      mergeUpdatedUser(result.user);
+      setEditingId(null);
+      await refreshUsers();
+      alert(result.message);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره کاربر ناموفق بود.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (user: any) => {
+    const customPassword = window.prompt(
+      `رمز جدید برای ${user.fullName}\nبرای تولید خودکار، کادر را خالی بگذارید.`,
+      "",
+    );
+    if (customPassword === null) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "resetPassword",
+          userId: user.id,
+          password: customPassword.trim() || undefined,
+        }),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "بازنشانی رمز ناموفق بود.");
+      mergeUpdatedUser(result.user);
+      setLastPasswords((current) => ({
+        ...current,
+        [user.id]: result.temporaryPassword,
+      }));
+      alert(`${result.message}\nرمز جدید: ${result.temporaryPassword}`);
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : "بازنشانی رمز ناموفق بود.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statCards = [
+    ["کل خریداران", summary.buyersCount || 0, "🛒"],
+    ["کل فروشندگان", summary.sellersCount || 0, "🏪"],
+    ["کاربران فعال", summary.activeUsersCount || 0, "✅"],
+    ["در انتظار احراز", summary.pendingKycCount || 0, "🛡️"],
+    ["غیرفعال/مسدود", summary.blockedUsersCount || 0, "⛔"],
+    ["ورود اجتماعی", summary.socialUsersCount || 0, "🔐"],
+  ];
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-col justify-between gap-4 border-b pb-4 lg:flex-row lg:items-center">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              👥 مدیریت خریداران و فروشندگان
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-gray-600">
+              مدیریت حساب‌ها، نام کاربری، وضعیت فعال/مسدود، احراز هویت، حوزه
+              فعالیت فروشنده و بازنشانی رمز عبور. رمز فعلی کاربران به دلایل
+              امنیتی قابل نمایش نیست و فقط امکان ساخت رمز جدید وجود دارد.
+            </p>
+          </div>
+          <button
+            onClick={refreshUsers}
+            disabled={loading}
+            className="rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white disabled:bg-gray-300"
+          >
+            {loading ? "در حال بروزرسانی..." : "بروزرسانی فهرست"}
+          </button>
+        </div>
+
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          {statCards.map(([label, value, icon]) => (
+            <div
+              key={String(label)}
+              className="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-center"
+            >
+              <div className="text-2xl">{icon}</div>
+              <p className="mt-2 text-2xl font-bold text-[#003b5c]">
+                {Number(value).toLocaleString("fa-IR")}
+              </p>
+              <p className="mt-1 text-xs font-bold text-gray-500">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-6 grid gap-3 md:grid-cols-4">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="جستجو نام، یوزرنیم، ایمیل یا شهر..."
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500 md:col-span-2"
+          />
+          <select
+            value={roleFilter}
+            onChange={(event) =>
+              setRoleFilter(event.target.value as "all" | "buyer" | "seller")
+            }
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="all">همه نقش‌ها</option>
+            <option value="buyer">فقط خریداران</option>
+            <option value="seller">فقط فروشندگان</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value as "all" | "active" | "blocked" | "pending",
+              )
+            }
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="all">همه وضعیت‌ها</option>
+            <option value="active">فعال</option>
+            <option value="blocked">غیرفعال/مسدود</option>
+            <option value="pending">در انتظار احراز</option>
+          </select>
+        </div>
+
+        {filteredUsers.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">
+            کاربری با این فیلترها پیدا نشد.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredUsers.map((user) => {
+              const draft = drafts[user.id] || user;
+              const editing = editingId === user.id;
+              const avatarUrl = userAvatarUrl(user);
+              return (
+                <article
+                  key={user.id}
+                  className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-3">
+                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={user.fullName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center bg-gradient-to-br from-[#003b5c] to-[#00a8e8] text-2xl font-bold text-white">
+                              {user.fullName?.charAt(0) || "👤"}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-bold text-[#003b5c]">
+                              {user.fullName}
+                            </h3>
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-bold ${user.role === "seller" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                            >
+                              {roleLabel(user.role)}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-bold ${user.isActive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                            >
+                              {user.isActive ? "فعال" : "غیرفعال"}
+                            </span>
+                            <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">
+                              احراز: {kycLabel(user.kycStatus)}
+                            </span>
+                          </div>
+                          <div className="grid gap-2 text-xs text-gray-600 md:grid-cols-2 xl:grid-cols-3">
+                            <p>
+                              <b>یوزرنیم:</b>{" "}
+                              <span dir="ltr">{user.username || "—"}</span>
+                            </p>
+                            <p>
+                              <b>ایمیل:</b> <span dir="ltr">{user.email}</span>
+                            </p>
+                            <p>
+                              <b>شهر:</b> {user.city || "—"}
+                            </p>
+                            <p>
+                              <b>کیف پول:</b> {adminMoney(user.walletBalance)}
+                            </p>
+                            <p>
+                              <b>عضویت:</b> {adminDate(user.createdAt)}
+                            </p>
+                            <p>
+                              <b>ورود اجتماعی:</b>{" "}
+                              {user.socialProviders?.length
+                                ? user.socialProviders.join("، ")
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 rounded-2xl bg-gray-50 p-4 text-xs md:grid-cols-2 xl:grid-cols-4">
+                        <div>
+                          <b>درخواست‌ها:</b>{" "}
+                          {user.stats.requestsCount.toLocaleString("fa-IR")} /
+                          باز:{" "}
+                          {user.stats.openRequestsCount.toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <b>پیشنهادها:</b>{" "}
+                          {user.stats.offersCount.toLocaleString("fa-IR")} /
+                          پذیرفته:{" "}
+                          {user.stats.acceptedOffersCount.toLocaleString(
+                            "fa-IR",
+                          )}
+                        </div>
+                        <div>
+                          <b>خرید موفق:</b>{" "}
+                          {user.stats.completedPurchases.toLocaleString(
+                            "fa-IR",
+                          )}{" "}
+                          · {adminMoney(user.stats.totalPurchaseAmount)}
+                        </div>
+                        <div>
+                          <b>فروش موفق:</b>{" "}
+                          {user.stats.completedSales.toLocaleString("fa-IR")} ·{" "}
+                          {adminMoney(user.stats.totalSalesAmount)}
+                        </div>
+                        <div>
+                          <b>مدارک:</b>{" "}
+                          {user.kycDocumentsCount.toLocaleString("fa-IR")} فایل
+                        </div>
+                        <div>
+                          <b>بانک:</b>{" "}
+                          {user.bankDetailsVerified
+                            ? "تایید شده"
+                            : "نیازمند بررسی"}
+                        </div>
+                        <div>
+                          <b>کارت:</b>{" "}
+                          <span dir="ltr">
+                            {user.bankCardNumberMasked || "—"}
+                          </span>
+                        </div>
+                        <div>
+                          <b>شبا:</b>{" "}
+                          <span dir="ltr">
+                            {user.bankShebaNumberMasked || "—"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-blue-900">
+                        <p>
+                          <b>وضعیت رمز عبور:</b> {user.passwordStatus}
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          رمز فعلی قابل مشاهده نیست چون به‌صورت امن Hash شده
+                          است؛ ادمین می‌تواند رمز موقت جدید بسازد یا رمز دلخواه
+                          تنظیم کند.
+                        </p>
+                        {lastPasswords[user.id] && (
+                          <p
+                            className="mt-2 rounded-xl bg-white p-3 font-mono text-sm text-[#003b5c]"
+                            dir="ltr"
+                          >
+                            Temporary Password: {lastPasswords[user.id]}
+                          </p>
+                        )}
+                      </div>
+
+                      {editing && (
+                        <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50/40 p-4">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <label className="text-xs font-bold text-gray-700">
+                              نام / نام شرکت
+                              <input
+                                value={draft.fullName}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "fullName",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              یوزرنیم
+                              <input
+                                dir="ltr"
+                                value={draft.username}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "username",
+                                    event.target.value
+                                      .toLowerCase()
+                                      .replace(/[^a-z0-9._-]/g, "")
+                                      .slice(0, 30),
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 text-left font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              ایمیل
+                              <input
+                                dir="ltr"
+                                value={draft.email}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "email",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 text-left font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              شهر
+                              <input
+                                value={draft.city}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "city",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              وضعیت احراز
+                              <select
+                                value={draft.kycStatus}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "kycStatus",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border bg-white p-2 font-normal"
+                              >
+                                <option value="pending">در انتظار</option>
+                                <option value="approved">تایید شده</option>
+                                <option value="rejected">رد شده</option>
+                              </select>
+                            </label>
+                            <div className="flex flex-wrap items-center gap-4 rounded-xl bg-white p-3 text-xs font-bold text-gray-700">
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={draft.isActive}
+                                  onChange={(event) =>
+                                    updateDraft(
+                                      user.id,
+                                      "isActive",
+                                      event.target.checked,
+                                    )
+                                  }
+                                />{" "}
+                                حساب فعال
+                              </label>
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={draft.bankDetailsVerified}
+                                  onChange={(event) =>
+                                    updateDraft(
+                                      user.id,
+                                      "bankDetailsVerified",
+                                      event.target.checked,
+                                    )
+                                  }
+                                />{" "}
+                                اطلاعات بانکی تایید شده
+                              </label>
+                            </div>
+                            <label className="md:col-span-2 text-xs font-bold text-gray-700">
+                              نشانی پیش‌فرض
+                              <textarea
+                                value={draft.defaultAddress}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "defaultAddress",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 min-h-20 w-full rounded-xl border p-2 font-normal"
+                              />
+                            </label>
+                          </div>
+                          {user.role === "seller" && (
+                            <div className="mt-4">
+                              <p className="mb-2 text-xs font-bold text-gray-700">
+                                حوزه‌های فعالیت فروشنده
+                              </p>
+                              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {categoryOptions.map((category) => (
+                                  <label
+                                    key={category}
+                                    className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2 text-xs font-bold ${draft.categories?.includes(category) ? "border-blue-300 bg-blue-50 text-blue-700" : "bg-white text-gray-600"}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={draft.categories?.includes(
+                                        category,
+                                      )}
+                                      onChange={() =>
+                                        toggleDraftCategory(user.id, category)
+                                      }
+                                    />
+                                    {category}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex min-w-[190px] flex-col gap-2">
+                      {editing ? (
+                        <>
+                          <button
+                            onClick={() => saveUser(user.id)}
+                            disabled={loading}
+                            className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white disabled:bg-gray-300"
+                          >
+                            ذخیره تغییرات
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700"
+                          >
+                            انصراف
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(user)}
+                          className="rounded-xl bg-purple-50 px-4 py-2 text-sm font-bold text-purple-700"
+                        >
+                          ویرایش کاربر
+                        </button>
+                      )}
+                      <button
+                        onClick={() => resetPassword(user)}
+                        disabled={loading}
+                        className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 disabled:bg-gray-100"
+                      >
+                        بازنشانی / تنظیم رمز
+                      </button>
+                      <button
+                        onClick={() =>
+                          saveUser(user.id, { isActive: !user.isActive })
+                        }
+                        disabled={loading}
+                        className={`rounded-xl px-4 py-2 text-sm font-bold disabled:bg-gray-100 ${user.isActive ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}
+                      >
+                        {user.isActive ? "غیرفعال کردن" : "فعال کردن"}
+                      </button>
+                      {user.kycStatus !== "approved" && (
+                        <button
+                          onClick={() =>
+                            saveUser(user.id, {
+                              kycStatus: "approved",
+                              isActive: true,
+                            })
+                          }
+                          disabled={loading}
+                          className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 disabled:bg-gray-100"
+                        >
+                          تایید احراز
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
