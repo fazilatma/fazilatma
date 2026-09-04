@@ -832,12 +832,34 @@ export default function RequestPurchasePage() {
 
           {/* Product Photos */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-4">عکس محصول (اختیاری)</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              عکس‌های محصول موردنیاز را بارگذاری کنید؛ این عکس‌ها بعد از ثبت در
-              صفحه اصلی، صفحه درخواست و لیست درخواست‌ها کنار نام محصول نمایش
-              داده می‌شوند.
-            </p>
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              <div>
+                <h2 className="text-xl font-bold">
+                  عکس‌های محصول / نمونه مرجع
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-gray-500">
+                  می‌توانید چند عکس از محصول موردنظر یا نمونه مرجع بارگذاری
+                  کنید؛ این عکس‌ها بعد از ثبت در صفحه اصلی، صفحه درخواست و لیست
+                  درخواست‌ها کنار نام محصول نمایش داده می‌شوند و احتمال سوءتفاهم
+                  فروشنده را کم می‌کنند.
+                </p>
+              </div>
+              <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                {uploadedFiles.length.toLocaleString("fa-IR")} از ۸ عکس
+              </span>
+            </div>
+            <div className="mb-4 grid gap-2 text-xs text-gray-600 sm:grid-cols-2 md:grid-cols-4">
+              {[
+                "نمای کلی محصول",
+                "برند/مدل یا پلاک مشخصات",
+                "جزئیات مهم و پورت‌ها",
+                "ایراد یا خط‌وخش احتمالی",
+              ].map((item) => (
+                <div key={item} className="rounded-xl bg-gray-50 px-3 py-2">
+                  📷 {item}
+                </div>
+              ))}
+            </div>
 
             <div className="border-2 border-dashed border-green-300 bg-green-50/50 hover:bg-green-50 rounded-lg p-8 text-center transition relative">
               <input
@@ -868,11 +890,11 @@ export default function RequestPurchasePage() {
                 type="button"
                 className="mt-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition font-bold pointer-events-none relative z-10"
               >
-                انتخاب عکس‌های محصول
+                انتخاب چند عکس محصول
               </button>
               <p className="text-gray-400 text-sm mt-4">
-                حداکثر ۸ عکس | حجم هر عکس حداکثر ۵ مگابایت | فرمت‌ها: JPG, PNG,
-                WEBP
+                امکان انتخاب چندتایی وجود دارد | حداکثر ۸ عکس | حجم هر عکس
+                حداکثر ۵ مگابایت | فرمت‌ها: JPG, PNG, WEBP
               </p>
             </div>
 

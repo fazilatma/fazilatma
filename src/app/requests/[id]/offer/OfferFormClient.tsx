@@ -387,33 +387,51 @@ function ProductImagesUploader({
       <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <h3 className="font-bold text-[#0b9c56]">
-            عکس کالای پیشنهادی فروشنده
+            عکس‌های کالای پیشنهادی فروشنده
           </h3>
           <p className="mt-1 text-xs leading-6 text-gray-500">
-            این عکس‌ها کنار نام محصول در صفحه درخواست، لیست درخواست‌ها و داشبورد
-            خریدار نمایش داده می‌شوند تا خریدار قبل از پرداخت همان کالا را
-            ببیند.
+            چند عکس واقعی از همان کالایی که پیشنهاد می‌دهید بارگذاری کنید تا
+            خریدار قبل از پرداخت، ظاهر، سلامت و جزئیات محصول را ببیند و سوءتفاهم
+            به حداقل برسد.
           </p>
         </div>
-        <label className="cursor-pointer rounded-xl bg-[#0b9c56] px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700">
-          افزودن عکس
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            className="hidden"
-            onChange={(event) => {
-              onPickImages(event.target.files);
-              event.currentTarget.value = "";
-            }}
-          />
-        </label>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-green-700">
+            {total.toLocaleString("fa-IR")} از ۸ عکس
+          </span>
+          <label className="cursor-pointer rounded-xl bg-[#0b9c56] px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700">
+            افزودن چند عکس
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                onPickImages(event.target.files);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="mb-4 grid gap-2 text-xs text-gray-600 sm:grid-cols-2 md:grid-cols-4">
+        {[
+          "نمای روبه‌رو",
+          "پشت و کناره‌ها",
+          "برچسب مدل/سریال یا کانفیگ",
+          "خط‌وخش، ایراد یا تست سلامت",
+        ].map((item) => (
+          <div key={item} className="rounded-xl bg-white px-3 py-2">
+            📷 {item}
+          </div>
+        ))}
       </div>
 
       {total === 0 ? (
         <div className="rounded-2xl border border-dashed border-green-200 bg-white p-6 text-center text-sm leading-7 text-gray-500">
-          هنوز عکسی برای کالای پیشنهادی انتخاب نشده است. بهتر است حداقل یک عکس
-          واقعی از کالا بارگذاری شود.
+          هنوز عکسی برای کالای پیشنهادی انتخاب نشده است. برای کاهش خطا، بهتر است
+          حداقل ۳ عکس واقعی از زاویه‌های مختلف کالا بارگذاری شود.
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -468,7 +486,8 @@ function ProductImagesUploader({
         </div>
       )}
       <p className="mt-3 text-xs text-gray-400">
-        حداکثر ۸ عکس، هر عکس حداکثر ۵ مگابایت، فرمت مجاز JPG/PNG/WEBP.
+        امکان انتخاب چندتایی وجود دارد؛ حداکثر ۸ عکس، هر عکس حداکثر ۵ مگابایت،
+        فرمت مجاز JPG/PNG/WEBP.
       </p>
     </div>
   );
