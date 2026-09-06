@@ -30,6 +30,7 @@ const categories = [
 
 const emptyProfile = {
   fullName: "",
+  username: "",
   email: "",
   phone: "",
   bio: "",
@@ -57,9 +58,14 @@ function completionItems(
       weight: 15,
     },
     {
+      label: "نام کاربری",
+      done: Boolean(profile.username),
+      weight: 10,
+    },
+    {
       label: "نام و پروفایل",
       done: Boolean(profile.fullName && avatarPreview),
-      weight: 15,
+      weight: 10,
     },
     {
       label: "نشانی",
@@ -80,7 +86,7 @@ function completionItems(
     {
       label: role === "seller" ? "حوزه فعالیت" : "دسته‌های مورد علاقه",
       done: role === "seller" ? profile.categories.length > 0 : true,
-      weight: 15,
+      weight: 10,
     },
   ];
 }
@@ -119,6 +125,7 @@ export default function AccountCompletionPage() {
         const user = storedRole === "seller" ? result.seller : result.buyer;
         setProfile({
           fullName: user.fullName || "",
+          username: user.username || "",
           email: user.email?.includes("@phone.optibid.local")
             ? ""
             : user.email || "",
@@ -363,6 +370,28 @@ export default function AccountCompletionPage() {
                   onChange={(e) => update("fullName", e.target.value)}
                   className="mt-2 w-full rounded-xl border p-3 font-normal"
                 />
+              </label>
+              <label className="text-sm font-bold text-gray-700">
+                نام کاربری برای ورود
+                <input
+                  dir="ltr"
+                  value={profile.username}
+                  onChange={(e) =>
+                    update(
+                      "username",
+                      e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9._-]/g, "")
+                        .slice(0, 30),
+                    )
+                  }
+                  placeholder="مثال: ali.rezaei"
+                  className="mt-2 w-full rounded-xl border p-3 text-left font-normal"
+                />
+                <span className="mt-1 block text-xs font-normal text-gray-500">
+                  بعد از ذخیره، می‌توانید با همین نام کاربری و رمز عبور وارد
+                  شوید.
+                </span>
               </label>
               <label className="text-sm font-bold text-gray-700">
                 شماره موبایل

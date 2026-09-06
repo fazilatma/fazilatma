@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     const user = await authenticateJsonUser({ identifier, password });
     if (!user) {
-      return NextResponse.json({ success: false, message: "نام کاربری یا رمز عبور صحیح نیست." }, { status: 401 });
+      return NextResponse.json({ success: false, message: "نام کاربری، شماره موبایل، ایمیل یا رمز عبور صحیح نیست." }, { status: 401 });
     }
 
     return NextResponse.json({

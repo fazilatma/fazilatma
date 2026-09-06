@@ -54,7 +54,9 @@ export default function LoginPage() {
       });
       const result = await response.json();
       if (!result.success) {
-        alert(result.message || "نام کاربری یا رمز عبور صحیح نیست.");
+        alert(
+          result.message || "نام کاربری، موبایل، ایمیل یا رمز عبور صحیح نیست.",
+        );
         return;
       }
 
@@ -140,11 +142,11 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                ایمیل یا نام کاربری
+                نام کاربری، شماره موبایل یا ایمیل
               </label>
               <input
                 type="text"
-                placeholder="مثال: admin"
+                placeholder="مثال: ali.rezaei یا 09123456789 یا email@example.com"
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 value={formData.email}
                 onChange={(e) =>

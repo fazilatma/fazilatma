@@ -1206,6 +1206,7 @@ export async function updateJsonBuyerProfile(
   buyerId: number,
   updates: {
     fullName?: string;
+    username?: string;
     email?: string;
     phone?: string;
     bio?: string;
@@ -1225,6 +1226,21 @@ export async function updateJsonBuyerProfile(
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, buyerId, "buyer");
   if (updates.fullName?.trim()) buyer.fullName = updates.fullName.trim();
+  if (typeof updates.username === "string") {
+    const username = updates.username.trim().toLowerCase();
+    if (username && !/^[a-z0-9._-]{3,30}$/.test(username))
+      throw new Error("Invalid username");
+    if (
+      username &&
+      data.users.some(
+        (item) =>
+          item.id !== buyer.id &&
+          (item.username || "").toLowerCase() === username,
+      )
+    )
+      throw new Error("Username already registered");
+    if (username) buyer.username = username;
+  }
   if (typeof updates.email === "string" && updates.email.trim()) {
     const email = updates.email.trim().toLowerCase();
     if (
@@ -1572,6 +1588,7 @@ export async function updateJsonSellerProfile(
   sellerId: number,
   updates: {
     fullName?: string;
+    username?: string;
     email?: string;
     phone?: string;
     bio?: string;
@@ -1591,6 +1608,21 @@ export async function updateJsonSellerProfile(
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, sellerId, "seller");
   if (updates.fullName?.trim()) seller.fullName = updates.fullName.trim();
+  if (typeof updates.username === "string") {
+    const username = updates.username.trim().toLowerCase();
+    if (username && !/^[a-z0-9._-]{3,30}$/.test(username))
+      throw new Error("Invalid username");
+    if (
+      username &&
+      data.users.some(
+        (item) =>
+          item.id !== seller.id &&
+          (item.username || "").toLowerCase() === username,
+      )
+    )
+      throw new Error("Username already registered");
+    if (username) seller.username = username;
+  }
   if (typeof updates.email === "string" && updates.email.trim()) {
     const email = updates.email.trim().toLowerCase();
     if (

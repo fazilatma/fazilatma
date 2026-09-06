@@ -153,6 +153,7 @@ export default function RegisterPage() {
               <h3 className="font-bold text-blue-900">بعد از ثبت‌نام چه چیزی تکمیل می‌شود؟</h3>
               <div className="mt-3 grid gap-2 text-xs text-blue-800 sm:grid-cols-2">
                 {[
+                  "نام کاربری برای ورود",
                   "اطلاعات هویتی و تصویر پروفایل",
                   "نشانی پیش‌فرض دریافت/ارسال",
                   "حساب بانکی و شبا برای تسویه",
