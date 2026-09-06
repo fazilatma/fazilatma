@@ -15,23 +15,47 @@ const text = (form: FormData, key: string) => String(form.get(key) || "").trim()
 const asFile = (value: FormDataEntryValue | null) =>
   value instanceof File && value.size > 0 ? value : null;
 
-function isValidCardNumber(value: string) {
+function normalizePhone(value: string) {
   const digits = onlyDigits(value);
-  if (!/^\d{16}$/.test(digits) || /^(\d)\1{15}$/.test(digits)) return false;
-  const sum = digits.split("").reduce((total, digit, index) => {
-    const result = Number(digit) * (index % 2 === 0 ? 2 : 1);
-    return total + (result > 9 ? result - 9 : result);
-  }, 0);
-  return sum % 10 === 0;
+  if (!digits) return "";
+  if (digits.startsWith("0098")) return `0${digits.slice(4)}`;
+  if (digits.startsWith("98")) return `0${digits.slice(2)}`;
+  return digits;
 }
 
-function isValidSheba(value: string) {
-  const normalized = toEnglishDigits(value).replace(/[\s-]/g, "").toUpperCase();
-  if (!/^IR\d{24}$/.test(normalized)) return false;
-  const rearranged = `${normalized.slice(4)}1827${normalized.slice(2, 4)}`;
-  let remainder = 0;
-  for (const char of rearranged) remainder = (remainder * 10 + Number(char)) % 97;
-  return remainder === 1;
+function isEmail(value: string) {
+  return /^\S+@\S+\.\S+$/.test(value.trim().toLowerCase());
+}
+
+function isMobile(value: string) {
+  return /^09\d{9}$/.test(normalizePhone(value));
+}
+
+async function saveOptionalKycDocuments(form: FormData) {
+  const savedDocuments: JsonKycDocument[] = [];
+  const nationalCard = asFile(form.get("nationalCard"));
+  const bankCardImage = asFile(form.get("bankCardImage"));
+  const birthCertificatePages = form
+    .getAll("birthCertificatePages")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+
+  if (nationalCard) {
+    savedDocuments.push(await saveKycFile(nationalCard, "national_card", "تصویر کارت ملی"));
+  }
+  for (let index = 0; index < Math.min(8, birthCertificatePages.length); index += 1) {
+    savedDocuments.push(
+      await saveKycFile(
+        birthCertificatePages[index],
+        "birth_certificate",
+        `صفحه ${index + 1} شناسنامه`,
+      ),
+    );
+  }
+  if (bankCardImage) {
+    savedDocuments.push(await saveKycFile(bankCardImage, "bank_card", "تصویر کارت بانکی"));
+  }
+
+  return savedDocuments;
 }
 
 export async function POST(request: Request) {
@@ -40,93 +64,30 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const fullName = text(form, "fullName");
-    const username = text(form, "username").toLowerCase();
-    const email = text(form, "email").toLowerCase();
+    const identifier = text(form, "identifier") || text(form, "email") || text(form, "phone");
+    const explicitEmail = text(form, "email").toLowerCase();
+    const explicitPhone = text(form, "phone");
     const password = text(form, "password");
     const role = text(form, "role") === "seller" ? "seller" : "buyer";
 
-    if (!fullName || !username || !email || !password) {
+    const email = explicitEmail || (isEmail(identifier) ? identifier.toLowerCase() : "");
+    const phone = explicitPhone || (isMobile(identifier) ? normalizePhone(identifier) : "");
+
+    if (!email && !phone) {
       return NextResponse.json(
-        { success: false, message: "نام، نام کاربری، ایمیل و رمز عبور الزامی هستند." },
-        { status: 400 }
+        { success: false, message: "برای ثبت‌نام، شماره موبایل معتبر یا ایمیل معتبر وارد کنید." },
+        { status: 400 },
       );
     }
-    if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
-      return NextResponse.json(
-        { success: false, message: "نام کاربری باید ۳ تا ۳۰ کاراکتر انگلیسی و شامل حروف، عدد، نقطه، خط تیره یا زیرخط باشد." },
-        { status: 400 }
-      );
-    }
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
+    if (email && !isEmail(email)) {
       return NextResponse.json({ success: false, message: "ایمیل معتبر نیست." }, { status: 400 });
+    }
+    if (phone && !isMobile(phone)) {
+      return NextResponse.json({ success: false, message: "شماره موبایل باید با 09 شروع شود و ۱۱ رقم باشد." }, { status: 400 });
     }
     if (password.length < 8) {
       return NextResponse.json({ success: false, message: "رمز عبور باید حداقل ۸ کاراکتر باشد." }, { status: 400 });
     }
-
-    const city = text(form, "city");
-    const postalCode = onlyDigits(text(form, "postalCode"));
-    const defaultAddress = text(form, "defaultAddress");
-    if (!city || !defaultAddress) {
-      return NextResponse.json({ success: false, message: "شهر و نشانی پیش‌فرض الزامی هستند." }, { status: 400 });
-    }
-    if (postalCode && !/^\d{10}$/.test(postalCode)) {
-      return NextResponse.json({ success: false, message: "کدپستی باید دقیقاً ۱۰ رقم باشد." }, { status: 400 });
-    }
-
-    const bankAccountHolder = text(form, "bankAccountHolder");
-    const bankName = text(form, "bankName");
-    const bankAccountNumber = onlyDigits(text(form, "bankAccountNumber"));
-    const bankCardNumber = onlyDigits(text(form, "bankCardNumber"));
-    const rawSheba = toEnglishDigits(text(form, "bankShebaNumber"))
-      .replace(/[\s-]/g, "")
-      .toUpperCase();
-    const bankShebaNumber = rawSheba.startsWith("IR") ? rawSheba : `IR${onlyDigits(rawSheba)}`;
-
-    if (!bankAccountHolder || !bankName || !bankAccountNumber || !bankCardNumber || !bankShebaNumber) {
-      return NextResponse.json({ success: false, message: "اطلاعات حساب بانکی کامل نیست." }, { status: 400 });
-    }
-    if (!/^\d{14}$/.test(bankAccountNumber)) {
-      return NextResponse.json({ success: false, message: "شماره حساب باید دقیقاً ۱۴ رقم و مطابق الگوی ۳-۳-۷-۱ باشد." }, { status: 400 });
-    }
-    if (!isValidCardNumber(bankCardNumber)) {
-      return NextResponse.json({ success: false, message: "شماره کارت ۱۶ رقمی معتبر نیست." }, { status: 400 });
-    }
-    if (!isValidSheba(bankShebaNumber)) {
-      return NextResponse.json({ success: false, message: "شماره شبا معتبر نیست." }, { status: 400 });
-    }
-
-    const nationalCard = asFile(form.get("nationalCard"));
-    const bankCardImage = asFile(form.get("bankCardImage"));
-    const birthCertificatePages = form
-      .getAll("birthCertificatePages")
-      .filter((value): value is File => value instanceof File && value.size > 0);
-
-    if (!nationalCard || !bankCardImage || birthCertificatePages.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "تصویر کارت ملی، حداقل یک تصویر از صفحات شناسنامه و تصویر کارت بانکی الزامی هستند." },
-        { status: 400 }
-      );
-    }
-    if (birthCertificatePages.length > 8) {
-      return NextResponse.json({ success: false, message: "حداکثر ۸ تصویر برای صفحات شناسنامه مجاز است." }, { status: 400 });
-    }
-
-    savedDocuments.push(
-      await saveKycFile(nationalCard, "national_card", "تصویر کارت ملی")
-    );
-    for (let index = 0; index < birthCertificatePages.length; index += 1) {
-      savedDocuments.push(
-        await saveKycFile(
-          birthCertificatePages[index],
-          "birth_certificate",
-          `صفحه ${index + 1} شناسنامه`
-        )
-      );
-    }
-    savedDocuments.push(
-      await saveKycFile(bankCardImage, "bank_card", "تصویر کارت بانکی")
-    );
 
     let categories: string[] = [];
     try {
@@ -135,31 +96,31 @@ export async function POST(request: Request) {
     } catch {
       categories = [];
     }
-    if (role === "seller" && categories.length === 0) {
-      await removeKycFiles(savedDocuments);
-      return NextResponse.json({ success: false, message: "فروشنده باید حداقل یک حوزه فعالیت انتخاب کند." }, { status: 400 });
-    }
 
+    savedDocuments.push(...(await saveOptionalKycDocuments(form)));
     const profileImage = asFile(form.get("profileImage"));
     if (profileImage) savedAvatarName = await saveAvatarFile(profileImage);
 
     const { user } = await createJsonUser({
       fullName,
-      username,
+      username: text(form, "username") || undefined,
       email,
+      phone,
       password,
       role,
       avatarName: savedAvatarName || undefined,
-      city,
-      postalCode,
-      defaultAddress,
-      bankAccountHolder,
-      bankName,
-      bankAccountNumber,
-      bankCardNumber,
-      bankShebaNumber,
+      city: text(form, "city"),
+      postalCode: onlyDigits(text(form, "postalCode")),
+      defaultAddress: text(form, "defaultAddress"),
+      bankAccountHolder: text(form, "bankAccountHolder"),
+      bankName: text(form, "bankName"),
+      bankAccountNumber: onlyDigits(text(form, "bankAccountNumber")),
+      bankCardNumber: onlyDigits(text(form, "bankCardNumber")),
+      bankShebaNumber: text(form, "bankShebaNumber"),
       categories,
       kycDocuments: savedDocuments,
+      isActive: true,
+      kycStatus: savedDocuments.length > 0 ? "pending" : "pending",
     });
 
     return NextResponse.json({
@@ -168,10 +129,12 @@ export async function POST(request: Request) {
         id: user.id,
         fullName: user.fullName,
         username: user.username,
+        email: user.email,
+        phone: user.phone,
         role: user.role,
         kycStatus: user.kycStatus,
       },
-      message: "ثبت‌نام انجام شد. حساب پس از بررسی و تایید مدارک توسط ادمین فعال می‌شود.",
+      message: "ثبت‌نام سریع انجام شد. حالا می‌توانید وارد حساب شوید و اطلاعات تکمیلی، حساب بانکی و مدارک را مرحله‌به‌مرحله کامل کنید.",
     });
   } catch (error) {
     await removeKycFiles(savedDocuments);
@@ -179,13 +142,15 @@ export async function POST(request: Request) {
     const detail = error instanceof Error ? error.message : "Unknown registration error";
     const message = detail.includes("Email already")
       ? "این ایمیل قبلاً ثبت شده است."
-      : detail.includes("Username already")
-        ? "این نام کاربری قبلاً انتخاب شده است."
-        : detail.includes("Only JPG")
-          ? "مدارک باید با فرمت JPG، PNG یا WEBP باشند."
-          : detail.includes("5 MB")
-            ? "حجم هر تصویر مدرک نباید بیشتر از ۵ مگابایت باشد."
-            : "ثبت‌نام و ذخیره مدارک ناموفق بود.";
+      : detail.includes("Phone already")
+        ? "این شماره موبایل قبلاً ثبت شده است."
+        : detail.includes("Username already")
+          ? "این نام کاربری قبلاً انتخاب شده است."
+          : detail.includes("Only JPG")
+            ? "مدارک باید با فرمت JPG، PNG یا WEBP باشند."
+            : detail.includes("5 MB")
+              ? "حجم هر تصویر مدرک نباید بیشتر از ۵ مگابایت باشد."
+              : "ثبت‌نام ناموفق بود.";
     return NextResponse.json({ success: false, message, detail }, { status: 500 });
   }
 }

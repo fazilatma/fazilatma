@@ -90,6 +90,7 @@ export type JsonUser = {
   fullName: string;
   username?: string;
   email: string;
+  phone?: string;
   password?: string;
   role: UserRole;
   isActive: boolean;
@@ -507,6 +508,17 @@ function money(value: string | number) {
   return Math.max(0, Number(String(value).replace(/\D/g, "")) || 0);
 }
 
+function normalizePhone(value?: string) {
+  const digits = String(value || "")
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0098")) return `0${digits.slice(4)}`;
+  if (digits.startsWith("98")) return `0${digits.slice(2)}`;
+  return digits;
+}
+
 function isSuccessfulOrder(order: JsonOrder) {
   return order.status === "completed";
 }
@@ -531,6 +543,7 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
     (user) => ({
       ...user,
       username: user.username || "",
+      phone: (user as { phone?: string }).phone || "",
       kycStatus: user.kycStatus || "approved",
       kycDocuments: Array.isArray(user.kycDocuments) ? user.kycDocuments : [],
       socialAccounts: Array.isArray(
@@ -867,9 +880,10 @@ function getUserOrThrow(data: OptiBidJsonData, id: number, role?: UserRole) {
 }
 
 export async function createJsonUser(input: {
-  fullName: string;
-  username: string;
-  email: string;
+  fullName?: string;
+  username?: string;
+  email?: string;
+  phone?: string;
   password?: string;
   role: "buyer" | "seller";
   avatarName?: string;
@@ -883,30 +897,55 @@ export async function createJsonUser(input: {
   bankAccountNumber?: string;
   bankCardNumber?: string;
   bankShebaNumber?: string;
-  kycDocuments: JsonKycDocument[];
+  kycDocuments?: JsonKycDocument[];
+  isActive?: boolean;
+  kycStatus?: "pending" | "approved" | "rejected";
 }) {
   const data = await getOptiBidData();
-  const normalizedEmail = input.email.trim().toLowerCase();
-  const normalizedUsername = input.username.trim().toLowerCase();
-  const existingEmail = data.users.find(
-    (user) => user.email.toLowerCase() === normalizedEmail,
-  );
-  if (existingEmail) throw new Error("Email already registered");
+  const normalizedEmail = (input.email || "").trim().toLowerCase();
+  const normalizedPhone = normalizePhone(input.phone);
+  if (!normalizedEmail && !normalizedPhone)
+    throw new Error("Contact is required");
+  if (normalizedEmail) {
+    const existingEmail = data.users.find(
+      (user) => user.email.toLowerCase() === normalizedEmail,
+    );
+    if (existingEmail) throw new Error("Email already registered");
+  }
+  if (normalizedPhone) {
+    const existingPhone = data.users.find(
+      (user) => normalizePhone(user.phone) === normalizedPhone,
+    );
+    if (existingPhone) throw new Error("Phone already registered");
+  }
+
+  const generatedEmail =
+    normalizedEmail || `phone-${normalizedPhone}@phone.optibid.local`;
+  const normalizedUsername = input.username?.trim()
+    ? input.username.trim().toLowerCase()
+    : uniqueUsername(data.users, normalizedEmail || normalizedPhone || "user");
+  if (!/^[a-z0-9._-]{3,30}$/.test(normalizedUsername))
+    throw new Error("Invalid username");
   const existingUsername = data.users.find(
     (user) => (user.username || "").toLowerCase() === normalizedUsername,
   );
   if (existingUsername) throw new Error("Username already registered");
 
+  const displayName =
+    input.fullName?.trim() ||
+    (input.role === "seller" ? "فروشنده جدید OptiBid" : "خریدار جدید OptiBid");
+  const kycDocuments = input.kycDocuments || [];
   const user: JsonUser = {
     id: nextNumericId(data.users),
-    fullName: input.fullName.trim(),
+    fullName: displayName,
     username: normalizedUsername,
-    email: normalizedEmail,
+    email: generatedEmail,
+    phone: normalizedPhone,
     password: input.password ? hashPassword(input.password) : undefined,
     role: input.role,
-    isActive: false,
-    kycStatus: "pending",
-    kycDocuments: input.kycDocuments,
+    isActive: input.isActive ?? true,
+    kycStatus: input.kycStatus || "pending",
+    kycDocuments,
     kycRejectReason: "",
     avatarName: input.avatarName,
     bio: input.bio || "",
@@ -914,7 +953,7 @@ export async function createJsonUser(input: {
     city: input.city || "",
     postalCode: input.postalCode || "",
     defaultAddress: input.defaultAddress || "",
-    bankAccountHolder: input.bankAccountHolder || input.fullName.trim(),
+    bankAccountHolder: input.bankAccountHolder || "",
     bankName: input.bankName || "",
     bankAccountNumber: input.bankAccountNumber || "",
     bankCardNumber: input.bankCardNumber || "",
@@ -936,10 +975,13 @@ export async function authenticateJsonUser(input: {
 }) {
   const data = await getOptiBidData();
   const identifier = input.identifier.trim().toLowerCase();
+  const normalizedPhoneIdentifier = normalizePhone(identifier);
   const user = data.users.find(
     (item) =>
       item.email.toLowerCase() === identifier ||
-      (item.username || "").toLowerCase() === identifier,
+      (item.username || "").toLowerCase() === identifier ||
+      (normalizedPhoneIdentifier &&
+        normalizePhone(item.phone) === normalizedPhoneIdentifier),
   );
   if (!user || !verifyPassword(input.password, user.password)) return null;
   if (user.kycStatus === "rejected") {
@@ -947,7 +989,7 @@ export async function authenticateJsonUser(input: {
       `KYC_REJECTED:${user.kycRejectReason || "مدارک نیازمند اصلاح است"}`,
     );
   }
-  if (user.kycStatus === "pending" || !user.isActive) {
+  if (!user.isActive) {
     throw new Error("KYC_PENDING");
   }
 
@@ -1164,16 +1206,50 @@ export async function updateJsonBuyerProfile(
   buyerId: number,
   updates: {
     fullName?: string;
+    email?: string;
+    phone?: string;
     bio?: string;
+    city?: string;
+    postalCode?: string;
     defaultAddress?: string;
     categories?: string[];
     avatarName?: string;
+    bankAccountHolder?: string;
+    bankName?: string;
+    bankAccountNumber?: string;
+    bankCardNumber?: string;
+    bankShebaNumber?: string;
+    kycDocuments?: JsonKycDocument[];
   },
 ) {
   const data = await getOptiBidData();
   const buyer = getUserOrThrow(data, buyerId, "buyer");
   if (updates.fullName?.trim()) buyer.fullName = updates.fullName.trim();
+  if (typeof updates.email === "string" && updates.email.trim()) {
+    const email = updates.email.trim().toLowerCase();
+    if (
+      data.users.some(
+        (item) => item.id !== buyer.id && item.email.toLowerCase() === email,
+      )
+    )
+      throw new Error("Email already registered");
+    buyer.email = email;
+  }
+  if (typeof updates.phone === "string") {
+    const phone = normalizePhone(updates.phone);
+    if (
+      phone &&
+      data.users.some(
+        (item) => item.id !== buyer.id && normalizePhone(item.phone) === phone,
+      )
+    )
+      throw new Error("Phone already registered");
+    buyer.phone = phone;
+  }
   if (typeof updates.bio === "string") buyer.bio = updates.bio.trim();
+  if (typeof updates.city === "string") buyer.city = updates.city.trim();
+  if (typeof updates.postalCode === "string")
+    buyer.postalCode = normalizePhone(updates.postalCode).slice(0, 10);
   if (typeof updates.defaultAddress === "string")
     buyer.defaultAddress = updates.defaultAddress.trim();
   if (typeof updates.avatarName === "string" && updates.avatarName.trim())
@@ -1182,6 +1258,26 @@ export async function updateJsonBuyerProfile(
     buyer.categories = [
       ...new Set(updates.categories.map((x) => x.trim()).filter(Boolean)),
     ];
+  if (typeof updates.bankAccountHolder === "string")
+    buyer.bankAccountHolder = updates.bankAccountHolder.trim();
+  if (typeof updates.bankName === "string")
+    buyer.bankName = updates.bankName.trim();
+  if (typeof updates.bankAccountNumber === "string")
+    buyer.bankAccountNumber = normalizePhone(updates.bankAccountNumber).slice(
+      0,
+      30,
+    );
+  if (typeof updates.bankCardNumber === "string")
+    buyer.bankCardNumber = normalizePhone(updates.bankCardNumber).slice(0, 16);
+  if (typeof updates.bankShebaNumber === "string")
+    buyer.bankShebaNumber = updates.bankShebaNumber.trim().toUpperCase();
+  if (updates.kycDocuments?.length) {
+    buyer.kycDocuments = [
+      ...(buyer.kycDocuments || []),
+      ...updates.kycDocuments,
+    ];
+    buyer.kycStatus = "pending";
+  }
   await writeOptiBidData(data);
   return buyer;
 }
@@ -1212,6 +1308,7 @@ function adminUserSummary(data: OptiBidJsonData, user: JsonUser) {
     fullName: user.fullName,
     username: user.username || "",
     email: user.email,
+    phone: user.phone || "",
     role: user.role,
     isActive: user.isActive,
     kycStatus: user.kycStatus || "approved",
@@ -1296,6 +1393,7 @@ export async function updateJsonAdminUser(input: {
   fullName?: string;
   username?: string;
   email?: string;
+  phone?: string;
   isActive?: boolean;
   kycStatus?: "pending" | "approved" | "rejected";
   bankDetailsVerified?: boolean;
@@ -1335,6 +1433,17 @@ export async function updateJsonAdminUser(input: {
     )
       throw new Error("Email already registered");
     user.email = email;
+  }
+  if (typeof input.phone === "string") {
+    const phone = normalizePhone(input.phone);
+    if (
+      phone &&
+      data.users.some(
+        (item) => item.id !== user.id && normalizePhone(item.phone) === phone,
+      )
+    )
+      throw new Error("Phone already registered");
+    user.phone = phone;
   }
   if (typeof input.isActive === "boolean") user.isActive = input.isActive;
   if (
@@ -1463,21 +1572,78 @@ export async function updateJsonSellerProfile(
   sellerId: number,
   updates: {
     fullName?: string;
+    email?: string;
+    phone?: string;
     bio?: string;
+    city?: string;
+    postalCode?: string;
+    defaultAddress?: string;
     categories?: string[];
     avatarName?: string;
+    bankAccountHolder?: string;
+    bankName?: string;
+    bankAccountNumber?: string;
+    bankCardNumber?: string;
+    bankShebaNumber?: string;
+    kycDocuments?: JsonKycDocument[];
   },
 ) {
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, sellerId, "seller");
   if (updates.fullName?.trim()) seller.fullName = updates.fullName.trim();
+  if (typeof updates.email === "string" && updates.email.trim()) {
+    const email = updates.email.trim().toLowerCase();
+    if (
+      data.users.some(
+        (item) => item.id !== seller.id && item.email.toLowerCase() === email,
+      )
+    )
+      throw new Error("Email already registered");
+    seller.email = email;
+  }
+  if (typeof updates.phone === "string") {
+    const phone = normalizePhone(updates.phone);
+    if (
+      phone &&
+      data.users.some(
+        (item) => item.id !== seller.id && normalizePhone(item.phone) === phone,
+      )
+    )
+      throw new Error("Phone already registered");
+    seller.phone = phone;
+  }
   if (typeof updates.bio === "string") seller.bio = updates.bio.trim();
+  if (typeof updates.city === "string") seller.city = updates.city.trim();
+  if (typeof updates.postalCode === "string")
+    seller.postalCode = normalizePhone(updates.postalCode).slice(0, 10);
+  if (typeof updates.defaultAddress === "string")
+    seller.defaultAddress = updates.defaultAddress.trim();
   if (typeof updates.avatarName === "string" && updates.avatarName.trim())
     seller.avatarName = updates.avatarName.trim();
   if (Array.isArray(updates.categories))
     seller.categories = [
       ...new Set(updates.categories.map((x) => x.trim()).filter(Boolean)),
     ];
+  if (typeof updates.bankAccountHolder === "string")
+    seller.bankAccountHolder = updates.bankAccountHolder.trim();
+  if (typeof updates.bankName === "string")
+    seller.bankName = updates.bankName.trim();
+  if (typeof updates.bankAccountNumber === "string")
+    seller.bankAccountNumber = normalizePhone(updates.bankAccountNumber).slice(
+      0,
+      30,
+    );
+  if (typeof updates.bankCardNumber === "string")
+    seller.bankCardNumber = normalizePhone(updates.bankCardNumber).slice(0, 16);
+  if (typeof updates.bankShebaNumber === "string")
+    seller.bankShebaNumber = updates.bankShebaNumber.trim().toUpperCase();
+  if (updates.kycDocuments?.length) {
+    seller.kycDocuments = [
+      ...(seller.kycDocuments || []),
+      ...updates.kycDocuments,
+    ];
+    seller.kycStatus = "pending";
+  }
   const metrics = seller.sellerMetrics || createDefaultSellerMetrics();
   seller.sellerMetrics = {
     ...metrics,

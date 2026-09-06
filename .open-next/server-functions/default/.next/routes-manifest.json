@@ -107,6 +107,12 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/account/completion",
+      "regex": "^/account/completion(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/completion(?:/)?$"
+    },
+    {
       "page": "/admin/dashboard",
       "regex": "^/admin/dashboard(?:/)?$",
       "routeKeys": {},

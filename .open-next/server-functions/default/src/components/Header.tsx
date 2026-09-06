@@ -142,6 +142,14 @@ export default function Header() {
                     پنل مدیریت
                   </Link>
                 )}
+                {(userRole === "buyer" || userRole === "seller") && (
+                  <Link
+                    href="/account/completion"
+                    className="text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition font-bold text-sm"
+                  >
+                    تکمیل اطلاعات
+                  </Link>
+                )}
                 {userRole === "buyer" && (
                   <Link
                     href="/buyer/dashboard"
@@ -291,6 +299,14 @@ export default function Header() {
                 >
                   <span>💰</span> فروش‌های من (فروشنده)
                 </Link>
+                {(userRole === "buyer" || userRole === "seller") && (
+                  <Link
+                    href="/account/completion"
+                    className="text-amber-700 bg-amber-50 px-2 py-1 rounded hover:bg-amber-100 transition flex items-center gap-2"
+                  >
+                    <span>🧩</span> تکمیل اطلاعات حساب
+                  </Link>
+                )}
                 <Link
                   href="/admin/dashboard"
                   className="text-purple-700 bg-purple-50 px-2 py-1 rounded hover:bg-purple-100 transition flex items-center gap-2 mt-1"

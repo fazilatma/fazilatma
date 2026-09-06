@@ -45,6 +45,7 @@ export async function PATCH(request: Request) {
       fullName: typeof body.fullName === "string" ? body.fullName : undefined,
       username: typeof body.username === "string" ? body.username : undefined,
       email: typeof body.email === "string" ? body.email : undefined,
+      phone: typeof body.phone === "string" ? body.phone : undefined,
       isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
       kycStatus: ["pending", "approved", "rejected"].includes(body.kycStatus)
         ? body.kycStatus
@@ -74,7 +75,9 @@ export async function PATCH(request: Request) {
       ? "این نام کاربری قبلاً ثبت شده است."
       : detail.includes("Email already")
         ? "این ایمیل قبلاً ثبت شده است."
-        : detail.includes("Invalid username")
+        : detail.includes("Phone already")
+          ? "این شماره موبایل قبلاً ثبت شده است."
+          : detail.includes("Invalid username")
           ? "نام کاربری باید ۳ تا ۳۰ کاراکتر انگلیسی شامل حروف، عدد، نقطه، خط تیره یا زیرخط باشد."
           : "ذخیره اطلاعات کاربر ناموفق بود.";
     return NextResponse.json(

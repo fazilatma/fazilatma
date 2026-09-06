@@ -2272,7 +2272,7 @@ function UserManagementPanel({
         (statusFilter === "blocked" && !user.isActive) ||
         (statusFilter === "pending" && user.kycStatus === "pending");
       const text =
-        `${user.fullName} ${user.username} ${user.email} ${user.city}`.toLowerCase();
+        `${user.fullName} ${user.username} ${user.email} ${user.phone || ""} ${user.city}`.toLowerCase();
       return roleOk && statusOk && (!query || text.includes(query));
     });
   }, [users, search, roleFilter, statusFilter]);
@@ -2285,6 +2285,7 @@ function UserManagementPanel({
         fullName: user.fullName || "",
         username: user.username || "",
         email: user.email || "",
+        phone: user.phone || "",
         isActive: Boolean(user.isActive),
         kycStatus: user.kycStatus || "pending",
         bankDetailsVerified: Boolean(user.bankDetailsVerified),
@@ -2514,7 +2515,16 @@ function UserManagementPanel({
                               <span dir="ltr">{user.username || "—"}</span>
                             </p>
                             <p>
-                              <b>ایمیل:</b> <span dir="ltr">{user.email}</span>
+                              <b>ایمیل:</b>{" "}
+                              <span dir="ltr">
+                                {user.email?.includes("@phone.optibid.local")
+                                  ? "—"
+                                  : user.email}
+                              </span>
+                            </p>
+                            <p>
+                              <b>موبایل:</b>{" "}
+                              <span dir="ltr">{user.phone || "—"}</span>
                             </p>
                             <p>
                               <b>شهر:</b> {user.city || "—"}
@@ -2650,6 +2660,23 @@ function UserManagementPanel({
                                     user.id,
                                     "email",
                                     event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 text-left font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              موبایل
+                              <input
+                                dir="ltr"
+                                value={draft.phone || ""}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "phone",
+                                    event.target.value
+                                      .replace(/\D/g, "")
+                                      .slice(0, 11),
                                   )
                                 }
                                 className="mt-1 w-full rounded-xl border p-2 text-left font-normal"

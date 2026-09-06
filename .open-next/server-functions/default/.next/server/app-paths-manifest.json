@@ -1,6 +1,7 @@
 {
   "/_global-error/page": "app/_global-error/page.js",
   "/_not-found/page": "app/_not-found/page.js",
+  "/account/completion/page": "app/account/completion/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
   "/api/admin/finance/route": "app/api/admin/finance/route.js",
   "/api/admin/kyc-document/route": "app/api/admin/kyc-document/route.js",

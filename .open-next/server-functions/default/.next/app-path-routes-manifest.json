@@ -1,6 +1,7 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/account/completion/page": "/account/completion",
   "/admin/dashboard/page": "/admin/dashboard",
   "/api/admin/finance/route": "/api/admin/finance",
   "/api/admin/kyc-document/route": "/api/admin/kyc-document",
