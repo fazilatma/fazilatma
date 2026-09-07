@@ -223,8 +223,18 @@ export default async function RequestDetailPage({
               </div>
 
               {offers.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-gray-500">
-                  هنوز فروشنده‌ای برای این درخواست پیشنهاد ثبت نکرده است.
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-gray-500">
+                    هنوز فروشنده‌ای برای این درخواست پیشنهاد ثبت نکرده است.
+                  </div>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center text-sm leading-7 text-amber-900">
+                    <p className="text-lg font-bold">انتخاب پیشنهاد و پرداخت</p>
+                    <p className="mt-2">
+                      بعد از اینکه فروشنده‌ها پیشنهاد قیمت و مشخصات کالا را ثبت
+                      کنند، دکمه «انتخاب پیشنهاد و پرداخت» همین‌جا برای خریدار
+                      صاحب درخواست فعال می‌شود.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -328,10 +338,17 @@ export default async function RequestDetailPage({
                               تومان
                             </p>
                             <OfferAction
+                              offerId={offer.id}
+                              offerAmount={offer.amount}
+                              offerSellerName={offer.sellerName}
                               offerStatus={offer.status}
                               offerSellerId={offer.sellerId}
                               requestBuyerId={request.buyerId}
                               hasProductSpecs={Boolean(offer.productSpecs)}
+                              productSpecs={offer.productSpecs}
+                              defaultShippingAddress={
+                                buyer?.defaultAddress || ""
+                              }
                             />
                           </div>
                         </div>

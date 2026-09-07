@@ -41,6 +41,15 @@ export default function Header() {
     setTimeout(() => window.location.reload(), 200);
   };
 
+  const rememberLoginReturnPath = () => {
+    if (pathname.startsWith("/requests") || pathname === "/request-purchase") {
+      const query = window.location.search || "";
+      sessionStorage.setItem("redirectAfterAuth", `${pathname}${query}`);
+      return;
+    }
+    sessionStorage.removeItem("redirectAfterAuth");
+  };
+
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" dir="rtl">
@@ -198,6 +207,7 @@ export default function Header() {
               <>
                 <Link
                   href="/login"
+                  onClick={rememberLoginReturnPath}
                   className="text-gray-700 hover:text-green-600 transition px-3 py-2 font-bold text-sm"
                 >
                   ورود
@@ -225,6 +235,7 @@ export default function Header() {
               <>
                 <Link
                   href="/login"
+                  onClick={rememberLoginReturnPath}
                   className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-bold text-gray-700 shadow-sm"
                 >
                   ورود
@@ -363,6 +374,7 @@ export default function Header() {
                 <div className="flex gap-2 pt-2 border-t">
                   <Link
                     href="/login"
+                    onClick={rememberLoginReturnPath}
                     className="flex-1 text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition font-bold"
                   >
                     ورود
@@ -383,6 +395,7 @@ export default function Header() {
         <div className="fixed inset-x-3 bottom-3 z-[60] grid grid-cols-2 gap-2 rounded-2xl border border-gray-200 bg-white/95 p-2 shadow-2xl backdrop-blur md:hidden">
           <Link
             href="/login"
+            onClick={rememberLoginReturnPath}
             className="rounded-xl border border-gray-300 px-4 py-3 text-center text-sm font-extrabold text-gray-800"
           >
             ورود

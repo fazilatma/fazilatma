@@ -65,15 +65,16 @@ export default function LoginPage() {
       localStorage.setItem("userId", String(result.user.id));
       localStorage.setItem("userDisplayName", result.user.fullName);
 
-      const redirectUrl = sessionStorage.getItem("redirectAfterAuth");
-      const dashboardUrl = `/${role === "admin" ? "admin" : role}/dashboard`;
-      const targetUrl =
-        redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : dashboardUrl;
-      if (redirectUrl) sessionStorage.removeItem("redirectAfterAuth");
+      const redirectUrl = sessionStorage.getItem("redirectAfterAuth") || "";
+      const safeRedirect =
+        redirectUrl.startsWith("/requests") ||
+        redirectUrl.startsWith("/request-purchase")
+          ? redirectUrl
+          : "";
+      sessionStorage.removeItem("redirectAfterAuth");
 
-      // استفاده از assign باعث می‌شود بعد از ذخیره localStorage، صفحه واقعاً به پیشخوان نقش مربوطه برود
-      // و دیگر reload زودهنگام روی صفحه ورود کاربر را همان‌جا نگه ندارد.
-      window.location.assign(targetUrl);
+      // بعد از ورود عادی، همه نقش‌ها به صفحه اصلی برگردند؛ فقط اگر ورود از صفحه درخواست خرید شروع شده باشد، همان صفحه باز شود.
+      window.location.assign(safeRedirect || "/");
     } catch {
       alert("خطا در ارتباط با سرور هنگام ورود.");
     } finally {
