@@ -25,11 +25,11 @@ export default function Header() {
     localStorage.removeItem("userId");
     localStorage.removeItem("userDisplayName");
     localStorage.removeItem("previousUserRole");
+    sessionStorage.removeItem("redirectAfterAuth");
     setPreviousUserRole(null);
     setUserRole(null);
-    alert("با موفقیت خارج شدید.");
-    router.push("/");
-    setTimeout(() => window.location.reload(), 300);
+    // بعد از خروج از هر نقش، مستقیم به صفحه اصلی برو؛ reload مسیر داشبورد قبلی خطای «آماده نیست» می‌داد.
+    window.location.replace("/");
   };
 
   const switchBackToBuyerMode = () => {

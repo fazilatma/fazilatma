@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-export async function POST() {
-  const response = NextResponse.json({ success: true });
+function clearSession(response: NextResponse) {
   response.cookies.set("optibid_admin", "", {
     httpOnly: true,
     sameSite: "lax",
@@ -10,4 +9,12 @@ export async function POST() {
     maxAge: 0,
   });
   return response;
+}
+
+export async function POST() {
+  return clearSession(NextResponse.json({ success: true, nextUrl: "/" }));
+}
+
+export async function GET(request: Request) {
+  return clearSession(NextResponse.redirect(new URL("/", request.url)));
 }
