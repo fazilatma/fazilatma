@@ -129,23 +129,35 @@ async function demoSocialLogin(
   redirect: string,
 ) {
   const providerFa = provider === "google" ? "گوگل" : "فیسبوک";
-  const user = await authenticateOrCreateJsonSocialUser({
-    provider,
-    providerUserId: `demo-${provider}-${role}`,
-    email: `demo-${provider}-${role}@optibid.local`,
-    fullName: `${role === "seller" ? "فروشنده" : "خریدار"} ${providerFa} OptiBid`,
-    role,
-  });
-  return new NextResponse(
-    socialSuccessHtml({
+  try {
+    const user = await authenticateOrCreateJsonSocialUser({
       provider,
+      providerUserId: `demo-${provider}-${role}`,
+      email: `demo-${provider}-${role}@optibid.local`,
+      fullName: `${role === "seller" ? "فروشنده" : "خریدار"} ${providerFa} OptiBid`,
       role,
-      redirect,
-      user: { id: user.id, fullName: user.fullName, role: user.role },
-      demo: true,
-    }),
-    { headers: { "Content-Type": "text/html; charset=utf-8" } },
-  );
+      forceActive: true,
+    });
+    return new NextResponse(
+      socialSuccessHtml({
+        provider,
+        role,
+        redirect,
+        user: { id: user.id, fullName: user.fullName, role: user.role },
+        demo: true,
+      }),
+      { headers: { "Content-Type": "text/html; charset=utf-8" } },
+    );
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "خطای ناشناخته";
+    return new NextResponse(
+      socialFailureHtml({
+        provider,
+        message: `حالت آزمایشی ورود با ${providerFa} اجرا نشد: ${detail}. لطفاً با موبایل یا ایمیل ثبت‌نام/ورود کنید.`,
+      }),
+      { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
+    );
+  }
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -163,7 +175,7 @@ export async function GET(request: Request, context: RouteContext) {
     const config = await clientConfig(provider);
     const credentialsMissing = !config.clientId || !config.clientSecret;
     if (credentialsMissing) {
-      return demoSocialLogin(provider, role, redirect);
+      return await demoSocialLogin(provider, role, redirect);
     }
     if (!config.enabled) {
       const message = encodeURIComponent(

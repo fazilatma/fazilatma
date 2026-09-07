@@ -1032,6 +1032,7 @@ export async function authenticateOrCreateJsonSocialUser(input: {
   email: string;
   fullName: string;
   role?: "buyer" | "seller";
+  forceActive?: boolean;
 }) {
   const data = await getOptiBidData();
   const normalizedEmail = (
@@ -1056,6 +1057,10 @@ export async function authenticateOrCreateJsonSocialUser(input: {
     );
 
   if (user) {
+    if (input.forceActive) {
+      user.isActive = true;
+      if (user.kycStatus === "rejected") user.kycStatus = "pending";
+    }
     user.socialAccounts = user.socialAccounts || [];
     if (
       !user.socialAccounts.some(
@@ -1073,7 +1078,7 @@ export async function authenticateOrCreateJsonSocialUser(input: {
     }
     if (!user.fullName.trim() && input.fullName.trim())
       user.fullName = input.fullName.trim();
-    if (user.kycStatus === "rejected")
+    if (!input.forceActive && user.kycStatus === "rejected")
       throw new Error(
         `KYC_REJECTED:${user.kycRejectReason || "مدارک نیازمند اصلاح است"}`,
       );

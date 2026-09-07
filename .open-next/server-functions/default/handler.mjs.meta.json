@@ -5065,7 +5065,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_lib_json-store_ts_0m90tqd._.js": {
-      "bytes": 61087,
+      "bytes": 61184,
       "imports": [],
       "format": "cjs"
     },
@@ -5483,7 +5483,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/node_modules_next_dist_esm_build_templates_app-route_0ec8jyy.js": {
-      "bytes": 13944,
+      "bytes": 14329,
       "imports": [],
       "format": "cjs"
     },
@@ -5845,7 +5845,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 1152619,
+      "bytes": 1153388,
       "imports": [],
       "format": "cjs"
     },
@@ -15194,7 +15194,7 @@
           "bytesInOutput": 4277
         },
         ".open-next/server-functions/default/.next/server/chunks/src_lib_json-store_ts_0m90tqd._.js": {
-          "bytesInOutput": 76748
+          "bytesInOutput": 76850
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__0l_xi1n._.js": {
           "bytesInOutput": 11516
@@ -15248,7 +15248,7 @@
           "bytesInOutput": 299
         },
         ".open-next/server-functions/default/.next/server/chunks/node_modules_next_dist_esm_build_templates_app-route_0ec8jyy.js": {
-          "bytesInOutput": 15986
+          "bytesInOutput": 16665
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__1pgx5__._.js": {
           "bytesInOutput": 11356
@@ -15290,7 +15290,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 1403098
+          "bytesInOutput": 1404150
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -16097,7 +16097,7 @@
           "bytesInOutput": 68322
         }
       },
-      "bytes": 6944579
+      "bytes": 6946412
     }
   }
 }
