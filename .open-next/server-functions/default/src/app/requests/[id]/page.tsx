@@ -5,6 +5,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { getOptiBidData } from "@/lib/json-store";
 import { estimateFairUsedProductPrice } from "@/lib/request-valuation";
 import OfferAction from "./OfferAction";
+import SellerOfferAction from "./SellerOfferAction";
 
 interface RequestDetailPageProps {
   params: Promise<{ id: string }>;
@@ -211,6 +212,17 @@ export default async function RequestDetailPage({
                   </div>
                 )}
             </section>
+
+            <SellerOfferAction
+              requestId={request.id}
+              requestBuyerId={request.buyerId}
+              requestCategory={request.category}
+              requestStatus={request.status}
+              sellerOffers={offers.map((offer) => ({
+                sellerId: offer.sellerId,
+                status: offer.status,
+              }))}
+            />
 
             <section className="rounded-3xl border border-gray-200 bg-white p-7 shadow-sm">
               <div className="mb-5 flex items-center justify-between">
