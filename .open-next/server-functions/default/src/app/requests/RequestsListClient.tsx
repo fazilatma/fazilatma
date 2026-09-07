@@ -48,9 +48,14 @@ export default function RequestsListClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [specsRequest, setSpecsRequest] = useState<RequestItem | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState(0);
+  const [switchingRequestId, setSwitchingRequestId] = useState<
+    string | number | null
+  >(null);
 
   useEffect(() => {
     setUserRole(localStorage.getItem("userRole"));
+    setUserId(Number(localStorage.getItem("userId") || 0));
   }, []);
 
   // فیلتر کردن زنده (Instant Filter)
@@ -66,6 +71,64 @@ export default function RequestsListClient({
 
     return matchCategory && matchSearch;
   });
+
+  const switchToSellerMode = async (request: RequestItem) => {
+    if (!userId || !userRole) {
+      sessionStorage.setItem("redirectAfterAuth", "/requests");
+      alert(
+        "برای پیشنهاد دادن ابتدا وارد حساب شوید. بعد از ورود می‌توانید حالت فروشنده را فعال کنید.",
+      );
+      window.location.href = "/login";
+      return;
+    }
+    if (userId && request.buyerUser?.id === userId) {
+      alert("روی درخواست خرید خودتان نمی‌توانید پیشنهاد فروشنده ثبت کنید.");
+      return;
+    }
+    if (userRole === "seller") {
+      window.location.href = `/requests/${request.id}/offer`;
+      return;
+    }
+    if (userRole === "admin") {
+      alert(
+        "ادمین برای ثبت پیشنهاد باید با حساب خریدار/فروشنده جداگانه وارد شود.",
+      );
+      return;
+    }
+    const ok = confirm(
+      "می‌خواهید از حالت خریدار خارج شوید و برای این درخواست به حالت فروشنده وارد شوید؟\nحساب خریدار شما حذف نمی‌شود؛ فقط حالت فروشندگی روی همین حساب فعال می‌شود.",
+    );
+    if (!ok) return;
+
+    setSwitchingRequestId(request.id);
+    try {
+      const response = await fetch("/api/account/seller-mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          requestId: request.id,
+          category: request.category,
+        }),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "تغییر حالت ناموفق بود.");
+      localStorage.setItem("previousUserRole", userRole);
+      localStorage.setItem("userRole", "seller");
+      setUserRole("seller");
+      alert(result.message);
+      window.location.href = result.nextUrl || `/requests/${request.id}/offer`;
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "تغییر به حالت فروشنده ناموفق بود.",
+      );
+    } finally {
+      setSwitchingRequestId(null);
+    }
+  };
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50">
@@ -108,6 +171,13 @@ export default function RequestsListClient({
               ثبت درخواست خرید
             </Link>
           </div>
+          {userRole === "buyer" && (
+            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+              اگر می‌خواهید روی درخواست خرید دیگران قیمت بدهید، از دکمه «ورود به
+              حالت فروشنده و ثبت پیشنهاد» استفاده کنید. حساب خریدار شما باقی
+              می‌ماند و فقط حالت فروشندگی فعال می‌شود.
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
@@ -352,6 +422,18 @@ export default function RequestsListClient({
                           >
                             مشخصات کالای پیشنهادی
                           </Link>
+                        ) : userRole === "buyer" &&
+                          request.buyerUser?.id !== userId ? (
+                          <button
+                            type="button"
+                            disabled={switchingRequestId === request.id}
+                            onClick={() => switchToSellerMode(request)}
+                            className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+                          >
+                            {switchingRequestId === request.id
+                              ? "در حال تغییر حالت..."
+                              : "ورود به حالت فروشنده و ثبت پیشنهاد"}
+                          </button>
                         ) : request.offers > 0 ? (
                           <button
                             type="button"
@@ -365,7 +447,7 @@ export default function RequestsListClient({
                           href={`/requests/${request.id}`}
                           className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-green-700 transition"
                         >
-                          مشاهده و ارسال پیشنهاد
+                          مشاهده درخواست
                         </Link>
                       </div>
                     </div>

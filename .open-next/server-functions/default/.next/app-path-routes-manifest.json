@@ -3,6 +3,7 @@
   "/_not-found/page": "/_not-found",
   "/account/completion/page": "/account/completion",
   "/admin/dashboard/page": "/admin/dashboard",
+  "/api/account/seller-mode/route": "/api/account/seller-mode",
   "/api/admin/finance/route": "/api/admin/finance",
   "/api/admin/kyc-document/route": "/api/admin/kyc-document",
   "/api/admin/kyc/route": "/api/admin/kyc",

@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [previousUserRole, setPreviousUserRole] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const showMobileAuthDock =
@@ -15,6 +16,7 @@ export default function Header() {
   useEffect(() => {
     // خواندن نقش کاربر از لوکال استوریج در کلاینت‌ساید
     setUserRole(localStorage.getItem("userRole"));
+    setPreviousUserRole(localStorage.getItem("previousUserRole"));
   }, []);
 
   const handleLogout = async () => {
@@ -22,10 +24,21 @@ export default function Header() {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userId");
     localStorage.removeItem("userDisplayName");
+    localStorage.removeItem("previousUserRole");
+    setPreviousUserRole(null);
     setUserRole(null);
     alert("با موفقیت خارج شدید.");
     router.push("/");
     setTimeout(() => window.location.reload(), 300);
+  };
+
+  const switchBackToBuyerMode = () => {
+    localStorage.setItem("userRole", "buyer");
+    localStorage.removeItem("previousUserRole");
+    setUserRole("buyer");
+    setPreviousUserRole(null);
+    router.push("/buyer/dashboard");
+    setTimeout(() => window.location.reload(), 200);
   };
 
   return (
@@ -165,6 +178,14 @@ export default function Header() {
                   >
                     داشبورد فروشنده
                   </Link>
+                )}
+                {userRole === "seller" && previousUserRole === "buyer" && (
+                  <button
+                    onClick={switchBackToBuyerMode}
+                    className="text-green-700 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-lg transition font-bold text-sm"
+                  >
+                    بازگشت به حالت خریدار
+                  </button>
                 )}
                 <button
                   onClick={handleLogout}
@@ -323,6 +344,14 @@ export default function Header() {
                         ? "شما فروشنده هستید"
                         : "شما خریدار هستید"}
                   </div>
+                  {userRole === "seller" && previousUserRole === "buyer" && (
+                    <button
+                      onClick={switchBackToBuyerMode}
+                      className="w-full text-center border border-green-200 bg-green-50 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition font-bold"
+                    >
+                      بازگشت به حالت خریدار
+                    </button>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="w-full text-center border border-red-200 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition font-bold"

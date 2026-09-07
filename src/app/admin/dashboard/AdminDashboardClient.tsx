@@ -1821,9 +1821,9 @@ export default function AdminDashboardClient({
                           <div>
                             <div className="mb-2 flex flex-wrap items-center gap-2">
                               <span
-                                className={`rounded-full px-3 py-1 text-xs font-bold ${user.role === "seller" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                                className={`rounded-full px-3 py-1 text-xs font-bold ${user.role === "seller" || user.sellerModeEnabled ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
                               >
-                                {user.role === "seller" ? "فروشنده" : "خریدار"}
+                                {roleLabel(user.role, user.sellerModeEnabled)}
                               </span>
                               <span
                                 className={`rounded-full px-3 py-1 text-xs font-bold ${user.kycStatus === "rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
@@ -2190,8 +2190,9 @@ function adminDate(value?: string) {
     : "—";
 }
 
-function roleLabel(role: string) {
+function roleLabel(role: string, sellerModeEnabled?: boolean) {
   if (role === "seller") return "فروشنده";
+  if (role === "buyer" && sellerModeEnabled) return "خریدار + فروشنده";
   if (role === "buyer") return "خریدار";
   return role || "کاربر";
 }
@@ -2496,9 +2497,9 @@ function UserManagementPanel({
                               {user.fullName}
                             </h3>
                             <span
-                              className={`rounded-full px-2 py-1 text-xs font-bold ${user.role === "seller" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                              className={`rounded-full px-2 py-1 text-xs font-bold ${user.role === "seller" || user.sellerModeEnabled ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
                             >
-                              {roleLabel(user.role)}
+                              {roleLabel(user.role, user.sellerModeEnabled)}
                             </span>
                             <span
                               className={`rounded-full px-2 py-1 text-xs font-bold ${user.isActive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
@@ -2759,7 +2760,8 @@ function UserManagementPanel({
                               />
                             </label>
                           </div>
-                          {user.role === "seller" && (
+                          {(user.role === "seller" ||
+                            user.sellerModeEnabled) && (
                             <div className="mt-4">
                               <p className="mb-2 text-xs font-bold text-gray-700">
                                 حوزه‌های فعالیت فروشنده

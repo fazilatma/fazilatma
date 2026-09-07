@@ -32,7 +32,7 @@ export default async function RequestDetailPage({
     : request.aiPriceEstimate;
   const sellerById = new Map(
     data.users
-      .filter((user) => user.role === "seller")
+      .filter((user) => user.role === "seller" || user.sellerModeEnabled)
       .map((user) => [user.id, user]),
   );
   const buyer = data.users.find((user) => user.id === request.buyerId);

@@ -93,6 +93,7 @@ export type JsonUser = {
   phone?: string;
   password?: string;
   role: UserRole;
+  sellerModeEnabled?: boolean;
   isActive: boolean;
   kycStatus?: "pending" | "approved" | "rejected";
   kycDocuments?: JsonKycDocument[];
@@ -544,6 +545,9 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       ...user,
       username: user.username || "",
       phone: (user as { phone?: string }).phone || "",
+      sellerModeEnabled:
+        user.role === "seller" ||
+        Boolean((user as { sellerModeEnabled?: boolean }).sellerModeEnabled),
       kycStatus: user.kycStatus || "approved",
       kycDocuments: Array.isArray(user.kycDocuments) ? user.kycDocuments : [],
       socialAccounts: Array.isArray(
@@ -871,10 +875,17 @@ function addPlatformTransaction(
   });
 }
 
+function canActAsSeller(user: JsonUser) {
+  return user.role === "seller" || Boolean(user.sellerModeEnabled);
+}
+
 function getUserOrThrow(data: OptiBidJsonData, id: number, role?: UserRole) {
-  const user = data.users.find(
-    (item) => item.id === id && (!role || item.role === role),
-  );
+  const user = data.users.find((item) => {
+    if (item.id !== id) return false;
+    if (!role) return true;
+    if (role === "seller") return canActAsSeller(item);
+    return item.role === role;
+  });
   if (!user) throw new Error("User not found");
   return user;
 }
@@ -943,6 +954,7 @@ export async function createJsonUser(input: {
     phone: normalizedPhone,
     password: input.password ? hashPassword(input.password) : undefined,
     role: input.role,
+    sellerModeEnabled: input.role === "seller",
     isActive: input.isActive ?? true,
     kycStatus: input.kycStatus || "pending",
     kycDocuments,
@@ -1097,6 +1109,7 @@ export async function authenticateOrCreateJsonSocialUser(input: {
     username: uniqueUsername(data.users, normalizedEmail),
     email: normalizedEmail,
     role,
+    sellerModeEnabled: role === "seller",
     isActive: true,
     kycStatus: "approved",
     kycDocuments: [],
@@ -1330,6 +1343,7 @@ function adminUserSummary(data: OptiBidJsonData, user: JsonUser) {
     email: user.email,
     phone: user.phone || "",
     role: user.role,
+    sellerModeEnabled: Boolean(user.sellerModeEnabled),
     isActive: user.isActive,
     kycStatus: user.kycStatus || "approved",
     avatarName: user.avatarName || "",
@@ -1396,7 +1410,9 @@ export async function getJsonAdminUsers() {
   return {
     summary: {
       buyersCount: users.filter((user) => user.role === "buyer").length,
-      sellersCount: users.filter((user) => user.role === "seller").length,
+      sellersCount: users.filter(
+        (user) => user.role === "seller" || user.sellerModeEnabled,
+      ).length,
       activeUsersCount: users.filter((user) => user.isActive).length,
       pendingKycCount: users.filter((user) => user.kycStatus === "pending")
         .length,
@@ -1516,6 +1532,49 @@ export async function resetJsonAdminUserPassword(input: {
   });
   await writeOptiBidData(data);
   return { user: adminUserSummary(data, user), temporaryPassword };
+}
+
+export async function enableJsonSellerMode(input: {
+  userId: number;
+  category?: string;
+}) {
+  const data = await getOptiBidData();
+  const user = getUserOrThrow(data, input.userId);
+  if (user.role === "admin")
+    throw new Error("Admin cannot switch to seller mode");
+  if (!user.isActive) throw new Error("User is not active");
+
+  user.sellerModeEnabled = true;
+  user.sellerMetrics = user.sellerMetrics || createDefaultSellerMetrics();
+  const category = input.category?.trim();
+  if (category) {
+    user.categories = [...new Set([...(user.categories || []), category])];
+  }
+  const metrics = user.sellerMetrics;
+  user.sellerMetrics = {
+    ...metrics,
+    activeInLast30Days: true,
+    profileCompletenessPercent: Math.max(
+      metrics.profileCompletenessPercent,
+      user.defaultAddress && user.categories?.length
+        ? 55
+        : user.categories?.length
+          ? 35
+          : 20,
+    ),
+  };
+  addNotification(data, {
+    userId: user.id,
+    type: "order",
+    title: "حالت فروشندگی فعال شد",
+    body: category
+      ? `حساب شما برای پیشنهاد روی درخواست‌های دسته «${category}» آماده شد.`
+      : "حساب شما برای ثبت پیشنهاد فروشنده آماده شد.",
+    href: "/seller/dashboard",
+  });
+  await writeOptiBidData(data);
+  const { password: _password, ...safeUser } = user;
+  return safeUser;
 }
 
 export async function getJsonKycUsers() {
@@ -1709,7 +1768,7 @@ export async function updateJsonSellerMetrics(
 export async function getJsonSellerRankings() {
   const data = await getOptiBidData();
   return data.users
-    .filter((user) => user.role === "seller" && user.isActive)
+    .filter((user) => canActAsSeller(user) && user.isActive)
     .map((seller) => {
       const {
         password: _password,
@@ -1913,6 +1972,8 @@ export async function createJsonSellerOffer(input: {
     (item) => item.id === input.requestId && item.status === "open",
   );
   if (!request) throw new Error("Open request not found");
+  if (request.buyerId === seller.id)
+    throw new Error("Seller cannot offer on own request");
   if (!(seller.categories || []).includes(request.category))
     throw new Error("Seller category does not match request category");
   const existingOffer = data.offers.find(
@@ -2484,7 +2545,7 @@ export async function getJsonBuyerDashboard(buyerId: number) {
   const offers = data.offers.filter((item) => requestIds.has(item.requestId));
   const sellerById = new Map(
     data.users
-      .filter((item) => item.role === "seller")
+      .filter((item) => canActAsSeller(item))
       .map((item) => {
         const { password: _password, ...safeSeller } = item;
         return [item.id, safeSeller];
@@ -3062,7 +3123,7 @@ export async function getJsonHomepageStats() {
   return {
     requestsCount: data.requests.filter(isPublicRequest).length,
     sellersCount: data.users.filter(
-      (user) => user.role === "seller" && user.isActive,
+      (user) => canActAsSeller(user) && user.isActive,
     ).length,
     secureTransactionsCount: data.transactions.length,
     totalVolume: completedOrders.reduce(
@@ -3698,7 +3759,7 @@ export async function getJsonAdminReports() {
     );
 
   const sellerReports = data.users
-    .filter((user) => user.role === "seller")
+    .filter((user) => canActAsSeller(user))
     .map((seller) => {
       const offers = data.offers.filter(
         (offer) => offer.sellerId === seller.id,
