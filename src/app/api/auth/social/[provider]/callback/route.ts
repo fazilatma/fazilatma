@@ -36,9 +36,17 @@ function baseUrlFromRequest(request: Request) {
   return `${url.protocol}//${url.host}`;
 }
 
+function decodeBase64Url(value: string) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
 function decodeState(value: string): SocialState | null {
   try {
-    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    const parsed = JSON.parse(decodeBase64Url(value));
     if (
       parsed &&
       (parsed.provider === "google" || parsed.provider === "facebook") &&

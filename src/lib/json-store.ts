@@ -1077,8 +1077,7 @@ export async function authenticateOrCreateJsonSocialUser(input: {
       throw new Error(
         `KYC_REJECTED:${user.kycRejectReason || "مدارک نیازمند اصلاح است"}`,
       );
-    if (user.kycStatus === "pending" || !user.isActive)
-      throw new Error("KYC_PENDING");
+    if (!user.isActive) throw new Error("KYC_PENDING");
     await writeOptiBidData(data);
     return user;
   }
