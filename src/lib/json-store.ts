@@ -1224,6 +1224,7 @@ export async function updateJsonBuyerProfile(
   updates: {
     fullName?: string;
     username?: string;
+    password?: string;
     email?: string;
     phone?: string;
     bio?: string;
@@ -1257,6 +1258,11 @@ export async function updateJsonBuyerProfile(
     )
       throw new Error("Username already registered");
     if (username) buyer.username = username;
+  }
+  if (typeof updates.password === "string" && updates.password.trim()) {
+    const password = updates.password.trim();
+    if (password.length < 8) throw new Error("Password is too short");
+    buyer.password = hashPassword(password);
   }
   if (typeof updates.email === "string" && updates.email.trim()) {
     const email = updates.email.trim().toLowerCase();
@@ -1652,6 +1658,7 @@ export async function updateJsonSellerProfile(
   updates: {
     fullName?: string;
     username?: string;
+    password?: string;
     email?: string;
     phone?: string;
     bio?: string;
@@ -1685,6 +1692,11 @@ export async function updateJsonSellerProfile(
     )
       throw new Error("Username already registered");
     if (username) seller.username = username;
+  }
+  if (typeof updates.password === "string" && updates.password.trim()) {
+    const password = updates.password.trim();
+    if (password.length < 8) throw new Error("Password is too short");
+    seller.password = hashPassword(password);
   }
   if (typeof updates.email === "string" && updates.email.trim()) {
     const email = updates.email.trim().toLowerCase();

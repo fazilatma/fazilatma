@@ -95,6 +95,8 @@ export default function AccountCompletionPage() {
   const [role, setRole] = useState<string>("");
   const [userId, setUserId] = useState(0);
   const [profile, setProfile] = useState(emptyProfile);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [nationalCard, setNationalCard] = useState<File | null>(null);
@@ -229,6 +231,16 @@ export default function AccountCompletionPage() {
 
   const save = async () => {
     if (!role || !userId || role === "admin") return;
+    if (newPassword || confirmNewPassword) {
+      if (newPassword.length < 8) {
+        alert("رمز عبور باید حداقل ۸ کاراکتر باشد.");
+        return;
+      }
+      if (newPassword !== confirmNewPassword) {
+        alert("رمز عبور و تکرار آن مطابقت ندارند.");
+        return;
+      }
+    }
     setSaving(true);
     try {
       const form = new FormData();
@@ -237,6 +249,7 @@ export default function AccountCompletionPage() {
         if (key === "categories") form.append(key, JSON.stringify(value));
         else form.append(key, String(value || ""));
       });
+      if (newPassword) form.append("password", newPassword);
       if (profile.bankShebaNumber)
         form.set(
           "bankShebaNumber",
@@ -262,6 +275,8 @@ export default function AccountCompletionPage() {
           localStorage.getItem("userDisplayName") ||
           "کاربر OptiBid",
       );
+      setNewPassword("");
+      setConfirmNewPassword("");
       alert(result.message);
       window.location.assign(
         role === "seller" ? "/seller/dashboard" : "/buyer/dashboard",
@@ -389,9 +404,34 @@ export default function AccountCompletionPage() {
                   className="mt-2 w-full rounded-xl border p-3 text-left font-normal"
                 />
                 <span className="mt-1 block text-xs font-normal text-gray-500">
-                  بعد از ذخیره، می‌توانید با همین نام کاربری و رمز عبور وارد
-                  شوید.
+                  پس از ذخیره، ورود با نام کاربری، موبایل یا ایمیل و همین رمز
+                  حساب انجام می‌شود.
                 </span>
+              </label>
+              <label className="text-sm font-bold text-gray-700">
+                تعیین / تغییر رمز عبور
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="اگر خالی بماند رمز قبلی حفظ می‌شود"
+                  className="mt-2 w-full rounded-xl border p-3 font-normal"
+                  autoComplete="new-password"
+                />
+                <span className="mt-1 block text-xs font-normal text-gray-500">
+                  این رمز برای ورود با نام کاربری، موبایل و ایمیل یکسان است.
+                </span>
+              </label>
+              <label className="text-sm font-bold text-gray-700">
+                تکرار رمز عبور
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="تکرار رمز جدید"
+                  className="mt-2 w-full rounded-xl border p-3 font-normal"
+                  autoComplete="new-password"
+                />
               </label>
               <label className="text-sm font-bold text-gray-700">
                 شماره موبایل

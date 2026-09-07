@@ -79,6 +79,10 @@ export async function PATCH(request: Request) {
           typeof form.get("username") === "string"
             ? String(form.get("username"))
             : undefined,
+        password:
+          typeof form.get("password") === "string"
+            ? String(form.get("password"))
+            : undefined,
         email:
           typeof form.get("email") === "string"
             ? String(form.get("email"))
@@ -148,6 +152,7 @@ export async function PATCH(request: Request) {
     const seller = await updateJsonSellerProfile(sellerId, {
       fullName: typeof body.fullName === "string" ? body.fullName : undefined,
       username: typeof body.username === "string" ? body.username : undefined,
+      password: typeof body.password === "string" ? body.password : undefined,
       email: typeof body.email === "string" ? body.email : undefined,
       phone: typeof body.phone === "string" ? body.phone : undefined,
       bio: typeof body.bio === "string" ? body.bio : undefined,
