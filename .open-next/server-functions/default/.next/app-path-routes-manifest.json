@@ -59,6 +59,7 @@
   "/login/page": "/login",
   "/page": "/",
   "/register/page": "/register",
+  "/request-board/page": "/request-board",
   "/request-purchase/page": "/request-purchase",
   "/requests/[id]/checkout/page": "/requests/[id]/checkout",
   "/requests/[id]/offer/page": "/requests/[id]/offer",

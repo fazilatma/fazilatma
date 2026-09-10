@@ -59,6 +59,7 @@
   "/login/page": "app/login/page.js",
   "/page": "app/page.js",
   "/register/page": "app/register/page.js",
+  "/request-board/page": "app/request-board/page.js",
   "/request-purchase/page": "app/request-purchase/page.js",
   "/requests/[id]/checkout/page": "app/requests/[id]/checkout/page.js",
   "/requests/[id]/offer/page": "app/requests/[id]/offer/page.js",

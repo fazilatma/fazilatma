@@ -425,6 +425,12 @@
       "namedRegex": "^/register(?:/)?$"
     },
     {
+      "page": "/request-board",
+      "regex": "^/request\\-board(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/request\\-board(?:/)?$"
+    },
+    {
       "page": "/request-purchase",
       "regex": "^/request\\-purchase(?:/)?$",
       "routeKeys": {},

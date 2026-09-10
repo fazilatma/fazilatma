@@ -113,6 +113,12 @@ export default function Header() {
               درخواست‌های خرید
             </Link>
             <Link
+              href="/request-board"
+              className="text-gray-700 hover:text-green-600 transition font-medium"
+            >
+              مدل آگهی خرید
+            </Link>
+            <Link
               href="/sellers"
               className="text-gray-700 hover:text-green-600 transition font-medium"
             >
@@ -281,6 +287,12 @@ export default function Header() {
                 className="text-gray-700 hover:text-green-600 transition py-2 font-bold"
               >
                 📋 درخواست‌های خرید
+              </Link>
+              <Link
+                href="/request-board"
+                className="text-gray-700 hover:text-green-600 transition py-2 font-bold"
+              >
+                🧭 مدل آگهی خرید
               </Link>
               <Link
                 href="/request-purchase"
