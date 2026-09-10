@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
 import {
   productImageUrl,
@@ -501,272 +501,486 @@ function OfferSpecsForm({
   onChange: (key: keyof OfferSpecs, value: string) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-blue-100 bg-blue-50/30 p-4 text-right">
+    <div className="rounded-3xl border border-blue-100 bg-blue-50/30 p-4 text-right">
       <div className="mb-4 border-b border-blue-100 pb-3">
-        <h3 className="font-bold text-[#003b5c]">
-          مشخصات دقیق کالای پیشنهادی فروشنده
-        </h3>
-        <p className="mt-1 text-xs leading-6 text-gray-500">
-          تمام فیلدهای اصلی باید پر شود تا خریدار بتواند این پیشنهاد را تأیید
-          کند.
-        </p>
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+          <div>
+            <h3 className="font-bold text-[#003b5c]">
+              مشخصات اسکرولی کالای پیشنهادی فروشنده
+            </h3>
+            <p className="mt-1 text-xs leading-6 text-gray-500">
+              مخصوص شروع با لپ‌تاپ: اطلاعات در بخش‌های قابل اسکرول مثل پلتفرم،
+              حافظه، نمایشگر، بدنه، سلامت و گارانتی گروه‌بندی شده تا فرم سنگین و
+              گیج‌کننده نباشد.
+            </p>
+          </div>
+          <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-blue-700">
+            فرم مرحله‌ای / Scroll Specs
+          </div>
+        </div>
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-xs font-bold text-gray-600">
+          {[
+            "هویت کالا",
+            "پلتفرم",
+            "حافظه",
+            "نمایشگر",
+            "بدنه",
+            "سلامت",
+            "گارانتی",
+            "لوازم",
+          ].map((item) => (
+            <span
+              key={item}
+              className="shrink-0 rounded-full bg-white px-3 py-1 shadow-sm"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        <SpecInput
-          label="برند"
-          value={specs.brand}
-          onChange={(value) => onChange("brand", value)}
-          placeholder="Lenovo"
-        />
-        <SpecInput
-          label="مدل دقیق"
-          value={specs.exactModel}
-          onChange={(value) => onChange("exactModel", value)}
-          placeholder="ThinkPad E14"
-        />
-        <SpecInput
-          label="کد مدل / کانفیگ"
-          value={specs.serialOrConfig}
-          onChange={(value) => onChange("serialOrConfig", value)}
-          placeholder="E14 Gen / 155H / 16/512"
-        />
-        <SpecInput
-          label="پردازنده CPU"
-          value={specs.cpu}
-          onChange={(value) => onChange("cpu", value)}
-          placeholder="Core Ultra 7 155H"
-        />
-        <SpecInput
-          label="RAM"
-          value={specs.ram}
-          onChange={(value) => onChange("ram", value)}
-          placeholder="16GB"
-        />
-        <SpecInput
-          label="حافظه SSD/HDD"
-          value={specs.storage}
-          onChange={(value) => onChange("storage", value)}
-          placeholder="512GB SSD"
-        />
-        <SpecInput
-          label="GPU / گرافیک"
-          value={specs.gpu}
-          onChange={(value) => onChange("gpu", value)}
-          placeholder="Intel Arc / ندارد"
-        />
-        <SpecInput
-          label="نمایشگر"
-          value={specs.display}
-          onChange={(value) => onChange("display", value)}
-          placeholder="14 inch FHD"
-        />
-        <SpecInput
-          label="سال ساخت"
-          value={specs.manufactureYear}
-          onChange={(value) =>
-            onChange("manufactureYear", value.replace(/\D/g, "").slice(0, 4))
-          }
-          placeholder="2023"
-        />
-        <SpecSelect
-          label="وضعیت کالا"
-          value={specs.productCondition}
-          onChange={(value) => onChange("productCondition", value)}
-          options={[
-            ["new", "نو"],
-            ["open_box", "اپن‌باکس"],
-            ["refurbished", "ریفربیشد"],
-            ["used_like_new", "دست‌دوم در حد نو"],
-            ["used_good", "دست‌دوم سالم"],
-            ["used_fair", "دست‌دوم معمولی"],
-            ["for_parts", "قطعاتی/نیازمند تعمیر"],
-          ]}
-        />
-        <SpecSelect
-          label="گارانتی"
-          value={specs.warrantyStatus}
-          onChange={(value) => onChange("warrantyStatus", value)}
-          options={[
-            ["manufacturer", "رسمی/شرکتی"],
-            ["seller", "گارانتی فروشنده"],
-            ["test", "مهلت تست"],
-            ["none", "بدون گارانتی"],
-          ]}
-        />
-        <SpecInput
-          label="مدت گارانتی/تست"
-          value={specs.warrantyMonths}
-          onChange={(value) =>
-            onChange("warrantyMonths", value.replace(/\D/g, "").slice(0, 3))
-          }
-          placeholder="3"
-        />
-        <SpecSelect
-          label="سلامت کلی قطعات"
-          value={specs.partsHealth}
-          onChange={(value) => onChange("partsHealth", value)}
-          options={[
-            ["all_healthy", "همه قطعات سالم"],
-            ["minor_issue", "ایراد جزئی"],
-            ["needs_repair", "نیازمند تعمیر"],
-          ]}
-        />
-        <SpecSelect
-          label="سلامت CPU"
-          value={specs.cpuHealth}
-          onChange={(value) => onChange("cpuHealth", value)}
-          options={healthOptions}
-        />
-        <SpecSelect
-          label="سلامت مادربرد"
-          value={specs.motherboardHealth}
-          onChange={(value) => onChange("motherboardHealth", value)}
-          options={healthOptions}
-        />
-        <SpecSelect
-          label="سلامت نمایشگر"
-          value={specs.displayHealth}
-          onChange={(value) => onChange("displayHealth", value)}
-          options={healthOptions}
-        />
-        <SpecSelect
-          label="سلامت SSD/HDD"
-          value={specs.storageHealth}
-          onChange={(value) => onChange("storageHealth", value)}
-          options={healthOptions}
-        />
-        <SpecSelect
-          label="سلامت RAM"
-          value={specs.ramHealth}
-          onChange={(value) => onChange("ramHealth", value)}
-          options={healthOptions}
-        />
-        <SpecSelect
-          label="سلامت GPU"
-          value={specs.gpuHealth}
-          onChange={(value) => onChange("gpuHealth", value)}
-          options={healthOptions}
-        />
-        <SpecSelect
-          label="کیبورد/تاچ‌پد"
-          value={specs.keyboardTouchpadHealth}
-          onChange={(value) => onChange("keyboardTouchpadHealth", value)}
-          options={healthOptions}
-        />
-        <SpecSelect
-          label="بدنه/لولا"
-          value={specs.bodyHingeHealth}
-          onChange={(value) => onChange("bodyHingeHealth", value)}
-          options={healthOptions}
-        />
-        <SpecInput
-          label="سلامت باتری (%)"
-          value={specs.batteryHealthPercent}
-          onChange={(value) =>
-            onChange(
-              "batteryHealthPercent",
-              value.replace(/\D/g, "").slice(0, 3),
-            )
-          }
-          placeholder="85"
-        />
-        <SpecSelect
-          label="گرید ظاهری"
-          value={specs.appearanceGrade}
-          onChange={(value) => onChange("appearanceGrade", value)}
-          options={[
-            ["A", "A - بسیار تمیز"],
-            ["B", "B - خط‌وخش جزئی"],
-            ["C", "C - آسیب قابل مشاهده"],
-          ]}
-        />
-        <SpecSelect
-          label="سابقه تعمیر"
-          value={specs.repairHistory}
-          onChange={(value) => onChange("repairHistory", value)}
-          options={[
-            ["none", "بدون تعمیر"],
-            ["minor", "تعمیر جزئی"],
-            ["major", "تعمیر اساسی"],
-          ]}
-        />
-        <SpecSelect
-          label="میزان کارکرد"
-          value={specs.usageLevel}
-          onChange={(value) => onChange("usageLevel", value)}
-          options={[
-            ["low", "کم‌کارکرد"],
-            ["normal", "معمولی"],
-            ["heavy", "پرکارکرد"],
-          ]}
-        />
-        <SpecSelect
-          label="لوازم جانبی"
-          value={specs.accessoriesStatus}
-          onChange={(value) => onChange("accessoriesStatus", value)}
-          options={[
-            ["complete", "کامل"],
-            ["missing_minor", "کسری جزئی"],
-            ["missing_key", "کسری مهم"],
-          ]}
-        />
-        <SpecSelect
-          label="شارژر/آداپتور"
-          value={specs.chargerStatus}
-          onChange={(value) => onChange("chargerStatus", value)}
-          options={[
-            ["original", "اصل"],
-            ["compatible", "سازگار/غیراصل"],
-            ["missing", "ندارد"],
-            ["not_applicable", "نامرتبط"],
-          ]}
-        />
-        <SpecSelect
-          label="جعبه اصلی"
-          value={specs.originalPackaging}
-          onChange={(value) => onChange("originalPackaging", value)}
-          options={[
-            ["yes", "دارد"],
-            ["no", "ندارد"],
-            ["unknown", "نامشخص"],
-          ]}
-        />
-        <SpecSelect
-          label="فاکتور/اصالت"
-          value={specs.purchaseInvoiceAvailable}
-          onChange={(value) => onChange("purchaseInvoiceAvailable", value)}
-          options={[
-            ["yes", "دارد"],
-            ["no", "ندارد"],
-            ["unknown", "نامشخص"],
-          ]}
-        />
-        <SpecInput
-          label="مهلت تست/مرجوعی (روز)"
-          value={specs.testDeadlineDays}
-          onChange={(value) =>
-            onChange("testDeadlineDays", value.replace(/\D/g, "").slice(0, 3))
-          }
-          placeholder="7"
-        />
+
+      <div className="max-h-[680px] space-y-4 overflow-y-auto scroll-smooth rounded-2xl border border-blue-100 bg-white/70 p-3 pr-4">
+        <SpecSection
+          title="۱. هویت کالا و مدل دقیق"
+          subtitle="اطلاعاتی که جلوی اشتباه مدل و کانفیگ را می‌گیرد"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <SpecInput
+              label="برند"
+              value={specs.brand}
+              onChange={(value) => onChange("brand", value)}
+              placeholder="Lenovo / Dell / HP"
+            />
+            <SpecInput
+              label="مدل دقیق"
+              value={specs.exactModel}
+              onChange={(value) => onChange("exactModel", value)}
+              placeholder="ThinkPad E14 Gen 5"
+            />
+            <SpecInput
+              label="کد مدل / کانفیگ"
+              value={specs.serialOrConfig}
+              onChange={(value) => onChange("serialOrConfig", value)}
+              placeholder="E14 / 155H / 16/512"
+            />
+          </div>
+          <SpecChipGroup
+            label="وضعیت ظاهری/بازاری کالا"
+            value={specs.productCondition}
+            onChange={(value) => onChange("productCondition", value)}
+            options={[
+              ["new", "کاملاً نو"],
+              ["open_box", "اپن‌باکس"],
+              ["used_like_new", "در حد نو"],
+              ["used_good", "دست‌دوم سالم"],
+              ["used_fair", "کارکرده معمولی"],
+              ["refurbished", "ریفربیشد"],
+              ["for_parts", "قطعاتی/نیازمند تعمیر"],
+            ]}
+          />
+        </SpecSection>
+
+        <SpecSection
+          title="۲. پلتفرم و پردازنده"
+          subtitle="CPU، GPU، سال ساخت و سیستم عامل پیشنهادی"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <SpecInput
+              label="پردازنده CPU"
+              value={specs.cpu}
+              onChange={(value) => onChange("cpu", value)}
+              placeholder="Core i5 1235U / Ryzen 7"
+            />
+            <SpecInput
+              label="GPU / گرافیک"
+              value={specs.gpu}
+              onChange={(value) => onChange("gpu", value)}
+              placeholder="Intel Iris Xe / RTX 3050"
+            />
+            <SpecInput
+              label="سال ساخت"
+              value={specs.manufactureYear}
+              onChange={(value) =>
+                onChange(
+                  "manufactureYear",
+                  value.replace(/\D/g, "").slice(0, 4),
+                )
+              }
+              placeholder="2023"
+            />
+          </div>
+          <SpecChipGroup
+            label="سلامت پردازنده و مادربرد"
+            value={`${specs.cpuHealth}|${specs.motherboardHealth}`}
+            onChange={(value) => {
+              const [cpu, motherboard] = value.split("|");
+              onChange("cpuHealth", cpu);
+              onChange("motherboardHealth", motherboard);
+            }}
+            options={[
+              ["healthy|healthy", "CPU و مادربرد سالم"],
+              ["minor_issue|healthy", "CPU ایراد جزئی"],
+              ["healthy|minor_issue", "مادربرد ایراد جزئی"],
+              ["needs_repair|needs_repair", "نیازمند بررسی/تعمیر"],
+            ]}
+          />
+        </SpecSection>
+
+        <SpecSection
+          title="۳. حافظه و ذخیره‌سازی"
+          subtitle="RAM و SSD/HDD جزو مهم‌ترین عوامل قیمت هستند"
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            <SpecInput
+              label="RAM"
+              value={specs.ram}
+              onChange={(value) => onChange("ram", value)}
+              placeholder="16GB DDR4"
+            />
+            <SpecInput
+              label="حافظه SSD/HDD"
+              value={specs.storage}
+              onChange={(value) => onChange("storage", value)}
+              placeholder="512GB NVMe SSD"
+            />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <SpecChipGroup
+              label="پیشنهاد سریع RAM"
+              value={specs.ram}
+              onChange={(value) => onChange("ram", value)}
+              options={[
+                ["8GB", "۸ گیگ"],
+                ["16GB", "۱۶ گیگ"],
+                ["32GB", "۳۲ گیگ"],
+                ["64GB", "۶۴ گیگ"],
+              ]}
+            />
+            <SpecChipGroup
+              label="پیشنهاد سریع حافظه"
+              value={specs.storage}
+              onChange={(value) => onChange("storage", value)}
+              options={[
+                ["256GB SSD", "۲۵۶ SSD"],
+                ["512GB SSD", "۵۱۲ SSD"],
+                ["1TB SSD", "۱ ترابایت SSD"],
+                ["2TB SSD", "۲ ترابایت SSD"],
+              ]}
+            />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <SpecSelect
+              label="سلامت RAM"
+              value={specs.ramHealth}
+              onChange={(value) => onChange("ramHealth", value)}
+              options={healthOptions}
+            />
+            <SpecSelect
+              label="سلامت SSD/HDD"
+              value={specs.storageHealth}
+              onChange={(value) => onChange("storageHealth", value)}
+              options={healthOptions}
+            />
+          </div>
+        </SpecSection>
+
+        <SpecSection
+          title="۴. نمایشگر"
+          subtitle="اندازه، رزولوشن، پنل و سلامت صفحه را دقیق بنویسید"
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            <SpecInput
+              label="نمایشگر"
+              value={specs.display}
+              onChange={(value) => onChange("display", value)}
+              placeholder="14 inch FHD IPS / 120Hz"
+            />
+            <SpecSelect
+              label="سلامت نمایشگر"
+              value={specs.displayHealth}
+              onChange={(value) => onChange("displayHealth", value)}
+              options={healthOptions}
+            />
+          </div>
+          <SpecChipGroup
+            label="اندازه رایج لپ‌تاپ"
+            value={specs.display}
+            onChange={(value) => onChange("display", value)}
+            options={[
+              ["13.3 inch FHD", "۱۳.۳ اینچ"],
+              ["14 inch FHD IPS", "۱۴ اینچ"],
+              ["15.6 inch FHD IPS", "۱۵.۶ اینچ"],
+              ["16 inch WUXGA", "۱۶ اینچ"],
+            ]}
+          />
+        </SpecSection>
+
+        <SpecSection
+          title="۵. بدنه، ظاهر، لولا و ورودی‌ها"
+          subtitle="مثل تصویر مرجع، بدنه و کیفیت ظاهری جداگانه ثبت می‌شود"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <SpecSelect
+              label="گرید ظاهری"
+              value={specs.appearanceGrade}
+              onChange={(value) => onChange("appearanceGrade", value)}
+              options={[
+                ["A", "A - بسیار تمیز"],
+                ["B", "B - خط‌وخش جزئی"],
+                ["C", "C - آسیب قابل مشاهده"],
+              ]}
+            />
+            <SpecSelect
+              label="بدنه/لولا"
+              value={specs.bodyHingeHealth}
+              onChange={(value) => onChange("bodyHingeHealth", value)}
+              options={healthOptions}
+            />
+            <SpecSelect
+              label="کیبورد/تاچ‌پد"
+              value={specs.keyboardTouchpadHealth}
+              onChange={(value) => onChange("keyboardTouchpadHealth", value)}
+              options={healthOptions}
+            />
+          </div>
+          <SpecChipGroup
+            label="توصیف سریع ظاهر"
+            value={specs.appearanceGrade}
+            onChange={(value) => onChange("appearanceGrade", value)}
+            options={[
+              ["A", "در حد نو / بسیار تمیز"],
+              ["B", "خط‌وخش کم"],
+              ["C", "آثار استفاده واضح"],
+              ["D", "نیازمند توضیح کامل"],
+            ]}
+          />
+        </SpecSection>
+
+        <SpecSection
+          title="۶. سلامت قطعات و باتری"
+          subtitle="برای کاهش اختلاف، سلامت هر قطعه جداگانه ثبت شود"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <SpecSelect
+              label="سلامت کلی قطعات"
+              value={specs.partsHealth}
+              onChange={(value) => onChange("partsHealth", value)}
+              options={[
+                ["all_healthy", "همه قطعات سالم"],
+                ["minor_issue", "ایراد جزئی"],
+                ["needs_repair", "نیازمند تعمیر"],
+              ]}
+            />
+            <SpecSelect
+              label="سلامت GPU"
+              value={specs.gpuHealth}
+              onChange={(value) => onChange("gpuHealth", value)}
+              options={healthOptions}
+            />
+            <SpecInput
+              label="سلامت باتری (%)"
+              value={specs.batteryHealthPercent}
+              onChange={(value) =>
+                onChange(
+                  "batteryHealthPercent",
+                  value.replace(/\D/g, "").slice(0, 3),
+                )
+              }
+              placeholder="85"
+            />
+          </div>
+          <div className="rounded-2xl bg-white p-3">
+            <div className="mb-2 flex items-center justify-between text-xs font-bold text-gray-600">
+              <span>سلامت باتری</span>
+              <span>{specs.batteryHealthPercent || "نامشخص"}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={Number(specs.batteryHealthPercent || 0)}
+              onChange={(event) =>
+                onChange("batteryHealthPercent", event.target.value)
+              }
+              className="w-full accent-[#0b9c56]"
+            />
+          </div>
+          <SpecSelect
+            label="سابقه تعمیر"
+            value={specs.repairHistory}
+            onChange={(value) => onChange("repairHistory", value)}
+            options={[
+              ["none", "بدون تعمیر"],
+              ["minor", "تعمیر جزئی"],
+              ["major", "تعمیر اساسی"],
+            ]}
+          />
+        </SpecSection>
+
+        <SpecSection
+          title="۷. گارانتی، مهلت تست و سیاست مرجوعی"
+          subtitle="شرایط تست و مرجوعی باید قبل از پرداخت برای خریدار روشن باشد"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <SpecSelect
+              label="گارانتی"
+              value={specs.warrantyStatus}
+              onChange={(value) => onChange("warrantyStatus", value)}
+              options={[
+                ["manufacturer", "رسمی/شرکتی"],
+                ["seller", "گارانتی فروشنده"],
+                ["test", "مهلت تست"],
+                ["none", "بدون گارانتی"],
+              ]}
+            />
+            <SpecInput
+              label="مدت گارانتی/تست"
+              value={specs.warrantyMonths}
+              onChange={(value) =>
+                onChange("warrantyMonths", value.replace(/\D/g, "").slice(0, 3))
+              }
+              placeholder="3"
+            />
+            <SpecInput
+              label="مهلت تست/مرجوعی (روز)"
+              value={specs.testDeadlineDays}
+              onChange={(value) =>
+                onChange(
+                  "testDeadlineDays",
+                  value.replace(/\D/g, "").slice(0, 3),
+                )
+              }
+              placeholder="7"
+            />
+          </div>
+          <label className="block text-xs font-bold text-gray-700">
+            شرایط مرجوعی/تعهد فروشنده
+            <textarea
+              value={specs.returnPolicy}
+              onChange={(e) => onChange("returnPolicy", e.target.value)}
+              className="mt-1 min-h-20 w-full rounded-xl border p-3 font-normal outline-none focus:border-[#00a8e8]"
+            />
+          </label>
+        </SpecSection>
+
+        <SpecSection
+          title="۸. لوازم همراه، اصالت و توضیحات نهایی"
+          subtitle="شارژر، فاکتور، جعبه و توضیحات ریز را اینجا کامل کنید"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <SpecSelect
+              label="لوازم جانبی"
+              value={specs.accessoriesStatus}
+              onChange={(value) => onChange("accessoriesStatus", value)}
+              options={[
+                ["complete", "کامل"],
+                ["missing_minor", "کسری جزئی"],
+                ["missing_key", "کسری مهم"],
+              ]}
+            />
+            <SpecSelect
+              label="شارژر/آداپتور"
+              value={specs.chargerStatus}
+              onChange={(value) => onChange("chargerStatus", value)}
+              options={[
+                ["original", "اصل"],
+                ["compatible", "سازگار/غیراصل"],
+                ["missing", "ندارد"],
+                ["not_applicable", "نامرتبط"],
+              ]}
+            />
+            <SpecSelect
+              label="جعبه اصلی"
+              value={specs.originalPackaging}
+              onChange={(value) => onChange("originalPackaging", value)}
+              options={[
+                ["yes", "دارد"],
+                ["no", "ندارد"],
+                ["unknown", "نامشخص"],
+              ]}
+            />
+            <SpecSelect
+              label="فاکتور/اصالت"
+              value={specs.purchaseInvoiceAvailable}
+              onChange={(value) => onChange("purchaseInvoiceAvailable", value)}
+              options={[
+                ["yes", "دارد"],
+                ["no", "ندارد"],
+                ["unknown", "نامشخص"],
+              ]}
+            />
+            <SpecSelect
+              label="میزان کارکرد"
+              value={specs.usageLevel}
+              onChange={(value) => onChange("usageLevel", value)}
+              options={[
+                ["low", "کم‌کارکرد"],
+                ["normal", "معمولی"],
+                ["heavy", "پرکارکرد"],
+              ]}
+            />
+          </div>
+          <label className="block text-xs font-bold text-gray-700">
+            توضیحات تکمیلی مشخصات
+            <textarea
+              value={specs.notes}
+              onChange={(e) => onChange("notes", e.target.value)}
+              placeholder="مثلاً شارژر اصل است، خط روی قاب دارد، باتری تست شده، پورت‌ها سالم هستند..."
+              className="mt-1 min-h-24 w-full rounded-xl border p-3 font-normal outline-none focus:border-[#00a8e8]"
+            />
+          </label>
+        </SpecSection>
       </div>
-      <label className="mt-3 block text-xs font-bold text-gray-700">
-        شرایط مرجوعی/تعهد فروشنده
-        <textarea
-          value={specs.returnPolicy}
-          onChange={(e) => onChange("returnPolicy", e.target.value)}
-          className="mt-1 min-h-16 w-full rounded-xl border p-2 font-normal outline-none focus:border-[#00a8e8]"
-        />
-      </label>
-      <label className="mt-3 block text-xs font-bold text-gray-700">
-        توضیحات تکمیلی مشخصات
-        <textarea
-          value={specs.notes}
-          onChange={(e) => onChange("notes", e.target.value)}
-          placeholder="مثلاً شارژر اصل است، خط روی قاب دارد، باتری تست شده، پورت‌ها سالم هستند..."
-          className="mt-1 min-h-16 w-full rounded-xl border p-2 font-normal outline-none focus:border-[#00a8e8]"
-        />
-      </label>
+    </div>
+  );
+}
+
+function SpecSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-blue-50/40 p-4">
+      <div className="mb-3">
+        <h4 className="font-bold text-[#003b5c]">{title}</h4>
+        <p className="mt-1 text-xs leading-6 text-gray-500">{subtitle}</p>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function SpecChipGroup({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly (readonly [string, string])[];
+}) {
+  return (
+    <div className="rounded-2xl bg-white p-3">
+      <p className="mb-2 text-xs font-bold text-gray-700">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(([id, text]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${value === id ? "border-[#00a8e8] bg-blue-50 text-[#003b5c]" : "border-gray-200 bg-gray-50 text-gray-600 hover:border-[#00a8e8]/50"}`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
