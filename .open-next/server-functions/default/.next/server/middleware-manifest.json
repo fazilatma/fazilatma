@@ -12,18 +12,14 @@
       "entrypoint": "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0a9xbl8.js",
       "matchers": [
         {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$",
-          "originalSource": "/admin/:path*"
-        },
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$",
-          "originalSource": "/api/admin/:path*"
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\..*).*))(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$",
+          "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"
         }
       ],
       "wasm": [],
       "assets": [],
       "env": {
-        "__NEXT_BUILD_ID": "04KBK9qZMDb5FtykzoUzU",
+        "__NEXT_BUILD_ID": "TaULsVZ6PofpO-MCMOfhV",
         "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "MGcLrnH694kgKRUw3N6VtEMAXzBrvFJiFuGVyp/ECVA=",
         "__NEXT_PREVIEW_MODE_ID": "8a073dede5bdd25b136cafdc162944a5",
         "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "38cc2056a198bf0321b84f0dd193a24688efb8619fe847b0eea72bc3d6d6841b",

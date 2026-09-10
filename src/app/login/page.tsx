@@ -16,6 +16,16 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const pendingUsername = params.get("pending");
     const socialError = params.get("social_error");
+    const nextUrl = params.get("next") || "";
+    if (
+      (nextUrl.startsWith("/requests") ||
+        nextUrl.startsWith("/request-purchase")) &&
+      !nextUrl.startsWith("//")
+    ) {
+      sessionStorage.setItem("redirectAfterAuth", nextUrl);
+    } else if (nextUrl) {
+      sessionStorage.removeItem("redirectAfterAuth");
+    }
     if (pendingUsername) {
       setPendingApproval(true);
       setFormData((current) => ({ ...current, email: pendingUsername }));

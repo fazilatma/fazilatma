@@ -5,13 +5,28 @@ import { removeAvatarFile, saveAvatarFile } from "@/lib/avatar-storage";
 
 export const dynamic = "force-dynamic";
 
+function setUserSession(
+  response: NextResponse,
+  user: { id: number; role: string },
+) {
+  response.cookies.set("optibid_user", `${user.role}:${user.id}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  return response;
+}
+
 const toEnglishDigits = (value: string) =>
   value
     .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
     .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
 
 const onlyDigits = (value: string) => toEnglishDigits(value).replace(/\D/g, "");
-const text = (form: FormData, key: string) => String(form.get(key) || "").trim();
+const text = (form: FormData, key: string) =>
+  String(form.get(key) || "").trim();
 const asFile = (value: FormDataEntryValue | null) =>
   value instanceof File && value.size > 0 ? value : null;
 
@@ -40,9 +55,15 @@ async function saveOptionalKycDocuments(form: FormData) {
     .filter((value): value is File => value instanceof File && value.size > 0);
 
   if (nationalCard) {
-    savedDocuments.push(await saveKycFile(nationalCard, "national_card", "تصویر کارت ملی"));
+    savedDocuments.push(
+      await saveKycFile(nationalCard, "national_card", "تصویر کارت ملی"),
+    );
   }
-  for (let index = 0; index < Math.min(8, birthCertificatePages.length); index += 1) {
+  for (
+    let index = 0;
+    index < Math.min(8, birthCertificatePages.length);
+    index += 1
+  ) {
     savedDocuments.push(
       await saveKycFile(
         birthCertificatePages[index],
@@ -52,7 +73,9 @@ async function saveOptionalKycDocuments(form: FormData) {
     );
   }
   if (bankCardImage) {
-    savedDocuments.push(await saveKycFile(bankCardImage, "bank_card", "تصویر کارت بانکی"));
+    savedDocuments.push(
+      await saveKycFile(bankCardImage, "bank_card", "تصویر کارت بانکی"),
+    );
   }
 
   return savedDocuments;
@@ -64,29 +87,47 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const fullName = text(form, "fullName");
-    const identifier = text(form, "identifier") || text(form, "email") || text(form, "phone");
+    const identifier =
+      text(form, "identifier") || text(form, "email") || text(form, "phone");
     const explicitEmail = text(form, "email").toLowerCase();
     const explicitPhone = text(form, "phone");
     const password = text(form, "password");
     const role = text(form, "role") === "seller" ? "seller" : "buyer";
 
-    const email = explicitEmail || (isEmail(identifier) ? identifier.toLowerCase() : "");
-    const phone = explicitPhone || (isMobile(identifier) ? normalizePhone(identifier) : "");
+    const email =
+      explicitEmail || (isEmail(identifier) ? identifier.toLowerCase() : "");
+    const phone =
+      explicitPhone || (isMobile(identifier) ? normalizePhone(identifier) : "");
 
     if (!email && !phone) {
       return NextResponse.json(
-        { success: false, message: "برای ثبت‌نام، شماره موبایل معتبر یا ایمیل معتبر وارد کنید." },
+        {
+          success: false,
+          message: "برای ثبت‌نام، شماره موبایل معتبر یا ایمیل معتبر وارد کنید.",
+        },
         { status: 400 },
       );
     }
     if (email && !isEmail(email)) {
-      return NextResponse.json({ success: false, message: "ایمیل معتبر نیست." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "ایمیل معتبر نیست." },
+        { status: 400 },
+      );
     }
     if (phone && !isMobile(phone)) {
-      return NextResponse.json({ success: false, message: "شماره موبایل باید با 09 شروع شود و ۱۱ رقم باشد." }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: "شماره موبایل باید با 09 شروع شود و ۱۱ رقم باشد.",
+        },
+        { status: 400 },
+      );
     }
     if (password.length < 8) {
-      return NextResponse.json({ success: false, message: "رمز عبور باید حداقل ۸ کاراکتر باشد." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "رمز عبور باید حداقل ۸ کاراکتر باشد." },
+        { status: 400 },
+      );
     }
 
     let categories: string[] = [];
@@ -123,7 +164,7 @@ export async function POST(request: Request) {
       kycStatus: savedDocuments.length > 0 ? "pending" : "pending",
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -134,12 +175,16 @@ export async function POST(request: Request) {
         role: user.role,
         kycStatus: user.kycStatus,
       },
-      message: "ثبت‌نام سریع انجام شد. حالا می‌توانید وارد حساب شوید و اطلاعات تکمیلی، حساب بانکی و مدارک را مرحله‌به‌مرحله کامل کنید.",
+      message:
+        "ثبت‌نام سریع انجام شد. حالا می‌توانید وارد حساب شوید و اطلاعات تکمیلی، حساب بانکی و مدارک را مرحله‌به‌مرحله کامل کنید.",
     });
+    setUserSession(response, { id: user.id, role: user.role });
+    return response;
   } catch (error) {
     await removeKycFiles(savedDocuments);
     if (savedAvatarName) await removeAvatarFile(savedAvatarName);
-    const detail = error instanceof Error ? error.message : "Unknown registration error";
+    const detail =
+      error instanceof Error ? error.message : "Unknown registration error";
     const message = detail.includes("Email already")
       ? "این ایمیل قبلاً ثبت شده است."
       : detail.includes("Phone already")
@@ -151,6 +196,9 @@ export async function POST(request: Request) {
             : detail.includes("5 MB")
               ? "حجم هر تصویر مدرک نباید بیشتر از ۵ مگابایت باشد."
               : "ثبت‌نام ناموفق بود.";
-    return NextResponse.json({ success: false, message, detail }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message, detail },
+      { status: 500 },
+    );
   }
 }

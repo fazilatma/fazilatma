@@ -6,6 +6,20 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function setUserSession(
+  response: NextResponse,
+  user: { id: number; role: string },
+) {
+  response.cookies.set("optibid_user", `${user.role}:${user.id}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  return response;
+}
+
 type Provider = "google" | "facebook";
 type RouteContext = {
   params: Promise<{ provider: string }> | { provider: string };
@@ -138,7 +152,7 @@ async function demoSocialLogin(
       role,
       forceActive: true,
     });
-    return new NextResponse(
+    const response = new NextResponse(
       socialSuccessHtml({
         provider,
         role,
@@ -148,6 +162,8 @@ async function demoSocialLogin(
       }),
       { headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
+    setUserSession(response, { id: user.id, role: user.role });
+    return response;
   } catch (error) {
     const detail = error instanceof Error ? error.message : "خطای ناشناخته";
     return new NextResponse(
