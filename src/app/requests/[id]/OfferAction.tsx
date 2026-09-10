@@ -19,7 +19,6 @@ const money = (value: string | number) =>
   `${Number(String(value).replace(/\D/g, "") || 0).toLocaleString("fa-IR")} تومان`;
 
 export default function OfferAction({
-  offerId,
   offerAmount,
   offerSellerName,
   offerStatus,
@@ -27,91 +26,21 @@ export default function OfferAction({
   requestBuyerId,
   hasProductSpecs,
   productSpecs,
-  defaultShippingAddress = "",
 }: OfferActionProps) {
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<number>(0);
   const [open, setOpen] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState(
-    defaultShippingAddress,
-  );
-  const [paymentMethod, setPaymentMethod] = useState<
-    "wallet" | "zarinpal" | "gateway"
-  >("gateway");
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setRole(localStorage.getItem("userRole"));
     setUserId(Number(localStorage.getItem("userId") || 0));
-    setShippingAddress(defaultShippingAddress || "");
-  }, [defaultShippingAddress]);
-
-  const chooseAndPay = async () => {
-    if (!confirmed) {
-      alert("قبل از پرداخت، مشخصات کالای پیشنهادی فروشنده را تایید کنید.");
-      return;
-    }
-    if (!shippingAddress.trim()) {
-      alert("برای پرداخت، نشانی تحویل کالا را وارد کنید.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const selectResponse = await fetch("/api/orders/select-offer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          buyerId: userId,
-          offerId,
-          useAlternateAddress: true,
-          shippingAddress,
-          buyerConfirmedProductSpecs: true,
-        }),
-      });
-      const selectResult = await selectResponse.json();
-      if (!selectResult.success)
-        throw new Error(selectResult.message || "انتخاب پیشنهاد ناموفق بود.");
-
-      const payResponse = await fetch("/api/orders/pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          buyerId: userId,
-          orderId: selectResult.order.id,
-          paymentMethod,
-        }),
-      });
-      const payResult = await payResponse.json();
-      if (!payResult.success) {
-        alert(
-          `${payResult.message || "پرداخت انجام نشد."}\nسفارش انتخاب شد و در داشبورد خریدار آماده پرداخت است.`,
-        );
-        window.location.assign("/buyer/dashboard");
-        return;
-      }
-      if (payResult.redirectUrl) {
-        window.location.assign(payResult.redirectUrl);
-        return;
-      }
-      alert(payResult.message || "پیشنهاد انتخاب و پرداخت ثبت شد.");
-      window.location.assign("/buyer/dashboard");
-    } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "انتخاب پیشنهاد یا پرداخت ناموفق بود.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, []);
 
   if (!hasProductSpecs) {
     return (
       <span className="mt-3 inline-block rounded-xl bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">
-        فروشنده باید مشخصات کامل کالا را ثبت کند تا خریدار بتواند انتخاب و
-        پرداخت کند
+        فروشنده باید مشخصات کامل کالا را ثبت کند تا خریدار بتواند برای هماهنگی
+        مستقیم تصمیم بگیرد
       </span>
     );
   }
@@ -119,7 +48,7 @@ export default function OfferAction({
   if (offerStatus === "accepted") {
     return (
       <span className="mt-3 inline-block rounded-xl bg-green-50 px-4 py-2 text-xs font-bold text-green-700">
-        این پیشنهاد انتخاب شده است
+        این پیشنهاد توسط خریدار برای هماهنگی انتخاب شده است
       </span>
     );
   }
@@ -141,7 +70,7 @@ export default function OfferAction({
         }}
         className="mt-3 inline-block rounded-xl bg-[#003b5c] px-4 py-2 text-sm font-bold text-white"
       >
-        ورود برای انتخاب پیشنهاد و پرداخت
+        ورود برای مشاهده پیشنهاد و هماهنگی
       </Link>
     );
   }
@@ -155,7 +84,7 @@ export default function OfferAction({
             onClick={() => setOpen(true)}
             className="mt-3 inline-block rounded-xl bg-[#0b9c56] px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700"
           >
-            انتخاب پیشنهاد و پرداخت
+            مشاهده پیشنهاد و هماهنگی مستقیم
           </button>
           {open && (
             <div
@@ -166,10 +95,11 @@ export default function OfferAction({
                 <div className="mb-5 flex items-start justify-between gap-4 border-b pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-[#003b5c]">
-                      انتخاب پیشنهاد و پرداخت امانی
+                      مشاهده پیشنهاد فروشنده و هماهنگی مستقیم
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
-                      فروشنده: {offerSellerName} · مبلغ: {money(offerAmount)}
+                      فروشنده: {offerSellerName} · مبلغ پیشنهادی:{" "}
+                      {money(offerAmount)}
                     </p>
                   </div>
                   <button
@@ -212,61 +142,29 @@ export default function OfferAction({
                   </div>
                 </div>
 
-                <label className="mt-4 block text-sm font-bold text-gray-700">
-                  نشانی تحویل کالا
-                  <textarea
-                    value={shippingAddress}
-                    onChange={(event) => setShippingAddress(event.target.value)}
-                    className="mt-2 min-h-24 w-full rounded-xl border p-3 font-normal outline-none focus:border-[#00a8e8]"
-                    placeholder="نشانی کامل تحویل را وارد کنید"
-                  />
-                </label>
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+                  <p className="font-bold">توجه حقوقی و مالی</p>
+                  <p className="mt-2">
+                    در مدل جدید، سایت فقط بستر ثبت درخواست و دریافت پیشنهاد است.
+                    وجهی نزد سایت نگهداری نمی‌شود و پرداخت، تحویل، تست، مرجوعی و
+                    مسئولیت معامله مستقیماً بین خریدار و فروشنده انجام می‌شود.
+                  </p>
+                </div>
 
-                <label className="mt-4 block text-sm font-bold text-gray-700">
-                  روش پرداخت
-                  <select
-                    value={paymentMethod}
-                    onChange={(event) =>
-                      setPaymentMethod(
-                        event.target.value as "wallet" | "zarinpal" | "gateway",
-                      )
-                    }
-                    className="mt-2 w-full rounded-xl border bg-white p-3 font-normal outline-none focus:border-[#00a8e8]"
-                  >
-                    <option value="gateway">پرداخت اینترنتی آزمایشی</option>
-                    <option value="wallet">پرداخت از کیف پول</option>
-                    <option value="zarinpal">زرین‌پال</option>
-                  </select>
-                </label>
-
-                <label className="mt-4 flex items-start gap-2 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">
-                  <input
-                    type="checkbox"
-                    checked={confirmed}
-                    onChange={(event) => setConfirmed(event.target.checked)}
-                    className="mt-1"
-                  />
-                  مشخصات کالای پیشنهادی فروشنده را بررسی کردم و تایید می‌کنم؛
-                  بعد از پرداخت، وجه تا تایید دریافت کالا نزد پلتفرم امانی
-                  می‌ماند.
-                </label>
-
-                <div className="mt-5 flex gap-3">
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
                     className="flex-1 rounded-xl bg-gray-100 px-4 py-3 font-bold text-gray-700"
                   >
-                    انصراف
+                    بستن
                   </button>
-                  <button
-                    type="button"
-                    disabled={submitting || !confirmed}
-                    onClick={chooseAndPay}
-                    className="flex-[2] rounded-xl bg-[#0b9c56] px-4 py-3 font-bold text-white disabled:bg-gray-300"
+                  <Link
+                    href={`/sellers/${offerSellerId}`}
+                    className="flex-[2] rounded-xl bg-[#003b5c] px-4 py-3 text-center font-bold text-white"
                   >
-                    {submitting ? "در حال ثبت..." : "تایید، انتخاب و پرداخت"}
-                  </button>
+                    مشاهده پروفایل فروشنده
+                  </Link>
                 </div>
               </div>
             </div>
@@ -277,7 +175,8 @@ export default function OfferAction({
 
     return (
       <span className="mt-3 inline-block rounded-xl bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">
-        فقط خریدار صاحب این درخواست می‌تواند پیشنهاد را انتخاب و پرداخت کند
+        فقط خریدار صاحب این درخواست می‌تواند این پیشنهاد را برای هماهنگی مستقیم
+        انتخاب کند
       </span>
     );
   }
@@ -296,7 +195,7 @@ export default function OfferAction({
 
     return (
       <span className="mt-3 inline-block rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600">
-        انتخاب و پرداخت فقط توسط خریدار صاحب درخواست انجام می‌شود
+        هماهنگی با پیشنهاد فقط توسط خریدار صاحب درخواست انجام می‌شود
       </span>
     );
   }

@@ -240,11 +240,14 @@ export default async function RequestDetailPage({
                     هنوز فروشنده‌ای برای این درخواست پیشنهاد ثبت نکرده است.
                   </div>
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center text-sm leading-7 text-amber-900">
-                    <p className="text-lg font-bold">انتخاب پیشنهاد و پرداخت</p>
+                    <p className="text-lg font-bold">
+                      هماهنگی مستقیم با فروشنده
+                    </p>
                     <p className="mt-2">
                       بعد از اینکه فروشنده‌ها پیشنهاد قیمت و مشخصات کالا را ثبت
-                      کنند، دکمه «انتخاب پیشنهاد و پرداخت» همین‌جا برای خریدار
-                      صاحب درخواست فعال می‌شود.
+                      کنند، خریدار صاحب درخواست می‌تواند پیشنهادها را ببیند و
+                      برای پرداخت/تحویل، مستقیماً با فروشنده هماهنگ کند. سایت
+                      وجهی نزد خود نگه نمی‌دارد.
                     </p>
                   </div>
                 </div>
@@ -418,10 +421,11 @@ export default async function RequestDetailPage({
               </div>
             </div>
             <div className="rounded-3xl bg-gradient-to-l from-[#003b5c] to-[#005e94] p-6 text-white">
-              <h2 className="font-bold">سیستم پرداخت امانی</h2>
+              <h2 className="font-bold">مدل ارتباط مستقیم</h2>
               <p className="mt-3 text-sm leading-7 text-blue-100">
-                خریدار پس از انتخاب پیشنهاد و پرداخت، وجه را تا تایید دریافت
-                کالا در امانت OptiBid نگه می‌دارد.
+                سایت فقط بستر ثبت درخواست و دریافت پیشنهاد است. پرداخت، تحویل،
+                تست و مسئولیت معامله مستقیماً بین خریدار و فروشنده انجام می‌شود
+                و وجهی نزد سایت نگهداری نمی‌شود.
               </p>
             </div>
           </aside>

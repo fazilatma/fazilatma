@@ -124,7 +124,7 @@ export default async function HomePage() {
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-green-100">
               درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت
-              دریافت کنید و با پرداخت امن امانی خرید کنید
+              دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
@@ -315,8 +315,8 @@ export default async function HomePage() {
               تصمیم بهتر با داده واقعی، نه ادعای تبلیغاتی
             </h2>
             <p className="mt-4 leading-8 text-blue-100">
-              قیمت رقابتی فروشندگان، امتیاز واقعی طرفین، پرداخت امانی و اسناد
-              شفاف معامله در یک محیط یکپارچه.
+              قیمت رقابتی فروشندگان، امتیاز واقعی طرفین و مشخصات شفاف کالا در یک
+              بستر آگهی‌محور و کم‌ریسک.
             </p>
           </div>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
@@ -333,8 +333,8 @@ export default async function HomePage() {
               },
               {
                 icon: "🔒",
-                title: "وجه امانی امن",
-                text: "پول تا تایید دریافت کالا نزد OptiBid می‌ماند و سپس تسویه می‌شود.",
+                title: "ارتباط مستقیم",
+                text: "سایت فقط بستر درخواست و پیشنهاد است؛ پرداخت و تحویل مستقیم بین خریدار و فروشنده انجام می‌شود.",
               },
               {
                 icon: "🧾",
