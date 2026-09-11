@@ -14,17 +14,17 @@ const defaultOfferSpecs = {
   serialOrConfig: "",
   cpu: "",
   cpuCores: "8",
-  ram: "",
-  storage: "",
+  ram: "16GB",
+  storage: "512GB SSD",
   gpu: "ندارد / نامرتبط",
-  display: "",
+  display: "14 inch FHD IPS / 60Hz",
   displaySizeInch: "14",
   refreshRateHz: "60",
   weightKg: "1.4",
-  manufactureYear: "",
+  manufactureYear: "2021",
   productCondition: "used_good",
   warrantyStatus: "test",
-  warrantyMonths: "",
+  warrantyMonths: "1",
   partsHealth: "all_healthy",
   partsHealthPercent: "90",
   bodyHealthPercent: "90",
@@ -36,7 +36,7 @@ const defaultOfferSpecs = {
   gpuHealth: "not_applicable",
   keyboardTouchpadHealth: "healthy",
   bodyHingeHealth: "healthy",
-  batteryHealthPercent: "",
+  batteryHealthPercent: "85",
   appearanceGrade: "A",
   repairHistory: "none",
   usageLevel: "normal",
@@ -140,6 +140,29 @@ export default function OfferFormClient({
   const updateSpec = (key: keyof OfferSpecs, value: string) =>
     setSpecs((current) => ({ ...current, [key]: value }));
 
+  const buildCompleteSpecsForSubmit = (): OfferSpecs => {
+    const displaySize = specs.displaySizeInch || "14";
+    const refreshRate = specs.refreshRateHz || "60";
+    return {
+      ...defaultOfferSpecs,
+      ...specs,
+      cpuCores: specs.cpuCores || defaultOfferSpecs.cpuCores,
+      ram: specs.ram || defaultOfferSpecs.ram,
+      storage: specs.storage || defaultOfferSpecs.storage,
+      displaySizeInch: displaySize,
+      refreshRateHz: refreshRate,
+      weightKg: specs.weightKg || defaultOfferSpecs.weightKg,
+      display: specs.display || `${displaySize} inch FHD IPS / ${refreshRate}Hz`,
+      manufactureYear: specs.manufactureYear || defaultOfferSpecs.manufactureYear,
+      warrantyMonths: specs.warrantyMonths || defaultOfferSpecs.warrantyMonths,
+      partsHealthPercent:
+        specs.partsHealthPercent || defaultOfferSpecs.partsHealthPercent,
+      bodyHealthPercent: specs.bodyHealthPercent || defaultOfferSpecs.bodyHealthPercent,
+      batteryHealthPercent:
+        specs.batteryHealthPercent || defaultOfferSpecs.batteryHealthPercent,
+    };
+  };
+
   const handleProductImageChange = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -199,9 +222,10 @@ export default function OfferFormClient({
       payload.append("sellerId", String(sellerId));
       payload.append("requestId", String(request.id));
       payload.append("amount", numericAmount);
+      const specsForSubmit = buildCompleteSpecsForSubmit();
       payload.append("deliveryDays", String(Number(deliveryDays)));
       payload.append("message", message);
-      payload.append("productSpecs", JSON.stringify(specs));
+      payload.append("productSpecs", JSON.stringify(specsForSubmit));
       payload.append("existingProductImages", JSON.stringify(existingImages));
       imageFiles.forEach((file) => payload.append("productImages", file));
 
@@ -563,7 +587,7 @@ function OfferSpecsForm({
         </div>
       </div>
 
-      <div className="max-h-[680px] space-y-4 overflow-y-auto scroll-smooth rounded-2xl border border-blue-100 bg-white/70 p-3 pr-4">
+      <div className="space-y-4 rounded-2xl border border-blue-100 bg-white/70 p-3 pr-4">
         <SpecSection
           title="۱. هویت کالا و مدل دقیق"
           subtitle="اطلاعاتی که جلوی اشتباه مدل و کانفیگ را می‌گیرد"
@@ -634,7 +658,7 @@ function OfferSpecsForm({
               onChange={(value) => onChange("cpuCores", String(value))}
             />
             <SpecRangeInput
-              label="سال ساخت"
+              label="سال ساخت / تولید"
               value={numericFromText(specs.manufactureYear, 2021)}
               min={2015}
               max={2026}
@@ -677,7 +701,7 @@ function OfferSpecsForm({
               onChange={(value) => onChange("ram", `${value}GB`)}
             />
             <SpecRangeInput
-              label="حافظه SSD/HDD"
+              label="حافظه ذخیره‌سازی SSD/HDD"
               value={numericFromText(specs.storage, 512)}
               min={128}
               max={4096}

@@ -671,7 +671,7 @@ export default function RequestPurchasePage() {
               </div>
             </div>
 
-            <div className="max-h-[680px] overflow-y-auto rounded-2xl border border-green-100 bg-white/70 p-4 pr-5">
+            <div className="rounded-2xl border border-green-100 bg-white/70 p-4 pr-5">
               <div className="space-y-5">
                 <ScrollSpecSection
                   title="۱. Platform + Memory + Display"
@@ -703,7 +703,7 @@ export default function RequestPurchasePage() {
                       }
                     />
                     <RangeNumberInput
-                      label="حافظه SSD/HDD"
+                      label="حافظه ذخیره‌سازی SSD/HDD"
                       value={Number(formData.valuationFactors.storageGb || 512)}
                       min={128}
                       max={4096}
