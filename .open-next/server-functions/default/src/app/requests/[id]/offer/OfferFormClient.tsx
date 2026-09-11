@@ -1121,12 +1121,7 @@ function SpecPercentRange({
         />
         <span>100%</span>
       </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
-        <div
-          className="h-full rounded-full bg-gradient-to-l from-[#0b9c56] to-[#00a8e8]"
-          style={{ width: `${safeValue}%` }}
-        />
-      </div>
+
       {helper && <p className="mt-2 text-[11px] leading-5 text-gray-500">{helper}</p>}
     </div>
   );
