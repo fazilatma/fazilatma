@@ -1,8 +1,70 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+const conditionScale = [
+  ["for_parts", "نیازمند تعمیر"],
+  ["used_fair", "کارکرده معمولی"],
+  ["used_good", "دست‌دوم سالم"],
+  ["used_like_new", "در حد نو"],
+  ["open_box", "اپن‌باکس"],
+  ["refurbished", "ریفربیشد"],
+  ["new", "کاملاً نو"],
+] as const;
+
+const partsHealthScale = [
+  ["needs_repair", "نیازمند تعمیر"],
+  ["minor_issue", "ایراد جزئی"],
+  ["all_healthy", "همه قطعات سالم"],
+] as const;
+
+const appearanceScale = [
+  ["C", "C - آسیب قابل مشاهده"],
+  ["B", "B - خط‌وخش جزئی"],
+  ["A", "A - بسیار تمیز"],
+] as const;
+
+const repairScale = [
+  ["none", "بدون تعمیر"],
+  ["minor", "تعمیر جزئی"],
+  ["major", "تعمیر اساسی"],
+] as const;
+
+const usageScale = [
+  ["low", "کم‌کارکرد"],
+  ["normal", "کارکرد معمولی"],
+  ["heavy", "پرکارکرد"],
+] as const;
+
+const warrantyOptions = [
+  ["manufacturer", "گارانتی رسمی"],
+  ["seller", "گارانتی فروشنده"],
+  ["test", "مهلت تست"],
+  ["none", "بدون گارانتی"],
+  ["unknown", "نامشخص"],
+] as const;
+
+const accessoryOptions = [
+  ["complete", "کامل"],
+  ["missing_minor", "کسری جزئی"],
+  ["missing_key", "کسری مهم"],
+  ["unknown", "نامشخص"],
+] as const;
+
+const yesNoOptions = [
+  ["yes", "دارد"],
+  ["no", "ندارد"],
+  ["unknown", "نامشخص"],
+] as const;
+
+const marketOptions = [
+  ["available", "موجود و رایج"],
+  ["rare", "کمیاب"],
+  ["discontinued", "توقف تولید / قدیمی"],
+  ["unknown", "نامشخص"],
+] as const;
 
 export default function RequestPurchasePage() {
   const router = useRouter();
@@ -18,18 +80,21 @@ export default function RequestPurchasePage() {
     valuationFactors: {
       productCondition: "used_good",
       sameNewProductPrice: "",
+      ramGb: "16",
+      storageGb: "512",
+      displaySizeInch: "14",
       manufactureYear: "",
-      warrantyStatus: "unknown",
-      warrantyMonths: "",
-      partsHealth: "unknown",
-      batteryHealthPercent: "",
-      appearanceGrade: "unknown",
-      repairHistory: "unknown",
-      usageLevel: "unknown",
-      accessoriesStatus: "unknown",
+      warrantyStatus: "test",
+      warrantyMonths: "1",
+      partsHealth: "all_healthy",
+      batteryHealthPercent: "85",
+      appearanceGrade: "B",
+      repairHistory: "none",
+      usageLevel: "normal",
+      accessoriesStatus: "complete",
       originalPackaging: "unknown",
       purchaseInvoiceAvailable: "unknown",
-      marketAvailability: "unknown",
+      marketAvailability: "available",
       valuationNotes: "",
     },
   });
@@ -565,23 +630,23 @@ export default function RequestPurchasePage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="mb-5 flex flex-col gap-2 border-b border-gray-100 pb-4">
               <h2 className="text-xl font-bold">
-                فرم اسکرولی مشخصات و ارزش‌گذاری کالا
+                فرم اسکرولی مشخصات و ارزش‌گذاری لپ‌تاپ استوک
               </h2>
               <p className="text-sm leading-7 text-gray-500">
-                برای شروع تمرکز روی لپ‌تاپ استوک، مشخصات مهم مثل وضعیت کالا،
-                قیمت مرجع، سال ساخت، باتری، گارانتی، سلامت قطعات و ظاهر به صورت
-                بخش اسکرولی ثبت می‌شود تا فرم طولانی صفحه را شلوغ نکند.
+                به جای انتخاب‌های خشک مثل «نامشخص / سالم / در حد نو»، مقدارهای
+                مهم را با اسلایدر بکشید و تنظیم کنید؛ سیستم خودش بر اساس
+                اسلایدرها وضعیت مناسب را ثبت می‌کند.
               </p>
               <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-xs font-bold text-gray-600">
                 {[
+                  "کانفیگ",
                   "وضعیت",
-                  "قیمت مرجع",
-                  "سال ساخت",
-                  "گارانتی",
                   "سلامت",
                   "باتری",
                   "ظاهر",
+                  "گارانتی",
                   "لوازم",
+                  "بازار",
                 ].map((item) => (
                   <span
                     key={item}
@@ -593,251 +658,240 @@ export default function RequestPurchasePage() {
               </div>
             </div>
 
-            <div className="max-h-[620px] overflow-y-auto rounded-2xl border border-green-100 bg-white/70 p-3">
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block text-sm font-bold text-gray-700">
-                  وضعیت کالا
-                  <select
-                    value={formData.valuationFactors.productCondition}
-                    onChange={(e) =>
-                      updateValuationFactor("productCondition", e.target.value)
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="new">نو</option>
-                    <option value="open_box">اپن‌باکس</option>
-                    <option value="refurbished">ریفربیشد / بازسازی‌شده</option>
-                    <option value="used_like_new">دست‌دوم در حد نو</option>
-                    <option value="used_good">دست‌دوم سالم</option>
-                    <option value="used_fair">دست‌دوم معمولی</option>
-                    <option value="for_parts">نیازمند تعمیر / قطعاتی</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  قیمت مرجع بازار/ترب یا قیمت نوی همان کالا (هر واحد)
-                  <div className="relative mt-2">
-                    <input
-                      type="text"
-                      value={formData.valuationFactors.sameNewProductPrice}
-                      onChange={(e) =>
-                        updateValuationFactor(
-                          "sameNewProductPrice",
-                          formatMoneyInput(e.target.value),
-                        )
+            <div className="max-h-[680px] overflow-y-auto rounded-2xl border border-green-100 bg-white/70 p-4 pr-5">
+              <div className="space-y-5">
+                <ScrollSpecSection
+                  title="۱. کانفیگ پایه لپ‌تاپ"
+                  subtitle="برای شروع بازار لپ‌تاپ استوک، رم، حافظه و نمایشگر را با اسلایدر مشخص کنید."
+                >
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <RangeNumberInput
+                      label="مقدار RAM"
+                      value={Number(formData.valuationFactors.ramGb || 16)}
+                      min={2}
+                      max={128}
+                      step={2}
+                      unit="GB"
+                      helper="حداقل رم موردنیاز یا رم مدل مدنظر"
+                      onChange={(value) =>
+                        updateValuationFactor("ramGb", String(value))
                       }
-                      placeholder="مثال: ۲۶۲,۳۴۹,۹۹۰"
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 pl-20 font-normal outline-none focus:ring-2 focus:ring-green-500"
                     />
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                      تومان
-                    </span>
+                    <RangeNumberInput
+                      label="حافظه SSD/HDD"
+                      value={Number(formData.valuationFactors.storageGb || 512)}
+                      min={128}
+                      max={4096}
+                      step={128}
+                      unit="GB"
+                      helper="برای 1TB مقدار 1024 را انتخاب کنید"
+                      onChange={(value) =>
+                        updateValuationFactor("storageGb", String(value))
+                      }
+                    />
+                    <RangeNumberInput
+                      label="اندازه نمایشگر"
+                      value={Number(
+                        formData.valuationFactors.displaySizeInch || 14,
+                      )}
+                      min={11}
+                      max={18}
+                      step={0.1}
+                      unit="اینچ"
+                      helper="اندازه تقریبی نمایشگر موردنیاز"
+                      onChange={(value) =>
+                        updateValuationFactor("displaySizeInch", String(value))
+                      }
+                    />
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-amber-700">
-                    برای دقت بالا، قیمت ترب/بازار یا قیمت نوی همان مدل را وارد
-                    کنید؛ بودجه خریدار معیار قطعی قیمت واقعی نیست.
-                  </p>
-                </label>
+                </ScrollSpecSection>
 
-                <label className="block text-sm font-bold text-gray-700">
-                  سال ساخت / تولید
-                  <input
-                    type="text"
-                    value={formData.valuationFactors.manufactureYear}
-                    onChange={(e) =>
-                      updateValuationFactor(
-                        "manufactureYear",
-                        e.target.value.replace(/\D/g, "").slice(0, 4),
-                      )
+                <ScrollSpecSection
+                  title="۲. وضعیت کلی کالا"
+                  subtitle="اسلایدر را از نیازمند تعمیر تا کاملاً نو بکشید."
+                >
+                  <DiscreteRangeInput
+                    label="وضعیت کالا"
+                    value={formData.valuationFactors.productCondition}
+                    options={conditionScale}
+                    lowLabel="نیازمند تعمیر"
+                    highLabel="کاملاً نو"
+                    onChange={(value) =>
+                      updateValuationFactor("productCondition", value)
                     }
-                    placeholder="مثال: 2021"
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
                   />
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  وضعیت گارانتی
-                  <select
-                    value={formData.valuationFactors.warrantyStatus}
-                    onChange={(e) =>
-                      updateValuationFactor("warrantyStatus", e.target.value)
+                  <label className="block text-sm font-bold text-gray-700">
+                    قیمت مرجع بازار/ترب یا قیمت نوی همان کالا (هر واحد)
+                    <div className="relative mt-2">
+                      <input
+                        type="text"
+                        value={formData.valuationFactors.sameNewProductPrice}
+                        onChange={(e) =>
+                          updateValuationFactor(
+                            "sameNewProductPrice",
+                            formatMoneyInput(e.target.value),
+                          )
+                        }
+                        placeholder="مثال: ۲۶۲,۳۴۹,۹۹۰"
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 pl-20 font-normal outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                        تومان
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-amber-700">
+                      برای دقت بالا، قیمت ترب/بازار یا قیمت نوی همان مدل را وارد
+                      کنید؛ بودجه خریدار معیار قطعی قیمت واقعی نیست.
+                    </p>
+                  </label>
+                  <RangeNumberInput
+                    label="سال ساخت / تولید"
+                    value={Number(
+                      formData.valuationFactors.manufactureYear || 2021,
+                    )}
+                    min={2015}
+                    max={2026}
+                    step={1}
+                    unit="سال"
+                    helper={
+                      formData.valuationFactors.manufactureYear
+                        ? "سال انتخاب‌شده در تخمین لحاظ می‌شود"
+                        : "اگر مطمئن نیستید، بعداً اصلاح کنید"
                     }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="manufacturer">گارانتی رسمی / شرکتی</option>
-                    <option value="seller">گارانتی فروشنده</option>
-                    <option value="test">مهلت تست کوتاه</option>
-                    <option value="none">بدون گارانتی</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  مدت گارانتی باقی‌مانده (ماه)
-                  <input
-                    type="text"
-                    value={formData.valuationFactors.warrantyMonths}
-                    onChange={(e) =>
-                      updateValuationFactor(
-                        "warrantyMonths",
-                        e.target.value.replace(/\D/g, "").slice(0, 3),
-                      )
+                    onChange={(value) =>
+                      updateValuationFactor("manufactureYear", String(value))
                     }
-                    placeholder="مثال: ۶"
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
                   />
-                </label>
+                </ScrollSpecSection>
 
-                <label className="block text-sm font-bold text-gray-700">
-                  سلامت قطعات اصلی
-                  <select
+                <ScrollSpecSection
+                  title="۳. سلامت قطعات و باتری"
+                  subtitle="سلامت قطعات و باتری را با اسلایدر درصدی مشخص کنید."
+                >
+                  <DiscreteRangeInput
+                    label="سلامت قطعات اصلی"
                     value={formData.valuationFactors.partsHealth}
-                    onChange={(e) =>
-                      updateValuationFactor("partsHealth", e.target.value)
+                    options={partsHealthScale}
+                    lowLabel="نیازمند تعمیر"
+                    highLabel="همه قطعات سالم"
+                    onChange={(value) =>
+                      updateValuationFactor("partsHealth", value)
                     }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="all_healthy">همه قطعات سالم</option>
-                    <option value="minor_issue">ایراد جزئی</option>
-                    <option value="needs_repair">نیازمند تعمیر</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  سلامت باتری (درصد، اگر مرتبط است)
-                  <input
-                    type="text"
-                    value={formData.valuationFactors.batteryHealthPercent}
-                    onChange={(e) =>
+                  />
+                  <PercentRangeInput
+                    label="سلامت باتری"
+                    value={Number(
+                      formData.valuationFactors.batteryHealthPercent || 85,
+                    )}
+                    helper="برای لپ‌تاپ استوک، بهتر است عدد واقعی Battery Report یا تست فروشنده ثبت شود."
+                    onChange={(value) =>
                       updateValuationFactor(
                         "batteryHealthPercent",
-                        e.target.value.replace(/\D/g, "").slice(0, 3),
+                        String(value),
                       )
                     }
-                    placeholder="مثال: ۸۵"
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
                   />
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  گرید ظاهری
-                  <select
-                    value={formData.valuationFactors.appearanceGrade}
-                    onChange={(e) =>
-                      updateValuationFactor("appearanceGrade", e.target.value)
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="A">A - بسیار تمیز</option>
-                    <option value="B">B - خط‌وخش جزئی</option>
-                    <option value="C">C - خط‌وخش/آسیب ظاهری قابل مشاهده</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  سابقه تعمیر
-                  <select
+                  <DiscreteRangeInput
+                    label="سابقه تعمیر"
                     value={formData.valuationFactors.repairHistory}
-                    onChange={(e) =>
-                      updateValuationFactor("repairHistory", e.target.value)
+                    options={repairScale}
+                    lowLabel="بدون تعمیر"
+                    highLabel="تعمیر اساسی"
+                    onChange={(value) =>
+                      updateValuationFactor("repairHistory", value)
                     }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="none">بدون تعمیر</option>
-                    <option value="minor">تعمیر جزئی</option>
-                    <option value="major">تعمیر اساسی / تعویض قطعه اصلی</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
+                  />
+                </ScrollSpecSection>
 
-                <label className="block text-sm font-bold text-gray-700">
-                  میزان کارکرد
-                  <select
+                <ScrollSpecSection
+                  title="۴. ظاهر، کارکرد و لوازم"
+                  subtitle="ظاهر و میزان کارکرد روی قیمت لپ‌تاپ استوک اثر مستقیم دارد."
+                >
+                  <DiscreteRangeInput
+                    label="گرید ظاهری"
+                    value={formData.valuationFactors.appearanceGrade}
+                    options={appearanceScale}
+                    lowLabel="آسیب قابل مشاهده"
+                    highLabel="بسیار تمیز"
+                    onChange={(value) =>
+                      updateValuationFactor("appearanceGrade", value)
+                    }
+                  />
+                  <DiscreteRangeInput
+                    label="میزان کارکرد"
                     value={formData.valuationFactors.usageLevel}
-                    onChange={(e) =>
-                      updateValuationFactor("usageLevel", e.target.value)
+                    options={usageScale}
+                    lowLabel="کم‌کارکرد"
+                    highLabel="پرکارکرد"
+                    onChange={(value) =>
+                      updateValuationFactor("usageLevel", value)
                     }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="low">کم‌کارکرد</option>
-                    <option value="normal">کارکرد معمولی</option>
-                    <option value="heavy">پرکارکرد</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  لوازم جانبی همراه
-                  <select
+                  />
+                  <SegmentedButtons
+                    label="لوازم جانبی همراه"
                     value={formData.valuationFactors.accessoriesStatus}
-                    onChange={(e) =>
-                      updateValuationFactor("accessoriesStatus", e.target.value)
+                    options={accessoryOptions}
+                    onChange={(value) =>
+                      updateValuationFactor("accessoriesStatus", value)
                     }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="complete">کامل</option>
-                    <option value="missing_minor">کسری جزئی</option>
-                    <option value="missing_key">
-                      کسری مهم مثل شارژر/کابل/ریموت
-                    </option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
+                  />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <SegmentedButtons
+                      label="جعبه اصلی"
+                      value={formData.valuationFactors.originalPackaging}
+                      options={yesNoOptions}
+                      onChange={(value) =>
+                        updateValuationFactor("originalPackaging", value)
+                      }
+                    />
+                    <SegmentedButtons
+                      label="فاکتور خرید / اصالت"
+                      value={formData.valuationFactors.purchaseInvoiceAvailable}
+                      options={yesNoOptions}
+                      onChange={(value) =>
+                        updateValuationFactor("purchaseInvoiceAvailable", value)
+                      }
+                    />
+                  </div>
+                </ScrollSpecSection>
 
-                <label className="block text-sm font-bold text-gray-700">
-                  جعبه اصلی
-                  <select
-                    value={formData.valuationFactors.originalPackaging}
-                    onChange={(e) =>
-                      updateValuationFactor("originalPackaging", e.target.value)
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="yes">دارد</option>
-                    <option value="no">ندارد</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  فاکتور خرید / اصالت
-                  <select
-                    value={formData.valuationFactors.purchaseInvoiceAvailable}
-                    onChange={(e) =>
-                      updateValuationFactor(
-                        "purchaseInvoiceAvailable",
-                        e.target.value,
-                      )
-                    }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="yes">فاکتور یا مدرک اصالت دارد</option>
-                    <option value="no">ندارد</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
-
-                <label className="block text-sm font-bold text-gray-700">
-                  وضعیت موجودی در بازار
-                  <select
+                <ScrollSpecSection
+                  title="۵. گارانتی و وضعیت بازار"
+                  subtitle="گارانتی، مهلت تست و موجودی بازار باعث اختلاف قیمت می‌شوند."
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <SegmentedButtons
+                      label="وضعیت گارانتی"
+                      value={formData.valuationFactors.warrantyStatus}
+                      options={warrantyOptions}
+                      onChange={(value) =>
+                        updateValuationFactor("warrantyStatus", value)
+                      }
+                    />
+                    <RangeNumberInput
+                      label="مدت گارانتی باقی‌مانده"
+                      value={Number(
+                        formData.valuationFactors.warrantyMonths || 0,
+                      )}
+                      min={0}
+                      max={36}
+                      step={1}
+                      unit="ماه"
+                      helper="اگر فقط مهلت تست است، عدد ۰ تا ۱ ماه انتخاب شود."
+                      onChange={(value) =>
+                        updateValuationFactor("warrantyMonths", String(value))
+                      }
+                    />
+                  </div>
+                  <SegmentedButtons
+                    label="وضعیت موجودی در بازار"
                     value={formData.valuationFactors.marketAvailability}
-                    onChange={(e) =>
-                      updateValuationFactor(
-                        "marketAvailability",
-                        e.target.value,
-                      )
+                    options={marketOptions}
+                    onChange={(value) =>
+                      updateValuationFactor("marketAvailability", value)
                     }
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="available">موجود و رایج</option>
-                    <option value="rare">کمیاب</option>
-                    <option value="discontinued">توقف تولید / قدیمی</option>
-                    <option value="unknown">نامشخص</option>
-                  </select>
-                </label>
+                  />
+                </ScrollSpecSection>
               </div>
             </div>
 
@@ -1054,6 +1108,225 @@ export default function RequestPurchasePage() {
             </div>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+type RangeOption = readonly [string, string];
+
+function ScrollSpecSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-green-50/30 p-4">
+      <div className="mb-3">
+        <h3 className="font-bold text-[#003b5c]">{title}</h3>
+        <p className="mt-1 text-xs leading-6 text-gray-500">{subtitle}</p>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function RangeNumberInput({
+  label,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  helper,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  helper?: string;
+  onChange: (value: number) => void;
+}) {
+  const safeValue = Number.isFinite(value) ? value : min;
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 text-sm font-bold text-gray-700">
+        <span>{label}</span>
+        <span
+          className="rounded-full bg-green-50 px-3 py-1 text-[#0b9c56]"
+          dir="ltr"
+        >
+          {safeValue.toLocaleString("fa-IR")} {unit}
+        </span>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-gray-500" dir="ltr">
+        <span>{min}</span>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={safeValue}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="w-full accent-[#0b9c56]"
+        />
+        <span>{max}</span>
+      </div>
+      {helper && (
+        <p className="mt-2 text-xs leading-5 text-gray-500">{helper}</p>
+      )}
+    </div>
+  );
+}
+
+function PercentRangeInput({
+  label,
+  value,
+  helper,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  helper?: string;
+  onChange: (value: number) => void;
+}) {
+  const safeValue = Math.max(
+    0,
+    Math.min(100, Number.isFinite(value) ? value : 0),
+  );
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 text-sm font-bold text-gray-700">
+        <span>{label}</span>
+        <span
+          className="rounded-full bg-green-50 px-3 py-1 text-[#0b9c56]"
+          dir="ltr"
+        >
+          {safeValue.toLocaleString("fa-IR")}٪
+        </span>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-gray-500" dir="ltr">
+        <span>0%</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={safeValue}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="w-full accent-[#0b9c56]"
+        />
+        <span>100%</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+        <div
+          className="h-full rounded-full bg-gradient-to-l from-[#0b9c56] to-[#00a8e8]"
+          style={{ width: `${safeValue}%` }}
+        />
+      </div>
+      {helper && (
+        <p className="mt-2 text-xs leading-5 text-gray-500">{helper}</p>
+      )}
+    </div>
+  );
+}
+
+function DiscreteRangeInput({
+  label,
+  value,
+  options,
+  lowLabel,
+  highLabel,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly RangeOption[];
+  lowLabel: string;
+  highLabel: string;
+  onChange: (value: string) => void;
+}) {
+  const foundIndex = options.findIndex(([id]) => id === value);
+  const sliderIndex =
+    foundIndex >= 0 ? foundIndex : Math.floor((options.length - 1) / 2);
+  const currentLabel = foundIndex >= 0 ? options[foundIndex][1] : "نامشخص";
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 text-sm font-bold text-gray-700">
+        <span>{label}</span>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-[#003b5c]">
+          {currentLabel}
+        </span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max={options.length - 1}
+        step="1"
+        value={sliderIndex}
+        onChange={(event) => onChange(options[Number(event.target.value)][0])}
+        className="w-full accent-[#0b9c56]"
+      />
+      <div className="mt-2 flex justify-between text-[11px] text-gray-500">
+        <span>{lowLabel}</span>
+        <span>{highLabel}</span>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map(([id, text], index) => (
+          <button
+            type="button"
+            key={id}
+            onClick={() => onChange(id)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+              (foundIndex >= 0 ? foundIndex : sliderIndex) === index
+                ? "border-[#0b9c56] bg-green-50 text-[#0b9c56]"
+                : "border-gray-200 bg-gray-50 text-gray-600 hover:border-green-300"
+            }`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SegmentedButtons({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly RangeOption[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4">
+      <p className="mb-3 text-sm font-bold text-gray-700">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(([id, text]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+              value === id
+                ? "border-[#00a8e8] bg-blue-50 text-[#003b5c]"
+                : "border-gray-200 bg-gray-50 text-gray-600 hover:border-[#00a8e8]/50"
+            }`}
+          >
+            {text}
+          </button>
+        ))}
       </div>
     </div>
   );

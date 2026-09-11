@@ -11,6 +11,9 @@ export type ProductCondition =
 export type ProductValuationFactors = {
   productCondition: ProductCondition;
   sameNewProductPrice: string; // قیمت مرجع بازار/ترب یا قیمت نوی همان کالا
+  ramGb: string;
+  storageGb: string;
+  displaySizeInch: string;
   manufactureYear: string;
   warrantyStatus: "manufacturer" | "seller" | "test" | "none" | "unknown";
   warrantyMonths: string;
@@ -45,6 +48,9 @@ export type AiPriceEstimate = {
 const defaultFactors: ProductValuationFactors = {
   productCondition: "unknown",
   sameNewProductPrice: "",
+  ramGb: "",
+  storageGb: "",
+  displaySizeInch: "",
   manufactureYear: "",
   warrantyStatus: "unknown",
   warrantyMonths: "",
@@ -68,34 +74,110 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function normalizeEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+function normalizeEnum<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T,
+): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
-export function normalizeProductValuationFactors(input: Partial<ProductValuationFactors> | undefined | null): ProductValuationFactors {
+export function normalizeProductValuationFactors(
+  input: Partial<ProductValuationFactors> | undefined | null,
+): ProductValuationFactors {
   const source = input || {};
   return {
-    productCondition: normalizeEnum(source.productCondition, ["new", "open_box", "refurbished", "used_like_new", "used_good", "used_fair", "for_parts", "unknown"] as const, "unknown"),
+    productCondition: normalizeEnum(
+      source.productCondition,
+      [
+        "new",
+        "open_box",
+        "refurbished",
+        "used_like_new",
+        "used_good",
+        "used_fair",
+        "for_parts",
+        "unknown",
+      ] as const,
+      "unknown",
+    ),
     sameNewProductPrice: String(source.sameNewProductPrice || "").trim(),
-    manufactureYear: String(source.manufactureYear || "").replace(/\D/g, "").slice(0, 4),
-    warrantyStatus: normalizeEnum(source.warrantyStatus, ["manufacturer", "seller", "test", "none", "unknown"] as const, "unknown"),
-    warrantyMonths: String(source.warrantyMonths || "").replace(/\D/g, "").slice(0, 3),
-    partsHealth: normalizeEnum(source.partsHealth, ["all_healthy", "minor_issue", "needs_repair", "unknown"] as const, "unknown"),
-    batteryHealthPercent: String(source.batteryHealthPercent || "").replace(/\D/g, "").slice(0, 3),
-    appearanceGrade: normalizeEnum(source.appearanceGrade, ["A", "B", "C", "unknown"] as const, "unknown"),
-    repairHistory: normalizeEnum(source.repairHistory, ["none", "minor", "major", "unknown"] as const, "unknown"),
-    usageLevel: normalizeEnum(source.usageLevel, ["low", "normal", "heavy", "unknown"] as const, "unknown"),
-    accessoriesStatus: normalizeEnum(source.accessoriesStatus, ["complete", "missing_minor", "missing_key", "unknown"] as const, "unknown"),
-    originalPackaging: normalizeEnum(source.originalPackaging, ["yes", "no", "unknown"] as const, "unknown"),
-    purchaseInvoiceAvailable: normalizeEnum(source.purchaseInvoiceAvailable, ["yes", "no", "unknown"] as const, "unknown"),
-    marketAvailability: normalizeEnum(source.marketAvailability, ["available", "rare", "discontinued", "unknown"] as const, "unknown"),
-    valuationNotes: String(source.valuationNotes || "").trim().slice(0, 1000),
+    ramGb: String((source as { ramGb?: unknown }).ramGb || "")
+      .replace(/\D/g, "")
+      .slice(0, 3),
+    storageGb: String((source as { storageGb?: unknown }).storageGb || "")
+      .replace(/\D/g, "")
+      .slice(0, 5),
+    displaySizeInch: String(
+      (source as { displaySizeInch?: unknown }).displaySizeInch || "",
+    )
+      .replace(/[^\d.]/g, "")
+      .slice(0, 4),
+    manufactureYear: String(source.manufactureYear || "")
+      .replace(/\D/g, "")
+      .slice(0, 4),
+    warrantyStatus: normalizeEnum(
+      source.warrantyStatus,
+      ["manufacturer", "seller", "test", "none", "unknown"] as const,
+      "unknown",
+    ),
+    warrantyMonths: String(source.warrantyMonths || "")
+      .replace(/\D/g, "")
+      .slice(0, 3),
+    partsHealth: normalizeEnum(
+      source.partsHealth,
+      ["all_healthy", "minor_issue", "needs_repair", "unknown"] as const,
+      "unknown",
+    ),
+    batteryHealthPercent: String(source.batteryHealthPercent || "")
+      .replace(/\D/g, "")
+      .slice(0, 3),
+    appearanceGrade: normalizeEnum(
+      source.appearanceGrade,
+      ["A", "B", "C", "unknown"] as const,
+      "unknown",
+    ),
+    repairHistory: normalizeEnum(
+      source.repairHistory,
+      ["none", "minor", "major", "unknown"] as const,
+      "unknown",
+    ),
+    usageLevel: normalizeEnum(
+      source.usageLevel,
+      ["low", "normal", "heavy", "unknown"] as const,
+      "unknown",
+    ),
+    accessoriesStatus: normalizeEnum(
+      source.accessoriesStatus,
+      ["complete", "missing_minor", "missing_key", "unknown"] as const,
+      "unknown",
+    ),
+    originalPackaging: normalizeEnum(
+      source.originalPackaging,
+      ["yes", "no", "unknown"] as const,
+      "unknown",
+    ),
+    purchaseInvoiceAvailable: normalizeEnum(
+      source.purchaseInvoiceAvailable,
+      ["yes", "no", "unknown"] as const,
+      "unknown",
+    ),
+    marketAvailability: normalizeEnum(
+      source.marketAvailability,
+      ["available", "rare", "discontinued", "unknown"] as const,
+      "unknown",
+    ),
+    valuationNotes: String(source.valuationNotes || "")
+      .trim()
+      .slice(0, 1000),
   };
 }
 
 function isDigitalProduct(title: string, category: string) {
   const text = `${title} ${category}`.toLowerCase();
-  return /دیجیتال|لپ|لب|موبایل|گوشی|thinkpad|lenovo|hp|dell|asus|acer|macbook|core|intel|ryzen|ssd|ram|monitor|printer|tablet/.test(text);
+  return /دیجیتال|لپ|لب|موبایل|گوشی|thinkpad|lenovo|hp|dell|asus|acer|macbook|core|intel|ryzen|ssd|ram|monitor|printer|tablet/.test(
+    text,
+  );
 }
 
 function inferredMinimumManufactureYear(title: string) {
@@ -114,7 +196,10 @@ export function estimateFairUsedProductPrice(input: {
   factors?: Partial<ProductValuationFactors> | null;
 }): AiPriceEstimate {
   const factors = normalizeProductValuationFactors(input.factors);
-  const quantity = Math.max(1, Number(String(input.quantity || 1).replace(/\D/g, "")) || 1);
+  const quantity = Math.max(
+    1,
+    Number(String(input.quantity || 1).replace(/\D/g, "")) || 1,
+  );
   const totalBudget = money(input.budget);
   const marketReferenceUnitPrice = money(factors.sameNewProductPrice);
   const buyerBudgetUnitPrice = Math.round(totalBudget / quantity) || 0;
@@ -125,9 +210,15 @@ export function estimateFairUsedProductPrice(input: {
   const manufactureYear = Number(factors.manufactureYear || 0);
   const digitalProduct = isDigitalProduct(input.title, input.category);
   const minYearByTitle = inferredMinimumManufactureYear(input.title);
-  const yearLooksInconsistent = Boolean(minYearByTitle && manufactureYear > 0 && manufactureYear < minYearByTitle);
+  const yearLooksInconsistent = Boolean(
+    minYearByTitle && manufactureYear > 0 && manufactureYear < minYearByTitle,
+  );
   const effectiveManufactureYear = yearLooksInconsistent ? 0 : manufactureYear;
-  const age = effectiveManufactureYear >= 1990 && effectiveManufactureYear <= currentYear + 1 ? Math.max(0, currentYear - effectiveManufactureYear) : 0;
+  const age =
+    effectiveManufactureYear >= 1990 &&
+    effectiveManufactureYear <= currentYear + 1
+      ? Math.max(0, currentYear - effectiveManufactureYear)
+      : 0;
   const factorNotes: string[] = [];
   let depreciation = 0;
   let unknowns = 0;
@@ -152,19 +243,47 @@ export function estimateFairUsedProductPrice(input: {
     for_parts: 0.68,
     unknown: 0.28,
   };
-  const conditionPenalty = marketReferenceUnitPrice && digitalProduct ? conservativeConditionPenalty : defaultConditionPenalty;
+  const conditionPenalty =
+    marketReferenceUnitPrice && digitalProduct
+      ? conservativeConditionPenalty
+      : defaultConditionPenalty;
   depreciation += conditionPenalty[factors.productCondition];
   if (factors.productCondition === "unknown") unknowns += 1;
-  else factorNotes.push(`وضعیت کالا: ${conditionLabel(factors.productCondition)}`);
+  else
+    factorNotes.push(`وضعیت کالا: ${conditionLabel(factors.productCondition)}`);
+  if (factors.ramGb)
+    factorNotes.push(
+      `رم موردنیاز/اعلامی: ${Number(factors.ramGb).toLocaleString("fa-IR")} گیگابایت`,
+    );
+  if (factors.storageGb)
+    factorNotes.push(
+      `حافظه موردنیاز/اعلامی: ${Number(factors.storageGb).toLocaleString("fa-IR")} گیگابایت`,
+    );
+  if (factors.displaySizeInch)
+    factorNotes.push(`اندازه نمایشگر حدود ${factors.displaySizeInch} اینچ`);
 
-  const ageRate = digitalProduct ? (marketReferenceUnitPrice ? 0.035 : 0.05) : input.category.includes("خودرو") ? 0.045 : 0.035;
+  const ageRate = digitalProduct
+    ? marketReferenceUnitPrice
+      ? 0.035
+      : 0.05
+    : input.category.includes("خودرو")
+      ? 0.045
+      : 0.035;
   if (yearLooksInconsistent) {
-    factorNotes.push(`سال ساخت ${manufactureYear} با نسل/عنوان کالا هم‌خوان نیست؛ برای جلوگیری از افت غیرواقعی، جریمه سن لحاظ نشد`);
+    factorNotes.push(
+      `سال ساخت ${manufactureYear} با نسل/عنوان کالا هم‌خوان نیست؛ برای جلوگیری از افت غیرواقعی، جریمه سن لحاظ نشد`,
+    );
     unknowns += 1;
   } else if (age > 0) {
-    const agePenalty = clamp(age * ageRate, 0, marketReferenceUnitPrice && digitalProduct ? 0.28 : 0.42);
+    const agePenalty = clamp(
+      age * ageRate,
+      0,
+      marketReferenceUnitPrice && digitalProduct ? 0.28 : 0.42,
+    );
     depreciation += agePenalty;
-    factorNotes.push(`سال ساخت ${manufactureYear} و افت سنی حدود ${Math.round(agePenalty * 100)}٪`);
+    factorNotes.push(
+      `سال ساخت ${manufactureYear} و افت سنی حدود ${Math.round(agePenalty * 100)}٪`,
+    );
   } else {
     unknowns += 1;
   }
@@ -186,7 +305,8 @@ export function estimateFairUsedProductPrice(input: {
   }
 
   const warrantyMonths = Number(factors.warrantyMonths || 0);
-  if (warrantyMonths > 0) depreciation -= clamp(warrantyMonths * 0.003, 0, 0.08);
+  if (warrantyMonths > 0)
+    depreciation -= clamp(warrantyMonths * 0.003, 0, 0.08);
 
   if (factors.partsHealth === "all_healthy") {
     factorNotes.push("سلامت کامل قطعات امتیاز مثبت دارد");
@@ -234,25 +354,43 @@ export function estimateFairUsedProductPrice(input: {
   if (factors.marketAvailability === "rare") depreciation -= 0.04;
   else if (factors.marketAvailability === "discontinued") depreciation += 0.04;
 
-  const hasSevereIssue = factors.productCondition === "for_parts" || factors.partsHealth === "needs_repair" || factors.repairHistory === "major" || factors.appearanceGrade === "C";
+  const hasSevereIssue =
+    factors.productCondition === "for_parts" ||
+    factors.partsHealth === "needs_repair" ||
+    factors.repairHistory === "major" ||
+    factors.appearanceGrade === "C";
   if (marketReferenceUnitPrice && digitalProduct && !hasSevereIssue) {
     const maxDigitalDepreciation = yearLooksInconsistent ? 0.48 : 0.62;
     if (depreciation > maxDigitalDepreciation) {
-      factorNotes.push(`افت محاسباتی برای کالای دیجیتال بدون ایراد جدی بیش از حد بود؛ سقف ${Math.round(maxDigitalDepreciation * 100)}٪ اعمال شد`);
+      factorNotes.push(
+        `افت محاسباتی برای کالای دیجیتال بدون ایراد جدی بیش از حد بود؛ سقف ${Math.round(maxDigitalDepreciation * 100)}٪ اعمال شد`,
+      );
       depreciation = maxDigitalDepreciation;
     }
   }
 
   depreciation = clamp(depreciation, 0, 0.82);
   const fairUnit = Math.max(0, Math.round(baseUnitPrice * (1 - depreciation)));
-  const rangePercent = clamp(0.08 + unknowns * 0.025 + (marketReferenceUnitPrice ? 0 : 0.12), 0.08, 0.35);
+  const rangePercent = clamp(
+    0.08 + unknowns * 0.025 + (marketReferenceUnitPrice ? 0 : 0.12),
+    0.08,
+    0.35,
+  );
   const minUnit = Math.round(fairUnit * (1 - rangePercent));
   const maxUnit = Math.round(fairUnit * (1 + rangePercent));
-  const confidence = clamp(88 - unknowns * 6 + (marketReferenceUnitPrice ? 9 : -18) + (factors.valuationNotes ? 3 : 0), 20, 95);
+  const confidence = clamp(
+    88 -
+      unknowns * 6 +
+      (marketReferenceUnitPrice ? 9 : -18) +
+      (factors.valuationNotes ? 3 : 0),
+    20,
+    95,
+  );
 
   return {
     currency: "تومان",
-    source: "OptiBid AI valuation v2 - market reference + condition adjusted fair price",
+    source:
+      "OptiBid AI valuation v2 - market reference + condition adjusted fair price",
     generatedAt: new Date().toISOString(),
     estimatedUnitMin: minUnit,
     estimatedUnitFair: fairUnit,
