@@ -13,15 +13,21 @@ const defaultOfferSpecs = {
   exactModel: "",
   serialOrConfig: "",
   cpu: "",
+  cpuCores: "8",
   ram: "",
   storage: "",
   gpu: "ندارد / نامرتبط",
   display: "",
+  displaySizeInch: "14",
+  refreshRateHz: "60",
+  weightKg: "1.4",
   manufactureYear: "",
   productCondition: "used_good",
   warrantyStatus: "test",
   warrantyMonths: "",
   partsHealth: "all_healthy",
+  partsHealthPercent: "90",
+  bodyHealthPercent: "90",
   cpuHealth: "healthy",
   motherboardHealth: "healthy",
   displayHealth: "healthy",
@@ -59,18 +65,36 @@ type SellerOffer = {
   productImages?: ProductImageAttachment[];
 };
 
-const healthOptions = [
-  ["healthy", "سالم"],
-  ["minor_issue", "ایراد جزئی"],
-  ["needs_repair", "نیازمند تعمیر"],
-  ["not_applicable", "نامرتبط"],
-] as const;
-
 const money = (value: string | number) =>
   `${Number(String(value).replace(/\D/g, "") || 0).toLocaleString("fa-IR")} تومان`;
 const toInputMoney = (value: string | number) => {
   const raw = String(value || "").replace(/\D/g, "");
   return raw ? Number(raw).toLocaleString("en-US") : "";
+};
+
+const numericFromText = (value: string | number | undefined, fallback: number) => {
+  const text = String(value || "").replace(/,/g, ".").toLowerCase();
+  const match = text.match(/\d+(?:\.\d+)?/);
+  if (!match) return fallback;
+  const parsed = Number(match[0]);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (text.includes("tb") || text.includes("ترابایت")) return parsed * 1024;
+  return parsed;
+};
+
+const formatSpecNumber = (value: number) =>
+  Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+
+const sellerHealthFromPercent = (value: number) => {
+  if (value >= 85) return "healthy";
+  if (value >= 55) return "minor_issue";
+  return "needs_repair";
+};
+
+const sellerPartsHealthFromPercent = (value: number) => {
+  if (value >= 85) return "all_healthy";
+  if (value >= 55) return "minor_issue";
+  return "needs_repair";
 };
 
 export default function OfferFormClient({
@@ -280,9 +304,9 @@ export default function OfferFormClient({
                   ثبت پیشنهاد قیمت و مشخصات کامل محصول پیشنهادی
                 </h2>
                 <p className="mt-2 text-sm leading-7 text-gray-500">
-                  این فرم توسط فروشنده پر می‌شود و قبل از پرداخت به خریدار نمایش
-                  داده می‌شود. خریدار فقط بعد از تأیید همین مشخصات می‌تواند وارد
-                  مرحله پرداخت شود.
+                  این فرم توسط فروشنده پر می‌شود و قبل از هماهنگی نهایی به خریدار نمایش
+                  داده می‌شود. خریدار بعد از بررسی همین مشخصات، مستقیماً با فروشنده برای
+                  پرداخت، تست و تحویل هماهنگ می‌کند.
                 </p>
               </div>
 
@@ -391,7 +415,7 @@ function ProductImagesUploader({
           </h3>
           <p className="mt-1 text-xs leading-6 text-gray-500">
             چند عکس واقعی از همان کالایی که پیشنهاد می‌دهید بارگذاری کنید تا
-            خریدار قبل از پرداخت، ظاهر، سلامت و جزئیات محصول را ببیند و سوءتفاهم
+            خریدار قبل از هماهنگی مستقیم، ظاهر، سلامت و جزئیات محصول را ببیند و سوءتفاهم
             به حداقل برسد.
           </p>
         </div>
@@ -509,9 +533,9 @@ function OfferSpecsForm({
               مشخصات اسکرولی کالای پیشنهادی فروشنده
             </h3>
             <p className="mt-1 text-xs leading-6 text-gray-500">
-              مخصوص شروع با لپ‌تاپ: اطلاعات در بخش‌های قابل اسکرول مثل پلتفرم،
-              حافظه، نمایشگر، بدنه، سلامت و گارانتی گروه‌بندی شده تا فرم سنگین و
-              گیج‌کننده نباشد.
+              مخصوص شروع با لپ‌تاپ: مثل نمونه‌ای که فرستادید، بخش‌های Body، Platform،
+              Memory و Display داریم و RAM، حافظه، اندازه نمایشگر، سلامت قطعات، باتری، وزن و سال ساخت
+              با اسلایدر واقعی تنظیم می‌شود.
             </p>
           </div>
           <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-blue-700">
@@ -564,18 +588,20 @@ function OfferSpecsForm({
               placeholder="E14 / 155H / 16/512"
             />
           </div>
-          <SpecChipGroup
+          <SpecDiscreteRange
             label="وضعیت ظاهری/بازاری کالا"
             value={specs.productCondition}
+            lowLabel="نیازمند تعمیر"
+            highLabel="کاملاً نو"
             onChange={(value) => onChange("productCondition", value)}
             options={[
-              ["new", "کاملاً نو"],
-              ["open_box", "اپن‌باکس"],
-              ["used_like_new", "در حد نو"],
-              ["used_good", "دست‌دوم سالم"],
-              ["used_fair", "کارکرده معمولی"],
-              ["refurbished", "ریفربیشد"],
               ["for_parts", "قطعاتی/نیازمند تعمیر"],
+              ["used_fair", "کارکرده معمولی"],
+              ["used_good", "دست‌دوم سالم"],
+              ["used_like_new", "در حد نو"],
+              ["open_box", "اپن‌باکس"],
+              ["refurbished", "ریفربیشد"],
+              ["new", "کاملاً نو"],
             ]}
           />
         </SpecSection>
@@ -584,7 +610,7 @@ function OfferSpecsForm({
           title="۲. پلتفرم و پردازنده"
           subtitle="CPU، GPU، سال ساخت و سیستم عامل پیشنهادی"
         >
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <SpecInput
               label="پردازنده CPU"
               value={specs.cpu}
@@ -597,16 +623,25 @@ function OfferSpecsForm({
               onChange={(value) => onChange("gpu", value)}
               placeholder="Intel Iris Xe / RTX 3050"
             />
-            <SpecInput
+            <SpecRangeInput
+              label="تعداد هسته CPU"
+              value={numericFromText(specs.cpuCores, 8)}
+              min={2}
+              max={24}
+              step={2}
+              unit="هسته"
+              helper="مثل فیلتر CPU Cores؛ عدد را با کشیدن اسلایدر ثبت کنید."
+              onChange={(value) => onChange("cpuCores", String(value))}
+            />
+            <SpecRangeInput
               label="سال ساخت"
-              value={specs.manufactureYear}
-              onChange={(value) =>
-                onChange(
-                  "manufactureYear",
-                  value.replace(/\D/g, "").slice(0, 4),
-                )
-              }
-              placeholder="2023"
+              value={numericFromText(specs.manufactureYear, 2021)}
+              min={2015}
+              max={2026}
+              step={1}
+              unit="سال"
+              helper="به‌جای تایپ دستی، سال تولید را اسکرولی انتخاب کنید."
+              onChange={(value) => onChange("manufactureYear", String(value))}
             />
           </div>
           <SpecChipGroup
@@ -631,55 +666,51 @@ function OfferSpecsForm({
           subtitle="RAM و SSD/HDD جزو مهم‌ترین عوامل قیمت هستند"
         >
           <div className="grid gap-3 md:grid-cols-2">
-            <SpecInput
+            <SpecRangeInput
               label="RAM"
-              value={specs.ram}
-              onChange={(value) => onChange("ram", value)}
-              placeholder="16GB DDR4"
+              value={numericFromText(specs.ram, 16)}
+              min={2}
+              max={128}
+              step={2}
+              unit="GB"
+              helper="مانند نمونه، RAM با کشیدن اسلایدر انتخاب می‌شود."
+              onChange={(value) => onChange("ram", `${value}GB`)}
             />
-            <SpecInput
+            <SpecRangeInput
               label="حافظه SSD/HDD"
-              value={specs.storage}
-              onChange={(value) => onChange("storage", value)}
-              placeholder="512GB NVMe SSD"
+              value={numericFromText(specs.storage, 512)}
+              min={128}
+              max={4096}
+              step={128}
+              unit="GB"
+              helper="برای 1TB عدد 1024 و برای 2TB عدد 2048 را انتخاب کنید."
+              onChange={(value) => onChange("storage", `${value}GB SSD`)}
             />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            <SpecChipGroup
-              label="پیشنهاد سریع RAM"
-              value={specs.ram}
-              onChange={(value) => onChange("ram", value)}
-              options={[
-                ["8GB", "۸ گیگ"],
-                ["16GB", "۱۶ گیگ"],
-                ["32GB", "۳۲ گیگ"],
-                ["64GB", "۶۴ گیگ"],
-              ]}
-            />
-            <SpecChipGroup
-              label="پیشنهاد سریع حافظه"
-              value={specs.storage}
-              onChange={(value) => onChange("storage", value)}
-              options={[
-                ["256GB SSD", "۲۵۶ SSD"],
-                ["512GB SSD", "۵۱۲ SSD"],
-                ["1TB SSD", "۱ ترابایت SSD"],
-                ["2TB SSD", "۲ ترابایت SSD"],
-              ]}
-            />
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <SpecSelect
+            <SpecDiscreteRange
               label="سلامت RAM"
               value={specs.ramHealth}
+              lowLabel="نیازمند تعمیر"
+              highLabel="سالم"
               onChange={(value) => onChange("ramHealth", value)}
-              options={healthOptions}
+              options={[
+                ["needs_repair", "نیازمند تعمیر"],
+                ["minor_issue", "ایراد جزئی"],
+                ["healthy", "سالم"],
+              ]}
             />
-            <SpecSelect
+            <SpecDiscreteRange
               label="سلامت SSD/HDD"
               value={specs.storageHealth}
+              lowLabel="نیازمند تعمیر"
+              highLabel="سالم"
               onChange={(value) => onChange("storageHealth", value)}
-              options={healthOptions}
+              options={[
+                ["needs_repair", "نیازمند تعمیر"],
+                ["minor_issue", "ایراد جزئی"],
+                ["healthy", "سالم"],
+              ]}
             />
           </div>
         </SpecSection>
@@ -689,168 +720,194 @@ function OfferSpecsForm({
           subtitle="اندازه، رزولوشن، پنل و سلامت صفحه را دقیق بنویسید"
         >
           <div className="grid gap-3 md:grid-cols-2">
+            <SpecRangeInput
+              label="اندازه نمایشگر"
+              value={numericFromText(specs.displaySizeInch || specs.display, 14)}
+              min={11}
+              max={18}
+              step={0.1}
+              unit="اینچ"
+              helper="درست مثل فیلتر Display Size در نمونه، اندازه را اسکرولی انتخاب کنید."
+              onChange={(value) => {
+                const size = formatSpecNumber(value);
+                onChange("displaySizeInch", size);
+                onChange(
+                  "display",
+                  `${size} inch FHD IPS / ${specs.refreshRateHz || 60}Hz`,
+                );
+              }}
+            />
+            <SpecRangeInput
+              label="نرخ نوسازی"
+              value={numericFromText(specs.refreshRateHz, 60)}
+              min={60}
+              max={240}
+              step={15}
+              unit="Hz"
+              helper="برای دستگاه‌های گیمینگ یا طراحی، مقدار بالاتر را انتخاب کنید."
+              onChange={(value) => {
+                onChange("refreshRateHz", String(value));
+                onChange(
+                  "display",
+                  `${specs.displaySizeInch || 14} inch FHD IPS / ${value}Hz`,
+                );
+              }}
+            />
+            <SpecDiscreteRange
+              label="سلامت نمایشگر"
+              value={specs.displayHealth}
+              lowLabel="نیازمند تعمیر"
+              highLabel="سالم"
+              onChange={(value) => onChange("displayHealth", value)}
+              options={[
+                ["needs_repair", "نیازمند تعمیر"],
+                ["minor_issue", "ایراد جزئی"],
+                ["healthy", "سالم"],
+              ]}
+            />
             <SpecInput
-              label="نمایشگر"
+              label="توضیح تکمیلی نمایشگر"
               value={specs.display}
               onChange={(value) => onChange("display", value)}
               placeholder="14 inch FHD IPS / 120Hz"
             />
-            <SpecSelect
-              label="سلامت نمایشگر"
-              value={specs.displayHealth}
-              onChange={(value) => onChange("displayHealth", value)}
-              options={healthOptions}
-            />
           </div>
-          <SpecChipGroup
-            label="اندازه رایج لپ‌تاپ"
-            value={specs.display}
-            onChange={(value) => onChange("display", value)}
-            options={[
-              ["13.3 inch FHD", "۱۳.۳ اینچ"],
-              ["14 inch FHD IPS", "۱۴ اینچ"],
-              ["15.6 inch FHD IPS", "۱۵.۶ اینچ"],
-              ["16 inch WUXGA", "۱۶ اینچ"],
-            ]}
-          />
         </SpecSection>
 
         <SpecSection
           title="۵. بدنه، ظاهر، لولا و ورودی‌ها"
           subtitle="مثل تصویر مرجع، بدنه و کیفیت ظاهری جداگانه ثبت می‌شود"
         >
-          <div className="grid gap-3 md:grid-cols-3">
-            <SpecSelect
+          <div className="grid gap-3 md:grid-cols-2">
+            <SpecPercentRange
+              label="سلامت بدنه/لولا"
+              value={numericFromText(specs.bodyHealthPercent, 90)}
+              helper="درصد سلامت فیزیکی، لولا، قاب و پورت‌ها را با اسلایدر تعیین کنید."
+              onChange={(value) => {
+                onChange("bodyHealthPercent", String(value));
+                onChange("bodyHingeHealth", sellerHealthFromPercent(value));
+              }}
+            />
+            <SpecRangeInput
+              label="وزن تقریبی"
+              value={numericFromText(specs.weightKg, 1.4)}
+              min={0.8}
+              max={4}
+              step={0.1}
+              unit="kg"
+              helper="مثل Height/Width/Weight در نمونه، عدد با اسلایدر ثبت می‌شود."
+              onChange={(value) => onChange("weightKg", formatSpecNumber(value))}
+            />
+            <SpecDiscreteRange
               label="گرید ظاهری"
               value={specs.appearanceGrade}
+              lowLabel="آسیب قابل مشاهده"
+              highLabel="بسیار تمیز"
               onChange={(value) => onChange("appearanceGrade", value)}
               options={[
-                ["A", "A - بسیار تمیز"],
-                ["B", "B - خط‌وخش جزئی"],
                 ["C", "C - آسیب قابل مشاهده"],
+                ["B", "B - خط‌وخش جزئی"],
+                ["A", "A - بسیار تمیز"],
               ]}
             />
-            <SpecSelect
-              label="بدنه/لولا"
-              value={specs.bodyHingeHealth}
-              onChange={(value) => onChange("bodyHingeHealth", value)}
-              options={healthOptions}
-            />
-            <SpecSelect
+            <SpecDiscreteRange
               label="کیبورد/تاچ‌پد"
               value={specs.keyboardTouchpadHealth}
+              lowLabel="نیازمند تعمیر"
+              highLabel="سالم"
               onChange={(value) => onChange("keyboardTouchpadHealth", value)}
-              options={healthOptions}
+              options={[
+                ["needs_repair", "نیازمند تعمیر"],
+                ["minor_issue", "ایراد جزئی"],
+                ["healthy", "سالم"],
+              ]}
             />
           </div>
-          <SpecChipGroup
-            label="توصیف سریع ظاهر"
-            value={specs.appearanceGrade}
-            onChange={(value) => onChange("appearanceGrade", value)}
-            options={[
-              ["A", "در حد نو / بسیار تمیز"],
-              ["B", "خط‌وخش کم"],
-              ["C", "آثار استفاده واضح"],
-              ["D", "نیازمند توضیح کامل"],
-            ]}
-          />
         </SpecSection>
 
         <SpecSection
           title="۶. سلامت قطعات و باتری"
           subtitle="برای کاهش اختلاف، سلامت هر قطعه جداگانه ثبت شود"
         >
-          <div className="grid gap-3 md:grid-cols-3">
-            <SpecSelect
+          <div className="grid gap-3 md:grid-cols-2">
+            <SpecPercentRange
               label="سلامت کلی قطعات"
-              value={specs.partsHealth}
-              onChange={(value) => onChange("partsHealth", value)}
-              options={[
-                ["all_healthy", "همه قطعات سالم"],
-                ["minor_issue", "ایراد جزئی"],
-                ["needs_repair", "نیازمند تعمیر"],
-              ]}
+              value={numericFromText(specs.partsHealthPercent, 90)}
+              helper="این همان چیزی است که گفتید: به‌جای گزینه نامشخص/سالم، فروشنده درصد سلامت قطعات را می‌کشد."
+              onChange={(value) => {
+                onChange("partsHealthPercent", String(value));
+                onChange("partsHealth", sellerPartsHealthFromPercent(value));
+              }}
             />
-            <SpecSelect
+            <SpecPercentRange
+              label="سلامت باتری"
+              value={numericFromText(specs.batteryHealthPercent, 85)}
+              helper="عدد واقعی Battery Report یا تست فروشنده را اینجا ثبت کنید."
+              onChange={(value) => onChange("batteryHealthPercent", String(value))}
+            />
+            <SpecDiscreteRange
               label="سلامت GPU"
               value={specs.gpuHealth}
+              lowLabel="نامرتبط / نیازمند تعمیر"
+              highLabel="سالم"
               onChange={(value) => onChange("gpuHealth", value)}
-              options={healthOptions}
+              options={[
+                ["not_applicable", "نامرتبط"],
+                ["needs_repair", "نیازمند تعمیر"],
+                ["minor_issue", "ایراد جزئی"],
+                ["healthy", "سالم"],
+              ]}
             />
-            <SpecInput
-              label="سلامت باتری (%)"
-              value={specs.batteryHealthPercent}
-              onChange={(value) =>
-                onChange(
-                  "batteryHealthPercent",
-                  value.replace(/\D/g, "").slice(0, 3),
-                )
-              }
-              placeholder="85"
-            />
-          </div>
-          <div className="rounded-2xl bg-white p-3">
-            <div className="mb-2 flex items-center justify-between text-xs font-bold text-gray-600">
-              <span>سلامت باتری</span>
-              <span>{specs.batteryHealthPercent || "نامشخص"}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={Number(specs.batteryHealthPercent || 0)}
-              onChange={(event) =>
-                onChange("batteryHealthPercent", event.target.value)
-              }
-              className="w-full accent-[#0b9c56]"
+            <SpecDiscreteRange
+              label="سابقه تعمیر"
+              value={specs.repairHistory}
+              lowLabel="بدون تعمیر"
+              highLabel="تعمیر اساسی"
+              onChange={(value) => onChange("repairHistory", value)}
+              options={[
+                ["none", "بدون تعمیر"],
+                ["minor", "تعمیر جزئی"],
+                ["major", "تعمیر اساسی"],
+              ]}
             />
           </div>
-          <SpecSelect
-            label="سابقه تعمیر"
-            value={specs.repairHistory}
-            onChange={(value) => onChange("repairHistory", value)}
-            options={[
-              ["none", "بدون تعمیر"],
-              ["minor", "تعمیر جزئی"],
-              ["major", "تعمیر اساسی"],
-            ]}
-          />
         </SpecSection>
 
         <SpecSection
           title="۷. گارانتی، مهلت تست و سیاست مرجوعی"
-          subtitle="شرایط تست و مرجوعی باید قبل از پرداخت برای خریدار روشن باشد"
+          subtitle="شرایط تست و مرجوعی باید قبل از معامله مستقیم برای خریدار روشن باشد"
         >
           <div className="grid gap-3 md:grid-cols-3">
-            <SpecSelect
+            <SpecDiscreteRange
               label="گارانتی"
               value={specs.warrantyStatus}
+              lowLabel="بدون گارانتی"
+              highLabel="رسمی/شرکتی"
               onChange={(value) => onChange("warrantyStatus", value)}
               options={[
-                ["manufacturer", "رسمی/شرکتی"],
-                ["seller", "گارانتی فروشنده"],
-                ["test", "مهلت تست"],
                 ["none", "بدون گارانتی"],
+                ["test", "مهلت تست"],
+                ["seller", "گارانتی فروشنده"],
+                ["manufacturer", "رسمی/شرکتی"],
               ]}
             />
-            <SpecInput
+            <SpecRangeInput
               label="مدت گارانتی/تست"
-              value={specs.warrantyMonths}
-              onChange={(value) =>
-                onChange("warrantyMonths", value.replace(/\D/g, "").slice(0, 3))
-              }
-              placeholder="3"
+              value={numericFromText(specs.warrantyMonths, 1)}
+              min={0}
+              max={36}
+              step={1}
+              unit="ماه"
+              onChange={(value) => onChange("warrantyMonths", String(value))}
             />
-            <SpecInput
-              label="مهلت تست/مرجوعی (روز)"
-              value={specs.testDeadlineDays}
-              onChange={(value) =>
-                onChange(
-                  "testDeadlineDays",
-                  value.replace(/\D/g, "").slice(0, 3),
-                )
-              }
-              placeholder="7"
+            <SpecRangeInput
+              label="مهلت تست/مرجوعی"
+              value={numericFromText(specs.testDeadlineDays, 7)}
+              min={0}
+              max={30}
+              step={1}
+              unit="روز"
+              onChange={(value) => onChange("testDeadlineDays", String(value))}
             />
           </div>
           <label className="block text-xs font-bold text-gray-700">
@@ -976,6 +1033,155 @@ function SpecChipGroup({
             type="button"
             onClick={() => onChange(id)}
             className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${value === id ? "border-[#00a8e8] bg-blue-50 text-[#003b5c]" : "border-gray-200 bg-gray-50 text-gray-600 hover:border-[#00a8e8]/50"}`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SpecRangeInput({
+  label,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  helper,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  helper?: string;
+  onChange: (value: number) => void;
+}) {
+  const safeValue = Math.max(min, Math.min(max, Number.isFinite(value) ? value : min));
+  return (
+    <div className="rounded-2xl bg-white p-3">
+      <div className="mb-2 flex items-center justify-between gap-3 text-xs font-bold text-gray-700">
+        <span>{label}</span>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-[#003b5c]" dir="ltr">
+          {safeValue.toLocaleString("fa-IR")} {unit}
+        </span>
+      </div>
+      <div className="flex items-center gap-3 text-[11px] text-gray-500" dir="ltr">
+        <span>{min}</span>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={safeValue}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="w-full accent-[#00a8e8]"
+        />
+        <span>{max}</span>
+      </div>
+      {helper && <p className="mt-2 text-[11px] leading-5 text-gray-500">{helper}</p>}
+    </div>
+  );
+}
+
+function SpecPercentRange({
+  label,
+  value,
+  helper,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  helper?: string;
+  onChange: (value: number) => void;
+}) {
+  const safeValue = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+  return (
+    <div className="rounded-2xl bg-white p-3">
+      <div className="mb-2 flex items-center justify-between gap-3 text-xs font-bold text-gray-700">
+        <span>{label}</span>
+        <span className="rounded-full bg-green-50 px-3 py-1 text-[#0b9c56]" dir="ltr">
+          {safeValue.toLocaleString("fa-IR")}٪
+        </span>
+      </div>
+      <div className="flex items-center gap-3 text-[11px] text-gray-500" dir="ltr">
+        <span>0%</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={safeValue}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="w-full accent-[#0b9c56]"
+        />
+        <span>100%</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+        <div
+          className="h-full rounded-full bg-gradient-to-l from-[#0b9c56] to-[#00a8e8]"
+          style={{ width: `${safeValue}%` }}
+        />
+      </div>
+      {helper && <p className="mt-2 text-[11px] leading-5 text-gray-500">{helper}</p>}
+    </div>
+  );
+}
+
+function SpecDiscreteRange({
+  label,
+  value,
+  lowLabel,
+  highLabel,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  lowLabel: string;
+  highLabel: string;
+  options: readonly (readonly [string, string])[];
+  onChange: (value: string) => void;
+}) {
+  const foundIndex = options.findIndex(([id]) => id === value);
+  const sliderIndex = foundIndex >= 0 ? foundIndex : Math.floor((options.length - 1) / 2);
+  const currentLabel = options[sliderIndex]?.[1] || "نامشخص";
+  return (
+    <div className="rounded-2xl bg-white p-3">
+      <div className="mb-2 flex items-center justify-between gap-3 text-xs font-bold text-gray-700">
+        <span>{label}</span>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-[#003b5c]">
+          {currentLabel}
+        </span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max={options.length - 1}
+        step="1"
+        value={sliderIndex}
+        onChange={(event) => onChange(options[Number(event.target.value)][0])}
+        className="w-full accent-[#00a8e8]"
+      />
+      <div className="mt-2 flex justify-between text-[11px] text-gray-500">
+        <span>{lowLabel}</span>
+        <span>{highLabel}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {options.map(([id, text], index) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+              sliderIndex === index
+                ? "border-[#00a8e8] bg-blue-50 text-[#003b5c]"
+                : "border-gray-200 bg-gray-50 text-gray-600 hover:border-[#00a8e8]/50"
+            }`}
           >
             {text}
           </button>

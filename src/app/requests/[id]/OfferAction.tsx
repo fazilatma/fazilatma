@@ -124,12 +124,38 @@ export default function OfferAction({
                     <span>
                       کانفیگ:{" "}
                       <b>
-                        {productSpecs?.cpu || "—"} · {productSpecs?.ram || "—"}{" "}
-                        · {productSpecs?.storage || "—"}
+                        {productSpecs?.cpu || "—"} ·{" "}
+                        {productSpecs?.cpuCores ? `${productSpecs.cpuCores} هسته · ` : ""}
+                        {productSpecs?.ram || "—"} · {productSpecs?.storage || "—"}
+                      </b>
+                    </span>
+                    <span>
+                      نمایشگر:{" "}
+                      <b>
+                        {productSpecs?.display ||
+                          [
+                            productSpecs?.displaySizeInch
+                              ? `${productSpecs.displaySizeInch} اینچ`
+                              : "",
+                            productSpecs?.refreshRateHz
+                              ? `${productSpecs.refreshRateHz}Hz`
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") ||
+                          "—"}
                       </b>
                     </span>
                     <span>
                       وضعیت: <b>{productSpecs?.productCondition || "—"}</b>
+                    </span>
+                    <span>
+                      سلامت قطعات:{" "}
+                      <b>
+                        {productSpecs?.partsHealthPercent
+                          ? `${productSpecs.partsHealthPercent}٪`
+                          : productSpecs?.partsHealth || "—"}
+                      </b>
                     </span>
                     <span>
                       مهلت تست:{" "}

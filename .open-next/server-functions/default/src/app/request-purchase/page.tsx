@@ -14,12 +14,6 @@ const conditionScale = [
   ["new", "کاملاً نو"],
 ] as const;
 
-const partsHealthScale = [
-  ["needs_repair", "نیازمند تعمیر"],
-  ["minor_issue", "ایراد جزئی"],
-  ["all_healthy", "همه قطعات سالم"],
-] as const;
-
 const appearanceScale = [
   ["C", "C - آسیب قابل مشاهده"],
   ["B", "B - خط‌وخش جزئی"],
@@ -66,6 +60,12 @@ const marketOptions = [
   ["unknown", "نامشخص"],
 ] as const;
 
+const healthLevelFromPercent = (value: number) => {
+  if (value >= 85) return "all_healthy";
+  if (value >= 55) return "minor_issue";
+  return "needs_repair";
+};
+
 export default function RequestPurchasePage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -80,13 +80,18 @@ export default function RequestPurchasePage() {
     valuationFactors: {
       productCondition: "used_good",
       sameNewProductPrice: "",
+      cpuCores: "8",
       ramGb: "16",
       storageGb: "512",
       displaySizeInch: "14",
+      refreshRateHz: "60",
+      weightKg: "1.4",
       manufactureYear: "",
       warrantyStatus: "test",
       warrantyMonths: "1",
       partsHealth: "all_healthy",
+      partsHealthPercent: "90",
+      bodyHealthPercent: "85",
       batteryHealthPercent: "85",
       appearanceGrade: "B",
       repairHistory: "none",
@@ -122,6 +127,17 @@ export default function RequestPurchasePage() {
     setFormData((current) => ({
       ...current,
       valuationFactors: { ...current.valuationFactors, [key]: value },
+    }));
+  };
+
+  const updatePartsHealthPercent = (value: number) => {
+    setFormData((current) => ({
+      ...current,
+      valuationFactors: {
+        ...current.valuationFactors,
+        partsHealthPercent: String(value),
+        partsHealth: healthLevelFromPercent(value),
+      },
     }));
   };
 
@@ -486,14 +502,12 @@ export default function RequestPurchasePage() {
             چگونه کار می‌کند؟
           </h3>
           <ol className="list-decimal list-inside space-y-2 text-blue-700 text-sm mr-4">
-            <li>درخواست خرید خود را با جزئیات ثبت می‌کنید</li>
-            <li>درخواست برای فروشندگان دسته‌بندی مرتبط ارسال می‌شود</li>
-            <li>فروشندگان پیشنهاد قیمت و زمان ارسال می‌دهند</li>
-            <li>شما بهترین پیشنهاد را انتخاب می‌کنید</li>
-            <li>پرداخت امن انجام می‌دهید (وجه نزد پلتفرم امانت می‌ماند)</li>
-            <li>
-              پس از تحویل کالا و تایید شما، پرداخت به فروشنده انجام می‌شود
-            </li>
+            <li>درخواست خرید خود را با جزئیات و مشخصات اسکرولی ثبت می‌کنید</li>
+            <li>درخواست برای فروشندگان دسته‌بندی مرتبط نمایش داده می‌شود</li>
+            <li>فروشندگان قیمت، مشخصات واقعی کالا و شرایط تحویل را پیشنهاد می‌دهند</li>
+            <li>شما پیشنهادها را مقایسه می‌کنید و با فروشنده مناسب مستقیم هماهنگ می‌شوید</li>
+            <li>OptiBid فقط بستر آگهی و ارتباط است و وجهی نزد سایت نگهداری نمی‌شود</li>
+            <li>پرداخت، تست، تحویل، مرجوعی و مسئولیت معامله بین خریدار و فروشنده است</li>
           </ol>
         </div>
 
@@ -630,23 +644,22 @@ export default function RequestPurchasePage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="mb-5 flex flex-col gap-2 border-b border-gray-100 pb-4">
               <h2 className="text-xl font-bold">
-                فرم اسکرولی مشخصات و ارزش‌گذاری لپ‌تاپ استوک
+                فرم اسکرولی مشخصات فنی؛ الهام‌گرفته از فیلتر تخصصی لپ‌تاپ
               </h2>
               <p className="text-sm leading-7 text-gray-500">
-                به جای انتخاب‌های خشک مثل «نامشخص / سالم / در حد نو»، مقدارهای
-                مهم را با اسلایدر بکشید و تنظیم کنید؛ سیستم خودش بر اساس
-                اسلایدرها وضعیت مناسب را ثبت می‌کند.
+                مثل نمونه‌ای که فرستادید، مشخصات در بخش‌های Body، Platform، Memory و Display
+                گروه‌بندی شده‌اند. به‌جای کشوی «نامشخص / سالم»، مقدار RAM، حافظه، وزن، نمایشگر،
+                سلامت قطعات و باتری را با اسلایدر واقعی بکشید و درصد/عدد دقیق ثبت کنید.
               </p>
               <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-xs font-bold text-gray-600">
                 {[
-                  "کانفیگ",
-                  "وضعیت",
-                  "سلامت",
-                  "باتری",
-                  "ظاهر",
-                  "گارانتی",
-                  "لوازم",
-                  "بازار",
+                  "Body / بدنه",
+                  "Platform / پردازنده",
+                  "Memory / حافظه",
+                  "Display / نمایشگر",
+                  "Health / سلامت",
+                  "Warranty / گارانتی",
+                  "Market / بازار",
                 ].map((item) => (
                   <span
                     key={item}
@@ -661,10 +674,22 @@ export default function RequestPurchasePage() {
             <div className="max-h-[680px] overflow-y-auto rounded-2xl border border-green-100 bg-white/70 p-4 pr-5">
               <div className="space-y-5">
                 <ScrollSpecSection
-                  title="۱. کانفیگ پایه لپ‌تاپ"
-                  subtitle="برای شروع بازار لپ‌تاپ استوک، رم، حافظه و نمایشگر را با اسلایدر مشخص کنید."
+                  title="۱. Platform + Memory + Display"
+                  subtitle="برای شروع بازار لپ‌تاپ استوک، پردازنده، رم، حافظه و نمایشگر را مثل فیلتر تخصصی با اسلایدر مشخص کنید."
                 >
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <RangeNumberInput
+                      label="حداقل هسته CPU"
+                      value={Number(formData.valuationFactors.cpuCores || 8)}
+                      min={2}
+                      max={24}
+                      step={2}
+                      unit="هسته"
+                      helper="برای مدل‌های Core i5/i7 یا Ryzen معمولاً ۶ تا ۱۴ هسته رایج است"
+                      onChange={(value) =>
+                        updateValuationFactor("cpuCores", String(value))
+                      }
+                    />
                     <RangeNumberInput
                       label="مقدار RAM"
                       value={Number(formData.valuationFactors.ramGb || 16)}
@@ -701,6 +726,30 @@ export default function RequestPurchasePage() {
                       helper="اندازه تقریبی نمایشگر موردنیاز"
                       onChange={(value) =>
                         updateValuationFactor("displaySizeInch", String(value))
+                      }
+                    />
+                    <RangeNumberInput
+                      label="نرخ نوسازی نمایشگر"
+                      value={Number(formData.valuationFactors.refreshRateHz || 60)}
+                      min={60}
+                      max={240}
+                      step={15}
+                      unit="Hz"
+                      helper="برای کار اداری ۶۰Hz کافی است؛ برای گیمینگ مقدار بالاتر را بکشید"
+                      onChange={(value) =>
+                        updateValuationFactor("refreshRateHz", String(value))
+                      }
+                    />
+                    <RangeNumberInput
+                      label="وزن تقریبی قابل قبول"
+                      value={Number(formData.valuationFactors.weightKg || 1.4)}
+                      min={0.8}
+                      max={4}
+                      step={0.1}
+                      unit="kg"
+                      helper="اگر وزن مهم نیست، روی مقدار پیش‌فرض بماند"
+                      onChange={(value) =>
+                        updateValuationFactor("weightKg", String(value))
                       }
                     />
                   </div>
@@ -765,30 +814,40 @@ export default function RequestPurchasePage() {
                 </ScrollSpecSection>
 
                 <ScrollSpecSection
-                  title="۳. سلامت قطعات و باتری"
-                  subtitle="سلامت قطعات و باتری را با اسلایدر درصدی مشخص کنید."
+                  title="۳. Health / سلامت قطعات و باتری"
+                  subtitle="اینجا دیگر گزینه‌های نامشخص/سالم نداریم؛ سلامت قطعات و باتری را دقیقاً درصدی بکشید."
                 >
-                  <DiscreteRangeInput
-                    label="سلامت قطعات اصلی"
-                    value={formData.valuationFactors.partsHealth}
-                    options={partsHealthScale}
-                    lowLabel="نیازمند تعمیر"
-                    highLabel="همه قطعات سالم"
-                    onChange={(value) =>
-                      updateValuationFactor("partsHealth", value)
-                    }
-                  />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <PercentRangeInput
+                      label="سلامت قطعات اصلی"
+                      value={Number(
+                        formData.valuationFactors.partsHealthPercent || 90,
+                      )}
+                      helper="مثلاً اگر فقط یک ایراد جزئی وجود دارد ۷۰ تا ۸۵٪ و اگر همه چیز سالم است بالای ۹۰٪ بگذارید."
+                      onChange={updatePartsHealthPercent}
+                    />
+                    <PercentRangeInput
+                      label="سلامت باتری"
+                      value={Number(
+                        formData.valuationFactors.batteryHealthPercent || 85,
+                      )}
+                      helper="برای لپ‌تاپ استوک، بهتر است عدد واقعی Battery Report یا تست فروشنده ثبت شود."
+                      onChange={(value) =>
+                        updateValuationFactor(
+                          "batteryHealthPercent",
+                          String(value),
+                        )
+                      }
+                    />
+                  </div>
                   <PercentRangeInput
-                    label="سلامت باتری"
+                    label="سلامت بدنه، لولا و درگاه‌ها"
                     value={Number(
-                      formData.valuationFactors.batteryHealthPercent || 85,
+                      formData.valuationFactors.bodyHealthPercent || 85,
                     )}
-                    helper="برای لپ‌تاپ استوک، بهتر است عدد واقعی Battery Report یا تست فروشنده ثبت شود."
+                    helper="این اسلایدر جایگزین گزینه‌های کلی مثل «بدنه سالم/نامشخص» است و درصد وضعیت ظاهری/فیزیکی را ثبت می‌کند."
                     onChange={(value) =>
-                      updateValuationFactor(
-                        "batteryHealthPercent",
-                        String(value),
-                      )
+                      updateValuationFactor("bodyHealthPercent", String(value))
                     }
                   />
                   <DiscreteRangeInput
@@ -804,8 +863,8 @@ export default function RequestPurchasePage() {
                 </ScrollSpecSection>
 
                 <ScrollSpecSection
-                  title="۴. ظاهر، کارکرد و لوازم"
-                  subtitle="ظاهر و میزان کارکرد روی قیمت لپ‌تاپ استوک اثر مستقیم دارد."
+                  title="۴. Body / ظاهر، کارکرد و لوازم"
+                  subtitle="مثل فیلتر نمونه، بدنه، ظاهر، کارکرد و لوازم را جدا از سلامت داخلی تنظیم کنید."
                 >
                   <DiscreteRangeInput
                     label="گرید ظاهری"
@@ -1057,7 +1116,7 @@ export default function RequestPurchasePage() {
             )}
           </div>
 
-          {/* Security Info */}
+          {/* Direct marketplace notice */}
           <div className="bg-green-50 border border-green-200 rounded-xl p-6">
             <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
               <svg
@@ -1073,12 +1132,11 @@ export default function RequestPurchasePage() {
                   d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 />
               </svg>
-              پرداخت امن با سیستم امانت‌داری
+              بستر آگهی و ارتباط مستقیم؛ بدون نگهداری وجه
             </h3>
-            <p className="text-green-700 text-sm">
-              پس از انتخاب پیشنهاد فروشنده، مبلغ پرداختی شما نزد پلتفرم امانت
-              می‌ماند. پس از تحویل کالا و تایید نهایی شما، وجه (با کسر کمیسیون
-              پلتفرم) به فروشنده واریز می‌شود.
+            <p className="text-green-700 text-sm leading-7">
+              OptiBid فقط درخواست خرید و پیشنهاد فروشنده را به هم وصل می‌کند. پرداخت، تحویل،
+              تست، مرجوعی و مسئولیت معامله مستقیماً بین خریدار و فروشنده انجام می‌شود و وجهی نزد سایت نگهداری نمی‌شود.
             </p>
           </div>
 

@@ -139,15 +139,21 @@ export type OfferProductSpecs = {
   exactModel: string;
   serialOrConfig: string;
   cpu: string;
+  cpuCores: string;
   ram: string;
   storage: string;
   gpu: string;
   display: string;
+  displaySizeInch: string;
+  refreshRateHz: string;
+  weightKg: string;
   manufactureYear: string;
   productCondition: string;
   warrantyStatus: string;
   warrantyMonths: string;
   partsHealth: string;
+  partsHealthPercent: string;
+  bodyHealthPercent: string;
   cpuHealth: string;
   motherboardHealth: string;
   displayHealth: string;
@@ -1857,15 +1863,21 @@ const offerSpecLabels: Record<keyof OfferProductSpecs, string> = {
   exactModel: "مدل دقیق",
   serialOrConfig: "کد مدل/کانفیگ",
   cpu: "پردازنده",
+  cpuCores: "تعداد هسته CPU",
   ram: "رم",
   storage: "حافظه ذخیره‌سازی",
   gpu: "کارت گرافیک",
   display: "نمایشگر",
+  displaySizeInch: "اندازه نمایشگر",
+  refreshRateHz: "نرخ نوسازی",
+  weightKg: "وزن تقریبی",
   manufactureYear: "سال ساخت",
   productCondition: "وضعیت کالا",
   warrantyStatus: "وضعیت گارانتی",
   warrantyMonths: "مدت گارانتی",
   partsHealth: "سلامت کلی قطعات",
+  partsHealthPercent: "درصد سلامت قطعات",
+  bodyHealthPercent: "درصد سلامت بدنه/لولا",
   cpuHealth: "سلامت CPU",
   motherboardHealth: "سلامت مادربرد",
   displayHealth: "سلامت نمایشگر",
@@ -1900,15 +1912,29 @@ function normalizeOfferProductSpecs(
     exactModel: text("exactModel"),
     serialOrConfig: text("serialOrConfig"),
     cpu: text("cpu"),
+    cpuCores: text("cpuCores", 2).replace(/\D/g, "").slice(0, 2),
     ram: text("ram"),
     storage: text("storage"),
     gpu: text("gpu"),
     display: text("display"),
+    displaySizeInch: text("displaySizeInch", 4)
+      .replace(/[^\d.]/g, "")
+      .slice(0, 4),
+    refreshRateHz: text("refreshRateHz", 3).replace(/\D/g, "").slice(0, 3),
+    weightKg: text("weightKg", 4)
+      .replace(/[^\d.]/g, "")
+      .slice(0, 4),
     manufactureYear: text("manufactureYear", 4).replace(/\D/g, "").slice(0, 4),
     productCondition: text("productCondition"),
     warrantyStatus: text("warrantyStatus"),
     warrantyMonths: text("warrantyMonths", 3).replace(/\D/g, "").slice(0, 3),
     partsHealth: text("partsHealth"),
+    partsHealthPercent: text("partsHealthPercent", 3)
+      .replace(/\D/g, "")
+      .slice(0, 3),
+    bodyHealthPercent: text("bodyHealthPercent", 3)
+      .replace(/\D/g, "")
+      .slice(0, 3),
     cpuHealth: text("cpuHealth"),
     motherboardHealth: text("motherboardHealth"),
     displayHealth: text("displayHealth"),

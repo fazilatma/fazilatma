@@ -311,8 +311,28 @@ export default async function RequestDetailPage({
                                     کانفیگ:{" "}
                                     <b>
                                       {offer.productSpecs.cpu} ·{" "}
+                                      {offer.productSpecs.cpuCores
+                                        ? `${offer.productSpecs.cpuCores} هسته · `
+                                        : ""}
                                       {offer.productSpecs.ram} ·{" "}
                                       {offer.productSpecs.storage}
+                                    </b>
+                                  </span>
+                                  <span>
+                                    نمایشگر:{" "}
+                                    <b>
+                                      {offer.productSpecs.display ||
+                                        [
+                                          offer.productSpecs.displaySizeInch
+                                            ? `${offer.productSpecs.displaySizeInch} اینچ`
+                                            : "",
+                                          offer.productSpecs.refreshRateHz
+                                            ? `${offer.productSpecs.refreshRateHz}Hz`
+                                            : "",
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" · ") ||
+                                        "—"}
                                     </b>
                                   </span>
                                   <span>
@@ -329,7 +349,11 @@ export default async function RequestDetailPage({
                                   </span>
                                   <span>
                                     سلامت کلی:{" "}
-                                    <b>{offer.productSpecs.partsHealth}</b>
+                                    <b>
+                                      {offer.productSpecs.partsHealthPercent
+                                        ? `${offer.productSpecs.partsHealthPercent}٪`
+                                        : offer.productSpecs.partsHealth}
+                                    </b>
                                   </span>
                                 </div>
                                 <p className="mt-2 leading-6">

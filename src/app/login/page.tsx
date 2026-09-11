@@ -276,7 +276,7 @@ export default function LoginPage() {
         {/* Benefits */}
         <div className="mt-8 text-center text-green-100 text-sm">
           <p>✓ دسترسی به درخواست‌های خرید و پیشنهادهای واقعی</p>
-          <p>✓ پرداخت امن و تضمین شده</p>
+          <p>✓ ارتباط مستقیم خریدار و فروشنده، بدون نگهداری وجه نزد سایت</p>
           <p>✓ پشتیبانی ۲۴ ساعته</p>
         </div>
       </div>

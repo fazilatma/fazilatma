@@ -11,13 +11,18 @@ export type ProductCondition =
 export type ProductValuationFactors = {
   productCondition: ProductCondition;
   sameNewProductPrice: string; // قیمت مرجع بازار/ترب یا قیمت نوی همان کالا
+  cpuCores: string;
   ramGb: string;
   storageGb: string;
   displaySizeInch: string;
+  refreshRateHz: string;
+  weightKg: string;
   manufactureYear: string;
   warrantyStatus: "manufacturer" | "seller" | "test" | "none" | "unknown";
   warrantyMonths: string;
   partsHealth: "all_healthy" | "minor_issue" | "needs_repair" | "unknown";
+  partsHealthPercent: string;
+  bodyHealthPercent: string;
   batteryHealthPercent: string;
   appearanceGrade: "A" | "B" | "C" | "unknown";
   repairHistory: "none" | "minor" | "major" | "unknown";
@@ -48,13 +53,18 @@ export type AiPriceEstimate = {
 const defaultFactors: ProductValuationFactors = {
   productCondition: "unknown",
   sameNewProductPrice: "",
+  cpuCores: "",
   ramGb: "",
   storageGb: "",
   displaySizeInch: "",
+  refreshRateHz: "",
+  weightKg: "",
   manufactureYear: "",
   warrantyStatus: "unknown",
   warrantyMonths: "",
   partsHealth: "unknown",
+  partsHealthPercent: "",
+  bodyHealthPercent: "",
   batteryHealthPercent: "",
   appearanceGrade: "unknown",
   repairHistory: "unknown",
@@ -102,6 +112,9 @@ export function normalizeProductValuationFactors(
       "unknown",
     ),
     sameNewProductPrice: String(source.sameNewProductPrice || "").trim(),
+    cpuCores: String((source as { cpuCores?: unknown }).cpuCores || "")
+      .replace(/\D/g, "")
+      .slice(0, 2),
     ramGb: String((source as { ramGb?: unknown }).ramGb || "")
       .replace(/\D/g, "")
       .slice(0, 3),
@@ -111,6 +124,14 @@ export function normalizeProductValuationFactors(
     displaySizeInch: String(
       (source as { displaySizeInch?: unknown }).displaySizeInch || "",
     )
+      .replace(/[^\d.]/g, "")
+      .slice(0, 4),
+    refreshRateHz: String(
+      (source as { refreshRateHz?: unknown }).refreshRateHz || "",
+    )
+      .replace(/\D/g, "")
+      .slice(0, 3),
+    weightKg: String((source as { weightKg?: unknown }).weightKg || "")
       .replace(/[^\d.]/g, "")
       .slice(0, 4),
     manufactureYear: String(source.manufactureYear || "")
@@ -129,6 +150,16 @@ export function normalizeProductValuationFactors(
       ["all_healthy", "minor_issue", "needs_repair", "unknown"] as const,
       "unknown",
     ),
+    partsHealthPercent: String(
+      (source as { partsHealthPercent?: unknown }).partsHealthPercent || "",
+    )
+      .replace(/\D/g, "")
+      .slice(0, 3),
+    bodyHealthPercent: String(
+      (source as { bodyHealthPercent?: unknown }).bodyHealthPercent || "",
+    )
+      .replace(/\D/g, "")
+      .slice(0, 3),
     batteryHealthPercent: String(source.batteryHealthPercent || "")
       .replace(/\D/g, "")
       .slice(0, 3),
@@ -251,6 +282,10 @@ export function estimateFairUsedProductPrice(input: {
   if (factors.productCondition === "unknown") unknowns += 1;
   else
     factorNotes.push(`وضعیت کالا: ${conditionLabel(factors.productCondition)}`);
+  if (factors.cpuCores)
+    factorNotes.push(
+      `حداقل هسته پردازنده: ${Number(factors.cpuCores).toLocaleString("fa-IR")} هسته`,
+    );
   if (factors.ramGb)
     factorNotes.push(
       `رم موردنیاز/اعلامی: ${Number(factors.ramGb).toLocaleString("fa-IR")} گیگابایت`,
@@ -261,6 +296,12 @@ export function estimateFairUsedProductPrice(input: {
     );
   if (factors.displaySizeInch)
     factorNotes.push(`اندازه نمایشگر حدود ${factors.displaySizeInch} اینچ`);
+  if (factors.refreshRateHz)
+    factorNotes.push(
+      `نرخ نوسازی نمایشگر: ${Number(factors.refreshRateHz).toLocaleString("fa-IR")} هرتز`,
+    );
+  if (factors.weightKg)
+    factorNotes.push(`وزن تقریبی موردنظر: ${factors.weightKg} کیلوگرم`);
 
   const ageRate = digitalProduct
     ? marketReferenceUnitPrice
@@ -308,7 +349,20 @@ export function estimateFairUsedProductPrice(input: {
   if (warrantyMonths > 0)
     depreciation -= clamp(warrantyMonths * 0.003, 0, 0.08);
 
-  if (factors.partsHealth === "all_healthy") {
+  const partsHealthPercent = clamp(
+    Number(factors.partsHealthPercent || 0),
+    0,
+    100,
+  );
+  if (partsHealthPercent > 0) {
+    if (partsHealthPercent >= 90) depreciation -= 0.015;
+    else if (partsHealthPercent >= 75)
+      depreciation += marketReferenceUnitPrice && digitalProduct ? 0.025 : 0.035;
+    else if (partsHealthPercent >= 50)
+      depreciation += marketReferenceUnitPrice && digitalProduct ? 0.08 : 0.1;
+    else depreciation += 0.25;
+    factorNotes.push(`سلامت قطعات اصلی ${partsHealthPercent}٪ در تخمین لحاظ شد`);
+  } else if (factors.partsHealth === "all_healthy") {
     factorNotes.push("سلامت کامل قطعات امتیاز مثبت دارد");
   } else if (factors.partsHealth === "minor_issue") {
     depreciation += marketReferenceUnitPrice && digitalProduct ? 0.06 : 0.08;
@@ -319,6 +373,14 @@ export function estimateFairUsedProductPrice(input: {
   } else {
     depreciation += 0.05;
     unknowns += 1;
+  }
+
+  const bodyHealthPercent = clamp(Number(factors.bodyHealthPercent || 0), 0, 100);
+  if (bodyHealthPercent > 0) {
+    if (bodyHealthPercent < 50) depreciation += 0.12;
+    else if (bodyHealthPercent < 75) depreciation += 0.06;
+    else if (bodyHealthPercent >= 92) depreciation -= 0.01;
+    factorNotes.push(`سلامت بدنه و لولا ${bodyHealthPercent}٪ ثبت شد`);
   }
 
   const battery = Number(factors.batteryHealthPercent || 0);
@@ -357,6 +419,7 @@ export function estimateFairUsedProductPrice(input: {
   const hasSevereIssue =
     factors.productCondition === "for_parts" ||
     factors.partsHealth === "needs_repair" ||
+    (partsHealthPercent > 0 && partsHealthPercent < 50) ||
     factors.repairHistory === "major" ||
     factors.appearanceGrade === "C";
   if (marketReferenceUnitPrice && digitalProduct && !hasSevereIssue) {
