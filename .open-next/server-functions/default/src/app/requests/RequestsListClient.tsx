@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
+import { ProductHeroImage, ProductImageStrip } from "@/components/ProductImages";
 import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
@@ -35,6 +35,38 @@ interface RequestItem {
   deadline: string;
   sellerOffers: SellerOfferSummary[];
   productImages?: ProductImageAttachment[];
+  valuationFactors?: {
+    cpuCores?: string;
+    ramGb?: string;
+    storageGb?: string;
+    displaySizeInch?: string;
+    refreshRateHz?: string;
+    weightKg?: string;
+    batteryHealthPercent?: string;
+    partsHealthPercent?: string;
+    bodyHealthPercent?: string;
+  };
+}
+
+function requestSpecBadges(request: RequestItem) {
+  const factors = request.valuationFactors || {};
+  const badges = [
+    factors.cpuCores ? `${Number(factors.cpuCores).toLocaleString("fa-IR")} هسته CPU` : "",
+    factors.ramGb ? `RAM ${Number(factors.ramGb).toLocaleString("fa-IR")}GB` : "",
+    factors.storageGb ? `${Number(factors.storageGb).toLocaleString("fa-IR")}GB SSD/HDD` : "",
+    factors.displaySizeInch ? `${factors.displaySizeInch} اینچ` : "",
+    factors.refreshRateHz ? `${Number(factors.refreshRateHz).toLocaleString("fa-IR")}Hz` : "",
+    factors.batteryHealthPercent ? `باتری ${Number(factors.batteryHealthPercent).toLocaleString("fa-IR")}٪` : "",
+    request.quantity ? `تعداد ${Number(request.quantity).toLocaleString("fa-IR")}` : "",
+  ].filter(Boolean);
+
+  if (badges.length > 0) return badges.slice(0, 6);
+  return request.description
+    .replace(/\s+/g, " ")
+    .split(/[،,.]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4);
 }
 
 export default function RequestsListClient({
@@ -294,10 +326,10 @@ export default function RequestsListClient({
             </div>
 
             {/* Requests */}
-            <div className="space-y-4">
+            <div>
               {filteredRequests.length === 0 ? (
-                <div className="bg-white rounded-xl p-10 text-center border border-gray-200">
-                  <p className="text-gray-500 font-bold mb-2">
+                <div className="rounded-3xl border border-gray-200 bg-white p-10 text-center">
+                  <p className="mb-2 font-bold text-gray-500">
                     هیچ درخواستی با این فیلترها یافت نشد.
                   </p>
                   <button
@@ -305,154 +337,129 @@ export default function RequestsListClient({
                       setSelectedCategory("همه دسته‌بندی‌ها");
                       setSearchQuery("");
                     }}
-                    className="text-green-600 hover:underline text-sm"
+                    className="text-sm text-green-600 hover:underline"
                   >
                     حذف فیلترها و مشاهده همه
                   </button>
                 </div>
               ) : (
-                filteredRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 card-hover block"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-blue-50 text-[#00a8e8] border border-[#00a8e8]/30 px-3 py-1 rounded-full text-sm font-bold">
-                          {request.category}
-                        </span>
-                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold">
-                          تعداد: {request.quantity}
-                        </span>
-                      </div>
-                      <span className="text-gray-400 text-sm font-bold">
-                        {request.timeAgo}
-                      </span>
-                    </div>
-
-                    <div className="mb-3 flex items-center gap-3">
-                      <ProductThumb
-                        images={request.productImages}
-                        title={String(request.title)}
-                        className="h-20 w-20"
-                      />
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-xl text-gray-800">
-                          {request.title}
-                        </h3>
-                        {request.productImages?.length ? (
-                          <p className="mt-1 text-xs text-gray-500">
-                            {request.productImages.length.toLocaleString(
-                              "fa-IR",
-                            )}{" "}
-                            عکس محصول خریدار
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      {request.description}
-                    </p>
-
-                    <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        مهلت: {request.deadline}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-4">
-                        <span className="font-bold text-xl md:text-2xl text-green-600">
-                          {request.budget}
-                        </span>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                          <div className="flex items-center gap-2 rounded-xl bg-white px-2 py-1">
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {filteredRequests.map((request) => {
+                    const specBadges = requestSpecBadges(request);
+                    const buyerName = request.buyerUser?.fullName || request.buyer;
+                    return (
+                      <article
+                        key={request.id}
+                        className="group flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl"
+                      >
+                        <div className="flex items-center justify-between gap-3 p-4 pb-3">
+                          <div className="flex min-w-0 items-center gap-2">
                             <UserAvatar
                               user={request.buyerUser}
-                              label={request.buyer}
+                              label={buyerName}
                               className="h-9 w-9"
                               rounded="rounded-full"
                             />
-                            <span>
-                              خریدار:{" "}
-                              <b className="text-gray-800">{request.buyer}</b>
-                            </span>
-                            <span className="flex items-center gap-1 text-yellow-500 font-bold mr-1">
-                              ★ {request.buyerRating}
-                            </span>
-                          </div>
-                          {request.latestSeller && (
-                            <div className="flex items-center gap-2 rounded-xl bg-white px-2 py-1">
-                              <UserAvatar
-                                user={request.latestSeller}
-                                className="h-9 w-9"
-                                rounded="rounded-full"
-                              />
-                              <span>
-                                فروشنده پیشنهاددهنده:{" "}
-                                <b className="text-gray-800">
-                                  {request.latestSeller.fullName}
-                                </b>
-                              </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-[11px] text-gray-500">
+                                شخص/شرکت درخواست‌دهنده
+                              </p>
+                              <b className="block truncate text-sm text-gray-900">
+                                {buyerName}
+                              </b>
                             </div>
-                          )}
+                          </div>
+                          <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-[#00a8e8]">
+                            {request.category}
+                          </span>
                         </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-gray-500 text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-lg">
-                          {request.offers} پیشنهاد
-                        </span>
-                        {userRole === "seller" ? (
-                          <Link
-                            href={`/requests/${request.id}/offer`}
-                            className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-sm font-bold text-[#00a8e8] hover:bg-blue-100 transition"
-                          >
-                            مشخصات کالای پیشنهادی
-                          </Link>
-                        ) : userRole === "buyer" &&
-                          request.buyerUser?.id !== userId ? (
-                          <button
-                            type="button"
-                            disabled={switchingRequestId === request.id}
-                            onClick={() => switchToSellerMode(request)}
-                            className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
-                          >
-                            {switchingRequestId === request.id
-                              ? "در حال تغییر حالت..."
-                              : "ورود به حالت فروشنده و ثبت پیشنهاد"}
-                          </button>
-                        ) : request.offers > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => setSpecsRequest(request)}
-                            className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-sm font-bold text-[#00a8e8] hover:bg-blue-100 transition"
-                          >
-                            مشخصات کامل محصول پیشنهادی
-                          </button>
-                        ) : null}
-                        <Link
-                          href={`/requests/${request.id}`}
-                          className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-green-700 transition"
-                        >
-                          مشاهده درخواست
+
+                        <Link href={`/requests/${request.id}`} className="block px-4">
+                          <ProductHeroImage
+                            images={request.productImages}
+                            title={String(request.title)}
+                            category={request.category}
+                            className="h-52 rounded-2xl"
+                          />
                         </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))
+
+                        <div className="flex flex-1 flex-col p-4">
+                          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-gray-400">
+                            <span>{request.timeAgo}</span>
+                            <span>{request.offers.toLocaleString("fa-IR")} پیشنهاد</span>
+                          </div>
+                          <Link href={`/requests/${request.id}`}>
+                            <h3 className="line-clamp-2 min-h-14 text-lg font-extrabold leading-7 text-gray-900 transition group-hover:text-[#003b5c]">
+                              {request.title}
+                            </h3>
+                          </Link>
+                          <p className="mt-2 line-clamp-2 text-sm leading-7 text-gray-500">
+                            {request.description}
+                          </p>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {specBadges.map((badge) => (
+                              <span
+                                key={badge}
+                                className="rounded-full bg-gray-50 px-3 py-1 text-[11px] font-bold text-gray-600"
+                              >
+                                {badge}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="mt-5 grid gap-2 rounded-2xl bg-gray-50 p-3 text-xs text-gray-500">
+                            <div className="flex items-center justify-between">
+                              <span>بودجه خریدار</span>
+                              <b className="text-base text-[#0b9c56]">{request.budget}</b>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>مهلت</span>
+                              <b className="text-gray-800">{request.deadline}</b>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto flex flex-col gap-2 border-t border-gray-100 pt-4">
+                            {userRole === "seller" ? (
+                              <Link
+                                href={`/requests/${request.id}/offer`}
+                                className="rounded-xl border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-center text-sm font-bold text-[#00a8e8] transition hover:bg-blue-100"
+                              >
+                                ثبت پیشنهاد قیمت و مشخصات کالا
+                              </Link>
+                            ) : userRole === "buyer" &&
+                              request.buyerUser?.id !== userId ? (
+                              <button
+                                type="button"
+                                disabled={switchingRequestId === request.id}
+                                onClick={() => switchToSellerMode(request)}
+                                className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+                              >
+                                {switchingRequestId === request.id
+                                  ? "در حال تغییر حالت..."
+                                  : "ورود به حالت فروشنده و ثبت پیشنهاد"}
+                              </button>
+                            ) : request.offers > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => setSpecsRequest(request)}
+                                className="rounded-xl border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-sm font-bold text-[#00a8e8] transition hover:bg-blue-100"
+                              >
+                                مشخصات کامل محصول پیشنهادی
+                              </button>
+                            ) : null}
+                            <Link
+                              href={`/requests/${request.id}`}
+                              className="rounded-xl bg-green-600 px-6 py-2.5 text-center font-bold text-white transition hover:bg-green-700"
+                            >
+                              مشاهده آگهی درخواست
+                            </Link>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

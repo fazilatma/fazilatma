@@ -21,6 +21,7 @@ export default async function RequestsPage() {
     deadline: string;
     sellerOffers: any[];
     productImages?: ProductImageAttachment[];
+    valuationFactors?: any;
   }> = [];
 
   try {
@@ -70,6 +71,7 @@ export default async function RequestsPage() {
           request.deadline === "flexible" ? "انعطاف‌پذیر" : request.deadline,
         sellerOffers,
         productImages: request.productImages || [],
+        valuationFactors: request.valuationFactors,
       };
     });
   } catch (error) {

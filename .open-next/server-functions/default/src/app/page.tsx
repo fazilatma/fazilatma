@@ -1,6 +1,6 @@
 import Link from "next/link";
 import SellerStars from "@/components/SellerStars";
-import { ProductThumb } from "@/components/ProductImages";
+import { ProductHeroImage } from "@/components/ProductImages";
 import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 import {
@@ -25,6 +25,37 @@ const sampleCategories = [
   { id: 8, nameFa: "خودرو و موتور", icon: "🚗", count: 0 },
 ];
 
+function requestSpecBadges(request: {
+  quantity?: number;
+  description?: string;
+  valuationFactors?: {
+    cpuCores?: string;
+    ramGb?: string;
+    storageGb?: string;
+    displaySizeInch?: string;
+    batteryHealthPercent?: string;
+    partsHealthPercent?: string;
+  };
+}) {
+  const factors = request.valuationFactors || {};
+  const badges = [
+    factors.cpuCores ? `${Number(factors.cpuCores).toLocaleString("fa-IR")} هسته CPU` : "",
+    factors.ramGb ? `RAM ${Number(factors.ramGb).toLocaleString("fa-IR")}GB` : "",
+    factors.storageGb ? `${Number(factors.storageGb).toLocaleString("fa-IR")}GB SSD/HDD` : "",
+    factors.displaySizeInch ? `${factors.displaySizeInch} اینچ` : "",
+    factors.batteryHealthPercent ? `باتری ${Number(factors.batteryHealthPercent).toLocaleString("fa-IR")}٪` : "",
+    request.quantity ? `تعداد ${Number(request.quantity).toLocaleString("fa-IR")}` : "",
+  ].filter(Boolean);
+
+  if (badges.length > 0) return badges.slice(0, 5);
+  return String(request.description || "")
+    .replace(/\s+/g, " ")
+    .split(/[،,.]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 export default async function HomePage() {
   let displayRequests: Array<{
     id: number;
@@ -34,7 +65,16 @@ export default async function HomePage() {
     category: string;
     timeAgo: string;
     offers: number;
+    quantity: number;
     productImages?: ProductImageAttachment[];
+    valuationFactors?: {
+      cpuCores?: string;
+      ramGb?: string;
+      storageGb?: string;
+      displaySizeInch?: string;
+      batteryHealthPercent?: string;
+      partsHealthPercent?: string;
+    };
     buyer?: { id: number; fullName: string; avatarName?: string };
     latestSeller?: { id: number; fullName: string; avatarName?: string };
   }> = [];
@@ -89,7 +129,9 @@ export default async function HomePage() {
         category: request.category || "سایر",
         timeAgo: "جدید",
         offers: request.offersCount,
+        quantity: request.quantity,
         productImages: request.productImages || [],
+        valuationFactors: request.valuationFactors,
         buyer: publicUsers.get(request.buyerId),
         latestSeller: latestOffer
           ? publicUsers.get(latestOffer.sellerId)
@@ -230,76 +272,75 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-2 md:grid-cols-3 gap-6">
-            {displayRequests.map((request) => (
-              <Link
-                key={request.id}
-                href={`/requests/${request.id}`}
-                className="bg-white p-6 rounded-xl card-hover border border-gray-100"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                    {request.category}
-                  </span>
-                  <span className="text-gray-400 text-sm">
-                    {request.timeAgo}
-                  </span>
-                </div>
-                <div className="mb-3 flex items-center gap-3">
-                  <ProductThumb
-                    images={request.productImages}
-                    title={request.title}
-                    className="h-16 w-16"
-                  />
-                  <h3 className="font-bold text-lg text-gray-800">
-                    {request.title}
-                  </h3>
-                </div>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {request.description}
-                </p>
-                <div className="mb-4 grid gap-2 rounded-2xl bg-gray-50 p-3 text-xs text-gray-600">
-                  {request.buyer && (
-                    <div className="flex items-center gap-2">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {displayRequests.map((request) => {
+              const specBadges = requestSpecBadges(request);
+              return (
+                <Link
+                  key={request.id}
+                  href={`/requests/${request.id}`}
+                  className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl"
+                >
+                  <div className="flex items-center justify-between gap-3 p-4 pb-3">
+                    <div className="flex min-w-0 items-center gap-2">
                       <UserAvatar
                         user={request.buyer}
+                        label={request.buyer?.fullName || "خریدار OptiBid"}
                         className="h-9 w-9"
                         rounded="rounded-full"
                       />
-                      <span>
-                        خریدار:{" "}
-                        <b className="text-gray-800">
-                          {request.buyer.fullName}
+                      <div className="min-w-0">
+                        <p className="truncate text-xs text-gray-500">درخواست‌دهنده</p>
+                        <b className="block truncate text-sm text-gray-800">
+                          {request.buyer?.fullName || "خریدار OptiBid"}
                         </b>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#00a8e8]">
+                      {request.category}
+                    </span>
+                  </div>
+
+                  <ProductHeroImage
+                    images={request.productImages}
+                    title={request.title}
+                    category={request.category}
+                    className="mx-4 h-48 rounded-2xl"
+                  />
+
+                  <div className="p-5">
+                    <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-400">
+                      <span>{request.timeAgo}</span>
+                      <span>{request.offers.toLocaleString("fa-IR")} پیشنهاد</span>
+                    </div>
+                    <h3 className="line-clamp-2 min-h-14 text-lg font-bold leading-7 text-gray-900">
+                      {request.title}
+                    </h3>
+                    <p className="mt-2 line-clamp-2 text-sm leading-7 text-gray-500">
+                      {request.description}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {specBadges.map((badge) => (
+                        <span
+                          key={badge}
+                          className="rounded-full bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600"
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
+                      <span className="text-lg font-extrabold text-[#0b9c56]">
+                        {request.budget}
+                      </span>
+                      <span className="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700">
+                        مشاهده آگهی
                       </span>
                     </div>
-                  )}
-                  {request.latestSeller && (
-                    <div className="flex items-center gap-2">
-                      <UserAvatar
-                        user={request.latestSeller}
-                        className="h-9 w-9"
-                        rounded="rounded-full"
-                      />
-                      <span>
-                        آخرین فروشنده پیشنهاددهنده:{" "}
-                        <b className="text-gray-800">
-                          {request.latestSeller.fullName}
-                        </b>
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <span className="font-bold text-green-600">
-                    {request.budget}
-                  </span>
-                  <span className="text-gray-500 text-sm">
-                    {request.offers} پیشنهاد قیمت
-                  </span>
-                </div>
-              </Link>
-            ))}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
