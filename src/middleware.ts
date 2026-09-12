@@ -15,6 +15,7 @@ const publicApiPrefixes = [
 ];
 
 function isPublicPath(pathname: string) {
+  if (pathname === "/") return true;
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico") return true;
   if (
     publicPagePrefixes.some(
