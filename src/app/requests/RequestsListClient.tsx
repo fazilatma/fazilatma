@@ -60,7 +60,7 @@ function requestSpecBadges(request: RequestItem) {
     request.quantity ? `تعداد ${Number(request.quantity).toLocaleString("fa-IR")}` : "",
   ].filter(Boolean);
 
-  if (badges.length > 0) return badges.slice(0, 6);
+  if (badges.length > 0) return badges.slice(0, 4);
   return request.description
     .replace(/\s+/g, " ")
     .split(/[،,.]/)
@@ -343,75 +343,75 @@ export default function RequestsListClient({
                   </button>
                 </div>
               ) : (
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {filteredRequests.map((request) => {
                     const specBadges = requestSpecBadges(request);
                     const buyerName = request.buyerUser?.fullName || request.buyer;
                     return (
                       <article
                         key={request.id}
-                        className="group flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl"
+                        className="group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                       >
-                        <div className="flex items-center justify-between gap-3 p-4 pb-3">
+                        <div className="flex items-center justify-between gap-2 p-3 pb-2">
                           <div className="flex min-w-0 items-center gap-2">
                             <UserAvatar
                               user={request.buyerUser}
                               label={buyerName}
-                              className="h-9 w-9"
+                              className="h-7 w-7"
                               rounded="rounded-full"
                             />
                             <div className="min-w-0">
-                              <p className="truncate text-[11px] text-gray-500">
+                              <p className="truncate text-[10px] text-gray-500">
                                 شخص/شرکت درخواست‌دهنده
                               </p>
-                              <b className="block truncate text-sm text-gray-900">
+                              <b className="block truncate text-xs text-gray-900">
                                 {buyerName}
                               </b>
                             </div>
                           </div>
-                          <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-[#00a8e8]">
+                          <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-[#00a8e8]">
                             {request.category}
                           </span>
                         </div>
 
-                        <Link href={`/requests/${request.id}`} className="block px-4">
+                        <Link href={`/requests/${request.id}`} className="block px-3">
                           <ProductHeroImage
                             images={request.productImages}
                             title={String(request.title)}
                             category={request.category}
-                            className="h-52 rounded-2xl"
+                            className="h-32 rounded-xl"
                           />
                         </Link>
 
-                        <div className="flex flex-1 flex-col p-4">
-                          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-gray-400">
+                        <div className="flex flex-1 flex-col p-3">
+                          <div className="mb-1.5 flex items-center justify-between gap-2 text-[11px] text-gray-400">
                             <span>{request.timeAgo}</span>
                             <span>{request.offers.toLocaleString("fa-IR")} پیشنهاد</span>
                           </div>
                           <Link href={`/requests/${request.id}`}>
-                            <h3 className="line-clamp-2 min-h-14 text-lg font-extrabold leading-7 text-gray-900 transition group-hover:text-[#003b5c]">
+                            <h3 className="line-clamp-2 min-h-10 text-base font-extrabold leading-5 text-gray-900 transition group-hover:text-[#003b5c]">
                               {request.title}
                             </h3>
                           </Link>
-                          <p className="mt-2 line-clamp-2 text-sm leading-7 text-gray-500">
+                          <p className="mt-1.5 line-clamp-1 text-xs leading-6 text-gray-500">
                             {request.description}
                           </p>
 
-                          <div className="mt-4 flex flex-wrap gap-2">
+                          <div className="mt-3 flex flex-wrap gap-1.5">
                             {specBadges.map((badge) => (
                               <span
                                 key={badge}
-                                className="rounded-full bg-gray-50 px-3 py-1 text-[11px] font-bold text-gray-600"
+                                className="rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-600"
                               >
                                 {badge}
                               </span>
                             ))}
                           </div>
 
-                          <div className="mt-5 grid gap-2 rounded-2xl bg-gray-50 p-3 text-xs text-gray-500">
+                          <div className="mt-3 grid gap-1.5 rounded-xl bg-gray-50 p-2.5 text-[11px] text-gray-500">
                             <div className="flex items-center justify-between">
                               <span>بودجه خریدار</span>
-                              <b className="text-base text-[#0b9c56]">{request.budget}</b>
+                              <b className="text-sm text-[#0b9c56]">{request.budget}</b>
                             </div>
                             <div className="flex items-center justify-between">
                               <span>مهلت</span>
@@ -419,11 +419,11 @@ export default function RequestsListClient({
                             </div>
                           </div>
 
-                          <div className="mt-auto flex flex-col gap-2 border-t border-gray-100 pt-4">
+                          <div className="mt-auto flex flex-col gap-2 border-t border-gray-100 pt-3">
                             {userRole === "seller" ? (
                               <Link
                                 href={`/requests/${request.id}/offer`}
-                                className="rounded-xl border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-center text-sm font-bold text-[#00a8e8] transition hover:bg-blue-100"
+                                className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-3 py-2 text-center text-xs font-bold text-[#00a8e8] transition hover:bg-blue-100"
                               >
                                 ثبت پیشنهاد قیمت و مشخصات کالا
                               </Link>
@@ -433,7 +433,7 @@ export default function RequestsListClient({
                                 type="button"
                                 disabled={switchingRequestId === request.id}
                                 onClick={() => switchToSellerMode(request)}
-                                className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+                                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
                               >
                                 {switchingRequestId === request.id
                                   ? "در حال تغییر حالت..."
@@ -443,14 +443,14 @@ export default function RequestsListClient({
                               <button
                                 type="button"
                                 onClick={() => setSpecsRequest(request)}
-                                className="rounded-xl border border-[#00a8e8]/30 bg-blue-50 px-4 py-2.5 text-sm font-bold text-[#00a8e8] transition hover:bg-blue-100"
+                                className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-3 py-2 text-xs font-bold text-[#00a8e8] transition hover:bg-blue-100"
                               >
                                 مشخصات کامل محصول پیشنهادی
                               </button>
                             ) : null}
                             <Link
                               href={`/requests/${request.id}`}
-                              className="rounded-xl bg-green-600 px-6 py-2.5 text-center font-bold text-white transition hover:bg-green-700"
+                              className="rounded-lg bg-green-600 px-4 py-2 text-center text-sm font-bold text-white transition hover:bg-green-700"
                             >
                               مشاهده آگهی درخواست
                             </Link>

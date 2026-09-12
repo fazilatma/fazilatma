@@ -47,7 +47,7 @@ function requestSpecBadges(request: {
     request.quantity ? `تعداد ${Number(request.quantity).toLocaleString("fa-IR")}` : "",
   ].filter(Boolean);
 
-  if (badges.length > 0) return badges.slice(0, 5);
+  if (badges.length > 0) return badges.slice(0, 4);
   return String(request.description || "")
     .replace(/\s+/g, " ")
     .split(/[،,.]/)
@@ -119,7 +119,7 @@ export default async function HomePage() {
       offersByRequest.set(offer.requestId, list);
     }
 
-    displayRequests = jsonRequests.slice(0, 3).map((request) => {
+    displayRequests = jsonRequests.slice(0, 4).map((request) => {
       const latestOffer = offersByRequest.get(request.id)?.[0];
       return {
         id: request.id,
@@ -272,31 +272,31 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
             {displayRequests.map((request) => {
               const specBadges = requestSpecBadges(request);
               return (
                 <Link
                   key={request.id}
                   href={`/requests/${request.id}`}
-                  className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl"
+                  className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
-                  <div className="flex items-center justify-between gap-3 p-4 pb-3">
+                  <div className="flex items-center justify-between gap-2 p-3 pb-2">
                     <div className="flex min-w-0 items-center gap-2">
                       <UserAvatar
                         user={request.buyer}
                         label={request.buyer?.fullName || "خریدار OptiBid"}
-                        className="h-9 w-9"
+                        className="h-7 w-7"
                         rounded="rounded-full"
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-xs text-gray-500">درخواست‌دهنده</p>
-                        <b className="block truncate text-sm text-gray-800">
+                        <p className="truncate text-[10px] text-gray-500">درخواست‌دهنده</p>
+                        <b className="block truncate text-xs text-gray-800">
                           {request.buyer?.fullName || "خریدار OptiBid"}
                         </b>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#00a8e8]">
+                    <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-[#00a8e8]">
                       {request.category}
                     </span>
                   </div>
@@ -305,35 +305,35 @@ export default async function HomePage() {
                     images={request.productImages}
                     title={request.title}
                     category={request.category}
-                    className="mx-4 h-48 rounded-2xl"
+                    className="mx-3 h-32 rounded-xl"
                   />
 
-                  <div className="p-5">
-                    <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-400">
+                  <div className="p-3">
+                    <div className="mb-1.5 flex items-center justify-between gap-2 text-[11px] text-gray-400">
                       <span>{request.timeAgo}</span>
                       <span>{request.offers.toLocaleString("fa-IR")} پیشنهاد</span>
                     </div>
-                    <h3 className="line-clamp-2 min-h-14 text-lg font-bold leading-7 text-gray-900">
+                    <h3 className="line-clamp-2 min-h-10 text-base font-bold leading-5 text-gray-900">
                       {request.title}
                     </h3>
-                    <p className="mt-2 line-clamp-2 text-sm leading-7 text-gray-500">
+                    <p className="mt-1.5 line-clamp-1 text-xs leading-6 text-gray-500">
                       {request.description}
                     </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap gap-1.5">
                       {specBadges.map((badge) => (
                         <span
                           key={badge}
-                          className="rounded-full bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600"
+                          className="rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-600"
                         >
                           {badge}
                         </span>
                       ))}
                     </div>
-                    <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
-                      <span className="text-lg font-extrabold text-[#0b9c56]">
+                    <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                      <span className="text-sm font-extrabold text-[#0b9c56]">
                         {request.budget}
                       </span>
-                      <span className="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700">
+                      <span className="rounded-lg bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700">
                         مشاهده آگهی
                       </span>
                     </div>
