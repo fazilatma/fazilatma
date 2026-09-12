@@ -13,6 +13,7 @@ export default async function RequestsPage() {
     category: string;
     timeAgo: string;
     offers: number;
+    buyerId: number;
     buyer: string;
     buyerRating: number;
     buyerUser?: { id: number; fullName: string; avatarName?: string };
@@ -62,6 +63,7 @@ export default async function RequestsPage() {
         category: request.category || "سایر",
         timeAgo: "جدید (ثبت‌شده)",
         offers: request.offersCount,
+        buyerId: request.buyerId,
         buyer: request.buyerName || "خریدار",
         buyerRating: 0,
         buyerUser: userById.get(request.buyerId),

@@ -9,7 +9,7 @@ export default function RequestSpecsModalButton({
   description,
   factors,
   className = "rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 hover:bg-gray-50",
-  label = "مشخصات درخواست",
+  label = "ریز مشخصات درخواست خرید",
 }: {
   title: string;
   description?: string;
@@ -33,7 +33,7 @@ export default function RequestSpecsModalButton({
             <div className="mb-5 flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
               <div>
                 <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#00a8e8]">
-                  مشخصات ثبت‌شده توسط خریدار
+                  ریز مشخصات درخواست خرید
                 </span>
                 <h2 className="mt-3 text-xl font-bold text-[#003b5c]">
                   {title}

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import BuyerModeButton from "@/components/BuyerModeButton";
 import { ProductHeroImage, ProductImageStrip } from "@/components/ProductImages";
 import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
+import SellerModeButton from "@/components/SellerModeButton";
 import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
@@ -29,6 +30,7 @@ interface RequestItem {
   category: string;
   timeAgo: string;
   offers: number;
+  buyerId: number;
   buyer: string;
   buyerRating: number;
   buyerUser?: { id: number; fullName: string; avatarName?: string };
@@ -115,7 +117,7 @@ export default function RequestsListClient({
       window.location.href = "/login";
       return;
     }
-    if (userId && request.buyerUser?.id === userId) {
+    if (userId && request.buyerId === userId) {
       alert("روی درخواست خرید خودتان نمی‌توانید پیشنهاد فروشنده ثبت کنید.");
       return;
     }
@@ -381,7 +383,7 @@ export default function RequestsListClient({
                             images={request.productImages}
                             title={String(request.title)}
                             category={request.category}
-                            className="h-32 rounded-xl"
+                            className="mx-auto h-32 w-32 rounded-xl"
                           />
                         </Link>
 
@@ -431,36 +433,15 @@ export default function RequestsListClient({
                               description={request.description}
                               factors={request.valuationFactors}
                               className="rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 transition hover:bg-gray-50"
-                              label="مشخصات درخواست خریدار"
+                              label="ریز مشخصات درخواست خرید"
                             />
-                            {userRole === "seller" ? (
-                              <Link
-                                href={`/requests/${request.id}/offer`}
-                                className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-3 py-2 text-center text-xs font-bold text-[#00a8e8] transition hover:bg-blue-100"
-                              >
-                                ثبت پیشنهاد قیمت و مشخصات کالا
-                              </Link>
-                            ) : userRole === "buyer" &&
-                              request.buyerUser?.id !== userId ? (
-                              <button
-                                type="button"
-                                disabled={switchingRequestId === request.id}
-                                onClick={() => switchToSellerMode(request)}
-                                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
-                              >
-                                {switchingRequestId === request.id
-                                  ? "در حال تغییر حالت..."
-                                  : "ورود به حالت فروشنده و ثبت پیشنهاد"}
-                              </button>
-                            ) : request.offers > 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => setSpecsRequest(request)}
-                                className="rounded-lg border border-[#00a8e8]/30 bg-blue-50 px-3 py-2 text-xs font-bold text-[#00a8e8] transition hover:bg-blue-100"
-                              >
-                                مشخصات کامل محصول پیشنهادی
-                              </button>
-                            ) : null}
+                            <SellerModeButton
+                              requestId={request.id}
+                              requestBuyerId={request.buyerId}
+                              requestCategory={request.category}
+                              className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700 transition hover:bg-amber-100"
+                              sellerLabel="ثبت پیشنهاد فروشنده"
+                            />
                             <Link
                               href={`/requests/${request.id}`}
                               className="rounded-lg bg-green-600 px-4 py-2 text-center text-sm font-bold text-white transition hover:bg-green-700"

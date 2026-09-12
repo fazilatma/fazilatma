@@ -159,7 +159,7 @@ export default function SellerOfferAction({
           >
             {switching
               ? "در حال تغییر حالت..."
-              : "ورود به حالت فروشنده و ثبت پیشنهاد"}
+              : "ورود به عنوان فروشنده"}
           </button>
         </div>
       </section>

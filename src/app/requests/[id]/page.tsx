@@ -90,7 +90,8 @@ export default async function RequestDetailPage({
                 <ProductThumb
                   images={request.productImages}
                   title={request.title}
-                  className="h-32 w-full sm:h-32 sm:w-32"
+                  category={request.category}
+                  className="h-32 w-32"
                 />
                 <div className="min-w-0 flex-1">
                   <h1 className="text-3xl font-bold text-[#003b5c]">
@@ -165,7 +166,7 @@ export default async function RequestDetailPage({
 
               <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5">
                 <h2 className="mb-3 font-bold text-gray-800">
-                  مشخصات کامل محصول درخواست‌شده توسط خریدار
+                  ریز مشخصات درخواست خرید
                 </h2>
                 <RequestSpecsDetails
                   factors={request.valuationFactors}

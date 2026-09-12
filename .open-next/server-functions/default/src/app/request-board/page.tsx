@@ -2,6 +2,7 @@ import Link from "next/link";
 import BuyerModeButton from "@/components/BuyerModeButton";
 import { ProductHeroImage } from "@/components/ProductImages";
 import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
+import SellerModeButton from "@/components/SellerModeButton";
 import { getJsonRequests } from "@/lib/json-store";
 import type { ProductValuationFactors } from "@/lib/request-valuation";
 
@@ -97,7 +98,7 @@ export default async function RequestBoardPage() {
                       images={request.productImages}
                       title={request.title}
                       category={request.category}
-                      className="h-32 rounded-xl"
+                      className="mx-auto h-32 w-32 rounded-xl"
                     />
                   </Link>
 
@@ -130,7 +131,7 @@ export default async function RequestBoardPage() {
                         description={request.description}
                         factors={request.valuationFactors}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 transition hover:bg-gray-50"
-                        label="مشخصات درخواست"
+                        label="ریز مشخصات درخواست خرید"
                       />
                       <Link
                         href={`/requests/${request.id}`}
@@ -138,12 +139,13 @@ export default async function RequestBoardPage() {
                       >
                         مشاهده آگهی
                       </Link>
-                      <Link
-                        href={`/requests/${request.id}/offer`}
-                        className="rounded-lg bg-[#003b5c] px-3 py-2 text-center text-xs font-bold text-white hover:bg-[#002d46]"
-                      >
-                        پیشنهاد فروشنده
-                      </Link>
+                      <SellerModeButton
+                        requestId={request.id}
+                        requestBuyerId={request.buyerId}
+                        requestCategory={request.category}
+                        className="rounded-lg bg-[#003b5c] px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-[#002d46]"
+                        sellerLabel="ثبت پیشنهاد فروشنده"
+                      />
                       <BuyerModeButton
                         targetUrl={`/requests/${request.id}`}
                         className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center text-xs font-bold text-green-700 transition hover:bg-green-100"

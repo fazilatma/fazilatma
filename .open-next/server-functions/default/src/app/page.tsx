@@ -3,6 +3,7 @@ import SellerStars from "@/components/SellerStars";
 import BuyerModeButton from "@/components/BuyerModeButton";
 import { ProductHeroImage } from "@/components/ProductImages";
 import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
+import SellerModeButton from "@/components/SellerModeButton";
 import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 import type { ProductValuationFactors } from "@/lib/request-valuation";
@@ -55,6 +56,7 @@ function requestSpecBadges(request: {
 export default async function HomePage() {
   let displayRequests: Array<{
     id: number;
+    buyerId: number;
     title: string;
     description: string;
     budget: string;
@@ -112,6 +114,7 @@ export default async function HomePage() {
       const latestOffer = offersByRequest.get(request.id)?.[0];
       return {
         id: request.id,
+        buyerId: request.buyerId,
         title: request.title,
         description: request.description,
         budget: Number(request.budget || 0).toLocaleString("fa-IR") + " تومان",
@@ -294,7 +297,7 @@ export default async function HomePage() {
                       images={request.productImages}
                       title={request.title}
                       category={request.category}
-                      className="mx-3 h-32 rounded-xl"
+                      className="mx-auto h-32 w-32 rounded-xl"
                     />
                   </Link>
 
@@ -335,7 +338,14 @@ export default async function HomePage() {
                         description={request.description}
                         factors={request.valuationFactors}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 transition hover:bg-gray-50"
-                        label="مشخصات درخواست"
+                        label="ریز مشخصات درخواست خرید"
+                      />
+                      <SellerModeButton
+                        requestId={request.id}
+                        requestBuyerId={request.buyerId}
+                        requestCategory={request.category}
+                        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700 transition hover:bg-amber-100"
+                        sellerLabel="ثبت پیشنهاد فروشنده"
                       />
                       <Link
                         href={`/requests/${request.id}`}
