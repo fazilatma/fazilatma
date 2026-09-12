@@ -333,6 +333,28 @@ export default function AdminDashboardClient({
       subcategoriesText: "زیرگروه اول: مورد ۱، مورد ۲، مورد ۳",
     });
 
+  const addDraftSubcategory = () => {
+    if (!categoryDraft) return;
+    setCategoryDraft({
+      ...categoryDraft,
+      subcategoriesText: `${categoryDraft.subcategoriesText.trim()}\nزیرگروه جدید: مورد جدید`.trim(),
+    });
+  };
+
+  const addDraftSubcategoryItem = () => {
+    if (!categoryDraft) return;
+    const lines = categoryDraft.subcategoriesText.split("\n");
+    if (lines.length === 0 || !lines[lines.length - 1].trim()) {
+      lines.push("زیرگروه جدید: مورد جدید");
+    } else {
+      lines[lines.length - 1] = `${lines[lines.length - 1]}، مورد جدید`;
+    }
+    setCategoryDraft({
+      ...categoryDraft,
+      subcategoriesText: lines.join("\n"),
+    });
+  };
+
   const saveCategoryDraft = () => {
     if (!categoryDraft?.name.trim()) {
       alert("نام دسته‌بندی را وارد کنید.");
@@ -2326,6 +2348,22 @@ export default function AdminDashboardClient({
                           className="mt-1 min-h-32 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 leading-7 outline-none focus:border-purple-400"
                         />
                       </label>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={addDraftSubcategory}
+                          className="rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-bold text-purple-700"
+                        >
+                          + افزودن زیرگروه
+                        </button>
+                        <button
+                          type="button"
+                          onClick={addDraftSubcategoryItem}
+                          className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700"
+                        >
+                          + افزودن آیتم به زیرگروه
+                        </button>
+                      </div>
                       <div className="mt-4 flex gap-2">
                         <button
                           type="button"

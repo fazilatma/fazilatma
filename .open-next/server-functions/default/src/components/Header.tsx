@@ -16,6 +16,9 @@ export default function Header() {
   const [headerCategories, setHeaderCategories] = useState<CatalogCategory[]>(
     defaultCatalogCategories,
   );
+  const [activeHeaderCategoryId, setActiveHeaderCategoryId] = useState(
+    defaultCatalogCategories[0]?.id || "",
+  );
   const router = useRouter();
   const pathname = usePathname();
   const showMobileAuthDock =
@@ -74,6 +77,14 @@ export default function Header() {
     }
     sessionStorage.removeItem("redirectAfterAuth");
   };
+
+  const visibleHeaderCategories = headerCategories.filter(
+    (category) => category.isActive !== false,
+  );
+  const activeHeaderCategory =
+    visibleHeaderCategories.find(
+      (category) => category.id === activeHeaderCategoryId,
+    ) || visibleHeaderCategories[0];
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -162,45 +173,63 @@ export default function Header() {
               >
                 دسته‌بندی‌ها
               </Link>
-              <div className="invisible absolute right-0 top-full z-50 w-[760px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
-                <div className="grid grid-cols-12">
-                  <div className="col-span-4 border-l border-gray-100 bg-gray-50 p-3">
-                    {headerCategories.filter((category) => category.isActive !== false).map((category) => (
-                      <Link
-                        key={category.name}
-                        href={categoryHref(category)}
-                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-gray-700 hover:bg-white hover:text-[#003b5c]"
-                      >
-                        <span className="text-xl">{category.icon}</span>
-                        <span>{category.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-                  <div className="col-span-8 grid grid-cols-3 gap-4 p-5">
-                    {headerCategories.filter((category) => category.isActive !== false).slice(0, 6).map((category) => (
-                      <div key={category.name}>
+              <div className="invisible absolute right-0 top-full z-50 w-[840px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+                <div className="grid min-h-[420px] grid-cols-12">
+                  <div className="col-span-4 max-h-[70vh] overflow-y-auto border-l border-gray-100 bg-gray-50 p-3">
+                    {visibleHeaderCategories.map((category) => {
+                      const active = category.id === activeHeaderCategory?.id;
+                      return (
                         <Link
+                          key={category.id}
                           href={categoryHref(category)}
-                          className="mb-3 block border-r-2 border-red-500 pr-2 text-sm font-black text-gray-900 hover:text-[#00a8e8]"
+                          onMouseEnter={() => setActiveHeaderCategoryId(category.id)}
+                          className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition ${
+                            active
+                              ? "bg-white text-[#003b5c] shadow-sm"
+                              : "text-gray-700 hover:bg-white hover:text-[#003b5c]"
+                          }`}
                         >
-                          {category.name}
+                          <span className="text-xl">{category.icon}</span>
+                          <span>{category.name}</span>
                         </Link>
-                        <div className="space-y-2">
-                          {category.subcategories
-                            .flatMap((group) => group.items.slice(0, 3))
-                            .slice(0, 7)
-                            .map((item) => (
+                      );
+                    })}
+                  </div>
+                  <div className="col-span-8 max-h-[70vh] overflow-y-auto p-5">
+                    {activeHeaderCategory && (
+                      <>
+                        <Link
+                          href={categoryHref(activeHeaderCategory)}
+                          className="mb-5 inline-flex items-center gap-2 text-sm font-black text-[#003b5c] hover:text-[#00a8e8]"
+                        >
+                          همه محصولات {activeHeaderCategory.name}
+                          <span>‹</span>
+                        </Link>
+                        <div className="grid grid-cols-3 gap-x-8 gap-y-6">
+                          {activeHeaderCategory.subcategories.map((group) => (
+                            <div key={group.id}>
                               <Link
-                                key={item}
-                                href={categoryHref(category)}
-                                className="block text-xs text-gray-500 hover:text-[#00a8e8]"
+                                href={categoryHref(activeHeaderCategory)}
+                                className="mb-3 block border-r-2 border-red-500 pr-2 text-sm font-black text-gray-900 hover:text-[#00a8e8]"
                               >
-                                {item}
+                                {group.title}
                               </Link>
-                            ))}
+                              <div className="space-y-2">
+                                {group.items.map((item) => (
+                                  <Link
+                                    key={item}
+                                    href={categoryHref(activeHeaderCategory)}
+                                    className="block text-xs text-gray-500 hover:text-[#00a8e8]"
+                                  >
+                                    {item}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    ))}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
