@@ -25,6 +25,11 @@ import {
   normalizeProductImageAttachments,
   type ProductImageAttachment,
 } from "@/lib/product-image-shared";
+import {
+  defaultCatalogCategories,
+  normalizeCatalogCategories,
+  type CatalogCategory,
+} from "@/lib/catalog-categories";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -376,6 +381,7 @@ export type OptiBidJsonData = {
   notifications: JsonNotification[];
   reviews: JsonReview[];
   passwordResets: JsonPasswordReset[];
+  catalogCategories: CatalogCategory[];
   settings: {
     commissionRate: number;
     platformWalletBalance: number;
@@ -413,6 +419,7 @@ const emptyData = (): OptiBidJsonData => ({
   notifications: [],
   reviews: [],
   passwordResets: [],
+  catalogCategories: defaultCatalogCategories,
   settings: {
     commissionRate: 5,
     platformWalletBalance: 0,
@@ -667,6 +674,9 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
     passwordResets: Array.isArray(parsed.passwordResets)
       ? parsed.passwordResets
       : [],
+    catalogCategories: normalizeCatalogCategories(
+      (parsed as { catalogCategories?: unknown }).catalogCategories,
+    ),
     settings: {
       commissionRate:
         typeof parsed.settings?.commissionRate === "number"
@@ -3895,4 +3905,21 @@ export async function getStorageInfo() {
     kvKey: usingKv ? KV_DATA_KEY : null,
     dataFile: usingKv ? null : dataFile,
   };
+}
+
+export async function getJsonCatalogCategories({
+  includeInactive = false,
+}: { includeInactive?: boolean } = {}) {
+  const data = await getOptiBidData();
+  const categories = normalizeCatalogCategories(data.catalogCategories);
+  return includeInactive
+    ? categories
+    : categories.filter((category) => category.isActive !== false);
+}
+
+export async function updateJsonCatalogCategories(input: unknown) {
+  const data = await getOptiBidData();
+  data.catalogCategories = normalizeCatalogCategories(input);
+  await writeOptiBidData(data);
+  return data.catalogCategories;
 }

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import SellerStars from "@/components/SellerStars";
 import BuyerModeButton from "@/components/BuyerModeButton";
+import HomeCategoryMenu from "@/components/HomeCategoryMenu";
 import { ProductHeroImage } from "@/components/ProductImages";
 import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
 import SellerModeButton from "@/components/SellerModeButton";
 import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
+import {
+  defaultCatalogCategories,
+  type CatalogCategory,
+} from "@/lib/catalog-categories";
 import type { ProductValuationFactors } from "@/lib/request-valuation";
 import {
   getJsonBuyerRankings,
@@ -17,17 +22,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// Sample categories data
-const sampleCategories = [
-  { id: 1, nameFa: "کالای دیجیتال", icon: "📱", count: 0 },
-  { id: 2, nameFa: "مد و پوشاک", icon: "👕", count: 0 },
-  { id: 3, nameFa: "خانه و آشپزخانه", icon: "🏠", count: 0 },
-  { id: 4, nameFa: "زیبایی و سلامت", icon: "💄", count: 0 },
-  { id: 5, nameFa: "کتاب و لوازم تحریر", icon: "📚", count: 0 },
-  { id: 6, nameFa: "ورزش و سفر", icon: "⚽", count: 0 },
-  { id: 7, nameFa: "اسباب‌بازی و کودک", icon: "🧸", count: 0 },
-  { id: 8, nameFa: "خودرو و موتور", icon: "🚗", count: 0 },
-];
+type HomeCategory = CatalogCategory & { count: number };
 
 function requestSpecBadges(request: {
   quantity?: number;
@@ -76,7 +71,9 @@ export default async function HomePage() {
   let bestSellingRequests: HomeRequestCard[] = [];
   let growthPredictionRequests: HomeRequestCard[] = [];
   let mostRequestedRequests: HomeRequestCard[] = [];
-  let displayCategories = sampleCategories;
+  let displayCategories: HomeCategory[] = defaultCatalogCategories.map(
+    (category) => ({ ...category, count: 0 }),
+  );
   let topSellers: Awaited<ReturnType<typeof getJsonSellerRankings>> = [];
   let topBuyers: Awaited<ReturnType<typeof getJsonBuyerRankings>> = [];
   let realStats = {
@@ -163,10 +160,12 @@ export default async function HomePage() {
       );
     }
 
-    displayCategories = sampleCategories.map((category) => ({
-      ...category,
-      count: categoryCountMap.get(category.nameFa) || 0,
-    }));
+    displayCategories = (data.catalogCategories || defaultCatalogCategories)
+      .filter((category) => category.isActive !== false)
+      .map((category) => ({
+        ...category,
+        count: categoryCountMap.get(category.name) || 0,
+      }));
   } catch (error) {
     console.error("JSON home data error:", error);
   }
@@ -240,25 +239,7 @@ export default async function HomePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 sm:grid-cols-6 lg:grid-cols-8">
-            {displayCategories.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/categories/${cat.id}`}
-                className="group flex flex-col items-center gap-2 rounded-2xl p-2 transition hover:bg-gray-50"
-              >
-                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gray-50 text-3xl shadow-inner ring-1 ring-gray-100 transition group-hover:-translate-y-0.5 group-hover:bg-blue-50">
-                  {cat.icon}
-                </div>
-                <h3 className="line-clamp-2 text-center text-xs font-bold leading-5 text-gray-800">
-                  {cat.nameFa}
-                </h3>
-                <p className="text-[10px] text-gray-400">
-                  {cat.count.toLocaleString("fa-IR")} درخواست
-                </p>
-              </Link>
-            ))}
-          </div>
+          <HomeCategoryMenu categories={displayCategories} />
         </div>
       </section>
 

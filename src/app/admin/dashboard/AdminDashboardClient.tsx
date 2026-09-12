@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import SellerStars from "@/components/SellerStars";
 import { useLiveContent } from "@/hooks/useLiveContent";
+import type { CatalogCategory } from "@/lib/catalog-categories";
 
 const indicatorOptions = [
   { id: "sma", label: "SMA", description: "میانگین متحرک ساده ۷ و ۲۰ روزه" },
@@ -51,12 +52,14 @@ export default function AdminDashboardClient({
   initialKycUsers,
   initialManagedUsers,
   adminReports,
+  initialCatalogCategories,
 }: {
   realStats: any;
   sellerRankings: any[];
   initialKycUsers: any[];
   initialManagedUsers: { summary: any; users: any[] };
   adminReports: any;
+  initialCatalogCategories: CatalogCategory[];
 }) {
   const liveContent = useLiveContent();
   const [activeTab, setActiveTab] = useState("overview");
@@ -72,6 +75,18 @@ export default function AdminDashboardClient({
   const [pendingVerifications, setPendingVerifications] =
     useState<any[]>(initialKycUsers);
   const [kycReasons, setKycReasons] = useState<Record<number, string>>({});
+  const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>(
+    initialCatalogCategories,
+  );
+  const [categoryDraft, setCategoryDraft] = useState<{
+    id: string;
+    legacyId: number;
+    name: string;
+    icon: string;
+    isActive: boolean;
+    subcategoriesText: string;
+  } | null>(null);
+  const [savingCategories, setSavingCategories] = useState(false);
 
   // States for Settings
   const [commissionRate, setCommissionRate] = useState(5);
@@ -295,11 +310,90 @@ export default function AdminDashboardClient({
     setSelectedIndicators((current) => ({ ...current, [id]: !current[id] }));
   };
 
-  const categoriesList = [
-    { id: 1, name: "کالای دیجیتال", status: "فعال", productsCount: 1250 },
-    { id: 2, name: "مد و پوشاک", status: "فعال", productsCount: 890 },
-    { id: 3, name: "صنعتی و تجهیزات", status: "غیرفعال", productsCount: 0 },
-  ];
+  const categoryToDraft = (category: CatalogCategory) => ({
+    id: category.id,
+    legacyId: category.legacyId,
+    name: category.name,
+    icon: category.icon,
+    isActive: category.isActive !== false,
+    subcategoriesText: category.subcategories
+      .map((group) => `${group.title}: ${group.items.join("، ")}`)
+      .join("\n"),
+  });
+
+  const startNewCategory = () =>
+    setCategoryDraft({
+      id: `category-${Date.now()}`,
+      legacyId:
+        Math.max(0, ...catalogCategories.map((category) => category.legacyId || 0)) +
+        1,
+      name: "",
+      icon: "📦",
+      isActive: true,
+      subcategoriesText: "زیرگروه اول: مورد ۱، مورد ۲، مورد ۳",
+    });
+
+  const saveCategoryDraft = () => {
+    if (!categoryDraft?.name.trim()) {
+      alert("نام دسته‌بندی را وارد کنید.");
+      return;
+    }
+    const subcategories = categoryDraft.subcategoriesText
+      .split("\n")
+      .map((line, index) => {
+        const [titlePart, itemsPart = ""] = line.split(":");
+        const title = titlePart.trim();
+        if (!title) return null;
+        return {
+          id: `${categoryDraft.id}-sub-${index + 1}`,
+          title,
+          items: itemsPart
+            .split(/[،,]/)
+            .map((item) => item.trim())
+            .filter(Boolean),
+        };
+      })
+      .filter(Boolean) as CatalogCategory["subcategories"];
+
+    const nextCategory: CatalogCategory = {
+      id: categoryDraft.id.trim() || `category-${Date.now()}`,
+      legacyId: Number(categoryDraft.legacyId || catalogCategories.length + 1),
+      name: categoryDraft.name.trim(),
+      icon: categoryDraft.icon.trim() || "📦",
+      isActive: categoryDraft.isActive,
+      subcategories,
+    };
+
+    setCatalogCategories((current) => {
+      const exists = current.some((category) => category.id === nextCategory.id);
+      return exists
+        ? current.map((category) =>
+            category.id === nextCategory.id ? nextCategory : category,
+          )
+        : [...current, nextCategory];
+    });
+    setCategoryDraft(null);
+  };
+
+  const saveCatalogCategories = async () => {
+    setSavingCategories(true);
+    try {
+      const response = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categories: catalogCategories }),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "ذخیره دسته‌بندی‌ها ناموفق بود.");
+      setCatalogCategories(result.categories || catalogCategories);
+      alert(result.message || "دسته‌بندی‌ها ذخیره شدند.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره دسته‌بندی‌ها ناموفق بود.");
+    } finally {
+      setSavingCategories(false);
+    }
+  };
 
   return (
     <div
@@ -2132,41 +2226,203 @@ export default function AdminDashboardClient({
 
             {/* 6. Categories Management */}
             {activeTab === "categories" && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-in fade-in duration-300">
-                <div className="flex justify-between items-center mb-6 border-b pb-4">
-                  <h2 className="font-bold text-xl">
-                    📂 مدیریت دسته‌بندی‌های کالا
-                  </h2>
-                  <button className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-700">
-                    + افزودن دسته جدید
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {categoriesList.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="flex items-center justify-between border border-gray-200 p-4 rounded-xl"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="font-bold text-gray-800">
-                          {cat.name}
-                        </div>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-bold ${cat.status === "فعال" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
-                        >
-                          {cat.status}
-                        </span>
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
+                    <div>
+                      <h2 className="text-xl font-bold">📂 مدیریت دسته‌بندی و زیردسته‌ها</h2>
+                      <p className="mt-2 text-sm text-gray-500">
+                        دسته‌های اصلی و زیرگروه‌هایی که در صفحه اصلی و منوی کشویی سایت نمایش داده می‌شوند را اینجا اضافه یا ویرایش کنید.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={startNewCategory}
+                        className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-700"
+                      >
+                        + افزودن دسته جدید
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveCatalogCategories}
+                        disabled={savingCategories}
+                        className="rounded-lg bg-[#0b9c56] px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:bg-gray-300"
+                      >
+                        {savingCategories ? "در حال ذخیره..." : "ذخیره در سایت"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {categoryDraft && (
+                    <div className="mb-6 rounded-3xl border border-purple-100 bg-purple-50/60 p-5">
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <label className="block text-xs font-bold text-gray-700">
+                          نام دسته اصلی
+                          <input
+                            value={categoryDraft.name}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                name: event.target.value,
+                              })
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                            placeholder="مثلاً کالای دیجیتال"
+                          />
+                        </label>
+                        <label className="block text-xs font-bold text-gray-700">
+                          آیکون
+                          <input
+                            value={categoryDraft.icon}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                icon: event.target.value,
+                              })
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                            placeholder="📱"
+                          />
+                        </label>
+                        <label className="block text-xs font-bold text-gray-700">
+                          شناسه مسیر قدیمی
+                          <input
+                            type="number"
+                            value={categoryDraft.legacyId}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                legacyId: Number(event.target.value || 0),
+                              })
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                          />
+                        </label>
+                        <label className="mt-6 flex items-center gap-2 text-xs font-bold text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={categoryDraft.isActive}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                isActive: event.target.checked,
+                              })
+                            }
+                          />
+                          نمایش در سایت
+                        </label>
                       </div>
-                      <div className="flex gap-3">
-                        <button className="text-blue-600 text-sm font-bold hover:underline">
-                          ویرایش
+                      <label className="mt-4 block text-xs font-bold text-gray-700">
+                        زیردسته‌ها؛ هر خط با فرمت «عنوان: مورد ۱، مورد ۲، مورد ۳»
+                        <textarea
+                          value={categoryDraft.subcategoriesText}
+                          onChange={(event) =>
+                            setCategoryDraft({
+                              ...categoryDraft,
+                              subcategoriesText: event.target.value,
+                            })
+                          }
+                          className="mt-1 min-h-32 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 leading-7 outline-none focus:border-purple-400"
+                        />
+                      </label>
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={saveCategoryDraft}
+                          className="rounded-xl bg-purple-600 px-5 py-2 text-sm font-bold text-white"
+                        >
+                          ثبت تغییرات دسته
                         </button>
-                        <button className="text-red-600 text-sm font-bold hover:underline">
-                          غیرفعال‌سازی
+                        <button
+                          type="button"
+                          onClick={() => setCategoryDraft(null)}
+                          className="rounded-xl bg-white px-5 py-2 text-sm font-bold text-gray-600"
+                        >
+                          انصراف
                         </button>
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {catalogCategories.map((category) => (
+                      <article
+                        key={category.id}
+                        className="rounded-3xl border border-gray-100 bg-gray-50 p-4"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-2xl shadow-inner">
+                              {category.icon}
+                            </span>
+                            <div>
+                              <h3 className="font-bold text-gray-900">{category.name}</h3>
+                              <p className="mt-1 text-xs text-gray-500">
+                                {category.subcategories.length.toLocaleString("fa-IR")} گروه زیردسته
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${
+                              category.isActive !== false
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-200 text-gray-500"
+                            }`}
+                          >
+                            {category.isActive !== false ? "فعال" : "غیرفعال"}
+                          </span>
+                        </div>
+                        <div className="mb-4 flex flex-wrap gap-1.5">
+                          {category.subcategories.slice(0, 4).map((group) => (
+                            <span
+                              key={group.id}
+                              className="rounded-full bg-white px-2 py-1 text-[11px] text-gray-600"
+                            >
+                              {group.title}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCategoryDraft(categoryToDraft(category))}
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700"
+                          >
+                            ویرایش
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCatalogCategories((current) =>
+                                current.map((item) =>
+                                  item.id === category.id
+                                    ? { ...item, isActive: item.isActive === false }
+                                    : item,
+                                ),
+                              )
+                            }
+                            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700"
+                          >
+                            {category.isActive !== false ? "غیرفعال‌سازی" : "فعال‌سازی"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("این دسته حذف شود؟")) {
+                                setCatalogCategories((current) =>
+                                  current.filter((item) => item.id !== category.id),
+                                );
+                              }
+                            }}
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700"
+                          >
+                            حذف
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

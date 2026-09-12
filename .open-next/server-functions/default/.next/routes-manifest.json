@@ -125,6 +125,12 @@
       "namedRegex": "^/api/account/seller\\-mode(?:/)?$"
     },
     {
+      "page": "/api/admin/categories",
+      "regex": "^/api/admin/categories(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/categories(?:/)?$"
+    },
+    {
       "page": "/api/admin/finance",
       "regex": "^/api/admin/finance(?:/)?$",
       "routeKeys": {},
@@ -171,6 +177,12 @@
       "regex": "^/api/buyer/profile(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/buyer/profile(?:/)?$"
+    },
+    {
+      "page": "/api/catalog-categories",
+      "regex": "^/api/catalog\\-categories(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/catalog\\-categories(?:/)?$"
     },
     {
       "page": "/api/dashboard/buyer",

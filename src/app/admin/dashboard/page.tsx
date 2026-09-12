@@ -5,6 +5,7 @@ import {
   getJsonAdminUsers,
   getJsonKycUsers,
   getJsonSellerRankings,
+  getJsonCatalogCategories,
 } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default async function AdminDashboardPage() {
     },
     users: [],
   };
+  let catalogCategories: Awaited<ReturnType<typeof getJsonCatalogCategories>> = [];
   let adminReports: Awaited<ReturnType<typeof getJsonAdminReports>> = {
     generatedAt: new Date().toISOString(),
     summary: {
@@ -53,13 +55,14 @@ export default async function AdminDashboardPage() {
     },
   };
   try {
-    [realStats, sellerRankings, kycUsers, adminUsers, adminReports] =
+    [realStats, sellerRankings, kycUsers, adminUsers, adminReports, catalogCategories] =
       await Promise.all([
         getJsonAdminStats(),
         getJsonSellerRankings(),
         getJsonKycUsers(),
         getJsonAdminUsers(),
         getJsonAdminReports(),
+        getJsonCatalogCategories({ includeInactive: true }),
       ]);
   } catch (error) {
     console.error("JSON admin stats/rankings/KYC error:", error);
@@ -72,6 +75,7 @@ export default async function AdminDashboardPage() {
       initialKycUsers={kycUsers}
       initialManagedUsers={adminUsers}
       adminReports={adminReports}
+      initialCatalogCategories={catalogCategories}
     />
   );
 }

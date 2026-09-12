@@ -10,6 +10,7 @@ const publicApiPrefixes = [
   "/api/auth/social",
   "/api/password",
   "/api/live-content",
+  "/api/catalog-categories",
   "/api/health",
 ];
 
