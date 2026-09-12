@@ -328,7 +328,7 @@ export default async function HomePage() {
                       images={request.productImages}
                       title={request.title}
                       category={request.category}
-                      className="mx-auto h-24 w-24 rounded-xl"
+                      className="mx-auto h-28 w-28 rounded-xl"
                     />
                   </Link>
 
@@ -611,7 +611,7 @@ function SliderRequestCard({ request }: { request: HomeRequestCard }) {
           images={request.productImages}
           title={request.title}
           category={request.category}
-          className="mx-auto h-20 w-20 rounded-xl"
+          className="mx-auto h-24 w-24 rounded-xl"
         />
       </Link>
       <Link href={`/requests/${request.id}`}>

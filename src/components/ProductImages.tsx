@@ -73,8 +73,14 @@ function ProductFallbackVisual({
     return (
       <div className="relative grid h-full w-full place-items-center overflow-hidden bg-white">
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-white to-emerald-50" />
-        <div className="relative grid h-[72%] w-[72%] place-items-center rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50 shadow-inner ring-1 ring-slate-100">
-          <div className="text-[2rem] leading-none">💻</div>
+        <div className="relative flex h-[88%] w-[88%] flex-col items-center justify-center">
+          <div className="w-[88%] rounded-t-2xl border-[5px] border-slate-800 bg-slate-900 p-1 shadow-xl">
+            <div className="aspect-video overflow-hidden rounded-lg bg-gradient-to-br from-sky-300 via-indigo-200 to-emerald-200">
+              <div className="h-full w-full bg-[radial-gradient(circle_at_35%_28%,rgba(255,255,255,.9),transparent_18%),linear-gradient(135deg,rgba(255,255,255,.4),transparent_45%)]" />
+            </div>
+          </div>
+          <div className="h-3 w-full rounded-b-2xl bg-slate-300 shadow-md" />
+          <div className="mt-1 h-1.5 w-[58%] rounded-b-full bg-slate-400/80" />
         </div>
       </div>
     );
@@ -116,7 +122,7 @@ export function ProductHeroImage({
         <img
           src={productImageUrl(firstImage)}
           alt={`عکس محصول ${title}`}
-          className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-105"
+          className="h-full w-full object-contain p-1.5 transition duration-300 group-hover:scale-105"
           loading="lazy"
         />
       ) : (
