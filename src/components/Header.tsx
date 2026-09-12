@@ -90,6 +90,7 @@ export default function Header() {
     <header className="bg-white shadow-md sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" dir="rtl">
         <div className="flex justify-between items-center h-16">
+          <div className="flex items-center gap-5">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="flex items-center">
@@ -138,11 +139,7 @@ export default function Header() {
             <div className="text-xl font-bold text-[#003b5c] tracking-tight max-[360px]:hidden sm:text-2xl">
               Opti<span className="text-[#00a8e8]">Bid</span>
             </div>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6 space-x-reverse">
-            <div className="group relative py-5">
+          </Link>            <div className="group relative hidden py-5 md:block">
               <Link
                 href="/categories"
                 className="flex items-center gap-1 text-gray-900 hover:text-green-600 transition font-black"
@@ -210,6 +207,10 @@ export default function Header() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-6 space-x-reverse">
             <Link
               href="/requests"
               className="text-gray-700 hover:text-green-600 transition font-medium"
