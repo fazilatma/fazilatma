@@ -142,36 +142,12 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6 space-x-reverse">
-            <Link
-              href="/requests"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              درخواست‌های خرید
-            </Link>
-            <Link
-              href="/request-board"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              تابلوی آگهی‌ها
-            </Link>
-            <Link
-              href="/sellers"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              فروشندگان
-            </Link>
-            <Link
-              href="/buyers"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              خریداران
-            </Link>
             <div className="group relative py-5">
               <Link
                 href="/categories"
-                className="text-gray-700 hover:text-green-600 transition font-medium"
+                className="flex items-center gap-1 text-gray-900 hover:text-green-600 transition font-black"
               >
-                دسته‌بندی‌ها
+                <span className="text-lg leading-none">☰</span> دسته‌بندی کالاها
               </Link>
               <div className="invisible absolute right-0 top-full z-50 w-[840px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
                 <div className="grid min-h-[420px] grid-cols-12">
@@ -234,6 +210,30 @@ export default function Header() {
                 </div>
               </div>
             </div>
+            <Link
+              href="/requests"
+              className="text-gray-700 hover:text-green-600 transition font-medium"
+            >
+              درخواست‌های خرید
+            </Link>
+            <Link
+              href="/request-board"
+              className="text-gray-700 hover:text-green-600 transition font-medium"
+            >
+              تابلوی آگهی‌ها
+            </Link>
+            <Link
+              href="/sellers"
+              className="text-gray-700 hover:text-green-600 transition font-medium"
+            >
+              فروشندگان
+            </Link>
+            <Link
+              href="/buyers"
+              className="text-gray-700 hover:text-green-600 transition font-medium"
+            >
+              خریداران
+            </Link>
             <Link
               href="/how-it-works"
               className="pr-6 text-gray-700 hover:text-green-600 transition font-medium"
