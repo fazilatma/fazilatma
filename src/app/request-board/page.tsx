@@ -144,7 +144,7 @@ export default async function RequestBoardPage() {
                         requestBuyerId={request.buyerId}
                         requestCategory={request.category}
                         className="rounded-lg bg-[#003b5c] px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-[#002d46]"
-                        sellerLabel="ثبت پیشنهاد فروشنده"
+                        sellerLabel="ورود به عنوان فروشنده"
                       />
                       <BuyerModeButton
                         targetUrl={`/requests/${request.id}`}

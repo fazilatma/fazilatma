@@ -440,7 +440,7 @@ export default function RequestsListClient({
                               requestBuyerId={request.buyerId}
                               requestCategory={request.category}
                               className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700 transition hover:bg-amber-100"
-                              sellerLabel="ثبت پیشنهاد فروشنده"
+                              sellerLabel="ورود به عنوان فروشنده"
                             />
                             <Link
                               href={`/requests/${request.id}`}

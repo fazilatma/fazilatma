@@ -9,7 +9,7 @@ export default function SellerModeButton({
   requestCategory,
   className = "rounded-lg bg-[#003b5c] px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-[#002d46]",
   buyerLabel = "ورود به عنوان فروشنده",
-  sellerLabel = "ثبت پیشنهاد فروشنده",
+  sellerLabel = "ورود به عنوان فروشنده",
 }: {
   requestId: string | number;
   requestBuyerId?: number;
@@ -28,7 +28,14 @@ export default function SellerModeButton({
   }, []);
 
   const isOwnRequest = Boolean(userId && requestBuyerId && userId === requestBuyerId);
-  if (role === "admin" || isOwnRequest) return null;
+  if (role === "admin") return null;
+  if (isOwnRequest) {
+    return (
+      <span className="rounded-lg bg-gray-100 px-3 py-2 text-center text-xs font-bold text-gray-500">
+        آگهی خود شما
+      </span>
+    );
+  }
 
   if (role === "seller") {
     return (

@@ -124,12 +124,14 @@ export function ProductHeroImage({
 }) {
   const firstImage = images?.[0];
   return (
-    <div className={`overflow-hidden bg-gray-100 ${className}`}>
+    <div
+      className={`overflow-hidden border border-gray-100 bg-gray-50 shadow-inner ${className}`}
+    >
       {firstImage ? (
         <img
           src={productImageUrl(firstImage)}
           alt={`عکس محصول ${title}`}
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+          className="h-full w-full object-contain p-1 transition duration-300 group-hover:scale-105"
           loading="lazy"
         />
       ) : (
