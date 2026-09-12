@@ -84,7 +84,7 @@ export default function OfferAction({
             onClick={() => setOpen(true)}
             className="mt-3 inline-block rounded-xl bg-[#0b9c56] px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700"
           >
-            مشاهده پیشنهاد و هماهنگی مستقیم
+مشاهده پیشنهاد فروشنده
           </button>
           {open && (
             <div
@@ -95,7 +95,7 @@ export default function OfferAction({
                 <div className="mb-5 flex items-start justify-between gap-4 border-b pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-[#003b5c]">
-                      مشاهده پیشنهاد فروشنده و هماهنگی مستقیم
+مشاهده پیشنهاد فروشنده
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
                       فروشنده: {offerSellerName} · مبلغ پیشنهادی:{" "}
@@ -168,14 +168,6 @@ export default function OfferAction({
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
-                  <p className="font-bold">توجه حقوقی و مالی</p>
-                  <p className="mt-2">
-                    در مدل جدید، سایت فقط بستر ثبت درخواست و دریافت پیشنهاد است.
-                    وجهی نزد سایت نگهداری نمی‌شود و پرداخت، تحویل، تست، مرجوعی و
-                    مسئولیت معامله مستقیماً بین خریدار و فروشنده انجام می‌شود.
-                  </p>
-                </div>
 
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <button
@@ -201,8 +193,7 @@ export default function OfferAction({
 
     return (
       <span className="mt-3 inline-block rounded-xl bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">
-        فقط خریدار صاحب این درخواست می‌تواند این پیشنهاد را برای هماهنگی مستقیم
-        انتخاب کند
+        فقط خریدار صاحب این درخواست می‌تواند این پیشنهاد را انتخاب کند
       </span>
     );
   }

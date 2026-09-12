@@ -306,8 +306,8 @@ export const generateInvoiceHTML = (invoiceData: any) => {
           <div class="info-row"><span>نام خریدار</span><b>${escapeHtml(buyerName)}</b></div>
           <div class="info-row"><span>آدرس تحویل</span><b>${escapeHtml(invoiceData.shippingAddress || liveContent.invoiceShippingAddressFa)}</b></div>
           <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${escapeHtml(documentId)}</b></div>
-          <div class="info-row"><span>روش پرداخت</span><b>${escapeHtml(invoiceData.paymentMethod === "wallet" ? "کیف پول" : invoiceData.paymentMethod === "zarinpal" ? "زرین‌پال" : invoiceData.paymentMethod === "gateway" ? "درگاه پرداخت آزمایشی" : "پرداخت امانی OptiBid")}</b></div>
-          <div class="info-row"><span>حساب امانی</span><b>وجه تا تایید دریافت نزد OptiBid امانت است</b></div>
+          <div class="info-row"><span>روش پرداخت</span><b>${escapeHtml(invoiceData.paymentMethod === "wallet" ? "کیف پول" : invoiceData.paymentMethod === "zarinpal" ? "زرین‌پال" : invoiceData.paymentMethod === "gateway" ? "درگاه پرداخت آزمایشی" : "ثبت دستی")}</b></div>
+          <div class="info-row"><span>نوع سند</span><b>خلاصه اطلاعات سفارش</b></div>
         </article>
       </section>
 

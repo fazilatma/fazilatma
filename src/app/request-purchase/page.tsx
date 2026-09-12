@@ -483,33 +483,6 @@ export default function RequestPurchasePage() {
           </p>
         </div>
 
-        {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
-          <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            چگونه کار می‌کند؟
-          </h3>
-          <ol className="list-decimal list-inside space-y-2 text-blue-700 text-sm mr-4">
-            <li>درخواست خرید خود را با جزئیات و مشخصات اسکرولی ثبت می‌کنید</li>
-            <li>درخواست برای فروشندگان دسته‌بندی مرتبط نمایش داده می‌شود</li>
-            <li>فروشندگان قیمت، مشخصات واقعی کالا و شرایط تحویل را پیشنهاد می‌دهند</li>
-            <li>شما پیشنهادها را مقایسه می‌کنید و با فروشنده مناسب مستقیم هماهنگ می‌شوید</li>
-            <li>OptiBid فقط بستر آگهی و ارتباط است و وجهی نزد سایت نگهداری نمی‌شود</li>
-            <li>پرداخت، تست، تحویل، مرجوعی و مسئولیت معامله بین خریدار و فروشنده است</li>
-          </ol>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
@@ -1116,29 +1089,6 @@ export default function RequestPurchasePage() {
             )}
           </div>
 
-          {/* Direct marketplace notice */}
-          <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-            <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
-              بستر آگهی و ارتباط مستقیم؛ بدون نگهداری وجه
-            </h3>
-            <p className="text-green-700 text-sm leading-7">
-              OptiBid فقط درخواست خرید و پیشنهاد فروشنده را به هم وصل می‌کند. پرداخت، تحویل،
-              تست، مرجوعی و مسئولیت معامله مستقیماً بین خریدار و فروشنده انجام می‌شود و وجهی نزد سایت نگهداری نمی‌شود.
-            </p>
-          </div>
 
           {/* Submit */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">

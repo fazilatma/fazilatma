@@ -345,59 +345,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* OptiBid Advantages */}
-      <section className="bg-gradient-to-l from-[#003b5c] to-[#005e94] py-16 text-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto mb-12 max-w-3xl text-center">
-            <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-blue-100">
-              چرا OptiBid؟
-            </span>
-            <h2 className="mt-5 text-3xl font-bold">
-              تصمیم بهتر با داده واقعی، نه ادعای تبلیغاتی
-            </h2>
-            <p className="mt-4 leading-8 text-blue-100">
-              قیمت رقابتی فروشندگان، امتیاز واقعی طرفین و مشخصات شفاف کالا در یک
-              بستر آگهی‌محور و کم‌ریسک.
-            </p>
-          </div>
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                icon: "⚖️",
-                title: "رقابت واقعی قیمت",
-                text: "چند فروشنده برای یک درخواست واقعی پیشنهاد می‌دهند و خریدار مقایسه می‌کند.",
-              },
-              {
-                icon: "⭐",
-                title: "اعتبار دوطرفه",
-                text: "خریدار و فروشنده فقط پس از معامله تکمیل‌شده به یکدیگر امتیاز می‌دهند.",
-              },
-              {
-                icon: "🔒",
-                title: "ارتباط مستقیم",
-                text: "سایت فقط بستر درخواست و پیشنهاد است؛ پرداخت و تحویل مستقیم بین خریدار و فروشنده انجام می‌شود.",
-              },
-              {
-                icon: "🧾",
-                title: "سند و فاکتور شفاف",
-                text: "سفارش، کمیسیون، رهگیری، تراکنش و فاکتور هر معامله قابل پیگیری است.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-sm"
-              >
-                <div className="text-4xl">{item.icon}</div>
-                <h3 className="mt-4 text-lg font-bold">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-blue-100">
-                  {item.text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Top Sellers */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

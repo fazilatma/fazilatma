@@ -79,7 +79,7 @@ export default function AdminDashboardClient({
     "پلتفرم درخواست خرید و تامین کالا",
   );
   const [siteSubSlogan, setSiteSubSlogan] = useState(
-    "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و با پرداخت امن امانی خرید کنید",
+    "درخواست خرید خود را ثبت کنید و پیشنهادهای تامین‌کنندگان معتبر را مقایسه کنید",
   );
   const [fontFamily, setFontFamily] = useState("Vazir");
   const [fontSize, setFontSize] = useState("16");
@@ -252,7 +252,7 @@ export default function AdminDashboardClient({
       value: `${platformFinance.platformWalletBalance.toLocaleString("fa-IR")} تومان`,
     },
     {
-      label: "وجوه امانی نزد پلتفرم (Escrow)",
+      label: "درآمد قابل گزارش پلتفرم",
       value: `${realStats.escrowHeld.toLocaleString("fa-IR")} تومان`,
     },
     {

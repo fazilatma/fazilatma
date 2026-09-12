@@ -235,21 +235,8 @@ export default async function RequestDetailPage({
               </div>
 
               {offers.length === 0 ? (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-gray-500">
-                    هنوز فروشنده‌ای برای این درخواست پیشنهاد ثبت نکرده است.
-                  </div>
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center text-sm leading-7 text-amber-900">
-                    <p className="text-lg font-bold">
-                      هماهنگی مستقیم با فروشنده
-                    </p>
-                    <p className="mt-2">
-                      بعد از اینکه فروشنده‌ها پیشنهاد قیمت و مشخصات کالا را ثبت
-                      کنند، خریدار صاحب درخواست می‌تواند پیشنهادها را ببیند و
-                      برای پرداخت/تحویل، مستقیماً با فروشنده هماهنگ کند. سایت
-                      وجهی نزد خود نگه نمی‌دارد.
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-gray-500">
+                  هنوز فروشنده‌ای برای این درخواست پیشنهاد ثبت نکرده است.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -443,14 +430,6 @@ export default async function RequestDetailPage({
                   </b>
                 </div>
               </div>
-            </div>
-            <div className="rounded-3xl bg-gradient-to-l from-[#003b5c] to-[#005e94] p-6 text-white">
-              <h2 className="font-bold">مدل ارتباط مستقیم</h2>
-              <p className="mt-3 text-sm leading-7 text-blue-100">
-                سایت فقط بستر ثبت درخواست و دریافت پیشنهاد است. پرداخت، تحویل،
-                تست و مسئولیت معامله مستقیماً بین خریدار و فروشنده انجام می‌شود
-                و وجهی نزد سایت نگهداری نمی‌شود.
-              </p>
             </div>
           </aside>
         </div>

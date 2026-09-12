@@ -196,8 +196,8 @@ module.exports=[98649,65893,a=>{"use strict";var b=a.i(87924);function c(a){if(!
           <div class="info-row"><span>نام خریدار</span><b>${e(l)}</b></div>
           <div class="info-row"><span>آدرس تحویل</span><b>${e(a.shippingAddress||h.invoiceShippingAddressFa)}</b></div>
           <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${e(i)}</b></div>
-          <div class="info-row"><span>روش پرداخت</span><b>${e("wallet"===a.paymentMethod?"کیف پول":"zarinpal"===a.paymentMethod?"زرین‌پال":"gateway"===a.paymentMethod?"درگاه پرداخت آزمایشی":"پرداخت امانی OptiBid")}</b></div>
-          <div class="info-row"><span>حساب امانی</span><b>وجه تا تایید دریافت نزد OptiBid امانت است</b></div>
+          <div class="info-row"><span>روش پرداخت</span><b>${e("wallet"===a.paymentMethod?"کیف پول":"zarinpal"===a.paymentMethod?"زرین‌پال":"gateway"===a.paymentMethod?"درگاه پرداخت آزمایشی":"ثبت دستی")}</b></div>
+          <div class="info-row"><span>نوع سند</span><b>خلاصه اطلاعات سفارش</b></div>
         </article>
       </section>
 

@@ -38,8 +38,8 @@ export default function BecomeSellerPage() {
     },
     {
       icon: "🔒",
-      title: "پرداخت امن و مطمئن",
-      description: "دریافت پرداخت‌ها با تضمین و امنیت کامل",
+      title: "مدیریت حرفه‌ای پیشنهادها",
+      description: "پیشنهادها، مشخصات کالا و اطلاعات مشتریان را منظم‌تر مدیریت کنید",
     },
     {
       icon: "📊",

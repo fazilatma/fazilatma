@@ -196,8 +196,8 @@
           <div class="info-row"><span>نام خریدار</span><b>${r(p)}</b></div>
           <div class="info-row"><span>آدرس تحویل</span><b>${r(e.shippingAddress||l.invoiceShippingAddressFa)}</b></div>
           <div class="info-row"><span>شماره سفارش</span><b dir="ltr">${r(n)}</b></div>
-          <div class="info-row"><span>روش پرداخت</span><b>${r("wallet"===e.paymentMethod?"کیف پول":"zarinpal"===e.paymentMethod?"زرین‌پال":"gateway"===e.paymentMethod?"درگاه پرداخت آزمایشی":"پرداخت امانی OptiBid")}</b></div>
-          <div class="info-row"><span>حساب امانی</span><b>وجه تا تایید دریافت نزد OptiBid امانت است</b></div>
+          <div class="info-row"><span>روش پرداخت</span><b>${r("wallet"===e.paymentMethod?"کیف پول":"zarinpal"===e.paymentMethod?"زرین‌پال":"gateway"===e.paymentMethod?"درگاه پرداخت آزمایشی":"ثبت دستی")}</b></div>
+          <div class="info-row"><span>نوع سند</span><b>خلاصه اطلاعات سفارش</b></div>
         </article>
       </section>
 

@@ -486,10 +486,10 @@ export default function BuyerDashboardPage() {
           <div className="mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl bg-gradient-to-l from-[#003b5c] to-[#005e94] p-5 text-white sm:flex-row">
             <div>
               <h2 className="font-bold">
-                {pendingOrders.length} سفارش آماده پرداخت دارید
+                {pendingOrders.length} پیشنهاد آماده بررسی دارید
               </h2>
               <p className="mt-1 text-sm text-blue-100">
-                پس از پرداخت، مبلغ نزد OptiBid امانت می‌ماند.
+                جزئیات پیشنهاد فروشنده را بررسی کنید.
               </p>
             </div>
             <button

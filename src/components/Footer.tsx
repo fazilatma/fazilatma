@@ -243,24 +243,6 @@ export default async function Footer() {
           </div>
         </div>
 
-        {/* Revenue / Listing Model */}
-        <div className="border-t border-gray-800 mt-8 pt-8">
-          <h4 className="font-bold mb-4 text-center">مدل درآمد و تعامل</h4>
-          <div className="flex flex-wrap justify-center gap-4">
-            <div className="bg-white rounded-lg px-4 py-2 text-gray-700 text-sm font-bold">
-              🧾 ثبت آگهی درخواست
-            </div>
-            <div className="bg-white rounded-lg px-4 py-2 text-gray-700 text-sm font-bold">
-              ⬆️ نردبان آگهی
-            </div>
-            <div className="bg-white rounded-lg px-4 py-2 text-gray-700 text-sm font-bold">
-              ⭐ آگهی ویژه
-            </div>
-            <div className="bg-white rounded-lg px-4 py-2 text-gray-700 text-sm font-bold">
-              🤝 هماهنگی مستقیم طرفین
-            </div>
-          </div>
-        </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
           <p>© ۱۴۰۳ OptiBid - تمامی حقوق محفوظ است.</p>

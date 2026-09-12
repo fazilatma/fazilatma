@@ -34,26 +34,26 @@ export async function GET() {
       {
         path: "src/app/request-purchase/page.tsx",
         title: "۴. صفحه ثبت درخواست خرید (Purchase Request Form)",
-        category: "Frontend (درخواست خرید و پرداخت امانی)",
-        description: "فرم ثبت درخواست کالا توسط خریدار با بودجه و مهلت، متصل به سیستم امانت‌داری وجه"
+        category: "Frontend (درخواست خرید و پیشنهاد فروشنده)",
+        description: "فرم ثبت درخواست کالا توسط خریدار با بودجه، مهلت، عکس و مشخصات فنی"
       },
       {
         path: "src/app/requests/page.tsx",
         title: "۵. صفحه لیست درخواست‌های خرید (Requests List)",
-        category: "Frontend (درخواست خرید و پرداخت امانی)",
+        category: "Frontend (درخواست خرید و پیشنهاد فروشنده)",
         description: "لیست درخواست‌های باز خریداران جهت مشاهده و ارسال پیشنهاد قیمت توسط فروشندگان مرتبط"
       },
       {
         path: "src/app/requests/[id]/page.tsx",
         title: "۶. صفحه جزئیات درخواست و انتخاب پیشنهاد فروشنده",
-        category: "Frontend (درخواست خرید و پرداخت امانی)",
-        description: "جزئیات درخواست خرید، مقایسه پیشنهادهای فروشندگان، مذاکره و دکمه پرداخت امن"
+        category: "Frontend (درخواست خرید و پیشنهاد فروشنده)",
+        description: "جزئیات درخواست خرید، مشخصات کالا و پیشنهادهای فروشندگان"
       },
       {
         path: "src/app/requests/[id]/checkout/page.tsx",
-        title: "۷. صفحه پرداخت امن و امانی (Escrow Checkout)",
-        category: "Frontend (درخواست خرید و پرداخت امانی)",
-        description: "صفحه صورت‌حساب، تاییدیه قوانین امانت‌داری وجه و انتخاب درگاه پرداخت"
+        title: "۷. صفحه بررسی پیشنهاد انتخاب‌شده",
+        category: "Frontend (درخواست خرید و پیشنهاد فروشنده)",
+        description: "صفحه جمع‌بندی پیشنهاد انتخاب‌شده و اطلاعات سفارش"
       },
       {
         path: "src/app/buyer/dashboard/page.tsx",
@@ -123,9 +123,9 @@ export async function GET() {
       },
       {
         path: "src/app/how-it-works/page.tsx",
-        title: "۱۹. صفحه راهنمای نحوه کار (How It Works)",
+        title: "۱۹. صفحه راهنما (How It Works)",
         category: "Frontend (صفحات اصلی)",
-        description: "راهنمای کامل خرید و فروش با پرداخت امانی برای خریداران و فروشندگان"
+        description: "صفحه متمرکز راهنمای خرید، فروش و مدل فعالیت OptiBid"
       },
       {
         path: "src/utils/invoiceGenerator.ts",

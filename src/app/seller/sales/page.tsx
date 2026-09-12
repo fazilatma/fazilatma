@@ -76,20 +76,6 @@ export default function SellerSalesPage() {
           </p>
         </div>
 
-        {/* Info Box */}
-        <div className="bg-gradient-to-l from-green-50 to-blue-50 border border-green-200 rounded-xl p-5 mb-6">
-          <h3 className="font-bold text-green-800 mb-2">
-            🔒 نحوه تسویه حساب با فروشنده:
-          </h3>
-          <ul className="text-sm text-green-700 space-y-1 mr-5 list-disc">
-            <li>وجه توسط خریدار به حساب امانی پلتفرم واریز می‌شود.</li>
-            <li>شما کالا را ارسال کرده و کد رهگیری را ثبت می‌کنید.</li>
-            <li>
-              پس از تایید نهایی تحویل توسط خریدار، مبلغ نهایی (با کسر ۵٪ کمیسیون
-              پلتفرم) به کیف پول شما واریز می‌گردد.
-            </li>
-          </ul>
-        </div>
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6 bg-white rounded-xl p-2 border border-gray-200">
