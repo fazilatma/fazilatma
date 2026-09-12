@@ -71,26 +71,11 @@ function ProductFallbackVisual({
 
   if (kind === "laptop") {
     return (
-      <div className="relative grid h-full w-full place-items-center overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50 to-blue-100">
-        <div className="absolute right-3 top-3 rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold text-[#003b5c] shadow-sm">
-          Laptop
+      <div className="relative grid h-full w-full place-items-center overflow-hidden bg-white">
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-white to-emerald-50" />
+        <div className="relative grid h-[72%] w-[72%] place-items-center rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50 shadow-inner ring-1 ring-slate-100">
+          <div className="text-[2rem] leading-none">💻</div>
         </div>
-        <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-[#00a8e8]/15" />
-        <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-[#0b9c56]/15" />
-        <div className={`${compact ? "w-4/5" : "w-3/4 max-w-64"}`}>
-          <div className="rounded-t-2xl border-[6px] border-slate-700 bg-slate-900 p-1 shadow-2xl">
-            <div className="aspect-video overflow-hidden rounded-lg bg-gradient-to-br from-sky-300 via-indigo-300 to-emerald-200">
-              <div className="h-full w-full bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,.85),transparent_18%),linear-gradient(135deg,rgba(255,255,255,.35),transparent_45%)]" />
-            </div>
-          </div>
-          <div className="mx-auto h-3 w-[92%] rounded-b-2xl bg-slate-300 shadow-lg" />
-          <div className="mx-auto mt-1 h-2 w-[62%] rounded-b-full bg-slate-400/70" />
-        </div>
-        {!compact && (
-          <div className="absolute bottom-3 rounded-full bg-white/85 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-            {labelByKind[kind]}
-          </div>
-        )}
       </div>
     );
   }
@@ -115,7 +100,7 @@ export function ProductHeroImage({
   images,
   title,
   category,
-  className = "h-52 w-full",
+  className = "aspect-square w-28 rounded-2xl",
 }: {
   images?: ProductImageAttachment[];
   title: string;
@@ -125,17 +110,17 @@ export function ProductHeroImage({
   const firstImage = images?.[0];
   return (
     <div
-      className={`overflow-hidden border border-gray-100 bg-gray-50 shadow-inner ${className}`}
+      className={`aspect-square overflow-hidden border border-gray-100 bg-white shadow-inner ${className}`}
     >
       {firstImage ? (
         <img
           src={productImageUrl(firstImage)}
           alt={`عکس محصول ${title}`}
-          className="h-full w-full object-contain p-1 transition duration-300 group-hover:scale-105"
+          className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-105"
           loading="lazy"
         />
       ) : (
-        <ProductFallbackVisual title={title} category={category} />
+        <ProductFallbackVisual title={title} category={category} compact />
       )}
     </div>
   );
@@ -161,7 +146,7 @@ export function ProductThumb({
         <img
           src={productImageUrl(firstImage)}
           alt={`عکس محصول ${title}`}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain p-1"
           loading="lazy"
         />
       ) : (

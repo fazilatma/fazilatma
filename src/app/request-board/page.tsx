@@ -98,7 +98,7 @@ export default async function RequestBoardPage() {
                       images={request.productImages}
                       title={request.title}
                       category={request.category}
-                      className="mx-auto h-32 w-32 rounded-xl"
+                      className="mx-auto h-24 w-24 rounded-xl"
                     />
                   </Link>
 

@@ -383,7 +383,7 @@ export default function RequestsListClient({
                             images={request.productImages}
                             title={String(request.title)}
                             category={request.category}
-                            className="mx-auto h-32 w-32 rounded-xl"
+                            className="mx-auto h-24 w-24 rounded-xl"
                           />
                         </Link>
 

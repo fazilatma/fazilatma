@@ -53,22 +53,29 @@ function requestSpecBadges(request: {
     .slice(0, 3);
 }
 
+type HomeRequestCard = {
+  id: number;
+  buyerId: number;
+  title: string;
+  description: string;
+  budget: string;
+  budgetValue: number;
+  category: string;
+  timeAgo: string;
+  offers: number;
+  quantity: number;
+  productImages?: ProductImageAttachment[];
+  valuationFactors?: Partial<ProductValuationFactors>;
+  buyer?: { id: number; fullName: string; avatarName?: string };
+  latestSeller?: { id: number; fullName: string; avatarName?: string };
+  growthScore: number;
+};
+
 export default async function HomePage() {
-  let displayRequests: Array<{
-    id: number;
-    buyerId: number;
-    title: string;
-    description: string;
-    budget: string;
-    category: string;
-    timeAgo: string;
-    offers: number;
-    quantity: number;
-    productImages?: ProductImageAttachment[];
-    valuationFactors?: Partial<ProductValuationFactors>;
-    buyer?: { id: number; fullName: string; avatarName?: string };
-    latestSeller?: { id: number; fullName: string; avatarName?: string };
-  }> = [];
+  let displayRequests: HomeRequestCard[] = [];
+  let bestSellingRequests: HomeRequestCard[] = [];
+  let growthPredictionRequests: HomeRequestCard[] = [];
+  let mostRequestedRequests: HomeRequestCard[] = [];
   let displayCategories = sampleCategories;
   let topSellers: Awaited<ReturnType<typeof getJsonSellerRankings>> = [];
   let topBuyers: Awaited<ReturnType<typeof getJsonBuyerRankings>> = [];
@@ -110,14 +117,16 @@ export default async function HomePage() {
       offersByRequest.set(offer.requestId, list);
     }
 
-    displayRequests = jsonRequests.slice(0, 4).map((request) => {
+    const mappedRequests: HomeRequestCard[] = jsonRequests.map((request) => {
       const latestOffer = offersByRequest.get(request.id)?.[0];
+      const budgetValue = Number(request.budget || 0);
       return {
         id: request.id,
         buyerId: request.buyerId,
         title: request.title,
         description: request.description,
-        budget: Number(request.budget || 0).toLocaleString("fa-IR") + " تومان",
+        budget: budgetValue.toLocaleString("fa-IR") + " تومان",
+        budgetValue,
         category: request.category || "سایر",
         timeAgo: "جدید",
         offers: request.offersCount,
@@ -128,8 +137,23 @@ export default async function HomePage() {
         latestSeller: latestOffer
           ? publicUsers.get(latestOffer.sellerId)
           : undefined,
+        growthScore:
+          (request.aiPriceEstimate?.estimatedUnitMax || 0) +
+          (request.aiPriceEstimate?.confidence || 0) * 100000 +
+          budgetValue * 0.05,
       };
     });
+
+    displayRequests = mappedRequests.slice(0, 4);
+    bestSellingRequests = [...mappedRequests]
+      .sort((a, b) => b.offers - a.offers || b.budgetValue - a.budgetValue)
+      .slice(0, 10);
+    growthPredictionRequests = [...mappedRequests]
+      .sort((a, b) => b.growthScore - a.growthScore)
+      .slice(0, 10);
+    mostRequestedRequests = [...mappedRequests]
+      .sort((a, b) => b.quantity - a.quantity || b.offers - a.offers)
+      .slice(0, 10);
 
     const categoryCountMap = new Map<string, number>();
     for (const request of jsonRequests) {
@@ -208,30 +232,56 @@ export default async function HomePage() {
       </section>
 
       {/* Categories Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-4">
-            دسته‌بندی‌های تخصصی
-          </h2>
-          <p className="text-gray-600 text-center mb-12">
-            درخواست خرید خود را در دسته‌بندی مورد نظر ثبت کنید
-          </p>
+      <section className="bg-white py-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-black text-gray-900 md:text-3xl">
+              دسته‌بندی کالاها
+            </h2>
+          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-4 gap-4 sm:grid-cols-6 lg:grid-cols-8">
             {displayCategories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/categories/${cat.id}`}
-                className="bg-gray-50 hover:bg-green-50 p-6 rounded-xl text-center card-hover border border-gray-100"
+                className="group flex flex-col items-center gap-2 rounded-2xl p-2 transition hover:bg-gray-50"
               >
-                <div className="text-4xl mb-3">{cat.icon}</div>
-                <h3 className="font-bold text-gray-800">{cat.nameFa}</h3>
-                <p className="text-sm text-gray-500 mt-2">
-                  {cat.count.toLocaleString()} درخواست
+                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gray-50 text-3xl shadow-inner ring-1 ring-gray-100 transition group-hover:-translate-y-0.5 group-hover:bg-blue-50">
+                  {cat.icon}
+                </div>
+                <h3 className="line-clamp-2 text-center text-xs font-bold leading-5 text-gray-800">
+                  {cat.nameFa}
+                </h3>
+                <p className="text-[10px] text-gray-400">
+                  {cat.count.toLocaleString("fa-IR")} درخواست
                 </p>
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="bg-gray-50 py-10">
+        <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+          <RequestSliderSection
+            title="پرفروش‌ترین‌ها"
+            subtitle="آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند"
+            items={bestSellingRequests}
+            accent="bg-rose-600"
+          />
+          <RequestSliderSection
+            title="پیش‌بینی رشد قیمت"
+            subtitle="درخواست‌هایی که سیگنال قیمتی و بودجه بالاتری دارند"
+            items={growthPredictionRequests}
+            accent="bg-[#003b5c]"
+          />
+          <RequestSliderSection
+            title="بیشترین درخواست‌شده"
+            subtitle="درخواست‌هایی با تعداد بیشتر یا تقاضای بالاتر"
+            items={mostRequestedRequests}
+            accent="bg-[#0b9c56]"
+          />
         </div>
       </section>
 
@@ -297,7 +347,7 @@ export default async function HomePage() {
                       images={request.productImages}
                       title={request.title}
                       category={request.category}
-                      className="mx-auto h-32 w-32 rounded-xl"
+                      className="mx-auto h-24 w-24 rounded-xl"
                     />
                   </Link>
 
@@ -530,5 +580,80 @@ export default async function HomePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function RequestSliderSection({
+  title,
+  subtitle,
+  items,
+  accent,
+}: {
+  title: string;
+  subtitle: string;
+  items: HomeRequestCard[];
+  accent: string;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className={`h-6 w-1.5 rounded-full ${accent}`} />
+            <h2 className="text-xl font-black text-gray-900">{title}</h2>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
+        </div>
+        <Link
+          href="/requests"
+          className="shrink-0 rounded-xl bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100"
+        >
+          مشاهده همه
+        </Link>
+      </div>
+      <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+        {items.map((request) => (
+          <SliderRequestCard key={`${title}-${request.id}`} request={request} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SliderRequestCard({ request }: { request: HomeRequestCard }) {
+  const badges = requestSpecBadges(request).slice(0, 2);
+  return (
+    <article className="w-44 shrink-0 snap-start rounded-2xl border border-gray-100 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <Link href={`/requests/${request.id}`} className="block">
+        <ProductHeroImage
+          images={request.productImages}
+          title={request.title}
+          category={request.category}
+          className="mx-auto h-20 w-20 rounded-xl"
+        />
+      </Link>
+      <Link href={`/requests/${request.id}`}>
+        <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-extrabold leading-5 text-gray-900">
+          {request.title}
+        </h3>
+      </Link>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {badges.map((badge) => (
+          <span
+            key={badge}
+            className="rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-500"
+          >
+            {badge}
+          </span>
+        ))}
+      </div>
+      <div className="mt-3 border-t border-gray-100 pt-2">
+        <p className="text-sm font-black text-[#0b9c56]">{request.budget}</p>
+        <p className="mt-1 text-[11px] text-gray-400">
+          {request.offers.toLocaleString("fa-IR")} پیشنهاد · تعداد {request.quantity.toLocaleString("fa-IR")}
+        </p>
+      </div>
+    </article>
   );
 }

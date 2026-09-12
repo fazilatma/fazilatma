@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+const headerCategories = [
+  { icon: "📱", name: "کالای دیجیتال", href: "/categories/1", items: ["لپ‌تاپ", "موبایل", "قطعات کامپیوتر", "مانیتور"] },
+  { icon: "👕", name: "مد و پوشاک", href: "/categories/2", items: ["لباس", "کفش", "کیف", "اکسسوری"] },
+  { icon: "🏠", name: "خانه و آشپزخانه", href: "/categories/3", items: ["لوازم خانگی", "آشپزخانه", "دکور", "نظافت"] },
+  { icon: "💄", name: "زیبایی و سلامت", href: "/categories/4", items: ["آرایشی", "بهداشتی", "مکمل", "عطر"] },
+  { icon: "📚", name: "کتاب و لوازم تحریر", href: "/categories/5", items: ["کتاب", "تحریر", "اداری", "آموزشی"] },
+  { icon: "⚽", name: "ورزش و سفر", href: "/categories/6", items: ["ورزشی", "کمپینگ", "چمدان", "دوچرخه"] },
+  { icon: "🚗", name: "خودرو و موتور", href: "/categories/8", items: ["قطعات", "لاستیک", "ابزار", "لوازم جانبی"] },
+];
+
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -139,12 +149,53 @@ export default function Header() {
             >
               خریداران
             </Link>
-            <Link
-              href="/categories"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              دسته‌بندی‌ها
-            </Link>
+            <div className="group relative py-5">
+              <Link
+                href="/categories"
+                className="text-gray-700 hover:text-green-600 transition font-medium"
+              >
+                دسته‌بندی‌ها
+              </Link>
+              <div className="invisible absolute right-0 top-full z-50 w-[760px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+                <div className="grid grid-cols-12">
+                  <div className="col-span-4 border-l border-gray-100 bg-gray-50 p-3">
+                    {headerCategories.map((category) => (
+                      <Link
+                        key={category.name}
+                        href={category.href}
+                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-gray-700 hover:bg-white hover:text-[#003b5c]"
+                      >
+                        <span className="text-xl">{category.icon}</span>
+                        <span>{category.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="col-span-8 grid grid-cols-3 gap-4 p-5">
+                    {headerCategories.slice(0, 6).map((category) => (
+                      <div key={category.name}>
+                        <Link
+                          href={category.href}
+                          className="mb-3 block border-r-2 border-red-500 pr-2 text-sm font-black text-gray-900 hover:text-[#00a8e8]"
+                        >
+                          {category.name}
+                        </Link>
+                        <div className="space-y-2">
+                          {category.items.map((item) => (
+                            <Link
+                              key={item}
+                              href={category.href}
+                              className="block text-xs text-gray-500 hover:text-[#00a8e8]"
+                            >
+                              {item}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
             <Link
               href="/how-it-works"
               className="pr-6 text-gray-700 hover:text-green-600 transition font-medium"

@@ -91,7 +91,7 @@ export default async function RequestDetailPage({
                   images={request.productImages}
                   title={request.title}
                   category={request.category}
-                  className="h-32 w-32"
+                  className="h-28 w-28"
                 />
                 <div className="min-w-0 flex-1">
                   <h1 className="text-3xl font-bold text-[#003b5c]">
