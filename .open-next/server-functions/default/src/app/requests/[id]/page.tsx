@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BuyerModeButton from "@/components/BuyerModeButton";
 import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
+import { RequestSpecsDetails } from "@/components/RequestSpecsDetails";
 import UserAvatar from "@/components/UserAvatar";
 import { getOptiBidData } from "@/lib/json-store";
 import { estimateFairUsedProductPrice } from "@/lib/request-valuation";
@@ -161,39 +163,16 @@ export default async function RequestDetailPage({
                 </div>
               )}
 
-              {request.valuationFactors && (
-                <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-5">
-                  <h2 className="mb-3 font-bold text-gray-800">
-                    فاکتورهای ثبت‌شده برای ارزش‌گذاری
-                  </h2>
-                  <div className="grid gap-2 text-xs text-gray-600 md:grid-cols-2">
-                    <span>
-                      قیمت مرجع بازار/ترب:{" "}
-                      <b>
-                        {request.valuationFactors.sameNewProductPrice || "—"}
-                      </b>
-                    </span>
-                    <span>
-                      سال ساخت:{" "}
-                      <b>{request.valuationFactors.manufactureYear || "—"}</b>
-                    </span>
-                    <span>
-                      گارانتی: <b>{request.valuationFactors.warrantyStatus}</b>
-                    </span>
-                    <span>
-                      سلامت قطعات: <b>{request.valuationFactors.partsHealth}</b>
-                    </span>
-                    <span>
-                      گرید ظاهری:{" "}
-                      <b>{request.valuationFactors.appearanceGrade}</b>
-                    </span>
-                    <span>
-                      سابقه تعمیر:{" "}
-                      <b>{request.valuationFactors.repairHistory}</b>
-                    </span>
-                  </div>
-                </div>
-              )}
+              <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5">
+                <h2 className="mb-3 font-bold text-gray-800">
+                  مشخصات کامل محصول درخواست‌شده توسط خریدار
+                </h2>
+                <RequestSpecsDetails
+                  factors={request.valuationFactors}
+                  description={request.description}
+                  dense
+                />
+              </div>
 
               {(!request.productImages || request.productImages.length === 0) &&
                 request.imageNames.length > 0 && (
@@ -430,6 +409,10 @@ export default async function RequestDetailPage({
                   </b>
                 </div>
               </div>
+              <BuyerModeButton
+                targetUrl={`/requests/${request.id}`}
+                className="mt-4 w-full rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-bold text-green-700 transition hover:bg-green-100"
+              />
             </div>
           </aside>
         </div>

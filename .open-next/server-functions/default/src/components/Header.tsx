@@ -41,6 +41,15 @@ export default function Header() {
     setTimeout(() => window.location.reload(), 200);
   };
 
+  const switchBackToSellerMode = () => {
+    localStorage.setItem("userRole", "seller");
+    localStorage.removeItem("previousUserRole");
+    setUserRole("seller");
+    setPreviousUserRole(null);
+    router.push("/seller/dashboard");
+    setTimeout(() => window.location.reload(), 200);
+  };
+
   const rememberLoginReturnPath = () => {
     if (pathname.startsWith("/requests") || pathname === "/request-purchase") {
       const query = window.location.search || "";
@@ -200,6 +209,14 @@ export default function Header() {
                     className="text-green-700 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-lg transition font-bold text-sm"
                   >
                     بازگشت به حالت خریدار
+                  </button>
+                )}
+                {userRole === "buyer" && previousUserRole === "seller" && (
+                  <button
+                    onClick={switchBackToSellerMode}
+                    className="text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition font-bold text-sm"
+                  >
+                    بازگشت به حالت فروشنده
                   </button>
                 )}
                 <button
@@ -373,6 +390,14 @@ export default function Header() {
                       className="w-full text-center border border-green-200 bg-green-50 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition font-bold"
                     >
                       بازگشت به حالت خریدار
+                    </button>
+                  )}
+                  {userRole === "buyer" && previousUserRole === "seller" && (
+                    <button
+                      onClick={switchBackToSellerMode}
+                      className="w-full text-center border border-blue-200 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition font-bold"
+                    >
+                      بازگشت به حالت فروشنده
                     </button>
                   )}
                   <button

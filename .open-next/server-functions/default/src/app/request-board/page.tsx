@@ -1,5 +1,7 @@
 import Link from "next/link";
+import BuyerModeButton from "@/components/BuyerModeButton";
 import { ProductHeroImage } from "@/components/ProductImages";
+import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
 import { getJsonRequests } from "@/lib/json-store";
 import type { ProductValuationFactors } from "@/lib/request-valuation";
 
@@ -122,19 +124,30 @@ export default async function RequestBoardPage() {
                         {Number(request.offersCount || 0).toLocaleString("fa-IR")} پیشنهاد
                       </span>
                     </div>
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <RequestSpecsModalButton
+                        title={request.title}
+                        description={request.description}
+                        factors={request.valuationFactors}
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 transition hover:bg-gray-50"
+                        label="مشخصات درخواست"
+                      />
                       <Link
                         href={`/requests/${request.id}`}
-                        className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 hover:bg-gray-50"
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 hover:bg-gray-50"
                       >
                         مشاهده آگهی
                       </Link>
                       <Link
                         href={`/requests/${request.id}/offer`}
-                        className="flex-1 rounded-lg bg-[#003b5c] px-3 py-2 text-center text-xs font-bold text-white hover:bg-[#002d46]"
+                        className="rounded-lg bg-[#003b5c] px-3 py-2 text-center text-xs font-bold text-white hover:bg-[#002d46]"
                       >
                         پیشنهاد فروشنده
                       </Link>
+                      <BuyerModeButton
+                        targetUrl={`/requests/${request.id}`}
+                        className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center text-xs font-bold text-green-700 transition hover:bg-green-100"
+                      />
                     </div>
                   </div>
                 </article>

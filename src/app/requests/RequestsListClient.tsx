@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import BuyerModeButton from "@/components/BuyerModeButton";
 import { ProductHeroImage, ProductImageStrip } from "@/components/ProductImages";
+import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
 import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
@@ -420,6 +422,17 @@ export default function RequestsListClient({
                           </div>
 
                           <div className="mt-auto flex flex-col gap-2 border-t border-gray-100 pt-3">
+                            <BuyerModeButton
+                              targetUrl={`/requests/${request.id}`}
+                              className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center text-xs font-bold text-green-700 transition hover:bg-green-100"
+                            />
+                            <RequestSpecsModalButton
+                              title={String(request.title)}
+                              description={request.description}
+                              factors={request.valuationFactors}
+                              className="rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 transition hover:bg-gray-50"
+                              label="مشخصات درخواست خریدار"
+                            />
                             {userRole === "seller" ? (
                               <Link
                                 href={`/requests/${request.id}/offer`}

@@ -1167,7 +1167,7 @@ export async function createJsonPurchaseRequest(input: {
 
   if (input.buyerId)
     buyer = data.users.find(
-      (user) => user.id === input.buyerId && user.role === "buyer",
+      (user) => user.id === input.buyerId && user.role !== "admin",
     );
   if (!buyer) {
     const buyerEmail = "buyer@optibid.local";

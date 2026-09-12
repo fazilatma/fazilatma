@@ -1,8 +1,11 @@
 import Link from "next/link";
 import SellerStars from "@/components/SellerStars";
+import BuyerModeButton from "@/components/BuyerModeButton";
 import { ProductHeroImage } from "@/components/ProductImages";
+import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
 import UserAvatar from "@/components/UserAvatar";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
+import type { ProductValuationFactors } from "@/lib/request-valuation";
 import {
   getJsonBuyerRankings,
   getJsonHomepageStats,
@@ -28,14 +31,7 @@ const sampleCategories = [
 function requestSpecBadges(request: {
   quantity?: number;
   description?: string;
-  valuationFactors?: {
-    cpuCores?: string;
-    ramGb?: string;
-    storageGb?: string;
-    displaySizeInch?: string;
-    batteryHealthPercent?: string;
-    partsHealthPercent?: string;
-  };
+  valuationFactors?: Partial<ProductValuationFactors>;
 }) {
   const factors = request.valuationFactors || {};
   const badges = [
@@ -67,14 +63,7 @@ export default async function HomePage() {
     offers: number;
     quantity: number;
     productImages?: ProductImageAttachment[];
-    valuationFactors?: {
-      cpuCores?: string;
-      ramGb?: string;
-      storageGb?: string;
-      displaySizeInch?: string;
-      batteryHealthPercent?: string;
-      partsHealthPercent?: string;
-    };
+    valuationFactors?: Partial<ProductValuationFactors>;
     buyer?: { id: number; fullName: string; avatarName?: string };
     latestSeller?: { id: number; fullName: string; avatarName?: string };
   }> = [];
@@ -276,9 +265,8 @@ export default async function HomePage() {
             {displayRequests.map((request) => {
               const specBadges = requestSpecBadges(request);
               return (
-                <Link
+                <article
                   key={request.id}
-                  href={`/requests/${request.id}`}
                   className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div className="flex items-center justify-between gap-2 p-3 pb-2">
@@ -301,21 +289,25 @@ export default async function HomePage() {
                     </span>
                   </div>
 
-                  <ProductHeroImage
-                    images={request.productImages}
-                    title={request.title}
-                    category={request.category}
-                    className="mx-3 h-32 rounded-xl"
-                  />
+                  <Link href={`/requests/${request.id}`} className="block">
+                    <ProductHeroImage
+                      images={request.productImages}
+                      title={request.title}
+                      category={request.category}
+                      className="mx-3 h-32 rounded-xl"
+                    />
+                  </Link>
 
                   <div className="p-3">
                     <div className="mb-1.5 flex items-center justify-between gap-2 text-[11px] text-gray-400">
                       <span>{request.timeAgo}</span>
                       <span>{request.offers.toLocaleString("fa-IR")} پیشنهاد</span>
                     </div>
-                    <h3 className="line-clamp-2 min-h-10 text-base font-bold leading-5 text-gray-900">
-                      {request.title}
-                    </h3>
+                    <Link href={`/requests/${request.id}`}>
+                      <h3 className="line-clamp-2 min-h-10 text-base font-bold leading-5 text-gray-900 transition group-hover:text-[#003b5c]">
+                        {request.title}
+                      </h3>
+                    </Link>
                     <p className="mt-1.5 line-clamp-1 text-xs leading-6 text-gray-500">
                       {request.description}
                     </p>
@@ -333,12 +325,31 @@ export default async function HomePage() {
                       <span className="text-sm font-extrabold text-[#0b9c56]">
                         {request.budget}
                       </span>
-                      <span className="rounded-lg bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700">
-                        مشاهده آگهی
+                      <span className="text-[11px] font-bold text-gray-500">
+                        {request.quantity.toLocaleString("fa-IR")} عدد
                       </span>
                     </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <RequestSpecsModalButton
+                        title={request.title}
+                        description={request.description}
+                        factors={request.valuationFactors}
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-bold text-gray-700 transition hover:bg-gray-50"
+                        label="مشخصات درخواست"
+                      />
+                      <Link
+                        href={`/requests/${request.id}`}
+                        className="rounded-lg bg-green-600 px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-green-700"
+                      >
+                        مشاهده آگهی
+                      </Link>
+                      <BuyerModeButton
+                        targetUrl={`/requests/${request.id}`}
+                        className="col-span-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center text-xs font-bold text-green-700 transition hover:bg-green-100"
+                      />
+                    </div>
                   </div>
-                </Link>
+                </article>
               );
             })}
           </div>
