@@ -1,7 +1,14 @@
 import Link from "next/link";
+import AmazingDealsSection, {
+  type AmazingDealItem,
+} from "@/components/AmazingDealsSection";
+import AmazingOfferNotification from "@/components/AmazingOfferNotification";
 import SellerStars from "@/components/SellerStars";
 import BuyerModeButton from "@/components/BuyerModeButton";
 import HomeCategoryMenu from "@/components/HomeCategoryMenu";
+import PersonalizedRequestRows, {
+  type PersonalizedRequestItem,
+} from "@/components/PersonalizedRequestRows";
 import { ProductHeroImage } from "@/components/ProductImages";
 import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
 import SellerModeButton from "@/components/SellerModeButton";
@@ -24,6 +31,14 @@ import {
 export const dynamic = "force-dynamic";
 
 type HomeCategory = CatalogCategory & { count: number };
+
+function moneyValue(value?: string | number) {
+  return Number(String(value || "").replace(/\D/g, "")) || 0;
+}
+
+function boundedDiscount(value: number) {
+  return Math.max(0, Math.min(90, Math.round(value || 0)));
+}
 
 function requestSpecBadges(request: {
   quantity?: number;
@@ -65,6 +80,7 @@ type HomeRequestCard = {
   buyer?: { id: number; fullName: string; avatarName?: string };
   latestSeller?: { id: number; fullName: string; avatarName?: string };
   growthScore: number;
+  discountPercent: number;
   growthSignal?: Awaited<ReturnType<typeof getJsonPriceGrowthSignals>>[number];
 };
 
@@ -73,6 +89,17 @@ export default async function HomePage() {
   let bestSellingRequests: HomeRequestCard[] = [];
   let growthPredictionRequests: HomeRequestCard[] = [];
   let mostRequestedRequests: HomeRequestCard[] = [];
+  let amazingDealsRequests: AmazingDealItem[] = [];
+  let personalizedRequests: PersonalizedRequestItem[] = [];
+  let amazingSettings = {
+    enabled: true,
+    durationHours: 6,
+    discountCode: "OPTIBID",
+    notificationEnabled: true,
+    notificationTitle: "فرصت ویژه درخواست خرید",
+    notificationText:
+      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
+  };
   let displayCategories: HomeCategory[] = defaultCatalogCategories.map(
     (category) => ({ ...category, count: 0 }),
   );
@@ -104,6 +131,14 @@ export default async function HomePage() {
     ]);
 
     realStats = stats;
+    amazingSettings = {
+      enabled: data.settings.amazingDealsEnabled,
+      durationHours: data.settings.amazingDealsDurationHours,
+      discountCode: data.settings.amazingDealsDiscountCode,
+      notificationEnabled: data.settings.amazingDealsNotificationEnabled,
+      notificationTitle: data.settings.amazingDealsNotificationTitle,
+      notificationText: data.settings.amazingDealsNotificationText,
+    };
     topSellers = sellerRankings
       .filter((item) => item.rating.rankingEligible)
       .slice(0, 4);
@@ -129,6 +164,13 @@ export default async function HomePage() {
     const mappedRequests: HomeRequestCard[] = jsonRequests.map((request) => {
       const latestOffer = offersByRequest.get(request.id)?.[0];
       const budgetValue = Number(request.budget || 0);
+      const budgetUnit = budgetValue / Math.max(1, Number(request.quantity || 1));
+      const marketReference = moneyValue(
+        request.valuationFactors?.sameNewProductPrice,
+      );
+      const discountPercent = marketReference && budgetUnit < marketReference
+        ? boundedDiscount(((marketReference - budgetUnit) / marketReference) * 100)
+        : boundedDiscount(request.aiPriceEstimate?.depreciationPercent || 0);
       const growthSignal = growthSignalByProduct.get(request.title);
       return {
         id: request.id,
@@ -148,6 +190,7 @@ export default async function HomePage() {
           ? publicUsers.get(latestOffer.sellerId)
           : undefined,
         growthScore: growthSignal?.score ?? 0,
+        discountPercent,
         growthSignal,
       };
     });
@@ -163,6 +206,34 @@ export default async function HomePage() {
     mostRequestedRequests = [...mappedRequests]
       .sort((a, b) => b.quantity - a.quantity || b.offers - a.offers)
       .slice(0, 10);
+    amazingDealsRequests = [...mappedRequests]
+      .filter((request) => request.discountPercent > 0)
+      .sort(
+        (a, b) =>
+          b.discountPercent - a.discountPercent ||
+          b.budgetValue - a.budgetValue,
+      )
+      .slice(0, 12)
+      .map((request) => ({
+        id: request.id,
+        title: request.title,
+        category: request.category,
+        budget: request.budget,
+        discountPercent: request.discountPercent,
+        quantity: request.quantity,
+        offers: request.offers,
+        productImages: request.productImages,
+      }));
+    personalizedRequests = mappedRequests.map((request) => ({
+      id: request.id,
+      title: request.title,
+      description: request.description,
+      category: request.category,
+      budget: request.budget,
+      quantity: request.quantity,
+      offers: request.offers,
+      productImages: request.productImages,
+    }));
 
     const categoryCountMap = new Map<string, number>();
     for (const request of jsonRequests) {
@@ -184,6 +255,15 @@ export default async function HomePage() {
 
   return (
     <div dir="rtl" className="min-h-screen">
+      <AmazingOfferNotification
+        deal={amazingDealsRequests[0]}
+        settings={{
+          enabled: amazingSettings.notificationEnabled,
+          title: amazingSettings.notificationTitle,
+          text: amazingSettings.notificationText,
+          discountCode: amazingSettings.discountCode,
+        }}
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-l from-green-600 to-green-800 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -255,6 +335,15 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <AmazingDealsSection
+        items={amazingDealsRequests}
+        settings={{
+          enabled: amazingSettings.enabled,
+          durationHours: amazingSettings.durationHours,
+          discountCode: amazingSettings.discountCode,
+        }}
+      />
+
       <section className="bg-gray-50 py-10">
         <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
           <RequestSliderSection
@@ -278,6 +367,8 @@ export default async function HomePage() {
           />
         </div>
       </section>
+
+      <PersonalizedRequestRows requests={personalizedRequests} />
 
       {/* Latest Purchase Requests */}
       <section className="py-16 bg-gray-50">

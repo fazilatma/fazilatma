@@ -94,6 +94,21 @@ export default function RequestsListClient({
     setUserId(Number(localStorage.getItem("userId") || 0));
   }, []);
 
+  const rememberSearchTerm = (value: string) => {
+    const term = value.trim().replace(/\s+/g, " ");
+    if (term.length < 2) return;
+    try {
+      const current = JSON.parse(
+        localStorage.getItem("optibid_search_history") || "[]",
+      );
+      const list = Array.isArray(current) ? current.map(String) : [];
+      const next = [term, ...list.filter((item) => item !== term)].slice(0, 12);
+      localStorage.setItem("optibid_search_history", JSON.stringify(next));
+    } catch {
+      localStorage.setItem("optibid_search_history", JSON.stringify([term]));
+    }
+  };
+
   // فیلتر کردن زنده (Instant Filter)
   const filteredRequests = initialRequests.filter((req) => {
     // 1. فیلتر دسته‌بندی
@@ -323,7 +338,10 @@ export default function RequestsListClient({
                   type="text"
                   placeholder="جستجو در متن یا عنوان درخواست‌ها..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    rememberSearchTerm(e.target.value);
+                  }}
                   className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                 />
               </div>

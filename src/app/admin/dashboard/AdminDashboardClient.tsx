@@ -122,6 +122,13 @@ export default function AdminDashboardClient({
     facebookOAuthClientId: "",
     facebookOAuthClientSecret: "",
     socialAuthBaseUrl: "https://optibid.fazilat-ma.workers.dev",
+    amazingDealsEnabled: true,
+    amazingDealsDurationHours: 6,
+    amazingDealsDiscountCode: "OPTIBID",
+    amazingDealsNotificationEnabled: true,
+    amazingDealsNotificationTitle: "فرصت ویژه درخواست خرید",
+    amazingDealsNotificationText:
+      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
   });
   const [platformTransactions, setPlatformTransactions] = useState<any[]>([]);
   const [escrowTransactions, setEscrowTransactions] = useState<any[]>([]);
@@ -1443,6 +1450,110 @@ export default function AdminDashboardClient({
                     className="mt-6 rounded-lg bg-blue-600 px-7 py-3 font-bold text-white transition hover:bg-blue-700"
                   >
                     ذخیره تنظیمات مالی
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-rose-100 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-start">
+                    <div>
+                      <h2 className="text-xl font-bold text-rose-700">
+                        🎁 تنظیمات شگفت‌انگیز و نوتیفیکیشن صفحه اصلی
+                      </h2>
+                      <p className="mt-2 text-sm leading-7 text-gray-600">
+                        تایمر، کد تخفیف و پیام پاپ‌آپ شبیه دیجی‌کالا از این بخش کنترل می‌شود.
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700">
+                      <input
+                        type="checkbox"
+                        checked={platformFinance.amazingDealsEnabled}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsEnabled: e.target.checked,
+                          })
+                        }
+                      />
+                      نمایش شگفت‌انگیز
+                    </label>
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <label className="block text-sm font-bold text-gray-700">
+                      مدت تایمر شگفت‌انگیز (ساعت)
+                      <input
+                        type="number"
+                        min="1"
+                        max="72"
+                        value={platformFinance.amazingDealsDurationHours}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsDurationHours: Number(e.target.value || 1),
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      کد تخفیف/کد کمپین
+                      <input
+                        dir="ltr"
+                        value={platformFinance.amazingDealsDiscountCode}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsDiscountCode: e.target.value,
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-rose-500"
+                        placeholder="DS23"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-bold text-gray-700 md:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={platformFinance.amazingDealsNotificationEnabled}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsNotificationEnabled: e.target.checked,
+                          })
+                        }
+                      />
+                      نمایش پاپ‌آپ نوتیفیکیشن هنگام ورود به صفحه اصلی
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      عنوان پاپ‌آپ
+                      <input
+                        value={platformFinance.amazingDealsNotificationTitle}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsNotificationTitle: e.target.value,
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      متن پاپ‌آپ
+                      <input
+                        value={platformFinance.amazingDealsNotificationText}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsNotificationText: e.target.value,
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    onClick={saveFinance}
+                    className="mt-5 rounded-lg bg-rose-600 px-7 py-3 font-bold text-white transition hover:bg-rose-700"
+                  >
+                    ذخیره تنظیمات شگفت‌انگیز
                   </button>
                 </div>
 

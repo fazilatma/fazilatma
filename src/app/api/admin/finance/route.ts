@@ -90,6 +90,30 @@ export async function PATCH(request: Request) {
         typeof body.socialAuthBaseUrl === "string"
           ? body.socialAuthBaseUrl
           : undefined,
+      amazingDealsEnabled:
+        typeof body.amazingDealsEnabled === "boolean"
+          ? body.amazingDealsEnabled
+          : undefined,
+      amazingDealsDurationHours:
+        typeof body.amazingDealsDurationHours === "number"
+          ? body.amazingDealsDurationHours
+          : undefined,
+      amazingDealsDiscountCode:
+        typeof body.amazingDealsDiscountCode === "string"
+          ? body.amazingDealsDiscountCode
+          : undefined,
+      amazingDealsNotificationEnabled:
+        typeof body.amazingDealsNotificationEnabled === "boolean"
+          ? body.amazingDealsNotificationEnabled
+          : undefined,
+      amazingDealsNotificationTitle:
+        typeof body.amazingDealsNotificationTitle === "string"
+          ? body.amazingDealsNotificationTitle
+          : undefined,
+      amazingDealsNotificationText:
+        typeof body.amazingDealsNotificationText === "string"
+          ? body.amazingDealsNotificationText
+          : undefined,
     });
     return NextResponse.json({
       success: true,

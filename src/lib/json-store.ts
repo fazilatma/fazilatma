@@ -401,6 +401,12 @@ export type OptiBidJsonData = {
     facebookOAuthClientId: string;
     facebookOAuthClientSecret: string;
     socialAuthBaseUrl: string;
+    amazingDealsEnabled: boolean;
+    amazingDealsDurationHours: number;
+    amazingDealsDiscountCode: string;
+    amazingDealsNotificationEnabled: boolean;
+    amazingDealsNotificationTitle: string;
+    amazingDealsNotificationText: string;
   };
 };
 
@@ -439,6 +445,13 @@ const emptyData = (): OptiBidJsonData => ({
     facebookOAuthClientId: "",
     facebookOAuthClientSecret: "",
     socialAuthBaseUrl: "https://optibid.fazilat-ma.workers.dev",
+    amazingDealsEnabled: true,
+    amazingDealsDurationHours: 6,
+    amazingDealsDiscountCode: "OPTIBID",
+    amazingDealsNotificationEnabled: true,
+    amazingDealsNotificationTitle: "فرصت ویژه درخواست خرید",
+    amazingDealsNotificationText:
+      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
   },
 });
 
@@ -754,6 +767,32 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           ?.socialAuthBaseUrl ||
         process.env.NEXT_PUBLIC_SITE_URL ||
         "https://optibid.fazilat-ma.workers.dev",
+      amazingDealsEnabled:
+        (parsed.settings as { amazingDealsEnabled?: boolean } | undefined)
+          ?.amazingDealsEnabled !== false,
+      amazingDealsDurationHours: Math.max(
+        1,
+        Math.min(
+          72,
+          Number(
+            (parsed.settings as { amazingDealsDurationHours?: number } | undefined)
+              ?.amazingDealsDurationHours || 6,
+          ),
+        ),
+      ),
+      amazingDealsDiscountCode:
+        (parsed.settings as { amazingDealsDiscountCode?: string } | undefined)
+          ?.amazingDealsDiscountCode || "OPTIBID",
+      amazingDealsNotificationEnabled:
+        (parsed.settings as { amazingDealsNotificationEnabled?: boolean } | undefined)
+          ?.amazingDealsNotificationEnabled !== false,
+      amazingDealsNotificationTitle:
+        (parsed.settings as { amazingDealsNotificationTitle?: string } | undefined)
+          ?.amazingDealsNotificationTitle || "فرصت ویژه درخواست خرید",
+      amazingDealsNotificationText:
+        (parsed.settings as { amazingDealsNotificationText?: string } | undefined)
+          ?.amazingDealsNotificationText ||
+        "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
     },
   };
 }
@@ -3097,6 +3136,12 @@ export async function updateJsonPlatformFinanceSettings(updates: {
   facebookOAuthClientId?: string;
   facebookOAuthClientSecret?: string;
   socialAuthBaseUrl?: string;
+  amazingDealsEnabled?: boolean;
+  amazingDealsDurationHours?: number;
+  amazingDealsDiscountCode?: string;
+  amazingDealsNotificationEnabled?: boolean;
+  amazingDealsNotificationTitle?: string;
+  amazingDealsNotificationText?: string;
 }) {
   const data = await getOptiBidData();
   if (typeof updates.commissionRate === "number") {
@@ -3144,6 +3189,27 @@ export async function updateJsonPlatformFinanceSettings(updates: {
     data.settings.socialAuthBaseUrl = normalizeBaseUrl(
       updates.socialAuthBaseUrl,
     );
+  if (typeof updates.amazingDealsEnabled === "boolean")
+    data.settings.amazingDealsEnabled = updates.amazingDealsEnabled;
+  if (typeof updates.amazingDealsDurationHours === "number")
+    data.settings.amazingDealsDurationHours = Math.max(
+      1,
+      Math.min(72, Math.round(updates.amazingDealsDurationHours)),
+    );
+  if (typeof updates.amazingDealsDiscountCode === "string")
+    data.settings.amazingDealsDiscountCode =
+      updates.amazingDealsDiscountCode.trim().slice(0, 40) || "OPTIBID";
+  if (typeof updates.amazingDealsNotificationEnabled === "boolean")
+    data.settings.amazingDealsNotificationEnabled =
+      updates.amazingDealsNotificationEnabled;
+  if (typeof updates.amazingDealsNotificationTitle === "string")
+    data.settings.amazingDealsNotificationTitle =
+      updates.amazingDealsNotificationTitle.trim().slice(0, 120) ||
+      "فرصت ویژه درخواست خرید";
+  if (typeof updates.amazingDealsNotificationText === "string")
+    data.settings.amazingDealsNotificationText =
+      updates.amazingDealsNotificationText.trim().slice(0, 300) ||
+      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.";
   await writeOptiBidData(data);
   return data.settings;
 }
