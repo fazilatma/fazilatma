@@ -36,7 +36,7 @@ function moneyValue(value?: string | number) {
   return Number(String(value || "").replace(/\D/g, "")) || 0;
 }
 
-function boundedDiscount(value: number) {
+function boundedOpportunity(value: number) {
   return Math.max(0, Math.min(90, Math.round(value || 0)));
 }
 
@@ -80,7 +80,7 @@ type HomeRequestCard = {
   buyer?: { id: number; fullName: string; avatarName?: string };
   latestSeller?: { id: number; fullName: string; avatarName?: string };
   growthScore: number;
-  discountPercent: number;
+  opportunityScore: number;
   growthSignal?: Awaited<ReturnType<typeof getJsonPriceGrowthSignals>>[number];
 };
 
@@ -98,7 +98,7 @@ export default async function HomePage() {
     notificationEnabled: true,
     notificationTitle: "فرصت ویژه درخواست خرید",
     notificationText:
-      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
+      "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
   };
   let displayCategories: HomeCategory[] = defaultCatalogCategories.map(
     (category) => ({ ...category, count: 0 }),
@@ -168,10 +168,18 @@ export default async function HomePage() {
       const marketReference = moneyValue(
         request.valuationFactors?.sameNewProductPrice,
       );
-      const discountPercent = marketReference && budgetUnit < marketReference
-        ? boundedDiscount(((marketReference - budgetUnit) / marketReference) * 100)
-        : boundedDiscount(request.aiPriceEstimate?.depreciationPercent || 0);
       const growthSignal = growthSignalByProduct.get(request.title);
+      const marketPremiumScore =
+        marketReference && budgetUnit > marketReference
+          ? ((budgetUnit - marketReference) / marketReference) * 45
+          : 0;
+      const quantityScore = Math.min(25, Number(request.quantity || 1) * 4);
+      const scarcityScore = latestOffer ? 6 : 22;
+      const budgetScore = Math.min(25, budgetValue / 250_000_000);
+      const signalScore = growthSignal ? Math.max(0, Math.min(20, growthSignal.score / 5)) : 0;
+      const opportunityScore = boundedOpportunity(
+        marketPremiumScore + quantityScore + scarcityScore + budgetScore + signalScore,
+      );
       return {
         id: request.id,
         buyerId: request.buyerId,
@@ -190,7 +198,7 @@ export default async function HomePage() {
           ? publicUsers.get(latestOffer.sellerId)
           : undefined,
         growthScore: growthSignal?.score ?? 0,
-        discountPercent,
+        opportunityScore,
         growthSignal,
       };
     });
@@ -207,10 +215,10 @@ export default async function HomePage() {
       .sort((a, b) => b.quantity - a.quantity || b.offers - a.offers)
       .slice(0, 10);
     amazingDealsRequests = [...mappedRequests]
-      .filter((request) => request.discountPercent > 0)
+      .filter((request) => request.opportunityScore > 0)
       .sort(
         (a, b) =>
-          b.discountPercent - a.discountPercent ||
+          b.opportunityScore - a.opportunityScore ||
           b.budgetValue - a.budgetValue,
       )
       .slice(0, 12)
@@ -219,7 +227,7 @@ export default async function HomePage() {
         title: request.title,
         category: request.category,
         budget: request.budget,
-        discountPercent: request.discountPercent,
+        opportunityScore: request.opportunityScore,
         quantity: request.quantity,
         offers: request.offers,
         productImages: request.productImages,

@@ -29,7 +29,7 @@ export async function GET() {
         path: "src/app/page.tsx",
         title: "۳. صفحه اصلی (Home Page)",
         category: "Frontend (صفحات اصلی)",
-        description: "صفحه اصلی مارکت‌پلیس شامل جستجوی کالا، دسته‌بندی‌ها، محصولات تخفیف‌دار و آخرین درخواست‌های خرید"
+        description: "صفحه اصلی مارکت‌پلیس شامل جستجوی کالا، دسته‌بندی‌ها، اسلایدرهای درخواست خرید و آخرین درخواست‌های خرید"
       },
       {
         path: "src/app/request-purchase/page.tsx",

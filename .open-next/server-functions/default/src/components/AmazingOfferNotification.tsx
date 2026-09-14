@@ -46,7 +46,7 @@ export default function AmazingOfferNotification({
           <div className="flex items-center justify-between gap-3">
             <div>
               <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold">
-                کد تخفیف: {settings.discountCode || "OPTIBID"}
+                کد کمپین: {settings.discountCode || "OPTIBID"}
               </span>
               <h2 className="mt-3 text-2xl font-black">
                 {settings.title || "فرصت ویژه درخواست خرید"}
@@ -69,11 +69,11 @@ export default function AmazingOfferNotification({
             className="mx-auto h-36 w-36 rounded-2xl"
           />
           <div className="mx-auto mt-4 w-fit rounded-full bg-rose-50 px-4 py-2 text-sm font-black text-rose-700">
-            تا {deal.discountPercent.toLocaleString("fa-IR")}٪ فرصت قیمتی/تخفیف
+            امتیاز جذابیت درخواست: {deal.opportunityScore.toLocaleString("fa-IR")}٪
           </div>
           <h3 className="mt-4 text-xl font-black text-gray-900">{deal.title}</h3>
           <p className="mt-2 leading-7 text-gray-600">
-            {settings.text || "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید."}
+            {settings.text || "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید."}
           </p>
           <div className="mt-6 grid grid-cols-2 gap-3">
             <button

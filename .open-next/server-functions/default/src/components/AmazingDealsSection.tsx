@@ -10,7 +10,7 @@ export type AmazingDealItem = {
   title: string;
   category: string;
   budget: string;
-  discountPercent: number;
+  opportunityScore: number;
   quantity: number;
   offers: number;
   productImages?: ProductImageAttachment[];
@@ -66,10 +66,10 @@ export default function AmazingDealsSection({
             <div>
               <div className="flex items-center gap-3">
                 <span className="text-3xl">٪</span>
-                <h2 className="text-2xl font-black md:text-3xl">شگفت‌انگیز</h2>
+                <h2 className="text-2xl font-black md:text-3xl">درخواست‌های ویژه</h2>
               </div>
               <p className="mt-2 text-sm text-rose-50">
-                آگهی‌هایی با بیشترین اختلاف قیمت/تخفیف قابل مشاهده برای پیشنهاد سریع
+                درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده
               </p>
             </div>
             <div className="flex items-center gap-2" dir="ltr">
@@ -99,7 +99,7 @@ export default function AmazingDealsSection({
                     className="mx-auto h-24 w-24 rounded-xl"
                   />
                   <span className="absolute right-0 top-0 rounded-full bg-rose-600 px-2 py-1 text-[11px] font-black text-white">
-                    {item.discountPercent.toLocaleString("fa-IR")}٪
+                    {item.opportunityScore.toLocaleString("fa-IR")}٪
                   </span>
                 </div>
                 <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-black leading-5">

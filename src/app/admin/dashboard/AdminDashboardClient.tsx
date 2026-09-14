@@ -128,7 +128,7 @@ export default function AdminDashboardClient({
     amazingDealsNotificationEnabled: true,
     amazingDealsNotificationTitle: "فرصت ویژه درخواست خرید",
     amazingDealsNotificationText:
-      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
+      "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
   });
   const [platformTransactions, setPlatformTransactions] = useState<any[]>([]);
   const [escrowTransactions, setEscrowTransactions] = useState<any[]>([]);
@@ -1457,10 +1457,10 @@ export default function AdminDashboardClient({
                   <div className="mb-5 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-start">
                     <div>
                       <h2 className="text-xl font-bold text-rose-700">
-                        🎁 تنظیمات شگفت‌انگیز و نوتیفیکیشن صفحه اصلی
+                        🎁 تنظیمات درخواست‌های ویژه و نوتیفیکیشن صفحه اصلی
                       </h2>
                       <p className="mt-2 text-sm leading-7 text-gray-600">
-                        تایمر، کد تخفیف و پیام پاپ‌آپ شبیه دیجی‌کالا از این بخش کنترل می‌شود.
+                        تایمر، کد کمپین و پیام پاپ‌آپ درخواست‌های ویژه از این بخش کنترل می‌شود.
                       </p>
                     </div>
                     <label className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700">
@@ -1474,12 +1474,12 @@ export default function AdminDashboardClient({
                           })
                         }
                       />
-                      نمایش شگفت‌انگیز
+                      نمایش درخواست‌های ویژه
                     </label>
                   </div>
                   <div className="grid gap-5 md:grid-cols-2">
                     <label className="block text-sm font-bold text-gray-700">
-                      مدت تایمر شگفت‌انگیز (ساعت)
+                      مدت تایمر درخواست‌های ویژه (ساعت)
                       <input
                         type="number"
                         min="1"
@@ -1495,7 +1495,7 @@ export default function AdminDashboardClient({
                       />
                     </label>
                     <label className="block text-sm font-bold text-gray-700">
-                      کد تخفیف/کد کمپین
+                      کد کمپین
                       <input
                         dir="ltr"
                         value={platformFinance.amazingDealsDiscountCode}
@@ -1553,7 +1553,7 @@ export default function AdminDashboardClient({
                     onClick={saveFinance}
                     className="mt-5 rounded-lg bg-rose-600 px-7 py-3 font-bold text-white transition hover:bg-rose-700"
                   >
-                    ذخیره تنظیمات شگفت‌انگیز
+                    ذخیره تنظیمات درخواست‌های ویژه
                   </button>
                 </div>
 

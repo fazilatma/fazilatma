@@ -451,7 +451,7 @@ const emptyData = (): OptiBidJsonData => ({
     amazingDealsNotificationEnabled: true,
     amazingDealsNotificationTitle: "فرصت ویژه درخواست خرید",
     amazingDealsNotificationText:
-      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
+      "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
   },
 });
 
@@ -792,7 +792,7 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       amazingDealsNotificationText:
         (parsed.settings as { amazingDealsNotificationText?: string } | undefined)
           ?.amazingDealsNotificationText ||
-        "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.",
+        "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
     },
   };
 }
@@ -3209,7 +3209,7 @@ export async function updateJsonPlatformFinanceSettings(updates: {
   if (typeof updates.amazingDealsNotificationText === "string")
     data.settings.amazingDealsNotificationText =
       updates.amazingDealsNotificationText.trim().slice(0, 300) ||
-      "آگهی‌های دارای بیشترین اختلاف قیمت/تخفیف را ببینید و سریع‌تر پیشنهاد بدهید.";
+      "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.";
   await writeOptiBidData(data);
   return data.settings;
 }
