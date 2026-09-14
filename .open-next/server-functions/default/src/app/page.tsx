@@ -15,6 +15,7 @@ import type { ProductValuationFactors } from "@/lib/request-valuation";
 import {
   getJsonBuyerRankings,
   getJsonHomepageStats,
+  getJsonPriceGrowthSignals,
   getJsonRequests,
   getJsonSellerRankings,
   getOptiBidData,
@@ -64,6 +65,7 @@ type HomeRequestCard = {
   buyer?: { id: number; fullName: string; avatarName?: string };
   latestSeller?: { id: number; fullName: string; avatarName?: string };
   growthScore: number;
+  growthSignal?: Awaited<ReturnType<typeof getJsonPriceGrowthSignals>>[number];
 };
 
 export default async function HomePage() {
@@ -85,14 +87,21 @@ export default async function HomePage() {
   };
 
   try {
-    const [stats, jsonRequests, sellerRankings, buyerRankings, data] =
-      await Promise.all([
-        getJsonHomepageStats(),
-        getJsonRequests(),
-        getJsonSellerRankings(),
-        getJsonBuyerRankings(),
-        getOptiBidData(),
-      ]);
+    const [
+      stats,
+      jsonRequests,
+      sellerRankings,
+      buyerRankings,
+      data,
+      priceGrowthSignals,
+    ] = await Promise.all([
+      getJsonHomepageStats(),
+      getJsonRequests(),
+      getJsonSellerRankings(),
+      getJsonBuyerRankings(),
+      getOptiBidData(),
+      getJsonPriceGrowthSignals(12),
+    ]);
 
     realStats = stats;
     topSellers = sellerRankings
@@ -113,10 +122,14 @@ export default async function HomePage() {
       list.push(offer);
       offersByRequest.set(offer.requestId, list);
     }
+    const growthSignalByProduct = new Map(
+      priceGrowthSignals.map((signal) => [signal.product, signal]),
+    );
 
     const mappedRequests: HomeRequestCard[] = jsonRequests.map((request) => {
       const latestOffer = offersByRequest.get(request.id)?.[0];
       const budgetValue = Number(request.budget || 0);
+      const growthSignal = growthSignalByProduct.get(request.title);
       return {
         id: request.id,
         buyerId: request.buyerId,
@@ -134,10 +147,8 @@ export default async function HomePage() {
         latestSeller: latestOffer
           ? publicUsers.get(latestOffer.sellerId)
           : undefined,
-        growthScore:
-          (request.aiPriceEstimate?.estimatedUnitMax || 0) +
-          (request.aiPriceEstimate?.confidence || 0) * 100000 +
-          budgetValue * 0.05,
+        growthScore: growthSignal?.score ?? 0,
+        growthSignal,
       };
     });
 
@@ -146,6 +157,7 @@ export default async function HomePage() {
       .sort((a, b) => b.offers - a.offers || b.budgetValue - a.budgetValue)
       .slice(0, 10);
     growthPredictionRequests = [...mappedRequests]
+      .filter((item) => item.growthSignal)
       .sort((a, b) => b.growthScore - a.growthScore)
       .slice(0, 10);
     mostRequestedRequests = [...mappedRequests]
@@ -252,10 +264,11 @@ export default async function HomePage() {
             accent="bg-rose-600"
           />
           <RequestSliderSection
-            title="پیش‌بینی رشد قیمت"
-            subtitle="درخواست‌هایی که سیگنال قیمتی و بودجه بالاتری دارند"
+            title="سیگنال واقعی رشد قیمت"
+            subtitle="بر اساس رشد تقاضا، فشار عرضه/پیشنهاد، روند قیمت، RSI، MACD و داده بیرونی در صورت دسترسی"
             items={growthPredictionRequests}
             accent="bg-[#003b5c]"
+            showGrowthSignals
           />
           <RequestSliderSection
             title="بیشترین درخواست‌شده"
@@ -569,11 +582,13 @@ function RequestSliderSection({
   subtitle,
   items,
   accent,
+  showGrowthSignals = false,
 }: {
   title: string;
   subtitle: string;
   items: HomeRequestCard[];
   accent: string;
+  showGrowthSignals?: boolean;
 }) {
   if (items.length === 0) return null;
   return (
@@ -595,15 +610,26 @@ function RequestSliderSection({
       </div>
       <div className="flex snap-x gap-3 overflow-x-auto pb-2">
         {items.map((request) => (
-          <SliderRequestCard key={`${title}-${request.id}`} request={request} />
+          <SliderRequestCard
+            key={`${title}-${request.id}`}
+            request={request}
+            showGrowthSignals={showGrowthSignals}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function SliderRequestCard({ request }: { request: HomeRequestCard }) {
+function SliderRequestCard({
+  request,
+  showGrowthSignals = false,
+}: {
+  request: HomeRequestCard;
+  showGrowthSignals?: boolean;
+}) {
   const badges = requestSpecBadges(request).slice(0, 2);
+  const signal = request.growthSignal;
   return (
     <article className="w-44 shrink-0 snap-start rounded-2xl border border-gray-100 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <Link href={`/requests/${request.id}`} className="block">
@@ -629,6 +655,17 @@ function SliderRequestCard({ request }: { request: HomeRequestCard }) {
           </span>
         ))}
       </div>
+      {showGrowthSignals && signal ? (
+        <div className="mt-2 rounded-xl bg-blue-50 p-2 text-[10px] leading-5 text-[#003b5c]">
+          <div className="flex items-center justify-between gap-2 font-black">
+            <span>امتیاز سیگنال</span>
+            <span>{signal.score.toLocaleString("fa-IR")} / اعتماد {signal.confidence.toLocaleString("fa-IR")}٪</span>
+          </div>
+          <p className="mt-1 line-clamp-2 text-gray-600">
+            {signal.criteria.slice(0, 3).join(" · ")}
+          </p>
+        </div>
+      ) : null}
       <div className="mt-3 border-t border-gray-100 pt-2">
         <p className="text-sm font-black text-[#0b9c56]">{request.budget}</p>
         <p className="mt-1 text-[11px] text-gray-400">

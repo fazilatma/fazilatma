@@ -3890,6 +3890,271 @@ export async function getJsonAdminReports() {
   };
 }
 
+
+export type JsonPriceGrowthSignal = {
+  product: string;
+  category: string;
+  score: number;
+  confidence: number;
+  demandTrendPercent: number;
+  recentDemand: number;
+  previousDemand: number;
+  supplyPressure: number;
+  priceTrendPercent: number;
+  rsi: number | null;
+  macdHistogram: number | null;
+  technicalSignal: string;
+  externalSource: {
+    sourceName: string;
+    sourceTitle: string;
+    sourceUrl: string;
+    isProxy: boolean;
+    currentPrice: number;
+    unit: string;
+  } | null;
+  externalTrendPercent: number | null;
+  externalRsi: number | null;
+  externalMacdHistogram: number | null;
+  externalTechnicalSignal: string;
+  criteria: string[];
+};
+
+const growthClamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
+const roundOne = (value: number) => Math.round(value * 10) / 10;
+
+function percentTrend(current: number, previous: number) {
+  if (!current && !previous) return 0;
+  if (current > 0 && previous === 0) return 100;
+  if (previous === 0) return 0;
+  return roundOne(((current - previous) / previous) * 100);
+}
+
+function averageNumber(values: number[]) {
+  return values.length
+    ? values.reduce((sum, value) => sum + value, 0) / values.length
+    : 0;
+}
+
+function priceTrendFromPoints(points: Array<{ at: string; value: number }>) {
+  const sorted = points
+    .filter((point) => point.value > 0)
+    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  if (sorted.length < 2) return 0;
+  const windowSize = Math.min(7, Math.max(1, Math.floor(sorted.length / 3)));
+  const current = averageNumber(sorted.slice(-windowSize).map((point) => point.value));
+  const previous = averageNumber(
+    sorted.slice(Math.max(0, sorted.length - windowSize * 2), sorted.length - windowSize).map((point) => point.value),
+  ) || sorted[0].value;
+  return percentTrend(current, previous);
+}
+
+export async function getJsonPriceGrowthSignals(limit = 12) {
+  const data = await getOptiBidData();
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const recentCutoff = now - 30 * day;
+  const previousCutoff = now - 60 * day;
+  const requestById = new Map(data.requests.map((request) => [request.id, request]));
+
+  type GrowthAccumulator = {
+    product: string;
+    category: string;
+    requestsCount: number;
+    openRequests: number;
+    offersCount: number;
+    recentDemand: number;
+    previousDemand: number;
+    pricePoints: Array<{ at: string; value: number }>;
+    recentPrices: number[];
+    previousPrices: number[];
+  };
+
+  const products = new Map<string, GrowthAccumulator>();
+  const getProduct = (title: string, category = "سایر") => {
+    const product = title.trim().replace(/\s+/g, " ") || "کالای بدون عنوان";
+    const existing = products.get(product);
+    if (existing) return existing;
+    const created: GrowthAccumulator = {
+      product,
+      category: category || "سایر",
+      requestsCount: 0,
+      openRequests: 0,
+      offersCount: 0,
+      recentDemand: 0,
+      previousDemand: 0,
+      pricePoints: [],
+      recentPrices: [],
+      previousPrices: [],
+    };
+    products.set(product, created);
+    return created;
+  };
+
+  const addDemand = (item: GrowthAccumulator, at?: string) => {
+    const time = at ? new Date(at).getTime() : now;
+    if (time >= recentCutoff) item.recentDemand += 1;
+    else if (time >= previousCutoff) item.previousDemand += 1;
+  };
+
+  const addPrice = (item: GrowthAccumulator, value: number, at?: string) => {
+    if (!value) return;
+    const timestamp = at || new Date().toISOString();
+    item.pricePoints.push({ at: timestamp, value });
+    const time = new Date(timestamp).getTime();
+    if (time >= recentCutoff) item.recentPrices.push(value);
+    else if (time >= previousCutoff) item.previousPrices.push(value);
+  };
+
+  for (const request of data.requests) {
+    const item = getProduct(request.title, request.category);
+    item.requestsCount += 1;
+    if (request.status === "open") item.openRequests += 1;
+    addDemand(item, request.createdAt);
+    addPrice(item, money(request.budget), request.createdAt);
+  }
+
+  for (const offer of data.offers) {
+    const request = requestById.get(offer.requestId);
+    const item = getProduct(
+      request?.title || `درخواست ${offer.requestId}`,
+      request?.category || "سایر",
+    );
+    item.offersCount += 1;
+    addPrice(item, money(offer.amount), offer.createdAt);
+  }
+
+  for (const order of data.orders) {
+    const item = getProduct(order.title, order.category);
+    addDemand(item, order.createdAt);
+    addPrice(item, money(order.totalAmount), order.paymentAt || order.createdAt);
+  }
+
+  const baseSignals: JsonPriceGrowthSignal[] = [...products.values()].map((item) => {
+    const sortedPrices = item.pricePoints
+      .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+      .map((point) => point.value);
+    const rsi = calculateRsi(sortedPrices);
+    const macd = calculateMacd(sortedPrices);
+    const demandTrendPercent = percentTrend(item.recentDemand, item.previousDemand);
+    const recentAverage = averageNumber(item.recentPrices);
+    const previousAverage = averageNumber(item.previousPrices);
+    const fallbackTrend = priceTrendFromPoints(item.pricePoints);
+    const priceTrendPercent = previousAverage
+      ? percentTrend(recentAverage, previousAverage)
+      : fallbackTrend;
+    const supplyPressure = item.openRequests - item.offersCount;
+    const rsiScore =
+      rsi === null
+        ? 0
+        : rsi >= 45 && rsi <= 68
+          ? (rsi - 45) * 0.9
+          : rsi > 68
+            ? 12
+            : (rsi - 45) * 0.6;
+    const macdScore = macd ? growthClamp(macd.histogram / 1000000, -18, 18) : 0;
+    const score =
+      growthClamp(demandTrendPercent, -100, 200) * 0.28 +
+      growthClamp(priceTrendPercent, -60, 120) * 0.42 +
+      supplyPressure * 8 +
+      item.recentDemand * 5 +
+      rsiScore +
+      macdScore;
+    const criteria = [
+      `رشد تقاضای داخلی: ${demandTrendPercent.toLocaleString("fa-IR")}٪`,
+      `روند قیمت داخلی: ${priceTrendPercent.toLocaleString("fa-IR")}٪`,
+      `فشار عرضه/پیشنهاد: ${supplyPressure > 0 ? "+" : ""}${supplyPressure.toLocaleString("fa-IR")}`,
+      rsi === null ? "RSI داخلی: داده ناکافی" : `RSI داخلی: ${rsi.toLocaleString("fa-IR")}`,
+      macd
+        ? `MACD داخلی: ${macd.histogram >= 0 ? "مثبت" : "منفی"}`
+        : "MACD داخلی: داده ناکافی",
+    ];
+    return {
+      product: item.product,
+      category: item.category,
+      score: roundOne(score),
+      confidence: growthClamp(
+        Math.round(28 + sortedPrices.length * 6 + item.requestsCount * 5 + (item.previousDemand ? 8 : 0)),
+        20,
+        78,
+      ),
+      demandTrendPercent,
+      recentDemand: item.recentDemand,
+      previousDemand: item.previousDemand,
+      supplyPressure,
+      priceTrendPercent,
+      rsi,
+      macdHistogram: macd?.histogram ?? null,
+      technicalSignal: technicalSignal(rsi, macd),
+      externalSource: null,
+      externalTrendPercent: null,
+      externalRsi: null,
+      externalMacdHistogram: null,
+      externalTechnicalSignal: "داده بیرونی هنوز دریافت نشده",
+      criteria,
+    };
+  });
+
+  const topCandidates = baseSignals
+    .sort((a, b) => b.score - a.score)
+    .slice(0, Math.max(limit, 6));
+
+  await Promise.all(
+    topCandidates.slice(0, 6).map(async (signal) => {
+      const external = await getExternalMarketSeriesForProduct(
+        signal.product,
+        signal.category,
+      );
+      if (!external) {
+        signal.criteria.push("داده بیرونی در دسترس نیست؛ معیارها از داده واقعی سایت محاسبه شد");
+        signal.externalTechnicalSignal = "داده بیرونی در دسترس نیست";
+        return;
+      }
+      const externalValues = external.points.map((point) => point.value);
+      const externalRsi = calculateRsi(externalValues);
+      const externalMacd = calculateMacd(externalValues);
+      const externalTrendPercent = priceTrendFromPoints(external.points);
+      const externalScore =
+        growthClamp(externalTrendPercent, -60, 120) * 0.35 +
+        (externalRsi === null
+          ? 0
+          : externalRsi >= 45 && externalRsi <= 70
+            ? (externalRsi - 45) * 0.6
+            : externalRsi > 70
+              ? 8
+              : (externalRsi - 45) * 0.35) +
+        (externalMacd ? growthClamp(externalMacd.histogram / 1000000, -12, 12) : 0);
+      signal.score = roundOne(signal.score + externalScore);
+      signal.confidence = growthClamp(signal.confidence + 12, 20, 90);
+      signal.externalSource = {
+        sourceName: external.sourceName,
+        sourceTitle: external.sourceTitle,
+        sourceUrl: external.sourceUrl,
+        isProxy: external.isProxy,
+        currentPrice: external.currentPrice,
+        unit: external.unit,
+      };
+      signal.externalTrendPercent = externalTrendPercent;
+      signal.externalRsi = externalRsi;
+      signal.externalMacdHistogram = externalMacd?.histogram ?? null;
+      signal.externalTechnicalSignal = technicalSignal(externalRsi, externalMacd);
+      signal.criteria.push(
+        `داده بیرونی ${external.sourceName}: ${external.sourceTitle}${external.isProxy ? " (پروکسی)" : ""}`,
+        `روند بیرونی: ${externalTrendPercent.toLocaleString("fa-IR")}٪`,
+        externalRsi === null
+          ? "RSI بیرونی: داده ناکافی"
+          : `RSI بیرونی: ${externalRsi.toLocaleString("fa-IR")}`,
+        externalMacd
+          ? `MACD بیرونی: ${externalMacd.histogram >= 0 ? "مثبت" : "منفی"}`
+          : "MACD بیرونی: داده ناکافی",
+      );
+    }),
+  );
+
+  return topCandidates.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
 export function getJsonStorageInfo() {
   return { dataFile };
 }
