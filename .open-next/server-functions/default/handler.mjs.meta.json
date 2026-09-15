@@ -6043,7 +6043,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 1313912,
+      "bytes": 1313953,
       "imports": [],
       "format": "cjs"
     },
@@ -8015,12 +8015,12 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_1dftaux._.js": {
-      "bytes": 23665,
+      "bytes": 23666,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_1fyvcbr._.js": {
-      "bytes": 24588,
+      "bytes": 24628,
       "imports": [],
       "format": "cjs"
     },
@@ -15911,7 +15911,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 1582526
+          "bytesInOutput": 1582636
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -16220,10 +16220,10 @@
           "bytesInOutput": 23150
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_1dftaux._.js": {
-          "bytesInOutput": 28541
+          "bytesInOutput": 28542
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_1fyvcbr._.js": {
-          "bytesInOutput": 30967
+          "bytesInOutput": 31076
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_lib_0yfvqub._.js": {
           "bytesInOutput": 69381
@@ -16760,7 +16760,7 @@
           "bytesInOutput": 68878
         }
       },
-      "bytes": 7553062
+      "bytes": 7553282
     }
   }
 }

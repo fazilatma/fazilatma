@@ -69,7 +69,7 @@ export default function AmazingOfferNotification({
             className="mx-auto h-36 w-36 rounded-2xl"
           />
           <div className="mx-auto mt-4 w-fit rounded-full bg-rose-50 px-4 py-2 text-sm font-black text-rose-700">
-            امتیاز جذابیت درخواست: {deal.opportunityScore.toLocaleString("fa-IR")}٪
+            امتیاز جذابیت درخواست: {deal.opportunityScore.toLocaleString("fa-IR")} از ۱۰۰
           </div>
           <h3 className="mt-4 text-xl font-black text-gray-900">{deal.title}</h3>
           <p className="mt-2 leading-7 text-gray-600">

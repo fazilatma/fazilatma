@@ -37,7 +37,7 @@ function moneyValue(value?: string | number) {
 }
 
 function boundedOpportunity(value: number) {
-  return Math.max(0, Math.min(90, Math.round(value || 0)));
+  return Math.max(0, Math.min(100, Math.round(value || 0)));
 }
 
 function requestSpecBadges(request: {

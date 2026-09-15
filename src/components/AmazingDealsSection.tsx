@@ -65,8 +65,8 @@ export default function AmazingDealsSection({
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <div className="flex items-center gap-3">
-                <span className="text-3xl">٪</span>
-                <h2 className="text-2xl font-black md:text-3xl">درخواست‌های ویژه</h2>
+                <span className="text-3xl">🔥</span>
+                <h2 className="text-2xl font-black md:text-3xl">درخواست‌های داغ فروشندگان</h2>
               </div>
               <p className="mt-2 text-sm text-rose-50">
                 درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده
@@ -99,7 +99,7 @@ export default function AmazingDealsSection({
                     className="mx-auto h-24 w-24 rounded-xl"
                   />
                   <span className="absolute right-0 top-0 rounded-full bg-rose-600 px-2 py-1 text-[11px] font-black text-white">
-                    {item.opportunityScore.toLocaleString("fa-IR")}٪
+                    امتیاز {item.opportunityScore.toLocaleString("fa-IR")}
                   </span>
                 </div>
                 <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-black leading-5">
