@@ -134,6 +134,7 @@ export default function AdminDashboardClient({
       "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
     homepageShowStats: true,
     homepageShowCategories: false,
+    homepageShowCategorySection: false,
     homepageCategoriesTitle: "دسته‌بندی کالاها",
     homepageCategoryFontFamily: "Vazir",
     homepageCategoryFontSize: "18",
@@ -1383,15 +1384,15 @@ export default function AdminDashboardClient({
                     <label className="mb-4 flex items-center gap-3 text-sm font-bold text-blue-800">
                       <input
                         type="checkbox"
-                        checked={Boolean(platformFinance.homepageShowCategories)}
+                        checked={Boolean(platformFinance.homepageShowCategorySection)}
                         onChange={(e) =>
                           updatePlatformFinanceField(
-                            "homepageShowCategories",
+                            "homepageShowCategorySection",
                             e.target.checked,
                           )
                         }
                       />
-                      نمایش دسته‌بندی کالاها در صفحه اصلی
+                      نمایش دسته‌بندی کالاها در صفحه اصلی (فعلاً خاموش برای تمرکز روی لپ‌تاپ/کامپیوتر دست‌دوم)
                     </label>
                     <div className="grid gap-4 md:grid-cols-3">
                       <label className="block text-sm font-bold text-gray-700 md:col-span-1">

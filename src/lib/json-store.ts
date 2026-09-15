@@ -411,6 +411,7 @@ export type OptiBidJsonData = {
     homepageHeroSubtitle: string;
     homepageShowStats: boolean;
     homepageShowCategories: boolean;
+    homepageShowCategorySection: boolean;
     homepageCategoriesTitle: string;
     homepageCategoryFontFamily: string;
     homepageCategoryFontSize: string;
@@ -505,6 +506,7 @@ const emptyData = (): OptiBidJsonData => ({
       "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
     homepageShowStats: true,
     homepageShowCategories: false,
+    homepageShowCategorySection: false,
     homepageCategoriesTitle: "دسته‌بندی کالاها",
     homepageCategoryFontFamily: "Vazir",
     homepageCategoryFontSize: "18",
@@ -900,6 +902,9 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       homepageShowCategories:
         (parsed.settings as { homepageShowCategories?: boolean } | undefined)
           ?.homepageShowCategories === true,
+      homepageShowCategorySection:
+        (parsed.settings as { homepageShowCategorySection?: boolean } | undefined)
+          ?.homepageShowCategorySection === true,
       homepageCategoriesTitle:
         (parsed.settings as { homepageCategoriesTitle?: string } | undefined)
           ?.homepageCategoriesTitle || "دسته‌بندی کالاها",
@@ -937,7 +942,10 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           ?.homepageShowBestSelling !== false,
       homepageBestSellingTitle:
         (parsed.settings as { homepageBestSellingTitle?: string } | undefined)
-          ?.homepageBestSellingTitle || "پررقابت‌ترین درخواست‌ها",
+          ?.homepageBestSellingTitle === "پرفروش‌ترین‌ها"
+          ? "پررقابت‌ترین درخواست‌ها"
+          : (parsed.settings as { homepageBestSellingTitle?: string } | undefined)
+              ?.homepageBestSellingTitle || "پررقابت‌ترین درخواست‌ها",
       homepageBestSellingSubtitle:
         (parsed.settings as { homepageBestSellingSubtitle?: string } | undefined)
           ?.homepageBestSellingSubtitle ||
@@ -3416,6 +3424,7 @@ export async function updateJsonPlatformFinanceSettings(
   const booleanHomepageKeys = [
     "homepageShowStats",
     "homepageShowCategories",
+    "homepageShowCategorySection",
     "homepageShowPromoSliders",
     "homepageShowOpportunityRequests",
     "homepageShowBestSelling",

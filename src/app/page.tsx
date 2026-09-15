@@ -194,7 +194,7 @@ export default async function HomePage() {
       heroTitle: data.settings.homepageHeroTitle,
       heroSubtitle: data.settings.homepageHeroSubtitle,
       showStats: data.settings.homepageShowStats,
-      showCategories: data.settings.homepageShowCategories,
+      showCategories: data.settings.homepageShowCategorySection,
       categoriesTitle: data.settings.homepageCategoriesTitle,
       categoryFontFamily: data.settings.homepageCategoryFontFamily,
       categoryFontSize: data.settings.homepageCategoryFontSize,
