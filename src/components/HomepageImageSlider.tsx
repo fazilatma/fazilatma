@@ -82,8 +82,8 @@ export default function HomepageImageSlider({
         </div>
       </div>
 
-      <div className="w-full">
-        <div className="w-full overflow-hidden border-y border-gray-100 bg-gray-100 shadow-lg">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="w-full overflow-hidden rounded-[2rem] border border-gray-100 bg-gray-100 shadow-lg">
           <div className="relative h-[280px] md:h-[420px]">
             {activeSlide.image ? (
               <img
