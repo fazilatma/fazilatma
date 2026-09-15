@@ -129,6 +129,45 @@ export default function AdminDashboardClient({
     amazingDealsNotificationTitle: "فرصت ویژه درخواست خرید",
     amazingDealsNotificationText:
       "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
+    homepageHeroTitle: "پلتفرم درخواست خرید و تامین کالا",
+    homepageHeroSubtitle:
+      "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
+    homepageShowStats: true,
+    homepageShowCategories: true,
+    homepageCategoriesTitle: "دسته‌بندی کالاها",
+    homepageShowOpportunityRequests: true,
+    homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
+    homepageOpportunitySubtitle:
+      "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده",
+    homepageShowBestSelling: true,
+    homepageBestSellingTitle: "پرفروش‌ترین‌ها",
+    homepageBestSellingSubtitle:
+      "آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند",
+    homepageShowGrowthSignals: true,
+    homepageGrowthSignalsTitle: "سیگنال واقعی رشد قیمت",
+    homepageGrowthSignalsSubtitle:
+      "بر اساس رشد تقاضا، فشار عرضه/پیشنهاد، روند قیمت، RSI، MACD و داده بیرونی در صورت دسترسی",
+    homepageShowMostRequested: true,
+    homepageMostRequestedTitle: "بیشترین درخواست‌شده",
+    homepageMostRequestedSubtitle: "درخواست‌هایی با تعداد بیشتر یا تقاضای بالاتر",
+    homepageShowPersonalizedRows: true,
+    homepagePersonalizedTitle: "بر اساس جستجوهای اخیر شما",
+    homepagePersonalizedSubtitle: "کلیدواژه‌های اخیر",
+    homepageRelatedTitle: "پیشنهادهای نزدیک به علاقه شما",
+    homepageRelatedSubtitle: "آگهی‌های هم‌دسته با جستجوهای قبلی شما",
+    homepageShowLatestRequests: true,
+    homepageLatestRequestsTitle: "آخرین درخواست‌های خرید",
+    homepageLatestRequestsSubtitle: "پیشنهاد قیمت خود را ثبت کنید",
+    homepageShowTopSellers: true,
+    homepageTopSellersTitle: "تامین‌کنندگان برتر",
+    homepageTopSellersSubtitle: "بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم",
+    homepageShowTopBuyers: true,
+    homepageTopBuyersTitle: "خریداران برتر پلتفرم",
+    homepageTopBuyersSubtitle: "شرکت‌ها و خریداران عمده خوش‌حساب",
+    homepageShowFinalCta: true,
+    homepageFinalCtaTitle: "آماده شروع هستید؟",
+    homepageFinalCtaSubtitle:
+      "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
   });
   const [platformTransactions, setPlatformTransactions] = useState<any[]>([]);
   const [escrowTransactions, setEscrowTransactions] = useState<any[]>([]);
@@ -158,6 +197,10 @@ export default function AdminDashboardClient({
   useEffect(() => {
     setContactAddress(liveContent.contactAddressFa);
   }, [liveContent.contactAddressFa]);
+
+  const updatePlatformFinanceField = (key: string, value: unknown) => {
+    setPlatformFinance((current) => ({ ...current, [key]: value }));
+  };
 
   const saveFinance = async () => {
     try {
@@ -510,6 +553,12 @@ export default function AdminDashboardClient({
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "appearance" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
                   🎨 تنظیمات ظاهر و محتوا
+                </button>
+                <button
+                  onClick={() => setActiveTab("homepage")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "homepage" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🏠 مدیریت صفحه اصلی
                 </button>
                 <button
                   onClick={() => setActiveTab("contact")}
@@ -1262,6 +1311,275 @@ export default function AdminDashboardClient({
                       ذخیره تغییرات ظاهر
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "homepage" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold">🏠 مدیریت و بازنویسی صفحه اصلی</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-500">
+                      همه بخش‌های صفحه اصلی از اینجا قابل فعال/غیرفعال‌سازی و تغییر عنوان و متن هستند؛ برای مدل درخواست خرید از واژه «امتیاز جذابیت» استفاده می‌شود، نه درصد تخفیف.
+                    </p>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-green-100 bg-green-50/50 p-5">
+                    <div className="mb-4 flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageShowStats)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageShowStats",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      <span className="text-sm font-bold text-green-800">
+                        نمایش آمار بالای صفحه اصلی
+                      </span>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="block text-sm font-bold text-gray-700">
+                        عنوان اصلی Hero
+                        <input
+                          value={platformFinance.homepageHeroTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageHeroTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        متن زیر عنوان Hero
+                        <textarea
+                          value={platformFinance.homepageHeroSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageHeroSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 min-h-24 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-blue-100 bg-blue-50/40 p-5">
+                    <label className="mb-4 flex items-center gap-3 text-sm font-bold text-blue-800">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageShowCategories)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageShowCategories",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      نمایش دسته‌بندی کالاها در صفحه اصلی
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      عنوان بخش دسته‌بندی‌ها
+                      <input
+                        value={platformFinance.homepageCategoriesTitle}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageCategoriesTitle",
+                            e.target.value,
+                          )
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {[
+                      {
+                        label: "درخواست‌های داغ فروشندگان",
+                        enabledKey: "homepageShowOpportunityRequests",
+                        titleKey: "homepageOpportunityTitle",
+                        subtitleKey: "homepageOpportunitySubtitle",
+                      },
+                      {
+                        label: "پرفروش‌ترین‌ها / پررقابت‌ترین درخواست‌ها",
+                        enabledKey: "homepageShowBestSelling",
+                        titleKey: "homepageBestSellingTitle",
+                        subtitleKey: "homepageBestSellingSubtitle",
+                      },
+                      {
+                        label: "سیگنال واقعی رشد قیمت",
+                        enabledKey: "homepageShowGrowthSignals",
+                        titleKey: "homepageGrowthSignalsTitle",
+                        subtitleKey: "homepageGrowthSignalsSubtitle",
+                      },
+                      {
+                        label: "بیشترین درخواست‌شده",
+                        enabledKey: "homepageShowMostRequested",
+                        titleKey: "homepageMostRequestedTitle",
+                        subtitleKey: "homepageMostRequestedSubtitle",
+                      },
+                      {
+                        label: "آخرین درخواست‌های خرید",
+                        enabledKey: "homepageShowLatestRequests",
+                        titleKey: "homepageLatestRequestsTitle",
+                        subtitleKey: "homepageLatestRequestsSubtitle",
+                      },
+                      {
+                        label: "تامین‌کنندگان برتر",
+                        enabledKey: "homepageShowTopSellers",
+                        titleKey: "homepageTopSellersTitle",
+                        subtitleKey: "homepageTopSellersSubtitle",
+                      },
+                      {
+                        label: "خریداران برتر",
+                        enabledKey: "homepageShowTopBuyers",
+                        titleKey: "homepageTopBuyersTitle",
+                        subtitleKey: "homepageTopBuyersSubtitle",
+                      },
+                      {
+                        label: "دعوت به اقدام پایانی",
+                        enabledKey: "homepageShowFinalCta",
+                        titleKey: "homepageFinalCtaTitle",
+                        subtitleKey: "homepageFinalCtaSubtitle",
+                      },
+                    ].map((section) => (
+                      <div
+                        key={section.enabledKey}
+                        className="rounded-3xl border border-gray-100 bg-gray-50 p-5"
+                      >
+                        <label className="mb-4 flex items-center gap-3 text-sm font-black text-gray-800">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(
+                              (platformFinance as any)[section.enabledKey],
+                            )}
+                            onChange={(e) =>
+                              updatePlatformFinanceField(
+                                section.enabledKey,
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          {section.label}
+                        </label>
+                        <label className="mb-3 block text-xs font-bold text-gray-600">
+                          عنوان قابل نمایش
+                          <input
+                            value={String(
+                              (platformFinance as any)[section.titleKey] || "",
+                            )}
+                            onChange={(e) =>
+                              updatePlatformFinanceField(
+                                section.titleKey,
+                                e.target.value,
+                              )
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                          />
+                        </label>
+                        <label className="block text-xs font-bold text-gray-600">
+                          توضیح زیر عنوان
+                          <textarea
+                            value={String(
+                              (platformFinance as any)[section.subtitleKey] || "",
+                            )}
+                            onChange={(e) =>
+                              updatePlatformFinanceField(
+                                section.subtitleKey,
+                                e.target.value,
+                              )
+                            }
+                            className="mt-1 min-h-20 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50/60 p-5">
+                    <label className="mb-4 flex items-center gap-3 text-sm font-black text-amber-900">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageShowPersonalizedRows)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageShowPersonalizedRows",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      نمایش ردیف‌های شخصی‌سازی‌شده بر اساس جستجوهای قبلی
+                    </label>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="block text-xs font-bold text-gray-700">
+                        عنوان ردیف اول شخصی‌سازی
+                        <input
+                          value={platformFinance.homepagePersonalizedTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepagePersonalizedTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                      <label className="block text-xs font-bold text-gray-700">
+                        متن ردیف اول
+                        <input
+                          value={platformFinance.homepagePersonalizedSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepagePersonalizedSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                      <label className="block text-xs font-bold text-gray-700">
+                        عنوان ردیف دوم شخصی‌سازی
+                        <input
+                          value={platformFinance.homepageRelatedTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageRelatedTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                      <label className="block text-xs font-bold text-gray-700">
+                        متن ردیف دوم
+                        <input
+                          value={platformFinance.homepageRelatedSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageRelatedSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={saveFinance}
+                    className="mt-6 rounded-xl bg-purple-600 px-8 py-3 font-bold text-white transition hover:bg-purple-700"
+                  >
+                    ذخیره تنظیمات صفحه اصلی
+                  </button>
                 </div>
               </div>
             )}

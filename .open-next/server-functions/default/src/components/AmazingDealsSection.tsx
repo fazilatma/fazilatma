@@ -20,6 +20,8 @@ export type AmazingDealsSettings = {
   enabled: boolean;
   durationHours: number;
   discountCode: string;
+  title?: string;
+  subtitle?: string;
 };
 
 function timeParts(totalSeconds: number) {
@@ -66,10 +68,13 @@ export default function AmazingDealsSection({
             <div>
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🔥</span>
-                <h2 className="text-2xl font-black md:text-3xl">درخواست‌های داغ فروشندگان</h2>
+                <h2 className="text-2xl font-black md:text-3xl">
+                  {settings.title || "درخواست‌های داغ فروشندگان"}
+                </h2>
               </div>
               <p className="mt-2 text-sm text-rose-50">
-                درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده
+                {settings.subtitle ||
+                  "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده"}
               </p>
             </div>
             <div className="flex items-center gap-2" dir="ltr">

@@ -25,95 +25,11 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
+    const { commissionRate, ...rest } = body;
     const settings = await updateJsonPlatformFinanceSettings({
+      ...rest,
       commissionRate:
-        typeof body.commissionRate === "number"
-          ? body.commissionRate
-          : undefined,
-      adminAccountHolder:
-        typeof body.adminAccountHolder === "string"
-          ? body.adminAccountHolder
-          : undefined,
-      adminBankName:
-        typeof body.adminBankName === "string" ? body.adminBankName : undefined,
-      adminSheba:
-        typeof body.adminSheba === "string" ? body.adminSheba : undefined,
-      adminCardNumber:
-        typeof body.adminCardNumber === "string"
-          ? body.adminCardNumber
-          : undefined,
-      zarinpalEnabled:
-        typeof body.zarinpalEnabled === "boolean"
-          ? body.zarinpalEnabled
-          : undefined,
-      zarinpalSandbox:
-        typeof body.zarinpalSandbox === "boolean"
-          ? body.zarinpalSandbox
-          : undefined,
-      zarinpalMerchantId:
-        typeof body.zarinpalMerchantId === "string"
-          ? body.zarinpalMerchantId
-          : undefined,
-      zarinpalCallbackBaseUrl:
-        typeof body.zarinpalCallbackBaseUrl === "string"
-          ? body.zarinpalCallbackBaseUrl
-          : undefined,
-      zarinpalDescription:
-        typeof body.zarinpalDescription === "string"
-          ? body.zarinpalDescription
-          : undefined,
-      googleOAuthEnabled:
-        typeof body.googleOAuthEnabled === "boolean"
-          ? body.googleOAuthEnabled
-          : undefined,
-      googleOAuthClientId:
-        typeof body.googleOAuthClientId === "string"
-          ? body.googleOAuthClientId
-          : undefined,
-      googleOAuthClientSecret:
-        typeof body.googleOAuthClientSecret === "string"
-          ? body.googleOAuthClientSecret
-          : undefined,
-      facebookOAuthEnabled:
-        typeof body.facebookOAuthEnabled === "boolean"
-          ? body.facebookOAuthEnabled
-          : undefined,
-      facebookOAuthClientId:
-        typeof body.facebookOAuthClientId === "string"
-          ? body.facebookOAuthClientId
-          : undefined,
-      facebookOAuthClientSecret:
-        typeof body.facebookOAuthClientSecret === "string"
-          ? body.facebookOAuthClientSecret
-          : undefined,
-      socialAuthBaseUrl:
-        typeof body.socialAuthBaseUrl === "string"
-          ? body.socialAuthBaseUrl
-          : undefined,
-      amazingDealsEnabled:
-        typeof body.amazingDealsEnabled === "boolean"
-          ? body.amazingDealsEnabled
-          : undefined,
-      amazingDealsDurationHours:
-        typeof body.amazingDealsDurationHours === "number"
-          ? body.amazingDealsDurationHours
-          : undefined,
-      amazingDealsDiscountCode:
-        typeof body.amazingDealsDiscountCode === "string"
-          ? body.amazingDealsDiscountCode
-          : undefined,
-      amazingDealsNotificationEnabled:
-        typeof body.amazingDealsNotificationEnabled === "boolean"
-          ? body.amazingDealsNotificationEnabled
-          : undefined,
-      amazingDealsNotificationTitle:
-        typeof body.amazingDealsNotificationTitle === "string"
-          ? body.amazingDealsNotificationTitle
-          : undefined,
-      amazingDealsNotificationText:
-        typeof body.amazingDealsNotificationText === "string"
-          ? body.amazingDealsNotificationText
-          : undefined,
+        typeof commissionRate === "number" ? commissionRate : undefined,
     });
     return NextResponse.json({
       success: true,

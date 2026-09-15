@@ -89,8 +89,15 @@ function PersonalizedRow({
 
 export default function PersonalizedRequestRows({
   requests,
+  titles,
 }: {
   requests: PersonalizedRequestItem[];
+  titles?: {
+    personalizedTitle?: string;
+    personalizedSubtitle?: string;
+    relatedTitle?: string;
+    relatedSubtitle?: string;
+  };
 }) {
   const [terms, setTerms] = useState<string[]>([]);
 
@@ -126,13 +133,13 @@ export default function PersonalizedRequestRows({
     <section className="bg-gray-50 py-10">
       <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
         <PersonalizedRow
-          title="بر اساس جستجوهای اخیر شما"
-          subtitle={`کلیدواژه‌های اخیر: ${terms.slice(0, 4).join("، ")}`}
+          title={titles?.personalizedTitle || "بر اساس جستجوهای اخیر شما"}
+          subtitle={`${titles?.personalizedSubtitle || "کلیدواژه‌های اخیر"}: ${terms.slice(0, 4).join("، ")}`}
           items={matched}
         />
         <PersonalizedRow
-          title="پیشنهادهای نزدیک به علاقه شما"
-          subtitle="آگهی‌های هم‌دسته با جستجوهای قبلی شما"
+          title={titles?.relatedTitle || "پیشنهادهای نزدیک به علاقه شما"}
+          subtitle={titles?.relatedSubtitle || "آگهی‌های هم‌دسته با جستجوهای قبلی شما"}
           items={related}
         />
       </div>

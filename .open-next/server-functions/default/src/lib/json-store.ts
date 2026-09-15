@@ -407,6 +407,40 @@ export type OptiBidJsonData = {
     amazingDealsNotificationEnabled: boolean;
     amazingDealsNotificationTitle: string;
     amazingDealsNotificationText: string;
+    homepageHeroTitle: string;
+    homepageHeroSubtitle: string;
+    homepageShowStats: boolean;
+    homepageShowCategories: boolean;
+    homepageCategoriesTitle: string;
+    homepageShowOpportunityRequests: boolean;
+    homepageOpportunityTitle: string;
+    homepageOpportunitySubtitle: string;
+    homepageShowBestSelling: boolean;
+    homepageBestSellingTitle: string;
+    homepageBestSellingSubtitle: string;
+    homepageShowGrowthSignals: boolean;
+    homepageGrowthSignalsTitle: string;
+    homepageGrowthSignalsSubtitle: string;
+    homepageShowMostRequested: boolean;
+    homepageMostRequestedTitle: string;
+    homepageMostRequestedSubtitle: string;
+    homepageShowPersonalizedRows: boolean;
+    homepagePersonalizedTitle: string;
+    homepagePersonalizedSubtitle: string;
+    homepageRelatedTitle: string;
+    homepageRelatedSubtitle: string;
+    homepageShowLatestRequests: boolean;
+    homepageLatestRequestsTitle: string;
+    homepageLatestRequestsSubtitle: string;
+    homepageShowTopSellers: boolean;
+    homepageTopSellersTitle: string;
+    homepageTopSellersSubtitle: string;
+    homepageShowTopBuyers: boolean;
+    homepageTopBuyersTitle: string;
+    homepageTopBuyersSubtitle: string;
+    homepageShowFinalCta: boolean;
+    homepageFinalCtaTitle: string;
+    homepageFinalCtaSubtitle: string;
   };
 };
 
@@ -452,6 +486,45 @@ const emptyData = (): OptiBidJsonData => ({
     amazingDealsNotificationTitle: "فرصت ویژه درخواست خرید",
     amazingDealsNotificationText:
       "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
+    homepageHeroTitle: "پلتفرم درخواست خرید و تامین کالا",
+    homepageHeroSubtitle:
+      "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
+    homepageShowStats: true,
+    homepageShowCategories: true,
+    homepageCategoriesTitle: "دسته‌بندی کالاها",
+    homepageShowOpportunityRequests: true,
+    homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
+    homepageOpportunitySubtitle:
+      "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده",
+    homepageShowBestSelling: true,
+    homepageBestSellingTitle: "پرفروش‌ترین‌ها",
+    homepageBestSellingSubtitle:
+      "آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند",
+    homepageShowGrowthSignals: true,
+    homepageGrowthSignalsTitle: "سیگنال واقعی رشد قیمت",
+    homepageGrowthSignalsSubtitle:
+      "بر اساس رشد تقاضا، فشار عرضه/پیشنهاد، روند قیمت، RSI، MACD و داده بیرونی در صورت دسترسی",
+    homepageShowMostRequested: true,
+    homepageMostRequestedTitle: "بیشترین درخواست‌شده",
+    homepageMostRequestedSubtitle: "درخواست‌هایی با تعداد بیشتر یا تقاضای بالاتر",
+    homepageShowPersonalizedRows: true,
+    homepagePersonalizedTitle: "بر اساس جستجوهای اخیر شما",
+    homepagePersonalizedSubtitle: "کلیدواژه‌های اخیر",
+    homepageRelatedTitle: "پیشنهادهای نزدیک به علاقه شما",
+    homepageRelatedSubtitle: "آگهی‌های هم‌دسته با جستجوهای قبلی شما",
+    homepageShowLatestRequests: true,
+    homepageLatestRequestsTitle: "آخرین درخواست‌های خرید",
+    homepageLatestRequestsSubtitle: "پیشنهاد قیمت خود را ثبت کنید",
+    homepageShowTopSellers: true,
+    homepageTopSellersTitle: "تامین‌کنندگان برتر",
+    homepageTopSellersSubtitle: "بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم",
+    homepageShowTopBuyers: true,
+    homepageTopBuyersTitle: "خریداران برتر پلتفرم",
+    homepageTopBuyersSubtitle: "شرکت‌ها و خریداران عمده خوش‌حساب",
+    homepageShowFinalCta: true,
+    homepageFinalCtaTitle: "آماده شروع هستید؟",
+    homepageFinalCtaSubtitle:
+      "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
   },
 });
 
@@ -793,6 +866,117 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         (parsed.settings as { amazingDealsNotificationText?: string } | undefined)
           ?.amazingDealsNotificationText ||
         "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
+      homepageHeroTitle:
+        (parsed.settings as { homepageHeroTitle?: string } | undefined)
+          ?.homepageHeroTitle || "پلتفرم درخواست خرید و تامین کالا",
+      homepageHeroSubtitle:
+        (parsed.settings as { homepageHeroSubtitle?: string } | undefined)
+          ?.homepageHeroSubtitle ||
+        "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
+      homepageShowStats:
+        (parsed.settings as { homepageShowStats?: boolean } | undefined)
+          ?.homepageShowStats !== false,
+      homepageShowCategories:
+        (parsed.settings as { homepageShowCategories?: boolean } | undefined)
+          ?.homepageShowCategories !== false,
+      homepageCategoriesTitle:
+        (parsed.settings as { homepageCategoriesTitle?: string } | undefined)
+          ?.homepageCategoriesTitle || "دسته‌بندی کالاها",
+      homepageShowOpportunityRequests:
+        (parsed.settings as { homepageShowOpportunityRequests?: boolean } | undefined)
+          ?.homepageShowOpportunityRequests !== false,
+      homepageOpportunityTitle:
+        (parsed.settings as { homepageOpportunityTitle?: string } | undefined)
+          ?.homepageOpportunityTitle || "درخواست‌های داغ فروشندگان",
+      homepageOpportunitySubtitle:
+        (parsed.settings as { homepageOpportunitySubtitle?: string } | undefined)
+          ?.homepageOpportunitySubtitle ||
+        "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده",
+      homepageShowBestSelling:
+        (parsed.settings as { homepageShowBestSelling?: boolean } | undefined)
+          ?.homepageShowBestSelling !== false,
+      homepageBestSellingTitle:
+        (parsed.settings as { homepageBestSellingTitle?: string } | undefined)
+          ?.homepageBestSellingTitle || "پرفروش‌ترین‌ها",
+      homepageBestSellingSubtitle:
+        (parsed.settings as { homepageBestSellingSubtitle?: string } | undefined)
+          ?.homepageBestSellingSubtitle ||
+        "آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند",
+      homepageShowGrowthSignals:
+        (parsed.settings as { homepageShowGrowthSignals?: boolean } | undefined)
+          ?.homepageShowGrowthSignals !== false,
+      homepageGrowthSignalsTitle:
+        (parsed.settings as { homepageGrowthSignalsTitle?: string } | undefined)
+          ?.homepageGrowthSignalsTitle || "سیگنال واقعی رشد قیمت",
+      homepageGrowthSignalsSubtitle:
+        (parsed.settings as { homepageGrowthSignalsSubtitle?: string } | undefined)
+          ?.homepageGrowthSignalsSubtitle ||
+        "بر اساس رشد تقاضا، فشار عرضه/پیشنهاد، روند قیمت، RSI، MACD و داده بیرونی در صورت دسترسی",
+      homepageShowMostRequested:
+        (parsed.settings as { homepageShowMostRequested?: boolean } | undefined)
+          ?.homepageShowMostRequested !== false,
+      homepageMostRequestedTitle:
+        (parsed.settings as { homepageMostRequestedTitle?: string } | undefined)
+          ?.homepageMostRequestedTitle || "بیشترین درخواست‌شده",
+      homepageMostRequestedSubtitle:
+        (parsed.settings as { homepageMostRequestedSubtitle?: string } | undefined)
+          ?.homepageMostRequestedSubtitle ||
+        "درخواست‌هایی با تعداد بیشتر یا تقاضای بالاتر",
+      homepageShowPersonalizedRows:
+        (parsed.settings as { homepageShowPersonalizedRows?: boolean } | undefined)
+          ?.homepageShowPersonalizedRows !== false,
+      homepagePersonalizedTitle:
+        (parsed.settings as { homepagePersonalizedTitle?: string } | undefined)
+          ?.homepagePersonalizedTitle || "بر اساس جستجوهای اخیر شما",
+      homepagePersonalizedSubtitle:
+        (parsed.settings as { homepagePersonalizedSubtitle?: string } | undefined)
+          ?.homepagePersonalizedSubtitle || "کلیدواژه‌های اخیر",
+      homepageRelatedTitle:
+        (parsed.settings as { homepageRelatedTitle?: string } | undefined)
+          ?.homepageRelatedTitle || "پیشنهادهای نزدیک به علاقه شما",
+      homepageRelatedSubtitle:
+        (parsed.settings as { homepageRelatedSubtitle?: string } | undefined)
+          ?.homepageRelatedSubtitle ||
+        "آگهی‌های هم‌دسته با جستجوهای قبلی شما",
+      homepageShowLatestRequests:
+        (parsed.settings as { homepageShowLatestRequests?: boolean } | undefined)
+          ?.homepageShowLatestRequests !== false,
+      homepageLatestRequestsTitle:
+        (parsed.settings as { homepageLatestRequestsTitle?: string } | undefined)
+          ?.homepageLatestRequestsTitle || "آخرین درخواست‌های خرید",
+      homepageLatestRequestsSubtitle:
+        (parsed.settings as { homepageLatestRequestsSubtitle?: string } | undefined)
+          ?.homepageLatestRequestsSubtitle || "پیشنهاد قیمت خود را ثبت کنید",
+      homepageShowTopSellers:
+        (parsed.settings as { homepageShowTopSellers?: boolean } | undefined)
+          ?.homepageShowTopSellers !== false,
+      homepageTopSellersTitle:
+        (parsed.settings as { homepageTopSellersTitle?: string } | undefined)
+          ?.homepageTopSellersTitle || "تامین‌کنندگان برتر",
+      homepageTopSellersSubtitle:
+        (parsed.settings as { homepageTopSellersSubtitle?: string } | undefined)
+          ?.homepageTopSellersSubtitle ||
+        "بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم",
+      homepageShowTopBuyers:
+        (parsed.settings as { homepageShowTopBuyers?: boolean } | undefined)
+          ?.homepageShowTopBuyers !== false,
+      homepageTopBuyersTitle:
+        (parsed.settings as { homepageTopBuyersTitle?: string } | undefined)
+          ?.homepageTopBuyersTitle || "خریداران برتر پلتفرم",
+      homepageTopBuyersSubtitle:
+        (parsed.settings as { homepageTopBuyersSubtitle?: string } | undefined)
+          ?.homepageTopBuyersSubtitle ||
+        "شرکت‌ها و خریداران عمده خوش‌حساب",
+      homepageShowFinalCta:
+        (parsed.settings as { homepageShowFinalCta?: boolean } | undefined)
+          ?.homepageShowFinalCta !== false,
+      homepageFinalCtaTitle:
+        (parsed.settings as { homepageFinalCtaTitle?: string } | undefined)
+          ?.homepageFinalCtaTitle || "آماده شروع هستید؟",
+      homepageFinalCtaSubtitle:
+        (parsed.settings as { homepageFinalCtaSubtitle?: string } | undefined)
+          ?.homepageFinalCtaSubtitle ||
+        "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
     },
   };
 }
@@ -3118,31 +3302,9 @@ export async function getJsonZarinpalPrerequisites() {
   return buildZarinpalPrerequisites(data.settings);
 }
 
-export async function updateJsonPlatformFinanceSettings(updates: {
-  commissionRate?: number;
-  adminAccountHolder?: string;
-  adminBankName?: string;
-  adminSheba?: string;
-  adminCardNumber?: string;
-  zarinpalEnabled?: boolean;
-  zarinpalSandbox?: boolean;
-  zarinpalMerchantId?: string;
-  zarinpalCallbackBaseUrl?: string;
-  zarinpalDescription?: string;
-  googleOAuthEnabled?: boolean;
-  googleOAuthClientId?: string;
-  googleOAuthClientSecret?: string;
-  facebookOAuthEnabled?: boolean;
-  facebookOAuthClientId?: string;
-  facebookOAuthClientSecret?: string;
-  socialAuthBaseUrl?: string;
-  amazingDealsEnabled?: boolean;
-  amazingDealsDurationHours?: number;
-  amazingDealsDiscountCode?: string;
-  amazingDealsNotificationEnabled?: boolean;
-  amazingDealsNotificationTitle?: string;
-  amazingDealsNotificationText?: string;
-}) {
+export async function updateJsonPlatformFinanceSettings(
+  updates: Partial<OptiBidJsonData["settings"]>,
+) {
   const data = await getOptiBidData();
   if (typeof updates.commissionRate === "number") {
     data.settings.commissionRate = Math.max(
@@ -3210,6 +3372,55 @@ export async function updateJsonPlatformFinanceSettings(updates: {
     data.settings.amazingDealsNotificationText =
       updates.amazingDealsNotificationText.trim().slice(0, 300) ||
       "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.";
+
+  const booleanHomepageKeys = [
+    "homepageShowStats",
+    "homepageShowCategories",
+    "homepageShowOpportunityRequests",
+    "homepageShowBestSelling",
+    "homepageShowGrowthSignals",
+    "homepageShowMostRequested",
+    "homepageShowPersonalizedRows",
+    "homepageShowLatestRequests",
+    "homepageShowTopSellers",
+    "homepageShowTopBuyers",
+    "homepageShowFinalCta",
+  ];
+  const stringHomepageKeys = [
+    "homepageHeroTitle",
+    "homepageHeroSubtitle",
+    "homepageCategoriesTitle",
+    "homepageOpportunityTitle",
+    "homepageOpportunitySubtitle",
+    "homepageBestSellingTitle",
+    "homepageBestSellingSubtitle",
+    "homepageGrowthSignalsTitle",
+    "homepageGrowthSignalsSubtitle",
+    "homepageMostRequestedTitle",
+    "homepageMostRequestedSubtitle",
+    "homepagePersonalizedTitle",
+    "homepagePersonalizedSubtitle",
+    "homepageRelatedTitle",
+    "homepageRelatedSubtitle",
+    "homepageLatestRequestsTitle",
+    "homepageLatestRequestsSubtitle",
+    "homepageTopSellersTitle",
+    "homepageTopSellersSubtitle",
+    "homepageTopBuyersTitle",
+    "homepageTopBuyersSubtitle",
+    "homepageFinalCtaTitle",
+    "homepageFinalCtaSubtitle",
+  ];
+  const settingsRecord = data.settings as unknown as Record<string, unknown>;
+  const updatesRecord = updates as Record<string, unknown>;
+  for (const key of booleanHomepageKeys) {
+    if (typeof updatesRecord[key] === "boolean") settingsRecord[key] = updatesRecord[key];
+  }
+  for (const key of stringHomepageKeys) {
+    if (typeof updatesRecord[key] === "string") {
+      settingsRecord[key] = String(updatesRecord[key]).trim().slice(0, 300);
+    }
+  }
   await writeOptiBidData(data);
   return data.settings;
 }

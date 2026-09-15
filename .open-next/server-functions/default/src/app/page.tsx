@@ -100,6 +100,46 @@ export default async function HomePage() {
     notificationText:
       "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
   };
+  let homeSettings = {
+    heroTitle: "پلتفرم درخواست خرید و تامین کالا",
+    heroSubtitle:
+      "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
+    showStats: true,
+    showCategories: true,
+    categoriesTitle: "دسته‌بندی کالاها",
+    showOpportunityRequests: true,
+    opportunityTitle: "درخواست‌های داغ فروشندگان",
+    opportunitySubtitle:
+      "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده",
+    showBestSelling: true,
+    bestSellingTitle: "پرفروش‌ترین‌ها",
+    bestSellingSubtitle: "آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند",
+    showGrowthSignals: true,
+    growthSignalsTitle: "سیگنال واقعی رشد قیمت",
+    growthSignalsSubtitle:
+      "بر اساس رشد تقاضا، فشار عرضه/پیشنهاد، روند قیمت، RSI، MACD و داده بیرونی در صورت دسترسی",
+    showMostRequested: true,
+    mostRequestedTitle: "بیشترین درخواست‌شده",
+    mostRequestedSubtitle: "درخواست‌هایی با تعداد بیشتر یا تقاضای بالاتر",
+    showPersonalizedRows: true,
+    personalizedTitle: "بر اساس جستجوهای اخیر شما",
+    personalizedSubtitle: "کلیدواژه‌های اخیر",
+    relatedTitle: "پیشنهادهای نزدیک به علاقه شما",
+    relatedSubtitle: "آگهی‌های هم‌دسته با جستجوهای قبلی شما",
+    showLatestRequests: true,
+    latestRequestsTitle: "آخرین درخواست‌های خرید",
+    latestRequestsSubtitle: "پیشنهاد قیمت خود را ثبت کنید",
+    showTopSellers: true,
+    topSellersTitle: "تامین‌کنندگان برتر",
+    topSellersSubtitle: "بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم",
+    showTopBuyers: true,
+    topBuyersTitle: "خریداران برتر پلتفرم",
+    topBuyersSubtitle: "شرکت‌ها و خریداران عمده خوش‌حساب",
+    showFinalCta: true,
+    finalCtaTitle: "آماده شروع هستید؟",
+    finalCtaSubtitle:
+      "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
+  };
   let displayCategories: HomeCategory[] = defaultCatalogCategories.map(
     (category) => ({ ...category, count: 0 }),
   );
@@ -138,6 +178,42 @@ export default async function HomePage() {
       notificationEnabled: data.settings.amazingDealsNotificationEnabled,
       notificationTitle: data.settings.amazingDealsNotificationTitle,
       notificationText: data.settings.amazingDealsNotificationText,
+    };
+    homeSettings = {
+      heroTitle: data.settings.homepageHeroTitle,
+      heroSubtitle: data.settings.homepageHeroSubtitle,
+      showStats: data.settings.homepageShowStats,
+      showCategories: data.settings.homepageShowCategories,
+      categoriesTitle: data.settings.homepageCategoriesTitle,
+      showOpportunityRequests: data.settings.homepageShowOpportunityRequests,
+      opportunityTitle: data.settings.homepageOpportunityTitle,
+      opportunitySubtitle: data.settings.homepageOpportunitySubtitle,
+      showBestSelling: data.settings.homepageShowBestSelling,
+      bestSellingTitle: data.settings.homepageBestSellingTitle,
+      bestSellingSubtitle: data.settings.homepageBestSellingSubtitle,
+      showGrowthSignals: data.settings.homepageShowGrowthSignals,
+      growthSignalsTitle: data.settings.homepageGrowthSignalsTitle,
+      growthSignalsSubtitle: data.settings.homepageGrowthSignalsSubtitle,
+      showMostRequested: data.settings.homepageShowMostRequested,
+      mostRequestedTitle: data.settings.homepageMostRequestedTitle,
+      mostRequestedSubtitle: data.settings.homepageMostRequestedSubtitle,
+      showPersonalizedRows: data.settings.homepageShowPersonalizedRows,
+      personalizedTitle: data.settings.homepagePersonalizedTitle,
+      personalizedSubtitle: data.settings.homepagePersonalizedSubtitle,
+      relatedTitle: data.settings.homepageRelatedTitle,
+      relatedSubtitle: data.settings.homepageRelatedSubtitle,
+      showLatestRequests: data.settings.homepageShowLatestRequests,
+      latestRequestsTitle: data.settings.homepageLatestRequestsTitle,
+      latestRequestsSubtitle: data.settings.homepageLatestRequestsSubtitle,
+      showTopSellers: data.settings.homepageShowTopSellers,
+      topSellersTitle: data.settings.homepageTopSellersTitle,
+      topSellersSubtitle: data.settings.homepageTopSellersSubtitle,
+      showTopBuyers: data.settings.homepageShowTopBuyers,
+      topBuyersTitle: data.settings.homepageTopBuyersTitle,
+      topBuyersSubtitle: data.settings.homepageTopBuyersSubtitle,
+      showFinalCta: data.settings.homepageShowFinalCta,
+      finalCtaTitle: data.settings.homepageFinalCtaTitle,
+      finalCtaSubtitle: data.settings.homepageFinalCtaSubtitle,
     };
     topSellers = sellerRankings
       .filter((item) => item.rating.rankingEligible)
@@ -266,7 +342,8 @@ export default async function HomePage() {
       <AmazingOfferNotification
         deal={amazingDealsRequests[0]}
         settings={{
-          enabled: amazingSettings.notificationEnabled,
+          enabled:
+            amazingSettings.notificationEnabled && homeSettings.showOpportunityRequests,
           title: amazingSettings.notificationTitle,
           text: amazingSettings.notificationText,
           discountCode: amazingSettings.discountCode,
@@ -277,11 +354,10 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              پلتفرم درخواست خرید و تامین کالا
+              {homeSettings.heroTitle}
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-green-100">
-              درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت
-              دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید
+              {homeSettings.heroSubtitle}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
@@ -301,90 +377,117 @@ export default async function HomePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">
-                {realStats.requestsCount.toLocaleString()}
+          {homeSettings.showStats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold">
+                  {realStats.requestsCount.toLocaleString()}
+                </div>
+                <div className="text-green-200 mt-2">درخواست خرید فعال</div>
               </div>
-              <div className="text-green-200 mt-2">درخواست خرید فعال</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">
-                {realStats.sellersCount.toLocaleString()}
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold">
+                  {realStats.sellersCount.toLocaleString()}
+                </div>
+                <div className="text-green-200 mt-2">تامین‌کننده فعال</div>
               </div>
-              <div className="text-green-200 mt-2">تامین‌کننده فعال</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">
-                {realStats.secureTransactionsCount.toLocaleString()}
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold">
+                  {realStats.secureTransactionsCount.toLocaleString()}
+                </div>
+                <div className="text-green-200 mt-2">تراکنش امن</div>
               </div>
-              <div className="text-green-200 mt-2">تراکنش امن</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold">
-                {realStats.successRate}٪
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold">
+                  {realStats.successRate}٪
+                </div>
+                <div className="text-green-200 mt-2">معاملات موفق</div>
               </div>
-              <div className="text-green-200 mt-2">معاملات موفق</div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
       {/* Categories Section */}
-      <section className="bg-white py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-black text-gray-900 md:text-3xl">
-              دسته‌بندی کالاها
-            </h2>
-          </div>
+      {homeSettings.showCategories && (
+        <section className="bg-white py-10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-black text-gray-900 md:text-3xl">
+                {homeSettings.categoriesTitle}
+              </h2>
+            </div>
 
-          <HomeCategoryMenu categories={displayCategories} />
-        </div>
-      </section>
+            <HomeCategoryMenu categories={displayCategories} />
+          </div>
+        </section>
+      )}
 
       <AmazingDealsSection
         items={amazingDealsRequests}
         settings={{
-          enabled: amazingSettings.enabled,
+          enabled: amazingSettings.enabled && homeSettings.showOpportunityRequests,
           durationHours: amazingSettings.durationHours,
           discountCode: amazingSettings.discountCode,
+          title: homeSettings.opportunityTitle,
+          subtitle: homeSettings.opportunitySubtitle,
         }}
       />
 
-      <section className="bg-gray-50 py-10">
-        <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-          <RequestSliderSection
-            title="پرفروش‌ترین‌ها"
-            subtitle="آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند"
-            items={bestSellingRequests}
-            accent="bg-rose-600"
-          />
-          <RequestSliderSection
-            title="سیگنال واقعی رشد قیمت"
-            subtitle="بر اساس رشد تقاضا، فشار عرضه/پیشنهاد، روند قیمت، RSI، MACD و داده بیرونی در صورت دسترسی"
-            items={growthPredictionRequests}
-            accent="bg-[#003b5c]"
-            showGrowthSignals
-          />
-          <RequestSliderSection
-            title="بیشترین درخواست‌شده"
-            subtitle="درخواست‌هایی با تعداد بیشتر یا تقاضای بالاتر"
-            items={mostRequestedRequests}
-            accent="bg-[#0b9c56]"
-          />
-        </div>
-      </section>
+      {(homeSettings.showBestSelling ||
+        homeSettings.showGrowthSignals ||
+        homeSettings.showMostRequested) && (
+        <section className="bg-gray-50 py-10">
+          <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            {homeSettings.showBestSelling && (
+              <RequestSliderSection
+                title={homeSettings.bestSellingTitle}
+                subtitle={homeSettings.bestSellingSubtitle}
+                items={bestSellingRequests}
+                accent="bg-rose-600"
+              />
+            )}
+            {homeSettings.showGrowthSignals && (
+              <RequestSliderSection
+                title={homeSettings.growthSignalsTitle}
+                subtitle={homeSettings.growthSignalsSubtitle}
+                items={growthPredictionRequests}
+                accent="bg-[#003b5c]"
+                showGrowthSignals
+              />
+            )}
+            {homeSettings.showMostRequested && (
+              <RequestSliderSection
+                title={homeSettings.mostRequestedTitle}
+                subtitle={homeSettings.mostRequestedSubtitle}
+                items={mostRequestedRequests}
+                accent="bg-[#0b9c56]"
+              />
+            )}
+          </div>
+        </section>
+      )}
 
-      <PersonalizedRequestRows requests={personalizedRequests} />
+      {homeSettings.showPersonalizedRows && (
+        <PersonalizedRequestRows
+          requests={personalizedRequests}
+          titles={{
+            personalizedTitle: homeSettings.personalizedTitle,
+            personalizedSubtitle: homeSettings.personalizedSubtitle,
+            relatedTitle: homeSettings.relatedTitle,
+            relatedSubtitle: homeSettings.relatedSubtitle,
+          }}
+        />
+      )}
 
       {/* Latest Purchase Requests */}
+      {homeSettings.showLatestRequests && (
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-3xl font-bold">آخرین درخواست‌های خرید</h2>
-              <p className="text-gray-600 mt-2">پیشنهاد قیمت خود را ثبت کنید</p>
+              <h2 className="text-3xl font-bold">{homeSettings.latestRequestsTitle}</h2>
+              <p className="text-gray-600 mt-2">{homeSettings.latestRequestsSubtitle}</p>
             </div>
             <Link
               href="/requests"
@@ -508,15 +611,17 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Top Sellers */}
+      {homeSettings.showTopSellers && (
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-3xl font-bold">تامین‌کنندگان برتر</h2>
+              <h2 className="text-3xl font-bold">{homeSettings.topSellersTitle}</h2>
               <p className="text-gray-600 mt-2">
-                بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم
+                {homeSettings.topSellersSubtitle}
               </p>
             </div>
             <Link
@@ -575,15 +680,17 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+      )}
 
       {/* Top Buyers */}
+      {homeSettings.showTopBuyers && (
       <section className="py-16 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-3xl font-bold">خریداران برتر پلتفرم</h2>
+              <h2 className="text-3xl font-bold">{homeSettings.topBuyersTitle}</h2>
               <p className="text-gray-600 mt-2">
-                شرکت‌ها و خریداران عمده خوش‌حساب
+                {homeSettings.topBuyersSubtitle}
               </p>
             </div>
             <Link
@@ -645,16 +752,17 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+      )}
 
       {/* CTA Section */}
+      {homeSettings.showFinalCta && (
       <section className="py-16 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            آماده شروع هستید؟
+            {homeSettings.finalCtaTitle}
           </h2>
           <p className="text-xl text-gray-400 mb-8">
-            به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت
-            بفرستید
+            {homeSettings.finalCtaSubtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -672,6 +780,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
     </div>
   );
 }
