@@ -414,6 +414,10 @@ export type OptiBidJsonData = {
     homepageCategoriesTitle: string;
     homepageCategoryFontFamily: string;
     homepageCategoryFontSize: string;
+    homepageShowPromoSliders: boolean;
+    homepagePromoSectionTitle: string;
+    homepagePromoSectionSubtitle: string;
+    homepagePromoSlidersText: string;
     homepageShowOpportunityRequests: boolean;
     homepageOpportunityTitle: string;
     homepageOpportunitySubtitle: string;
@@ -445,6 +449,14 @@ export type OptiBidJsonData = {
     homepageFinalCtaSubtitle: string;
   };
 };
+
+const defaultHomepagePromoSlidersText = [
+  "نردبان درخواست‌های فوری لپ‌تاپ|درخواست‌هایی که خریدار برای تأمین سریع‌تر حاضر است بیشتر دیده شود|نردبان درخواست|مشاهده درخواست‌ها|/requests|orange",
+  "جایگاه ویژه خریداران شرکتی|درخواست‌های عمده و سازمانی برای فروشندگان لپ‌تاپ و کامپیوتر دست‌دوم|آگهی ویژه|ثبت درخواست خرید|/request-purchase|blue",
+  "ویترین فروشندگان تخصصی لپ‌تاپ|فروشندگان حرفه‌ای می‌توانند با اشتراک، پروفایل و پیشنهادهایشان بیشتر دیده شود|اشتراک فروشنده|داشبورد فروشنده|/seller/dashboard|green",
+  "تبلیغات هدفمند خدمات مرتبط|جایگاه تبلیغ برای تعمیرات، گارانتی، قطعات، رم، SSD و خدمات تست لپ‌تاپ|تبلیغ هدفمند|تماس با ما|/contact|purple",
+  "درخواست‌های با بودجه جذاب|آگهی‌هایی که از نظر بودجه، تعداد و کمبود پیشنهاد برای فروشنده فرصت بهتری هستند|فرصت فروشنده|شروع پیشنهاد|/requests|amber",
+].join("\n");
 
 const emptyData = (): OptiBidJsonData => ({
   requests: [],
@@ -492,16 +504,21 @@ const emptyData = (): OptiBidJsonData => ({
     homepageHeroSubtitle:
       "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
     homepageShowStats: true,
-    homepageShowCategories: true,
+    homepageShowCategories: false,
     homepageCategoriesTitle: "دسته‌بندی کالاها",
     homepageCategoryFontFamily: "Vazir",
     homepageCategoryFontSize: "18",
+    homepageShowPromoSliders: true,
+    homepagePromoSectionTitle: "جایگاه‌های ویژه و درآمدی",
+    homepagePromoSectionSubtitle:
+      "فعلاً تمرکز روی درخواست خرید لپ‌تاپ و کامپیوتر دست‌دوم است؛ این اسلایدرها برای نردبان، آگهی ویژه، اشتراک فروشنده و تبلیغات هدفمند استفاده می‌شوند.",
+    homepagePromoSlidersText: defaultHomepagePromoSlidersText,
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
       "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده",
     homepageShowBestSelling: true,
-    homepageBestSellingTitle: "پرفروش‌ترین‌ها",
+    homepageBestSellingTitle: "پررقابت‌ترین درخواست‌ها",
     homepageBestSellingSubtitle:
       "آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند",
     homepageShowGrowthSignals: true,
@@ -882,7 +899,7 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           ?.homepageShowStats !== false,
       homepageShowCategories:
         (parsed.settings as { homepageShowCategories?: boolean } | undefined)
-          ?.homepageShowCategories !== false,
+          ?.homepageShowCategories === true,
       homepageCategoriesTitle:
         (parsed.settings as { homepageCategoriesTitle?: string } | undefined)
           ?.homepageCategoriesTitle || "دسته‌بندی کالاها",
@@ -892,6 +909,19 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       homepageCategoryFontSize:
         (parsed.settings as { homepageCategoryFontSize?: string } | undefined)
           ?.homepageCategoryFontSize || "18",
+      homepageShowPromoSliders:
+        (parsed.settings as { homepageShowPromoSliders?: boolean } | undefined)
+          ?.homepageShowPromoSliders !== false,
+      homepagePromoSectionTitle:
+        (parsed.settings as { homepagePromoSectionTitle?: string } | undefined)
+          ?.homepagePromoSectionTitle || "جایگاه‌های ویژه و درآمدی",
+      homepagePromoSectionSubtitle:
+        (parsed.settings as { homepagePromoSectionSubtitle?: string } | undefined)
+          ?.homepagePromoSectionSubtitle ||
+        "فعلاً تمرکز روی درخواست خرید لپ‌تاپ و کامپیوتر دست‌دوم است؛ این اسلایدرها برای نردبان، آگهی ویژه، اشتراک فروشنده و تبلیغات هدفمند استفاده می‌شوند.",
+      homepagePromoSlidersText:
+        (parsed.settings as { homepagePromoSlidersText?: string } | undefined)
+          ?.homepagePromoSlidersText || defaultHomepagePromoSlidersText,
       homepageShowOpportunityRequests:
         (parsed.settings as { homepageShowOpportunityRequests?: boolean } | undefined)
           ?.homepageShowOpportunityRequests !== false,
@@ -907,7 +937,7 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           ?.homepageShowBestSelling !== false,
       homepageBestSellingTitle:
         (parsed.settings as { homepageBestSellingTitle?: string } | undefined)
-          ?.homepageBestSellingTitle || "پرفروش‌ترین‌ها",
+          ?.homepageBestSellingTitle || "پررقابت‌ترین درخواست‌ها",
       homepageBestSellingSubtitle:
         (parsed.settings as { homepageBestSellingSubtitle?: string } | undefined)
           ?.homepageBestSellingSubtitle ||
@@ -3386,6 +3416,7 @@ export async function updateJsonPlatformFinanceSettings(
   const booleanHomepageKeys = [
     "homepageShowStats",
     "homepageShowCategories",
+    "homepageShowPromoSliders",
     "homepageShowOpportunityRequests",
     "homepageShowBestSelling",
     "homepageShowGrowthSignals",
@@ -3402,6 +3433,9 @@ export async function updateJsonPlatformFinanceSettings(
     "homepageCategoriesTitle",
     "homepageCategoryFontFamily",
     "homepageCategoryFontSize",
+    "homepagePromoSectionTitle",
+    "homepagePromoSectionSubtitle",
+    "homepagePromoSlidersText",
     "homepageOpportunityTitle",
     "homepageOpportunitySubtitle",
     "homepageBestSellingTitle",

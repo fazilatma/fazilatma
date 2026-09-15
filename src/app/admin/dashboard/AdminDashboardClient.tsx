@@ -133,16 +133,22 @@ export default function AdminDashboardClient({
     homepageHeroSubtitle:
       "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
     homepageShowStats: true,
-    homepageShowCategories: true,
+    homepageShowCategories: false,
     homepageCategoriesTitle: "دسته‌بندی کالاها",
     homepageCategoryFontFamily: "Vazir",
     homepageCategoryFontSize: "18",
+    homepageShowPromoSliders: true,
+    homepagePromoSectionTitle: "جایگاه‌های ویژه و درآمدی",
+    homepagePromoSectionSubtitle:
+      "فعلاً تمرکز روی درخواست خرید لپ‌تاپ و کامپیوتر دست‌دوم است؛ این اسلایدرها برای نردبان، آگهی ویژه، اشتراک فروشنده و تبلیغات هدفمند استفاده می‌شوند.",
+    homepagePromoSlidersText:
+      "نردبان درخواست‌های فوری لپ‌تاپ|درخواست‌هایی که خریدار برای تأمین سریع‌تر حاضر است بیشتر دیده شود|نردبان درخواست|مشاهده درخواست‌ها|/requests|orange\nجایگاه ویژه خریداران شرکتی|درخواست‌های عمده و سازمانی برای فروشندگان لپ‌تاپ و کامپیوتر دست‌دوم|آگهی ویژه|ثبت درخواست خرید|/request-purchase|blue\nویترین فروشندگان تخصصی لپ‌تاپ|فروشندگان حرفه‌ای می‌توانند با اشتراک، پروفایل و پیشنهادهایشان بیشتر دیده شود|اشتراک فروشنده|داشبورد فروشنده|/seller/dashboard|green\nتبلیغات هدفمند خدمات مرتبط|جایگاه تبلیغ برای تعمیرات، گارانتی، قطعات، رم، SSD و خدمات تست لپ‌تاپ|تبلیغ هدفمند|تماس با ما|/contact|purple\nدرخواست‌های با بودجه جذاب|آگهی‌هایی که از نظر بودجه، تعداد و کمبود پیشنهاد برای فروشنده فرصت بهتری هستند|فرصت فروشنده|شروع پیشنهاد|/requests|amber",
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
       "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده",
     homepageShowBestSelling: true,
-    homepageBestSellingTitle: "پرفروش‌ترین‌ها",
+    homepageBestSellingTitle: "پررقابت‌ترین درخواست‌ها",
     homepageBestSellingSubtitle:
       "آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند",
     homepageShowGrowthSignals: true,
@@ -1440,6 +1446,67 @@ export default function AdminDashboardClient({
                     </div>
                   </div>
 
+                  <div className="mb-6 rounded-3xl border border-orange-100 bg-orange-50/60 p-5">
+                    <label className="mb-4 flex items-center gap-3 text-sm font-bold text-orange-800">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageShowPromoSliders)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageShowPromoSliders",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      نمایش حداقل ۵ اسلایدر تبلیغاتی/درآمدی در صفحه اصلی
+                    </label>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="block text-sm font-bold text-gray-700">
+                        عنوان کلی اسلایدرهای درآمدی
+                        <input
+                          value={platformFinance.homepagePromoSectionTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepagePromoSectionTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        توضیح کلی اسلایدرهای درآمدی
+                        <input
+                          value={platformFinance.homepagePromoSectionSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepagePromoSectionSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </label>
+                    </div>
+                    <label className="mt-4 block text-sm font-bold text-gray-700">
+                      محتوای اسلایدرها؛ هر خط یک اسلایدر با فرمت:
+                      <span className="mt-1 block text-xs font-normal text-gray-500">
+                        عنوان | توضیح | نشان | متن دکمه | لینک | رنگ
+                      </span>
+                      <textarea
+                        dir="rtl"
+                        value={platformFinance.homepagePromoSlidersText}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepagePromoSlidersText",
+                            e.target.value,
+                          )
+                        }
+                        className="mt-2 min-h-40 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 leading-7 outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </label>
+                  </div>
+
                   <div className="grid gap-4 lg:grid-cols-2">
                     {[
                       {
@@ -1449,7 +1516,7 @@ export default function AdminDashboardClient({
                         subtitleKey: "homepageOpportunitySubtitle",
                       },
                       {
-                        label: "پرفروش‌ترین‌ها / پررقابت‌ترین درخواست‌ها",
+                        label: "پررقابت‌ترین درخواست‌ها",
                         enabledKey: "homepageShowBestSelling",
                         titleKey: "homepageBestSellingTitle",
                         subtitleKey: "homepageBestSellingSubtitle",
