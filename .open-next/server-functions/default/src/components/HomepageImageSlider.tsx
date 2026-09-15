@@ -80,9 +80,11 @@ export default function HomepageImageSlider({
             ثبت درخواست ویژه
           </Link>
         </div>
+      </div>
 
-        <div className="overflow-hidden rounded-[2rem] border border-gray-100 bg-gray-100 shadow-lg">
-          <div className="relative h-[260px] md:h-[360px]">
+      <div className="w-full">
+        <div className="w-full overflow-hidden border-y border-gray-100 bg-gray-100 shadow-lg">
+          <div className="relative h-[280px] md:h-[420px]">
             {activeSlide.image ? (
               <img
                 src={productImageUrl(activeSlide.image)}
