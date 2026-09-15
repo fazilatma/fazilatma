@@ -53,6 +53,12 @@ export default function HomepageImageSlider({
 
   if (activeSlides.length === 0) return null;
   const activeSlide = activeSlides[activeIndex] || activeSlides[0];
+  const goToNextSlide = () =>
+    setActiveIndex((current) => (current + 1) % activeSlides.length);
+  const goToPreviousSlide = () =>
+    setActiveIndex(
+      (current) => (current - 1 + activeSlides.length) % activeSlides.length,
+    );
 
   return (
     <section className="bg-white py-8">
@@ -89,6 +95,26 @@ export default function HomepageImageSlider({
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-l from-black/65 via-black/25 to-transparent" />
+            {activeSlides.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={goToPreviousSlide}
+                  className="absolute right-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:scale-105 hover:bg-white"
+                  aria-label="اسلاید قبلی"
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  onClick={goToNextSlide}
+                  className="absolute left-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:scale-105 hover:bg-white"
+                  aria-label="اسلاید بعدی"
+                >
+                  ‹
+                </button>
+              </>
+            )}
             <div className="absolute inset-y-0 right-0 flex max-w-2xl flex-col justify-center p-6 text-white md:p-10">
               <span className="mb-4 w-fit rounded-full bg-white/20 px-4 py-2 text-xs font-black backdrop-blur">
                 {activeSlide.id ? `اسلاید ${activeIndex + 1}` : "ویژه"}
