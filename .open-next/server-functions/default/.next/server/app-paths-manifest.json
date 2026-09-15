@@ -6,6 +6,7 @@
   "/api/account/seller-mode/route": "app/api/account/seller-mode/route.js",
   "/api/admin/categories/route": "app/api/admin/categories/route.js",
   "/api/admin/finance/route": "app/api/admin/finance/route.js",
+  "/api/admin/homepage-slider/route": "app/api/admin/homepage-slider/route.js",
   "/api/admin/kyc-document/route": "app/api/admin/kyc-document/route.js",
   "/api/admin/kyc/route": "app/api/admin/kyc/route.js",
   "/api/admin/seller-metrics/route": "app/api/admin/seller-metrics/route.js",

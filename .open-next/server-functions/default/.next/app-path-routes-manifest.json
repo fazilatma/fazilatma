@@ -6,6 +6,7 @@
   "/api/account/seller-mode/route": "/api/account/seller-mode",
   "/api/admin/categories/route": "/api/admin/categories",
   "/api/admin/finance/route": "/api/admin/finance",
+  "/api/admin/homepage-slider/route": "/api/admin/homepage-slider",
   "/api/admin/kyc-document/route": "/api/admin/kyc-document",
   "/api/admin/kyc/route": "/api/admin/kyc",
   "/api/admin/seller-metrics/route": "/api/admin/seller-metrics",

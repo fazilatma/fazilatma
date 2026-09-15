@@ -6,10 +6,9 @@ import AmazingOfferNotification from "@/components/AmazingOfferNotification";
 import SellerStars from "@/components/SellerStars";
 import BuyerModeButton from "@/components/BuyerModeButton";
 import HomeCategoryMenu from "@/components/HomeCategoryMenu";
-import HomepagePromoSliders, {
-  parseHomepagePromoSliders,
-  type HomepagePromoSlide,
-} from "@/components/HomepagePromoSliders";
+import HomepageImageSlider, {
+  type HomepageImageSliderSlide,
+} from "@/components/HomepageImageSlider";
 import PersonalizedRequestRows, {
   type PersonalizedRequestItem,
 } from "@/components/PersonalizedRequestRows";
@@ -95,7 +94,7 @@ export default async function HomePage() {
   let mostRequestedRequests: HomeRequestCard[] = [];
   let amazingDealsRequests: AmazingDealItem[] = [];
   let personalizedRequests: PersonalizedRequestItem[] = [];
-  let homepagePromoSliders: HomepagePromoSlide[] = parseHomepagePromoSliders();
+  let homepageImageSlides: HomepageImageSliderSlide[] = [];
   let amazingSettings = {
     enabled: true,
     durationHours: 6,
@@ -114,10 +113,11 @@ export default async function HomePage() {
     categoriesTitle: "دسته‌بندی کالاها",
     categoryFontFamily: "Vazir",
     categoryFontSize: "18",
-    showPromoSliders: true,
-    promoSectionTitle: "جایگاه‌های ویژه و درآمدی",
-    promoSectionSubtitle:
-      "فعلاً تمرکز روی درخواست خرید لپ‌تاپ و کامپیوتر دست‌دوم است؛ این اسلایدرها برای نردبان، آگهی ویژه، اشتراک فروشنده و تبلیغات هدفمند استفاده می‌شوند.",
+    imageSliderEnabled: true,
+    imageSliderTitle: "اسلایدر ویژه درخواست‌های خرید",
+    imageSliderSubtitle:
+      "جایگاه تبلیغات، نردبان درخواست و کمپین‌های ویژه لپ‌تاپ و کامپیوتر دست‌دوم",
+    imageSliderDurationSeconds: 5,
     showOpportunityRequests: true,
     opportunityTitle: "درخواست‌های داغ فروشندگان",
     opportunitySubtitle:
@@ -198,9 +198,10 @@ export default async function HomePage() {
       categoriesTitle: data.settings.homepageCategoriesTitle,
       categoryFontFamily: data.settings.homepageCategoryFontFamily,
       categoryFontSize: data.settings.homepageCategoryFontSize,
-      showPromoSliders: data.settings.homepageShowPromoSliders,
-      promoSectionTitle: data.settings.homepagePromoSectionTitle,
-      promoSectionSubtitle: data.settings.homepagePromoSectionSubtitle,
+      imageSliderEnabled: data.settings.homepageImageSliderEnabled,
+      imageSliderTitle: data.settings.homepageImageSliderTitle,
+      imageSliderSubtitle: data.settings.homepageImageSliderSubtitle,
+      imageSliderDurationSeconds: data.settings.homepageImageSliderDurationSeconds,
       showOpportunityRequests: data.settings.homepageShowOpportunityRequests,
       opportunityTitle: data.settings.homepageOpportunityTitle,
       opportunitySubtitle: data.settings.homepageOpportunitySubtitle,
@@ -231,9 +232,7 @@ export default async function HomePage() {
       finalCtaTitle: data.settings.homepageFinalCtaTitle,
       finalCtaSubtitle: data.settings.homepageFinalCtaSubtitle,
     };
-    homepagePromoSliders = parseHomepagePromoSliders(
-      data.settings.homepagePromoSlidersText,
-    );
+    homepageImageSlides = data.settings.homepageImageSliderSlides || [];
     topSellers = sellerRankings
       .filter((item) => item.rating.rankingEligible)
       .slice(0, 4);
@@ -427,11 +426,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {homeSettings.showPromoSliders && (
-        <HomepagePromoSliders
-          title={homeSettings.promoSectionTitle}
-          subtitle={homeSettings.promoSectionSubtitle}
-          sliders={homepagePromoSliders}
+      {homeSettings.imageSliderEnabled && (
+        <HomepageImageSlider
+          title={homeSettings.imageSliderTitle}
+          subtitle={homeSettings.imageSliderSubtitle}
+          durationSeconds={homeSettings.imageSliderDurationSeconds}
+          slides={homepageImageSlides}
         />
       )}
 

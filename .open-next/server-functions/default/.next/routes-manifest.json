@@ -137,6 +137,12 @@
       "namedRegex": "^/api/admin/finance(?:/)?$"
     },
     {
+      "page": "/api/admin/homepage-slider",
+      "regex": "^/api/admin/homepage\\-slider(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/homepage\\-slider(?:/)?$"
+    },
+    {
       "page": "/api/admin/kyc",
       "regex": "^/api/admin/kyc(?:/)?$",
       "routeKeys": {},

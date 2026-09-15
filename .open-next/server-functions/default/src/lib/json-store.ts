@@ -366,6 +366,59 @@ export type JsonPasswordReset = {
   usedAt?: string;
 };
 
+export type HomepageImageSliderSlide = {
+  id: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  href: string;
+  isActive: boolean;
+  image?: ProductImageAttachment;
+};
+
+const defaultHomepageImageSliderSlides: HomepageImageSliderSlide[] = [
+  {
+    id: "urgent-laptop-requests",
+    title: "درخواست فوری لپ‌تاپ استوک",
+    subtitle: "خریدارهای آماده، بودجه مشخص و رقابت فروشنده‌ها برای پیشنهاد بهتر",
+    cta: "مشاهده درخواست‌ها",
+    href: "/requests",
+    isActive: true,
+  },
+  {
+    id: "corporate-used-computer",
+    title: "خرید سازمانی کامپیوتر دست‌دوم",
+    subtitle: "درخواست‌های شرکتی برای تأمین چند دستگاه لپ‌تاپ و کامپیوتر کارکرده",
+    cta: "ثبت درخواست خرید",
+    href: "/request-purchase",
+    isActive: true,
+  },
+  {
+    id: "seller-subscription",
+    title: "ویترین فروشندگان تخصصی لپ‌تاپ",
+    subtitle: "اشتراک فروشنده، نمایش بهتر پروفایل و دسترسی سریع‌تر به درخواست‌های مرتبط",
+    cta: "داشبورد فروشنده",
+    href: "/seller/dashboard",
+    isActive: true,
+  },
+  {
+    id: "service-ads",
+    title: "تبلیغات خدمات تست و قطعات",
+    subtitle: "جایگاه تبلیغ برای تعمیرات، رم، SSD، گارانتی و خدمات تست لپ‌تاپ",
+    cta: "تماس با ما",
+    href: "/contact",
+    isActive: true,
+  },
+  {
+    id: "high-budget-requests",
+    title: "درخواست‌های با بودجه جذاب",
+    subtitle: "آگهی‌هایی که از نظر بودجه، تعداد و کمبود پیشنهاد فرصت بهتری هستند",
+    cta: "شروع پیشنهاد",
+    href: "/requests",
+    isActive: true,
+  },
+];
+
 export type OptiBidJsonData = {
   requests: JsonRequest[];
   users: JsonUser[];
@@ -419,6 +472,11 @@ export type OptiBidJsonData = {
     homepagePromoSectionTitle: string;
     homepagePromoSectionSubtitle: string;
     homepagePromoSlidersText: string;
+    homepageImageSliderEnabled: boolean;
+    homepageImageSliderTitle: string;
+    homepageImageSliderSubtitle: string;
+    homepageImageSliderDurationSeconds: number;
+    homepageImageSliderSlides: HomepageImageSliderSlide[];
     homepageShowOpportunityRequests: boolean;
     homepageOpportunityTitle: string;
     homepageOpportunitySubtitle: string;
@@ -515,6 +573,12 @@ const emptyData = (): OptiBidJsonData => ({
     homepagePromoSectionSubtitle:
       "فعلاً تمرکز روی درخواست خرید لپ‌تاپ و کامپیوتر دست‌دوم است؛ این اسلایدرها برای نردبان، آگهی ویژه، اشتراک فروشنده و تبلیغات هدفمند استفاده می‌شوند.",
     homepagePromoSlidersText: defaultHomepagePromoSlidersText,
+    homepageImageSliderEnabled: true,
+    homepageImageSliderTitle: "اسلایدر ویژه درخواست‌های خرید",
+    homepageImageSliderSubtitle:
+      "برای درآمدزایی از جایگاه تبلیغاتی، نردبان درخواست، آگهی ویژه و کمپین‌های مرتبط با لپ‌تاپ دست‌دوم",
+    homepageImageSliderDurationSeconds: 5,
+    homepageImageSliderSlides: defaultHomepageImageSliderSlides,
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
@@ -927,6 +991,36 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       homepagePromoSlidersText:
         (parsed.settings as { homepagePromoSlidersText?: string } | undefined)
           ?.homepagePromoSlidersText || defaultHomepagePromoSlidersText,
+      homepageImageSliderEnabled:
+        (parsed.settings as { homepageImageSliderEnabled?: boolean } | undefined)
+          ?.homepageImageSliderEnabled !== false,
+      homepageImageSliderTitle:
+        (parsed.settings as { homepageImageSliderTitle?: string } | undefined)
+          ?.homepageImageSliderTitle || "اسلایدر ویژه درخواست‌های خرید",
+      homepageImageSliderSubtitle:
+        (parsed.settings as { homepageImageSliderSubtitle?: string } | undefined)
+          ?.homepageImageSliderSubtitle ||
+        "برای درآمدزایی از جایگاه تبلیغاتی، نردبان درخواست، آگهی ویژه و کمپین‌های مرتبط با لپ‌تاپ دست‌دوم",
+      homepageImageSliderDurationSeconds: Math.max(
+        3,
+        Math.min(
+          30,
+          Number(
+            (parsed.settings as { homepageImageSliderDurationSeconds?: number } | undefined)
+              ?.homepageImageSliderDurationSeconds || 5,
+          ),
+        ),
+      ),
+      homepageImageSliderSlides: Array.isArray(
+        (parsed.settings as { homepageImageSliderSlides?: unknown } | undefined)
+          ?.homepageImageSliderSlides,
+      )
+        ? ((parsed.settings as
+            | { homepageImageSliderSlides?: HomepageImageSliderSlide[] }
+            | undefined)?.homepageImageSliderSlides ||
+            defaultHomepageImageSliderSlides
+          ).slice(0, 5)
+        : defaultHomepageImageSliderSlides,
       homepageShowOpportunityRequests:
         (parsed.settings as { homepageShowOpportunityRequests?: boolean } | undefined)
           ?.homepageShowOpportunityRequests !== false,
@@ -3426,6 +3520,7 @@ export async function updateJsonPlatformFinanceSettings(
     "homepageShowCategories",
     "homepageShowCategorySection",
     "homepageShowPromoSliders",
+    "homepageImageSliderEnabled",
     "homepageShowOpportunityRequests",
     "homepageShowBestSelling",
     "homepageShowGrowthSignals",
@@ -3445,6 +3540,8 @@ export async function updateJsonPlatformFinanceSettings(
     "homepagePromoSectionTitle",
     "homepagePromoSectionSubtitle",
     "homepagePromoSlidersText",
+    "homepageImageSliderTitle",
+    "homepageImageSliderSubtitle",
     "homepageOpportunityTitle",
     "homepageOpportunitySubtitle",
     "homepageBestSellingTitle",
@@ -3475,6 +3572,12 @@ export async function updateJsonPlatformFinanceSettings(
     if (typeof updatesRecord[key] === "string") {
       settingsRecord[key] = String(updatesRecord[key]).trim().slice(0, 300);
     }
+  }
+  if (typeof updates.homepageImageSliderDurationSeconds === "number") {
+    data.settings.homepageImageSliderDurationSeconds = Math.max(
+      3,
+      Math.min(30, Math.round(updates.homepageImageSliderDurationSeconds)),
+    );
   }
   await writeOptiBidData(data);
   return data.settings;

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import SellerStars from "@/components/SellerStars";
+import type { HomepageImageSliderSlide } from "@/components/HomepageImageSlider";
+import { productImageUrl } from "@/lib/product-image-shared";
 import { useLiveContent } from "@/hooks/useLiveContent";
 import type { CatalogCategory } from "@/lib/catalog-categories";
 
@@ -142,8 +144,13 @@ export default function AdminDashboardClient({
     homepagePromoSectionTitle: "جایگاه‌های ویژه و درآمدی",
     homepagePromoSectionSubtitle:
       "فعلاً تمرکز روی درخواست خرید لپ‌تاپ و کامپیوتر دست‌دوم است؛ این اسلایدرها برای نردبان، آگهی ویژه، اشتراک فروشنده و تبلیغات هدفمند استفاده می‌شوند.",
-    homepagePromoSlidersText:
-      "نردبان درخواست‌های فوری لپ‌تاپ|درخواست‌هایی که خریدار برای تأمین سریع‌تر حاضر است بیشتر دیده شود|نردبان درخواست|مشاهده درخواست‌ها|/requests|orange\nجایگاه ویژه خریداران شرکتی|درخواست‌های عمده و سازمانی برای فروشندگان لپ‌تاپ و کامپیوتر دست‌دوم|آگهی ویژه|ثبت درخواست خرید|/request-purchase|blue\nویترین فروشندگان تخصصی لپ‌تاپ|فروشندگان حرفه‌ای می‌توانند با اشتراک، پروفایل و پیشنهادهایشان بیشتر دیده شود|اشتراک فروشنده|داشبورد فروشنده|/seller/dashboard|green\nتبلیغات هدفمند خدمات مرتبط|جایگاه تبلیغ برای تعمیرات، گارانتی، قطعات، رم، SSD و خدمات تست لپ‌تاپ|تبلیغ هدفمند|تماس با ما|/contact|purple\nدرخواست‌های با بودجه جذاب|آگهی‌هایی که از نظر بودجه، تعداد و کمبود پیشنهاد برای فروشنده فرصت بهتری هستند|فرصت فروشنده|شروع پیشنهاد|/requests|amber",
+    homepagePromoSlidersText: "",
+    homepageImageSliderEnabled: true,
+    homepageImageSliderTitle: "اسلایدر ویژه درخواست‌های خرید",
+    homepageImageSliderSubtitle:
+      "جایگاه تبلیغات، نردبان درخواست و کمپین‌های ویژه لپ‌تاپ و کامپیوتر دست‌دوم",
+    homepageImageSliderDurationSeconds: 5,
+    homepageImageSliderSlides: [] as HomepageImageSliderSlide[],
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
@@ -183,6 +190,10 @@ export default function AdminDashboardClient({
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [zarinpalPayments, setZarinpalPayments] = useState<any[]>([]);
   const [zarinpalPrerequisites, setZarinpalPrerequisites] = useState<any>(null);
+  const [homepageSlideFiles, setHomepageSlideFiles] = useState<
+    Record<number, File | null>
+  >({});
+  const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
   const [withdrawalNotes, setWithdrawalNotes] = useState<
     Record<string, string>
   >({});
@@ -209,6 +220,77 @@ export default function AdminDashboardClient({
 
   const updatePlatformFinanceField = (key: string, value: unknown) => {
     setPlatformFinance((current) => ({ ...current, [key]: value }));
+  };
+
+  const ensureHomepageSlides = () => {
+    const current = platformFinance.homepageImageSliderSlides || [];
+    return Array.from({ length: 5 }).map((_, index) =>
+      current[index] || {
+        id: `slide-${index + 1}`,
+        title: `اسلاید ${index + 1}`,
+        subtitle: "",
+        cta: "مشاهده",
+        href: "/requests",
+        isActive: true,
+      },
+    );
+  };
+
+  const updateHomepageSlide = (
+    index: number,
+    updates: Partial<HomepageImageSliderSlide>,
+  ) => {
+    setPlatformFinance((current) => {
+      const slides = Array.from({ length: 5 }).map((_, slideIndex) =>
+        current.homepageImageSliderSlides?.[slideIndex] || {
+          id: `slide-${slideIndex + 1}`,
+          title: `اسلاید ${slideIndex + 1}`,
+          subtitle: "",
+          cta: "مشاهده",
+          href: "/requests",
+          isActive: true,
+        },
+      );
+      slides[index] = { ...slides[index], ...updates };
+      return { ...current, homepageImageSliderSlides: slides };
+    });
+  };
+
+  const saveHomepageImageSlider = async () => {
+    setSavingHomepageSlider(true);
+    try {
+      const slides = ensureHomepageSlides();
+      const payload = new FormData();
+      payload.append("enabled", String(platformFinance.homepageImageSliderEnabled));
+      payload.append("title", platformFinance.homepageImageSliderTitle || "");
+      payload.append("subtitle", platformFinance.homepageImageSliderSubtitle || "");
+      payload.append(
+        "durationSeconds",
+        String(platformFinance.homepageImageSliderDurationSeconds || 5),
+      );
+      payload.append("slides", JSON.stringify(slides));
+      Object.entries(homepageSlideFiles).forEach(([index, file]) => {
+        if (file) payload.append(`slideImage-${index}`, file);
+      });
+      const response = await fetch("/api/admin/homepage-slider", {
+        method: "POST",
+        body: payload,
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "ذخیره اسلایدر تصویری ناموفق بود.");
+      setPlatformFinance(result.settings);
+      setHomepageSlideFiles({});
+      alert(result.message || "اسلایدر تصویری ذخیره شد.");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "ذخیره اسلایدر تصویری ناموفق بود.",
+      );
+    } finally {
+      setSavingHomepageSlider(false);
+    }
   };
 
   const saveFinance = async () => {
@@ -1451,24 +1533,24 @@ export default function AdminDashboardClient({
                     <label className="mb-4 flex items-center gap-3 text-sm font-bold text-orange-800">
                       <input
                         type="checkbox"
-                        checked={Boolean(platformFinance.homepageShowPromoSliders)}
+                        checked={Boolean(platformFinance.homepageImageSliderEnabled)}
                         onChange={(e) =>
                           updatePlatformFinanceField(
-                            "homepageShowPromoSliders",
+                            "homepageImageSliderEnabled",
                             e.target.checked,
                           )
                         }
                       />
-                      نمایش حداقل ۵ اسلایدر تبلیغاتی/درآمدی در صفحه اصلی
+                      نمایش اسلایدر تصویری تبلیغاتی صفحه اصلی
                     </label>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                       <label className="block text-sm font-bold text-gray-700">
-                        عنوان کلی اسلایدرهای درآمدی
+                        عنوان اسلایدر تصویری
                         <input
-                          value={platformFinance.homepagePromoSectionTitle}
+                          value={platformFinance.homepageImageSliderTitle}
                           onChange={(e) =>
                             updatePlatformFinanceField(
-                              "homepagePromoSectionTitle",
+                              "homepageImageSliderTitle",
                               e.target.value,
                             )
                           }
@@ -1476,36 +1558,143 @@ export default function AdminDashboardClient({
                         />
                       </label>
                       <label className="block text-sm font-bold text-gray-700">
-                        توضیح کلی اسلایدرهای درآمدی
+                        توضیح اسلایدر تصویری
                         <input
-                          value={platformFinance.homepagePromoSectionSubtitle}
+                          value={platformFinance.homepageImageSliderSubtitle}
                           onChange={(e) =>
                             updatePlatformFinanceField(
-                              "homepagePromoSectionSubtitle",
+                              "homepageImageSliderSubtitle",
                               e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        زمان تعویض اسلاید (ثانیه)
+                        <input
+                          type="number"
+                          min="3"
+                          max="30"
+                          value={platformFinance.homepageImageSliderDurationSeconds}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageImageSliderDurationSeconds",
+                              Number(e.target.value || 5),
                             )
                           }
                           className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
                         />
                       </label>
                     </div>
-                    <label className="mt-4 block text-sm font-bold text-gray-700">
-                      محتوای اسلایدرها؛ هر خط یک اسلایدر با فرمت:
-                      <span className="mt-1 block text-xs font-normal text-gray-500">
-                        عنوان | توضیح | نشان | متن دکمه | لینک | رنگ
-                      </span>
-                      <textarea
-                        dir="rtl"
-                        value={platformFinance.homepagePromoSlidersText}
-                        onChange={(e) =>
-                          updatePlatformFinanceField(
-                            "homepagePromoSlidersText",
-                            e.target.value,
-                          )
-                        }
-                        className="mt-2 min-h-40 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 leading-7 outline-none focus:ring-2 focus:ring-orange-500"
-                      />
-                    </label>
+
+                    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                      {ensureHomepageSlides().map((slide, index) => (
+                        <div
+                          key={slide.id || index}
+                          className="rounded-2xl border border-orange-100 bg-white p-4"
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <b className="text-sm text-gray-900">
+                              اسلاید {Number(index + 1).toLocaleString("fa-IR")}
+                            </b>
+                            <label className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                              <input
+                                type="checkbox"
+                                checked={slide.isActive !== false}
+                                onChange={(e) =>
+                                  updateHomepageSlide(index, {
+                                    isActive: e.target.checked,
+                                  })
+                                }
+                              />
+                              فعال
+                            </label>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-[110px_1fr]">
+                            <div>
+                              <div className="mb-2 grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-gray-100 text-xs text-gray-400">
+                                {slide.image ? (
+                                  <img
+                                    src={productImageUrl(slide.image)}
+                                    alt={slide.title}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  "بدون عکس"
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(e) =>
+                                  setHomepageSlideFiles((current) => ({
+                                    ...current,
+                                    [index]: e.target.files?.[0] || null,
+                                  }))
+                                }
+                                className="w-full text-xs"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <input
+                                value={slide.title}
+                                onChange={(e) =>
+                                  updateHomepageSlide(index, {
+                                    title: e.target.value,
+                                  })
+                                }
+                                placeholder="عنوان اسلاید"
+                                className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                              />
+                              <input
+                                value={slide.subtitle}
+                                onChange={(e) =>
+                                  updateHomepageSlide(index, {
+                                    subtitle: e.target.value,
+                                  })
+                                }
+                                placeholder="توضیح کوتاه"
+                                className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                              />
+                              <div className="grid gap-2 md:grid-cols-2">
+                                <input
+                                  value={slide.cta}
+                                  onChange={(e) =>
+                                    updateHomepageSlide(index, {
+                                      cta: e.target.value,
+                                    })
+                                  }
+                                  placeholder="متن دکمه"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                                />
+                                <input
+                                  dir="ltr"
+                                  value={slide.href}
+                                  onChange={(e) =>
+                                    updateHomepageSlide(index, {
+                                      href: e.target.value,
+                                    })
+                                  }
+                                  placeholder="/requests"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-left text-sm outline-none focus:border-orange-400"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={saveHomepageImageSlider}
+                      disabled={savingHomepageSlider}
+                      className="mt-5 rounded-xl bg-orange-500 px-7 py-3 font-bold text-white transition hover:bg-orange-600 disabled:bg-gray-300"
+                    >
+                      {savingHomepageSlider
+                        ? "در حال ذخیره اسلایدر..."
+                        : "ذخیره اسلایدر تصویری و عکس‌ها"}
+                    </button>
                   </div>
 
                   <div className="grid gap-4 lg:grid-cols-2">
