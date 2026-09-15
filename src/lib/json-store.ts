@@ -412,6 +412,8 @@ export type OptiBidJsonData = {
     homepageShowStats: boolean;
     homepageShowCategories: boolean;
     homepageCategoriesTitle: string;
+    homepageCategoryFontFamily: string;
+    homepageCategoryFontSize: string;
     homepageShowOpportunityRequests: boolean;
     homepageOpportunityTitle: string;
     homepageOpportunitySubtitle: string;
@@ -492,6 +494,8 @@ const emptyData = (): OptiBidJsonData => ({
     homepageShowStats: true,
     homepageShowCategories: true,
     homepageCategoriesTitle: "دسته‌بندی کالاها",
+    homepageCategoryFontFamily: "Vazir",
+    homepageCategoryFontSize: "18",
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
@@ -882,6 +886,12 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       homepageCategoriesTitle:
         (parsed.settings as { homepageCategoriesTitle?: string } | undefined)
           ?.homepageCategoriesTitle || "دسته‌بندی کالاها",
+      homepageCategoryFontFamily:
+        (parsed.settings as { homepageCategoryFontFamily?: string } | undefined)
+          ?.homepageCategoryFontFamily || "Vazir",
+      homepageCategoryFontSize:
+        (parsed.settings as { homepageCategoryFontSize?: string } | undefined)
+          ?.homepageCategoryFontSize || "18",
       homepageShowOpportunityRequests:
         (parsed.settings as { homepageShowOpportunityRequests?: boolean } | undefined)
           ?.homepageShowOpportunityRequests !== false,
@@ -3390,6 +3400,8 @@ export async function updateJsonPlatformFinanceSettings(
     "homepageHeroTitle",
     "homepageHeroSubtitle",
     "homepageCategoriesTitle",
+    "homepageCategoryFontFamily",
+    "homepageCategoryFontSize",
     "homepageOpportunityTitle",
     "homepageOpportunitySubtitle",
     "homepageBestSellingTitle",

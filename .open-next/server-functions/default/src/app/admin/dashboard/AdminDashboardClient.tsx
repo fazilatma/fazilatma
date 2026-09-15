@@ -135,6 +135,8 @@ export default function AdminDashboardClient({
     homepageShowStats: true,
     homepageShowCategories: true,
     homepageCategoriesTitle: "دسته‌بندی کالاها",
+    homepageCategoryFontFamily: "Vazir",
+    homepageCategoryFontSize: "18",
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
@@ -1385,19 +1387,57 @@ export default function AdminDashboardClient({
                       />
                       نمایش دسته‌بندی کالاها در صفحه اصلی
                     </label>
-                    <label className="block text-sm font-bold text-gray-700">
-                      عنوان بخش دسته‌بندی‌ها
-                      <input
-                        value={platformFinance.homepageCategoriesTitle}
-                        onChange={(e) =>
-                          updatePlatformFinanceField(
-                            "homepageCategoriesTitle",
-                            e.target.value,
-                          )
-                        }
-                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </label>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <label className="block text-sm font-bold text-gray-700 md:col-span-1">
+                        عنوان بخش دسته‌بندی‌ها
+                        <input
+                          value={platformFinance.homepageCategoriesTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageCategoriesTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        نوع فونت دسته‌بندی‌ها
+                        <select
+                          value={platformFinance.homepageCategoryFontFamily}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageCategoryFontFamily",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="Vazir">وزیرمتن</option>
+                          <option value="Tahoma">Tahoma</option>
+                          <option value="Arial">Arial</option>
+                          <option value="system-ui">System UI</option>
+                        </select>
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        اندازه فونت دسته‌بندی‌ها
+                        <select
+                          value={platformFinance.homepageCategoryFontSize}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageCategoryFontSize",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="14">معمولی ۱۴px</option>
+                          <option value="16">درشت ۱۶px</option>
+                          <option value="18">درشت‌تر ۱۸px</option>
+                          <option value="20">خیلی درشت ۲۰px</option>
+                        </select>
+                      </label>
+                    </div>
                   </div>
 
                   <div className="grid gap-4 lg:grid-cols-2">

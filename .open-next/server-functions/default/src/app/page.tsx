@@ -107,6 +107,8 @@ export default async function HomePage() {
     showStats: true,
     showCategories: true,
     categoriesTitle: "دسته‌بندی کالاها",
+    categoryFontFamily: "Vazir",
+    categoryFontSize: "18",
     showOpportunityRequests: true,
     opportunityTitle: "درخواست‌های داغ فروشندگان",
     opportunitySubtitle:
@@ -185,6 +187,8 @@ export default async function HomePage() {
       showStats: data.settings.homepageShowStats,
       showCategories: data.settings.homepageShowCategories,
       categoriesTitle: data.settings.homepageCategoriesTitle,
+      categoryFontFamily: data.settings.homepageCategoryFontFamily,
+      categoryFontSize: data.settings.homepageCategoryFontSize,
       showOpportunityRequests: data.settings.homepageShowOpportunityRequests,
       opportunityTitle: data.settings.homepageOpportunityTitle,
       opportunitySubtitle: data.settings.homepageOpportunitySubtitle,
@@ -413,12 +417,22 @@ export default async function HomePage() {
         <section className="bg-white py-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl font-black text-gray-900 md:text-3xl">
+              <h2
+                className="font-black text-gray-900"
+                style={{
+                  fontFamily: homeSettings.categoryFontFamily,
+                  fontSize: `${Math.max(22, Number(homeSettings.categoryFontSize) + 10)}px`,
+                }}
+              >
                 {homeSettings.categoriesTitle}
               </h2>
             </div>
 
-            <HomeCategoryMenu categories={displayCategories} />
+            <HomeCategoryMenu
+              categories={displayCategories}
+              fontFamily={homeSettings.categoryFontFamily}
+              fontSize={homeSettings.categoryFontSize}
+            />
           </div>
         </section>
       )}

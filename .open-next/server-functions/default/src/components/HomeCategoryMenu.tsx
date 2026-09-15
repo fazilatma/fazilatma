@@ -8,8 +8,12 @@ type CategoryWithCount = CatalogCategory & { count?: number };
 
 export default function HomeCategoryMenu({
   categories,
+  fontFamily = "Vazir",
+  fontSize = "18",
 }: {
   categories: CategoryWithCount[];
+  fontFamily?: string;
+  fontSize?: string;
 }) {
   const activeCategories = useMemo(
     () => categories.filter((category) => category.isActive !== false),
@@ -19,11 +23,16 @@ export default function HomeCategoryMenu({
   const activeCategory =
     activeCategories.find((category) => category.id === activeId) ||
     activeCategories[0];
+  const baseFontSize = Math.max(14, Math.min(22, Number(fontSize) || 18));
+  const fontStyle = { fontFamily };
 
   if (activeCategories.length === 0) return null;
 
   return (
-    <div className="relative rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div
+      className="relative rounded-3xl border border-gray-100 bg-white p-4 shadow-sm"
+      style={fontStyle}
+    >
       <div className="flex gap-3 overflow-x-auto pb-2">
         {activeCategories.map((category) => {
           const active = category.id === activeCategory?.id;
@@ -42,7 +51,10 @@ export default function HomeCategoryMenu({
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-2xl shadow-inner">
                 {category.icon}
               </span>
-              <span className="line-clamp-2 text-xs font-black leading-5">
+              <span
+                className="line-clamp-2 font-black leading-6"
+                style={{ fontSize: baseFontSize }}
+              >
                 {category.name}
               </span>
             </button>
@@ -58,7 +70,12 @@ export default function HomeCategoryMenu({
                 {activeCategory.icon}
               </span>
               <div>
-                <h3 className="font-black text-gray-900">{activeCategory.name}</h3>
+                <h3
+                  className="font-black text-gray-900"
+                  style={{ fontSize: baseFontSize + 4 }}
+                >
+                  {activeCategory.name}
+                </h3>
                 <p className="mt-1 text-xs text-gray-500">
                   {(activeCategory.count || 0).toLocaleString("fa-IR")} درخواست فعال
                 </p>
@@ -82,7 +99,8 @@ export default function HomeCategoryMenu({
                 <div key={group.id} className="rounded-2xl bg-white p-4 shadow-sm">
                   <Link
                     href={categoryHref(activeCategory)}
-                    className="mb-3 block border-r-2 border-red-500 pr-2 text-sm font-black text-gray-900 hover:text-[#00a8e8]"
+                    className="mb-3 block border-r-2 border-red-500 pr-2 font-black text-gray-900 hover:text-[#00a8e8]"
+                    style={{ fontSize: baseFontSize + 1 }}
                   >
                     {group.title}
                   </Link>
@@ -91,7 +109,8 @@ export default function HomeCategoryMenu({
                       <Link
                         key={item}
                         href={categoryHref(activeCategory)}
-                        className="text-xs leading-6 text-gray-500 hover:text-[#00a8e8]"
+                        className="leading-7 text-gray-600 hover:text-[#00a8e8]"
+                        style={{ fontSize: Math.max(13, baseFontSize - 1) }}
                       >
                         {item}
                       </Link>
