@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import HorizontalScroller from "@/components/HorizontalScroller";
 import { ProductHeroImage } from "@/components/ProductImages";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
@@ -60,7 +61,7 @@ function PersonalizedRow({
           مشاهده همه
         </Link>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <HorizontalScroller arrowClassName="bg-white/95 text-[#003b5c] hover:bg-white">
         {items.map((item) => (
           <Link
             href={`/requests/${item.id}`}
@@ -82,7 +83,7 @@ function PersonalizedRow({
             </p>
           </Link>
         ))}
-      </div>
+      </HorizontalScroller>
     </section>
   );
 }

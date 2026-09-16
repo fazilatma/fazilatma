@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import HorizontalScroller from "@/components/HorizontalScroller";
 import { ProductHeroImage } from "@/components/ProductImages";
 import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
@@ -89,7 +90,7 @@ export default function AmazingDealsSection({
             </div>
           </div>
 
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <HorizontalScroller arrowClassName="bg-white/95 text-rose-700 hover:bg-white">
             {items.map((item) => (
               <Link
                 href={`/requests/${item.id}`}
@@ -124,7 +125,7 @@ export default function AmazingDealsSection({
             >
               مشاهده همه
             </Link>
-          </div>
+          </HorizontalScroller>
         </div>
       </div>
     </section>

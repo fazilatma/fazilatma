@@ -6,6 +6,7 @@ import AmazingOfferNotification from "@/components/AmazingOfferNotification";
 import SellerStars from "@/components/SellerStars";
 import BuyerModeButton from "@/components/BuyerModeButton";
 import HomeCategoryMenu from "@/components/HomeCategoryMenu";
+import HorizontalScroller from "@/components/HorizontalScroller";
 import HomepageImageSlider, {
   type HomepageImageSliderSlide,
 } from "@/components/HomepageImageSlider";
@@ -853,7 +854,7 @@ function RequestSliderSection({
           مشاهده همه
         </Link>
       </div>
-      <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+      <HorizontalScroller contentClassName="flex snap-x gap-3 overflow-x-auto scroll-smooth pb-2">
         {items.map((request) => (
           <SliderRequestCard
             key={`${title}-${request.id}`}
@@ -861,7 +862,7 @@ function RequestSliderSection({
             showGrowthSignals={showGrowthSignals}
           />
         ))}
-      </div>
+      </HorizontalScroller>
     </div>
   );
 }
