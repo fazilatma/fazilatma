@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ContactSellerOptions from "@/components/ContactSellerOptions";
 import SellerStars from "@/components/SellerStars";
 import { getOptiBidData } from "@/lib/json-store";
 import {
@@ -251,6 +252,15 @@ export default async function SellerProfilePage({ params }: SellerPageProps) {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="border-t border-white/10 bg-slate-50 p-6">
+            <ContactSellerOptions
+              sellerId={seller.id}
+              sellerName={seller.fullName}
+              sellerPhone={seller.phone}
+              sellerEmail={seller.email}
+            />
           </div>
 
           <div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-5">

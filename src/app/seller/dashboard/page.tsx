@@ -93,6 +93,7 @@ type SellerData = {
     id: number;
     fullName: string;
     email: string;
+    phone?: string;
     avatarName?: string;
     walletBalance: number;
     bio?: string;
@@ -111,6 +112,7 @@ type SellerData = {
   withdrawals: any[];
   notifications: any[];
   messages: any[];
+  messageCounterparts?: Array<{ id: number; fullName: string; role?: string }>;
   reviews: any[];
 };
 
@@ -135,8 +137,14 @@ export default function SellerDashboardPage() {
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [messageText, setMessageText] = useState("");
   const [activeChatUserId, setActiveChatUserId] = useState<number | null>(null);
+  const [externalChatTarget, setExternalChatTarget] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
   const [settings, setSettings] = useState({
     storeName: "",
+    phone: "",
+    email: "",
     bio: "",
     categories: [] as string[],
   });
@@ -172,6 +180,10 @@ export default function SellerDashboardPage() {
       if (score.success) setSellerScore(score.score);
       setSettings({
         storeName: dashboard.seller.fullName || "",
+        phone: dashboard.seller.phone || "",
+        email: dashboard.seller.email?.includes("@phone.optibid.local")
+          ? ""
+          : dashboard.seller.email || "",
         bio: dashboard.seller.bio || "",
         categories: dashboard.seller.categories || [],
       });
@@ -201,6 +213,25 @@ export default function SellerDashboardPage() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get("tab");
+    const chatWith = Number(
+      params.get("chatWith") || sessionStorage.getItem("optibidChatTargetId") || 0,
+    );
+    const chatName =
+      params.get("chatName") ||
+      sessionStorage.getItem("optibidChatTargetName") ||
+      "خریدار انتخاب‌شده";
+
+    if (requestedTab === "messages") setActiveTab("messages");
+    if (chatWith) {
+      setExternalChatTarget({ id: chatWith, name: chatName });
+      setActiveChatUserId(chatWith);
+      setActiveTab("messages");
+      sessionStorage.removeItem("optibidChatTargetId");
+      sessionStorage.removeItem("optibidChatTargetName");
+    }
+
     void loadDashboard();
   }, []);
 
@@ -378,6 +409,8 @@ export default function SellerDashboardPage() {
       const form = new FormData();
       form.append("sellerId", String(data.seller.id));
       form.append("fullName", settings.storeName);
+      form.append("phone", settings.phone);
+      form.append("email", settings.email);
       form.append("bio", settings.bio);
       form.append("categories", JSON.stringify(settings.categories));
       if (storeAvatarFile) form.append("avatar", storeAvatarFile);
@@ -403,8 +436,12 @@ export default function SellerDashboardPage() {
       map.set(order.buyerId, { id: order.buyerId, name: order.buyerName });
     for (const req of data?.matchingRequests || [])
       map.set(req.buyerId, { id: req.buyerId, name: req.buyerName });
+    for (const person of data?.messageCounterparts || [])
+      map.set(person.id, { id: person.id, name: person.fullName });
+    if (externalChatTarget)
+      map.set(externalChatTarget.id, externalChatTarget);
     return [...map.values()];
-  }, [data]);
+  }, [data, externalChatTarget]);
   const currentMessages = (data?.messages || []).filter(
     (message) =>
       message.senderId === activeChatUserId ||
@@ -1231,6 +1268,27 @@ export default function SellerDashboardPage() {
                 setSettings({ ...settings, storeName: value })
               }
             />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field
+                label="شماره تماس مستقیم فروشنده"
+                value={settings.phone}
+                onChange={(value) =>
+                  setSettings({ ...settings, phone: value })
+                }
+              />
+              <Field
+                label="ایمیل تماس فروشنده"
+                value={settings.email}
+                onChange={(value) =>
+                  setSettings({ ...settings, email: value })
+                }
+              />
+            </div>
+            <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-xs leading-6 text-blue-800">
+              این اطلاعات برای گزینه «اطلاعات تماس فروشنده» استفاده می‌شود. اگر
+              نمی‌خواهید شماره‌تان نمایش داده شود، می‌توانید شماره را خالی
+              بگذارید و همچنان «تماس از طریق OptiBid» و «چت OptiBid» فعال است.
+            </p>
             <label className="mt-4 block text-sm font-bold text-gray-700">
               درباره فروشگاه
             </label>

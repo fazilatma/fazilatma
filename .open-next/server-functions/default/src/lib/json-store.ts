@@ -1256,6 +1256,23 @@ function addPlatformTransaction(
   });
 }
 
+function getMessageCounterparts(data: OptiBidJsonData, userId: number) {
+  const counterpartIds = new Set<number>();
+  for (const message of data.messages) {
+    if (message.senderId === userId) counterpartIds.add(message.receiverId);
+    if (message.receiverId === userId) counterpartIds.add(message.senderId);
+  }
+  return data.users
+    .filter((user) => counterpartIds.has(user.id))
+    .map((user) => ({
+      id: user.id,
+      fullName: user.fullName,
+      role: user.role,
+      sellerModeEnabled: Boolean(user.sellerModeEnabled),
+      avatarName: user.avatarName || "",
+    }));
+}
+
 function canActAsSeller(user: JsonUser) {
   return user.role === "seller" || Boolean(user.sellerModeEnabled);
 }
@@ -2933,7 +2950,7 @@ export async function sendJsonMessage(input: {
     type: "message",
     title: "پیام جدید",
     body: `${sender.fullName}: ${input.content.trim().slice(0, 80)}`,
-    href: `/${receiver.role}/dashboard`,
+    href: `/${receiver.role}/dashboard?tab=messages&chatWith=${sender.id}`,
   });
   await writeOptiBidData(data);
 }
@@ -2985,6 +3002,7 @@ export async function getJsonBuyerDashboard(buyerId: number) {
     messages: data.messages.filter(
       (item) => item.senderId === buyer.id || item.receiverId === buyer.id,
     ),
+    messageCounterparts: getMessageCounterparts(data, buyer.id),
     reviews: data.reviews.filter(
       (item) => item.reviewerId === buyer.id || item.revieweeId === buyer.id,
     ),
@@ -3010,6 +3028,7 @@ export async function getJsonSellerDashboard(sellerId: number) {
     messages: data.messages.filter(
       (item) => item.senderId === sellerId || item.receiverId === sellerId,
     ),
+    messageCounterparts: getMessageCounterparts(data, sellerId),
     reviews: data.reviews.filter(
       (item) => item.reviewerId === sellerId || item.revieweeId === sellerId,
     ),

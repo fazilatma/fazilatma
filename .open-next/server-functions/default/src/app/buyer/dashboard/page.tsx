@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import TradeSurvey from "@/components/TradeSurvey";
+import ContactSellerOptions from "@/components/ContactSellerOptions";
 import SellerStars from "@/components/SellerStars";
 import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
 import { generateInvoiceHTML } from "@/utils/invoiceGenerator";
@@ -12,6 +13,7 @@ type BuyerDashboardData = {
     id: number;
     fullName: string;
     email: string;
+    phone?: string;
     avatarName?: string;
     walletBalance: number;
     defaultAddress?: string;
@@ -31,6 +33,7 @@ type BuyerDashboardData = {
   withdrawals: any[];
   notifications: any[];
   messages: any[];
+  messageCounterparts?: Array<{ id: number; fullName: string; role?: string }>;
   reviews: any[];
 };
 
@@ -87,6 +90,10 @@ export default function BuyerDashboardPage() {
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [messageText, setMessageText] = useState("");
   const [activeChatUserId, setActiveChatUserId] = useState<number | null>(null);
+  const [externalChatTarget, setExternalChatTarget] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
   const [profile, setProfile] = useState({
     fullName: "",
     defaultAddress: "",
@@ -144,6 +151,25 @@ export default function BuyerDashboardPage() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get("tab");
+    const chatWith = Number(
+      params.get("chatWith") || sessionStorage.getItem("optibidChatTargetId") || 0,
+    );
+    const chatName =
+      params.get("chatName") ||
+      sessionStorage.getItem("optibidChatTargetName") ||
+      "فروشنده انتخاب‌شده";
+
+    if (requestedTab === "messages") setActiveTab("messages");
+    if (chatWith) {
+      setExternalChatTarget({ id: chatWith, name: chatName });
+      setActiveChatUserId(chatWith);
+      setActiveTab("messages");
+      sessionStorage.removeItem("optibidChatTargetId");
+      sessionStorage.removeItem("optibidChatTargetName");
+    }
+
     void loadDashboard();
   }, []);
 
@@ -364,8 +390,12 @@ export default function BuyerDashboardPage() {
         });
     for (const order of data?.orders || [])
       map.set(order.sellerId, { id: order.sellerId, name: order.sellerName });
+    for (const person of data?.messageCounterparts || [])
+      map.set(person.id, { id: person.id, name: person.fullName });
+    if (externalChatTarget)
+      map.set(externalChatTarget.id, externalChatTarget);
     return [...map.values()];
-  }, [data]);
+  }, [data, externalChatTarget]);
 
   const activeMessages = (data?.messages || []).filter(
     (item) =>
@@ -1471,6 +1501,18 @@ function OfferCard({ offer, onSelect }: { offer: any; onSelect: () => void }) {
               · {offer.productSpecs.cpu} · {offer.productSpecs.ram} ·{" "}
               {offer.productSpecs.storage}
             </p>
+          )}
+          {offer.seller && (
+            <ContactSellerOptions
+              sellerId={offer.seller.id}
+              sellerName={offer.seller.fullName || offer.sellerName}
+              sellerPhone={offer.seller.phone}
+              sellerEmail={offer.seller.email}
+              requestId={offer.requestId}
+              requestTitle={offer.request?.title}
+              requestBuyerId={offer.request?.buyerId}
+              compact
+            />
           )}
         </div>
         <div className="text-left">

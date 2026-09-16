@@ -17,11 +17,17 @@ export default function LoginPage() {
     const pendingUsername = params.get("pending");
     const socialError = params.get("social_error");
     const nextUrl = params.get("next") || "";
-    if (
-      (nextUrl.startsWith("/requests") ||
-        nextUrl.startsWith("/request-purchase")) &&
-      !nextUrl.startsWith("//")
-    ) {
+    const isSafeNext =
+      nextUrl.startsWith("/") &&
+      !nextUrl.startsWith("//") &&
+      [
+        "/requests",
+        "/request-purchase",
+        "/sellers",
+        "/buyer/dashboard",
+        "/seller/dashboard",
+      ].some((path) => nextUrl === path || nextUrl.startsWith(`${path}/`) || nextUrl.startsWith(`${path}?`));
+    if (isSafeNext) {
       sessionStorage.setItem("redirectAfterAuth", nextUrl);
     } else if (nextUrl) {
       sessionStorage.removeItem("redirectAfterAuth");
@@ -77,8 +83,20 @@ export default function LoginPage() {
 
       const redirectUrl = sessionStorage.getItem("redirectAfterAuth") || "";
       const safeRedirect =
-        redirectUrl.startsWith("/requests") ||
-        redirectUrl.startsWith("/request-purchase")
+        redirectUrl.startsWith("/") &&
+        !redirectUrl.startsWith("//") &&
+        [
+          "/requests",
+          "/request-purchase",
+          "/sellers",
+          "/buyer/dashboard",
+          "/seller/dashboard",
+        ].some(
+          (path) =>
+            redirectUrl === path ||
+            redirectUrl.startsWith(`${path}/`) ||
+            redirectUrl.startsWith(`${path}?`),
+        )
           ? redirectUrl
           : "";
       sessionStorage.removeItem("redirectAfterAuth");

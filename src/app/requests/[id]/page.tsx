@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import BuyerModeButton from "@/components/BuyerModeButton";
+import ContactSellerOptions from "@/components/ContactSellerOptions";
 import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
 import { RequestSpecsDetails } from "@/components/RequestSpecsDetails";
 import UserAvatar from "@/components/UserAvatar";
@@ -330,12 +331,24 @@ export default async function RequestDetailPage({
                               </div>
                             )}
                             {seller && (
-                              <Link
-                                href={`/sellers/${seller.id}`}
-                                className="mt-3 inline-block text-sm font-bold text-[#00a8e8]"
-                              >
-                                مشاهده پروفایل فروشنده
-                              </Link>
+                              <>
+                                <Link
+                                  href={`/sellers/${seller.id}`}
+                                  className="mt-3 inline-block text-sm font-bold text-[#00a8e8]"
+                                >
+                                  مشاهده پروفایل فروشنده
+                                </Link>
+                                <ContactSellerOptions
+                                  sellerId={seller.id}
+                                  sellerName={seller.fullName}
+                                  sellerPhone={seller.phone}
+                                  sellerEmail={seller.email}
+                                  requestId={request.id}
+                                  requestTitle={request.title}
+                                  requestBuyerId={request.buyerId}
+                                  compact
+                                />
+                              </>
                             )}
                           </div>
                           <div className="text-left">
