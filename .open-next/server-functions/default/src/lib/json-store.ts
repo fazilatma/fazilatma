@@ -331,6 +331,7 @@ export type JsonNotification = {
   id: number;
   userId: number;
   type:
+    | "request"
     | "offer"
     | "order"
     | "payment"
@@ -1277,6 +1278,39 @@ function canActAsSeller(user: JsonUser) {
   return user.role === "seller" || Boolean(user.sellerModeEnabled);
 }
 
+function sellerRequestPriorityScore(request: JsonRequest) {
+  const ageHours = Math.max(
+    0,
+    (Date.now() - new Date(request.createdAt).getTime()) / (60 * 60 * 1000),
+  );
+  const recencyScore = Math.max(0, 50 - ageHours * 2);
+  const budgetScore = Math.min(35, money(request.budget) / 20_000_000);
+  const quantityScore = Math.min(25, request.quantity * 5);
+  const scarcityScore = Math.max(0, 5 - request.offersCount) * 8;
+  return Math.round(recencyScore + budgetScore + quantityScore + scarcityScore);
+}
+
+function notifyMatchingSellersAboutRequest(
+  data: OptiBidJsonData,
+  request: JsonRequest,
+) {
+  const alreadyNotified = new Set<number>();
+  for (const seller of data.users) {
+    if (!seller.isActive || !canActAsSeller(seller) || seller.id === request.buyerId)
+      continue;
+    if (!(seller.categories || []).includes(request.category)) continue;
+    if (alreadyNotified.has(seller.id)) continue;
+    alreadyNotified.add(seller.id);
+    addNotification(data, {
+      userId: seller.id,
+      type: "request",
+      title: "درخواست خرید جدید در حوزه کاری شما",
+      body: `«${request.title}» با بودجه ${money(request.budget).toLocaleString("fa-IR")} تومان و تعداد ${request.quantity.toLocaleString("fa-IR")} عدد ثبت شد.`,
+      href: `/seller/dashboard?tab=requests&openRadar=1&requestId=${request.id}`,
+    });
+  }
+}
+
 function getUserOrThrow(data: OptiBidJsonData, id: number, role?: UserRole) {
   const user = data.users.find((item) => {
     if (item.id !== id) return false;
@@ -1613,6 +1647,7 @@ export async function createJsonPurchaseRequest(input: {
   };
 
   data.requests.unshift(purchaseRequest);
+  notifyMatchingSellersAboutRequest(data, purchaseRequest);
   await writeOptiBidData(data);
   return purchaseRequest;
 }
@@ -2220,14 +2255,20 @@ export async function getJsonMatchingRequestsForSeller(
     .filter(
       (item) =>
         item.status === "open" &&
+        item.buyerId !== seller.id &&
         categories.has(item.category) &&
         !excluded.has(item.id),
     )
+    .map((item) => ({
+      ...item,
+      sellerRadarScore: sellerRequestPriorityScore(item),
+    }))
     .sort(
       (a, b) =>
+        b.sellerRadarScore - a.sellerRadarScore ||
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
-    .slice(0, Math.max(1, Math.min(5, limit)));
+    .slice(0, Math.max(1, Math.min(10, limit)));
 }
 
 export async function rejectJsonSellerRequest(
@@ -2977,7 +3018,15 @@ export async function getJsonBuyerDashboard(buyerId: number) {
     data.users
       .filter((item) => canActAsSeller(item))
       .map((item) => {
-        const { password: _password, ...safeSeller } = item;
+        const {
+          password: _password,
+          bankAccountHolder: _bankAccountHolder,
+          bankName: _bankName,
+          bankAccountNumber: _bankAccountNumber,
+          bankCardNumber: _bankCardNumber,
+          bankShebaNumber: _bankShebaNumber,
+          ...safeSeller
+        } = item;
         return [item.id, safeSeller];
       }),
   );
@@ -3015,7 +3064,7 @@ export async function getJsonSellerDashboard(sellerId: number) {
   const { password: _sellerPassword, ...safeSeller } = seller;
   return {
     seller: safeSeller,
-    matchingRequests: await getJsonMatchingRequestsForSeller(sellerId, 5),
+    matchingRequests: await getJsonMatchingRequestsForSeller(sellerId, 10),
     orders: data.orders.filter((item) => item.sellerId === sellerId),
     offers: data.offers.filter((item) => item.sellerId === sellerId),
     transactions: data.walletTransactions.filter(

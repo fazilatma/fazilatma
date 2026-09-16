@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import GlobalSellerRequestRadar from "@/components/GlobalSellerRequestRadar";
 import LiveContentBootstrap from "@/components/LiveContentBootstrap";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
         <LiveContentBootstrap />
         <Header />
+        <GlobalSellerRequestRadar />
         <main className="flex-grow">{children}</main>
         <Footer />
       </body>

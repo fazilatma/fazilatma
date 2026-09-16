@@ -123,6 +123,7 @@ export default function SellerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [queueIndex, setQueueIndex] = useState(0);
+  const [requestAlertOpen, setRequestAlertOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [offerAmount, setOfferAmount] = useState("");
   const [offerDeliveryDays, setOfferDeliveryDays] = useState("3");
@@ -200,7 +201,16 @@ export default function SellerDashboardPage() {
           dashboard.matchingRequests[0]?.buyerId ||
           null,
       );
-      setQueueIndex(0);
+      const requestedRequestId =
+        typeof window === "undefined"
+          ? 0
+          : Number(new URLSearchParams(window.location.search).get("requestId") || 0);
+      const requestedIndex = requestedRequestId
+        ? dashboard.matchingRequests.findIndex(
+            (request: any) => request.id === requestedRequestId,
+          )
+        : -1;
+      setQueueIndex(requestedIndex >= 0 ? requestedIndex : 0);
       setTimeLeft(60);
       setError("");
     } catch (err) {
@@ -223,7 +233,24 @@ export default function SellerDashboardPage() {
       sessionStorage.getItem("optibidChatTargetName") ||
       "خریدار انتخاب‌شده";
 
-    if (requestedTab === "messages") setActiveTab("messages");
+    if (
+      requestedTab &&
+      [
+        "overview",
+        "requests",
+        "orders",
+        "shipping",
+        "wallet",
+        "messages",
+        "reviews",
+        "notifications",
+        "survey",
+        "archive",
+        "settings",
+      ].includes(requestedTab)
+    )
+      setActiveTab(requestedTab);
+    if (params.get("openRadar") === "1") setRequestAlertOpen(true);
     if (chatWith) {
       setExternalChatTarget({ id: chatWith, name: chatName });
       setActiveChatUserId(chatWith);
@@ -257,7 +284,8 @@ export default function SellerDashboardPage() {
   };
 
   const queue = data?.matchingRequests || [];
-  const currentRequest = queue[queueIndex] || null;
+  const focusedRequest = queue[queueIndex] || null;
+  const currentRequest = requestAlertOpen ? focusedRequest : null;
   const remainingQueue = queue.slice(queueIndex);
   const pendingPayment = (data?.orders || []).filter(
     (order) => order.status === "pending_payment",
@@ -309,7 +337,9 @@ export default function SellerDashboardPage() {
     } catch {
       /* progress locally even if API transiently fails */
     }
-    setQueueIndex((value) => value + 1);
+    const nextIndex = queueIndex + 1;
+    setQueueIndex(nextIndex);
+    if (nextIndex >= queue.length) setRequestAlertOpen(false);
     setTimeLeft(60);
     resetOfferForm();
   };
@@ -332,7 +362,9 @@ export default function SellerDashboardPage() {
         productSpecs: offerSpecs,
       });
       alert(result.message);
-      setQueueIndex((value) => value + 1);
+      const nextIndex = queueIndex + 1;
+      setQueueIndex(nextIndex);
+      if (nextIndex >= queue.length) setRequestAlertOpen(false);
       setTimeLeft(60);
       resetOfferForm();
       await loadDashboard();
@@ -512,15 +544,25 @@ export default function SellerDashboardPage() {
         <section className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border-4 border-[#0b9c56] bg-white p-6 shadow-2xl">
             <div className="absolute -right-10 -top-10 h-32 w-32 animate-ping rounded-full bg-green-500/20" />
-            <div className="relative z-10 mb-4 flex justify-between">
+            <div className="relative z-10 mb-4 flex items-center justify-between gap-3">
               <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white animate-pulse">
                 درخواست مرتبط {queueIndex + 1} از {queue.length}
               </span>
-              <span
-                className={`font-mono text-2xl font-bold ${timeLeft <= 10 ? "animate-bounce text-red-600" : "text-gray-800"}`}
-              >
-                00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
-              </span>
+              <div className="flex items-center gap-3">
+                <span
+                  className={`font-mono text-2xl font-bold ${timeLeft <= 10 ? "animate-bounce text-red-600" : "text-gray-800"}`}
+                >
+                  00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRequestAlertOpen(false)}
+                  className="rounded-full bg-gray-100 px-3 py-1 text-lg font-black text-gray-500 hover:bg-gray-200"
+                  aria-label="بستن پنجره درخواست"
+                >
+                  ×
+                </button>
+              </div>
             </div>
             <div className="relative z-10 flex items-start gap-3">
               <ProductThumb
@@ -625,6 +667,75 @@ export default function SellerDashboardPage() {
             color="green"
           />
         </section>
+        <section className="mb-6 overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-sm">
+          <div className="grid gap-4 p-5 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                </span>
+                مرکز اصلی نوتیفیکیشن فروشنده
+              </div>
+              <h1 className="text-2xl font-black text-[#003b5c]">
+                رادار زنده درخواست‌های کالا
+              </h1>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                بهترین حالت مثل اسنپ این است: درخواست‌های خرید متناسب با حوزه کاری
+                فروشنده اول به‌صورت اعلان شناور در کل سایت دیده می‌شود، سپس داخل
+                همین تب «رادار درخواست‌ها» پشت‌سرهم بررسی و رد/پیشنهاد می‌شوند.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                {(data.seller.categories || []).length === 0 ? (
+                  <span className="rounded-full bg-amber-50 px-3 py-1 font-bold text-amber-700">
+                    حوزه کاری انتخاب نشده
+                  </span>
+                ) : (
+                  (data.seller.categories || []).map((category) => (
+                    <span
+                      key={category}
+                      className="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-700"
+                    >
+                      {category}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="rounded-3xl bg-gradient-to-l from-[#003b5c] to-[#0b9c56] p-5 text-white shadow-lg">
+              <p className="text-sm text-emerald-100">در صف فعلی شما</p>
+              <p className="mt-2 text-4xl font-black">
+                {remainingQueue.length.toLocaleString("fa-IR")}
+              </p>
+              <p className="mt-1 text-xs leading-6 text-emerald-50">
+                مرتب‌سازی بر اساس تازگی، بودجه، تعداد و کمبود پیشنهاد فروشنده.
+              </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  disabled={!focusedRequest}
+                  onClick={() => {
+                    setActiveTab("requests");
+                    setQueueIndex(0);
+                    setTimeLeft(60);
+                    setRequestAlertOpen(Boolean(focusedRequest));
+                  }}
+                  className="rounded-xl bg-white px-4 py-3 text-sm font-black text-[#003b5c] transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/60"
+                >
+                  شروع بررسی درخواست‌ها
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("settings")}
+                  className="rounded-xl border border-white/30 px-4 py-3 text-sm font-black text-white transition hover:bg-white/10"
+                >
+                  تنظیم حوزه کاری
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="mb-6 overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
           <div className="flex flex-col justify-between gap-3 bg-gradient-to-l from-[#003b5c] to-[#005e94] p-5 text-white md:flex-row md:items-center">
             <div>
@@ -683,6 +794,10 @@ export default function SellerDashboardPage() {
               {id === "shipping" && readyToShip.length
                 ? ` (${readyToShip.length})`
                 : ""}
+              {id === "notifications" &&
+              data.notifications.filter((n) => !n.readAt).length
+                ? ` (${data.notifications.filter((n) => !n.readAt).length})`
+                : ""}
               {id === "survey" && pendingSurveys.length
                 ? ` (${pendingSurveys.length})`
                 : ""}
@@ -721,10 +836,11 @@ export default function SellerDashboardPage() {
                       onClick={() => {
                         setQueueIndex(queueIndex + index);
                         setTimeLeft(60);
+                        setRequestAlertOpen(true);
                       }}
                       className="rounded-lg bg-[#0b9c56] px-3 py-2 text-xs font-bold text-white"
                     >
-                      باز کردن
+                      باز کردن رادار
                     </button>
                   </div>
                 ))
@@ -768,9 +884,30 @@ export default function SellerDashboardPage() {
 
         {activeTab === "requests" && (
           <section>
-            <h1 className="mb-6 text-2xl font-bold text-[#003b5c]">
-              صف پنج درخواست مرتبط
-            </h1>
+            <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+              <div>
+                <h1 className="text-2xl font-bold text-[#003b5c]">
+                  رادار درخواست‌های کالای مرتبط
+                </h1>
+                <p className="mt-2 text-sm leading-7 text-slate-600">
+                  اینجا مرکز اصلی نوتیفیکیشن فروشنده است؛ درخواست‌ها مثل صف
+                  سفرهای اسنپ، مطابق حوزه کاری انتخابی و با اولویت بالاتر نمایش
+                  داده می‌شوند.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={!focusedRequest}
+                onClick={() => {
+                  setQueueIndex(0);
+                  setTimeLeft(60);
+                  setRequestAlertOpen(Boolean(focusedRequest));
+                }}
+                className="rounded-xl bg-[#003b5c] px-5 py-3 text-sm font-black text-white disabled:bg-gray-300"
+              >
+                شروع صف زنده
+              </button>
+            </div>
             <div className="space-y-4">
               {remainingQueue.length === 0 ? (
                 <Empty text="درخواست جدیدی در حوزه‌های شما موجود نیست." />
@@ -788,9 +925,14 @@ export default function SellerDashboardPage() {
                           className="h-16 w-16"
                         />
                         <div className="min-w-0">
-                          <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-bold text-red-600">
-                            درخواست {queueIndex + index + 1} از {queue.length}
-                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-bold text-red-600">
+                              درخواست {queueIndex + index + 1} از {queue.length}
+                            </span>
+                            <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                              اولویت {Number(req.sellerRadarScore || 0).toLocaleString("fa-IR")}
+                            </span>
+                          </div>
                           <h2 className="mt-3 font-bold text-[#003b5c]">
                             {req.title}
                           </h2>
@@ -804,10 +946,11 @@ export default function SellerDashboardPage() {
                         onClick={() => {
                           setQueueIndex(queueIndex + index);
                           setTimeLeft(60);
+                          setRequestAlertOpen(true);
                         }}
                         className="h-fit rounded-xl bg-[#0b9c56] px-4 py-2.5 text-sm font-bold text-white"
                       >
-                        ثبت پیشنهاد
+                        مشاهده سریع / پیشنهاد
                       </button>
                     </div>
                   </div>
@@ -1209,6 +1352,30 @@ export default function SellerDashboardPage() {
                       <div>
                         <p className="font-bold text-[#003b5c]">{n.title}</p>
                         <p className="mt-1 text-sm text-gray-600">{n.body}</p>
+                        {n.href && (
+                          <Link
+                            href={n.href}
+                            onClick={() => {
+                              if (String(n.href).includes("tab=requests")) {
+                                const params = new URL(
+                                  n.href,
+                                  window.location.origin,
+                                ).searchParams;
+                                const requestId = Number(params.get("requestId") || 0);
+                                const index = requestId
+                                  ? queue.findIndex((item) => item.id === requestId)
+                                  : 0;
+                                setActiveTab("requests");
+                                setQueueIndex(index >= 0 ? index : 0);
+                                setTimeLeft(60);
+                                setRequestAlertOpen(Boolean(queue.length));
+                              }
+                            }}
+                            className="mt-3 inline-flex rounded-xl bg-blue-50 px-4 py-2 text-xs font-black text-[#003b5c] hover:bg-blue-100"
+                          >
+                            باز کردن اعلان
+                          </Link>
+                        )}
                       </div>
                       <p className="text-xs text-gray-400">
                         {dateLabel(n.createdAt)}
