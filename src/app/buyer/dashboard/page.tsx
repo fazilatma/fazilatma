@@ -31,6 +31,7 @@ type BuyerDashboardData = {
   orders: any[];
   transactions: any[];
   withdrawals: any[];
+  storeOrders?: any[];
   notifications: any[];
   messages: any[];
   messageCounterparts?: Array<{ id: number; fullName: string; role?: string }>;
@@ -436,6 +437,7 @@ export default function BuyerDashboardPage() {
     ["requests", "درخواست‌ها", "📝"],
     ["offers", "پیشنهادها", "🎯"],
     ["orders", "سفارش‌ها", "📦"],
+    ["storeOrders", "خرید فروشگاهی", "🛒"],
     ["receive", "دریافت کالا", "📥"],
     ["wallet", "کیف پول", "💰"],
     ["messages", "پیام‌ها", "💬"],
@@ -542,7 +544,11 @@ export default function BuyerDashboardPage() {
               {id === "orders" && pendingOrders.length > 0
                 ? ` (${pendingOrders.length})`
                 : ""}
+              {id === "storeOrders" && (data.storeOrders || []).length > 0
+                ? ` (${(data.storeOrders || []).length})`
+                : ""}
               {id === "notifications" &&
+
               data.notifications.filter((n) => !n.readAt).length > 0
                 ? ` (${data.notifications.filter((n) => !n.readAt).length})`
                 : ""}
@@ -852,6 +858,76 @@ export default function BuyerDashboardPage() {
                       </button>
                     </div>
                   </OrderCard>
+                ))
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === "storeOrders" && (
+          <section>
+            <h1 className="mb-2 text-2xl font-bold text-[#003b5c]">
+              خریدهای فروشگاهی
+            </h1>
+            <p className="mb-6 text-sm text-gray-500">
+              سفارش‌هایی که از فاز فروشگاه اینترنتی OptiBid ثبت کرده‌اید.
+            </p>
+            <div className="space-y-4">
+              {(data.storeOrders || []).length === 0 ? (
+                <Empty text="هنوز خرید فروشگاهی ثبت نکرده‌اید." />
+              ) : (
+                (data.storeOrders || []).map((order) => (
+                  <div
+                    key={order.id}
+                    className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm"
+                  >
+                    <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                      <div>
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
+                            سفارش فروشگاهی
+                          </span>
+                          <span className="rounded-full bg-gray-100 px-3 py-1 font-mono text-xs text-gray-600">
+                            {order.id}
+                          </span>
+                        </div>
+                        <h2 className="font-bold text-[#003b5c]">
+                          {order.items?.length?.toLocaleString("fa-IR") || "۰"} کالا
+                        </h2>
+                        <p className="mt-1 text-xs text-gray-500">
+                          گیرنده: {order.receiverName} · {dateLabel(order.createdAt)}
+                        </p>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xl font-bold text-rose-600">
+                          {money(order.totalAmount)}
+                        </p>
+                        <p className="mt-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                          {order.status === "pending_payment"
+                            ? "در انتظار پرداخت/هماهنگی"
+                            : order.status}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 rounded-2xl bg-gray-50 p-4">
+                      {(order.items || []).map((item: any) => (
+                        <div
+                          key={`${order.id}-${item.productId}`}
+                          className="flex flex-wrap justify-between gap-2 border-b border-gray-200 pb-2 text-sm last:border-b-0 last:pb-0"
+                        >
+                          <span className="font-bold text-gray-800">
+                            {item.title} × {item.quantity?.toLocaleString("fa-IR")}
+                          </span>
+                          <span className="font-bold text-gray-600">
+                            {money(item.totalPrice)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs leading-6 text-gray-500">
+                      آدرس ارسال: {order.shippingAddress}
+                    </p>
+                  </div>
                 ))
               )}
             </div>

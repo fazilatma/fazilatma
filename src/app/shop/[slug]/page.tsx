@@ -67,7 +67,7 @@ export default async function StoreProductPage({
                   ★ {product.rating.toLocaleString("fa-IR")} از ۵
                 </span>
                 <span className="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-600">
-                  {product.reviewsCount.toLocaleString("fa-IR")} دیدگاه
+                  {product.reviewsCount.toLocaleString("fa-IR")} دیدگاه کاربران
                 </span>
                 <span className="rounded-full bg-emerald-50 px-3 py-1 font-bold text-emerald-700">
                   موجود در انبار فروشگاه

@@ -7,8 +7,9 @@ import GlobalSellerRequestRadar from "@/components/GlobalSellerRequestRadar";
 import LiveContentBootstrap from "@/components/LiveContentBootstrap";
 
 export const metadata: Metadata = {
-  title: "OptiBid - بزرگترین پلتفرم خرید و فروش ایران",
-  description: "OptiBid - ثبت درخواست خرید و دریافت پیشنهاد از تامین‌کنندگان معتبر سراسر کشور",
+  title: "OptiBid - فروشگاه لپ‌تاپ و پلتفرم درخواست خرید",
+  description:
+    "OptiBid برای خرید آنلاین لپ‌تاپ، مقایسه مشخصات فنی و در فاز درخواست خرید، دریافت پیشنهاد از تامین‌کنندگان معتبر.",
 };
 
 export const dynamic = "force-dynamic";

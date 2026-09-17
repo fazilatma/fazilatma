@@ -3374,6 +3374,7 @@ export async function getJsonBuyerDashboard(buyerId: number) {
       (item) => item.userId === buyer.id,
     ),
     withdrawals: data.withdrawals.filter((item) => item.userId === buyer.id),
+    storeOrders: data.storeOrders.filter((item) => item.buyerId === buyer.id),
     notifications: data.notifications.filter(
       (item) => item.userId === buyer.id,
     ),
