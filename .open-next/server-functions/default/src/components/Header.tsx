@@ -13,6 +13,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [previousUserRole, setPreviousUserRole] = useState<string | null>(null);
+  const [siteMode, setSiteMode] = useState<"store" | "request">("store");
   const [headerCategories, setHeaderCategories] = useState<CatalogCategory[]>(
     defaultCatalogCategories,
   );
@@ -28,6 +29,14 @@ export default function Header() {
     // خواندن نقش کاربر از لوکال استوریج در کلاینت‌ساید
     setUserRole(localStorage.getItem("userRole"));
     setPreviousUserRole(localStorage.getItem("previousUserRole"));
+    fetch("/api/site-mode")
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success && (result.siteMode === "store" || result.siteMode === "request")) {
+          setSiteMode(result.siteMode);
+        }
+      })
+      .catch(() => undefined);
     fetch("/api/catalog-categories")
       .then((response) => response.json())
       .then((result) => {
@@ -70,7 +79,12 @@ export default function Header() {
   };
 
   const rememberLoginReturnPath = () => {
-    if (pathname.startsWith("/requests") || pathname === "/request-purchase") {
+    if (
+      pathname.startsWith("/requests") ||
+      pathname === "/request-purchase" ||
+      pathname.startsWith("/shop") ||
+      pathname === "/cart"
+    ) {
       const query = window.location.search || "";
       sessionStorage.setItem("redirectAfterAuth", `${pathname}${query}`);
       return;
@@ -211,36 +225,67 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6 space-x-reverse">
-            <Link
-              href="/requests"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              درخواست‌های خرید
-            </Link>
-            <Link
-              href="/request-board"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              تابلوی آگهی‌ها
-            </Link>
-            <Link
-              href="/sellers"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              فروشندگان
-            </Link>
-            <Link
-              href="/buyers"
-              className="text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              خریداران
-            </Link>
-            <Link
-              href="/how-it-works"
-              className="pr-6 text-gray-700 hover:text-green-600 transition font-medium"
-            >
-              راهنما
-            </Link>
+            {siteMode === "store" ? (
+              <>
+                <Link
+                  href="/shop"
+                  className="text-gray-700 hover:text-rose-600 transition font-medium"
+                >
+                  فروشگاه لپ‌تاپ
+                </Link>
+                <Link
+                  href="/shop?use=business"
+                  className="text-gray-700 hover:text-rose-600 transition font-medium"
+                >
+                  لپ‌تاپ اداری
+                </Link>
+                <Link
+                  href="/shop?use=gaming"
+                  className="text-gray-700 hover:text-rose-600 transition font-medium"
+                >
+                  لپ‌تاپ گیمینگ
+                </Link>
+                <Link
+                  href="/how-it-works"
+                  className="pr-6 text-gray-700 hover:text-rose-600 transition font-medium"
+                >
+                  راهنمای خرید
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/requests"
+                  className="text-gray-700 hover:text-green-600 transition font-medium"
+                >
+                  درخواست‌های خرید
+                </Link>
+                <Link
+                  href="/request-board"
+                  className="text-gray-700 hover:text-green-600 transition font-medium"
+                >
+                  تابلوی آگهی‌ها
+                </Link>
+                <Link
+                  href="/sellers"
+                  className="text-gray-700 hover:text-green-600 transition font-medium"
+                >
+                  فروشندگان
+                </Link>
+                <Link
+                  href="/buyers"
+                  className="text-gray-700 hover:text-green-600 transition font-medium"
+                >
+                  خریداران
+                </Link>
+                <Link
+                  href="/how-it-works"
+                  className="pr-6 text-gray-700 hover:text-green-600 transition font-medium"
+                >
+                  راهنما
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -253,10 +298,10 @@ export default function Header() {
               🌐 arena.site
             </Link>
             <Link
-              href="/request-purchase"
-              className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg transition font-bold text-sm"
+              href={siteMode === "store" ? "/cart" : "/request-purchase"}
+              className={`${siteMode === "store" ? "bg-rose-600 hover:bg-rose-700" : "bg-orange-500 hover:bg-orange-600"} text-white px-5 py-2 rounded-lg transition font-bold text-sm`}
             >
-              ثبت درخواست خرید
+              {siteMode === "store" ? "سبد خرید" : "ثبت درخواست خرید"}
             </Link>
 
             {userRole ? (
@@ -389,42 +434,73 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-3 space-y-reverse">
-              <Link
-                href="/requests"
-                className="text-gray-700 hover:text-green-600 transition py-2 font-bold"
-              >
-                📋 درخواست‌های خرید
-              </Link>
-              <Link
-                href="/request-board"
-                className="text-gray-700 hover:text-green-600 transition py-2 font-bold"
-              >
-                🧭 تابلوی آگهی‌ها
-              </Link>
-              <Link
-                href="/request-purchase"
-                className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition text-center font-bold"
-              >
-                ثبت درخواست خرید جدید
-              </Link>
-              <Link
-                href="/sellers"
-                className="text-gray-700 hover:text-green-600 transition py-2"
-              >
-                🏪 فروشندگان
-              </Link>
-              <Link
-                href="/buyers"
-                className="text-gray-700 hover:text-green-600 transition py-2"
-              >
-                🧾 خریداران
-              </Link>
-              <Link
-                href="/categories"
-                className="text-gray-700 hover:text-green-600 transition py-2"
-              >
-                📂 دسته‌بندی‌ها
-              </Link>
+              {siteMode === "store" ? (
+                <>
+                  <Link
+                    href="/shop"
+                    className="text-gray-700 hover:text-rose-600 transition py-2 font-bold"
+                  >
+                    🛍️ فروشگاه لپ‌تاپ
+                  </Link>
+                  <Link
+                    href="/shop?use=business"
+                    className="text-gray-700 hover:text-rose-600 transition py-2"
+                  >
+                    💼 لپ‌تاپ اداری
+                  </Link>
+                  <Link
+                    href="/shop?use=gaming"
+                    className="text-gray-700 hover:text-rose-600 transition py-2"
+                  >
+                    🎮 لپ‌تاپ گیمینگ
+                  </Link>
+                  <Link
+                    href="/cart"
+                    className="bg-rose-600 text-white px-6 py-2 rounded-lg hover:bg-rose-700 transition text-center font-bold"
+                  >
+                    سبد خرید
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/requests"
+                    className="text-gray-700 hover:text-green-600 transition py-2 font-bold"
+                  >
+                    📋 درخواست‌های خرید
+                  </Link>
+                  <Link
+                    href="/request-board"
+                    className="text-gray-700 hover:text-green-600 transition py-2 font-bold"
+                  >
+                    🧭 تابلوی آگهی‌ها
+                  </Link>
+                  <Link
+                    href="/request-purchase"
+                    className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition text-center font-bold"
+                  >
+                    ثبت درخواست خرید جدید
+                  </Link>
+                  <Link
+                    href="/sellers"
+                    className="text-gray-700 hover:text-green-600 transition py-2"
+                  >
+                    🏪 فروشندگان
+                  </Link>
+                  <Link
+                    href="/buyers"
+                    className="text-gray-700 hover:text-green-600 transition py-2"
+                  >
+                    🧾 خریداران
+                  </Link>
+                  <Link
+                    href="/categories"
+                    className="text-gray-700 hover:text-green-600 transition py-2"
+                  >
+                    📂 دسته‌بندی‌ها
+                  </Link>
+                </>
+              )}
               <Link
                 href="/external-link"
                 className="text-[#003b5c] bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition font-bold"

@@ -24,6 +24,8 @@ export default function LoginPage() {
         "/requests",
         "/request-purchase",
         "/sellers",
+        "/shop",
+        "/cart",
         "/buyer/dashboard",
         "/seller/dashboard",
       ].some((path) => nextUrl === path || nextUrl.startsWith(`${path}/`) || nextUrl.startsWith(`${path}?`));
@@ -89,6 +91,8 @@ export default function LoginPage() {
           "/requests",
           "/request-purchase",
           "/sellers",
+          "/shop",
+          "/cart",
           "/buyer/dashboard",
           "/seller/dashboard",
         ].some(

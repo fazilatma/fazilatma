@@ -44,6 +44,8 @@
   "/api/seller-request-action/route": "app/api/seller-request-action/route.js",
   "/api/seller-score/route": "app/api/seller-score/route.js",
   "/api/seller/profile/route": "app/api/seller/profile/route.js",
+  "/api/shop/orders/route": "app/api/shop/orders/route.js",
+  "/api/site-mode/route": "app/api/site-mode/route.js",
   "/api/source-files/route": "app/api/source-files/route.js",
   "/api/submit-offer/route": "app/api/submit-offer/route.js",
   "/api/submit-request/route": "app/api/submit-request/route.js",
@@ -53,6 +55,7 @@
   "/buyer/dashboard/page": "app/buyer/dashboard/page.js",
   "/buyers/[id]/page": "app/buyers/[id]/page.js",
   "/buyers/page": "app/buyers/page.js",
+  "/cart/page": "app/cart/page.js",
   "/categories/[id]/page": "app/categories/[id]/page.js",
   "/categories/page": "app/categories/page.js",
   "/contact/page": "app/contact/page.js",
@@ -72,5 +75,7 @@
   "/seller/sales/page": "app/seller/sales/page.js",
   "/sellers/[id]/page": "app/sellers/[id]/page.js",
   "/sellers/page": "app/sellers/page.js",
+  "/shop/[slug]/page": "app/shop/[slug]/page.js",
+  "/shop/page": "app/shop/page.js",
   "/source-code/page": "app/source-code/page.js"
 }

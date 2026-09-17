@@ -377,6 +377,51 @@ export type HomepageImageSliderSlide = {
   image?: ProductImageAttachment;
 };
 
+export type SiteMode = "store" | "request";
+
+export type JsonStoreProduct = {
+  id: string;
+  slug: string;
+  title: string;
+  brand: string;
+  category: string;
+  summary: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  rating: number;
+  reviewsCount: number;
+  badges: string[];
+  specs: Record<string, string>;
+  warranty: string;
+  shippingNote: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  createdAt: string;
+};
+
+export type JsonStoreOrder = {
+  id: string;
+  buyerId: number;
+  buyerName: string;
+  items: Array<{
+    productId: string;
+    slug: string;
+    title: string;
+    unitPrice: number;
+    quantity: number;
+    totalPrice: number;
+  }>;
+  totalAmount: number;
+  status: "pending_payment" | "paid" | "processing" | "shipped" | "completed" | "cancelled";
+  receiverName: string;
+  receiverPhone: string;
+  shippingAddress: string;
+  note?: string;
+  createdAt: string;
+};
+
 const defaultHomepageImageSliderSlides: HomepageImageSliderSlide[] = [
   {
     id: "urgent-laptop-requests",
@@ -420,6 +465,183 @@ const defaultHomepageImageSliderSlides: HomepageImageSliderSlide[] = [
   },
 ];
 
+const defaultStoreProducts: JsonStoreProduct[] = [
+  {
+    id: "lp-thinkpad-t14-g3",
+    slug: "lenovo-thinkpad-t14-gen3-core-i5",
+    title: "لپ‌تاپ Lenovo ThinkPad T14 Gen 3 Core i5 16GB 512GB SSD",
+    brand: "Lenovo",
+    category: "لپ‌تاپ اداری و شرکتی",
+    summary: "لپ‌تاپ خوش‌ساخت و سبک برای کارهای اداری، حسابداری، برنامه‌نویسی و استفاده روزانه.",
+    description:
+      "ThinkPad T14 نسل سوم با بدنه مقاوم، کیبورد حرفه‌ای و سخت‌افزار متعادل برای شرکت‌ها، دانشجویان و کاربران حرفه‌ای مناسب است. این مدل با رم ۱۶ گیگابایت و حافظه SSD سرعت خوبی برای کارهای روزمره و نرم‌افزارهای اداری ارائه می‌دهد.",
+    price: 42500000,
+    originalPrice: 46800000,
+    stock: 8,
+    rating: 4.6,
+    reviewsCount: 37,
+    badges: ["اداری", "استوک تمیز", "مهلت تست"],
+    specs: {
+      پردازنده: "Intel Core i5 نسل ۱۲",
+      رم: "16GB DDR4",
+      حافظه: "512GB SSD",
+      نمایشگر: "14 اینچ Full HD IPS",
+      گرافیک: "Intel Iris Xe",
+      وزن: "حدود 1.4 کیلوگرم",
+    },
+    warranty: "۷ روز مهلت تست سلامت",
+    shippingNote: "ارسال سریع و قابل پیگیری",
+    isActive: true,
+    isFeatured: true,
+    createdAt: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    id: "lp-dell-latitude-7420",
+    slug: "dell-latitude-7420-core-i7",
+    title: "لپ‌تاپ Dell Latitude 7420 Core i7 16GB 512GB SSD",
+    brand: "Dell",
+    category: "لپ‌تاپ اداری و مهندسی سبک",
+    summary: "گزینه‌ای حرفه‌ای برای مدیران، کارشناسان و کاربرانی که بدنه سبک و کیفیت ساخت بالا می‌خواهند.",
+    description:
+      "Latitude 7420 با پردازنده Core i7، نمایشگر باکیفیت و شارژدهی مناسب، برای جلسات، کارهای سازمانی و استفاده طولانی‌مدت طراحی شده است. این محصول برای کاربرانی مناسب است که پایداری و حمل آسان برایشان مهم است.",
+    price: 49800000,
+    originalPrice: 53500000,
+    stock: 5,
+    rating: 4.7,
+    reviewsCount: 42,
+    badges: ["پرفروش", "سبک", "شرکتی"],
+    specs: {
+      پردازنده: "Intel Core i7 نسل ۱۱",
+      رم: "16GB LPDDR4x",
+      حافظه: "512GB NVMe SSD",
+      نمایشگر: "14 اینچ Full HD",
+      گرافیک: "Intel Iris Xe",
+      باتری: "وضعیت سلامت بالای ۸۰٪",
+    },
+    warranty: "۷ روز مهلت تست و تضمین اصالت مشخصات",
+    shippingNote: "ارسال به سراسر کشور",
+    isActive: true,
+    isFeatured: true,
+    createdAt: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    id: "lp-hp-elitebook-840-g8",
+    slug: "hp-elitebook-840-g8-core-i5",
+    title: "لپ‌تاپ HP EliteBook 840 G8 Core i5 16GB 512GB SSD",
+    brand: "HP",
+    category: "لپ‌تاپ دانشجویی و اداری",
+    summary: "لپ‌تاپ باریک، شیک و مناسب کارهای دانشگاهی، اداری و جلسات آنلاین.",
+    description:
+      "EliteBook 840 G8 با طراحی حرفه‌ای، وزن مناسب، نمایشگر ۱۴ اینچ و امکانات امنیتی، انتخابی متعادل برای دانشجویان و کاربران کاری است. رم ۱۶ گیگابایت و SSD پرسرعت، اجرای نرم‌افزارهای روزمره را روان می‌کند.",
+    price: 38900000,
+    originalPrice: 42100000,
+    stock: 11,
+    rating: 4.5,
+    reviewsCount: 29,
+    badges: ["دانشجویی", "سبک", "مهلت تست"],
+    specs: {
+      پردازنده: "Intel Core i5 نسل ۱۱",
+      رم: "16GB DDR4",
+      حافظه: "512GB SSD",
+      نمایشگر: "14 اینچ Full HD",
+      وبکم: "HD مناسب جلسات آنلاین",
+      وزن: "حدود 1.3 کیلوگرم",
+    },
+    warranty: "۷ روز مهلت تست",
+    shippingNote: "بسته‌بندی ایمن و ارسال قابل پیگیری",
+    isActive: true,
+    isFeatured: true,
+    createdAt: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    id: "lp-asus-tuf-f15-rtx3050",
+    slug: "asus-tuf-gaming-f15-rtx3050",
+    title: "لپ‌تاپ Asus TUF Gaming F15 Core i7 RTX 3050 16GB 1TB SSD",
+    brand: "Asus",
+    category: "لپ‌تاپ گیمینگ",
+    summary: "مدل گیمینگ با گرافیک مجزا برای بازی، تدوین و کارهای گرافیکی نیمه‌حرفه‌ای.",
+    description:
+      "Asus TUF Gaming F15 برای کاربرانی طراحی شده که علاوه بر کارهای روزمره، بازی، تدوین و نرم‌افزارهای گرافیکی را هم اجرا می‌کنند. گرافیک RTX 3050، حافظه ۱ ترابایت SSD و سیستم خنک‌کننده قدرتمند از ویژگی‌های اصلی این مدل است.",
+    price: 68400000,
+    originalPrice: 72900000,
+    stock: 4,
+    rating: 4.4,
+    reviewsCount: 18,
+    badges: ["گیمینگ", "RTX", "ویژه"],
+    specs: {
+      پردازنده: "Intel Core i7 نسل ۱۲",
+      رم: "16GB DDR5",
+      حافظه: "1TB NVMe SSD",
+      گرافیک: "NVIDIA RTX 3050 4GB",
+      نمایشگر: "15.6 اینچ 144Hz",
+      کاربری: "بازی، تدوین، طراحی",
+    },
+    warranty: "۷ روز مهلت تست سخت‌افزار",
+    shippingNote: "ارسال با بسته‌بندی محافظ",
+    isActive: true,
+    isFeatured: true,
+    createdAt: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    id: "lp-macbook-air-m1",
+    slug: "apple-macbook-air-m1-8gb-256gb",
+    title: "Apple MacBook Air M1 8GB 256GB SSD",
+    brand: "Apple",
+    category: "لپ‌تاپ سبک و دانشجویی",
+    summary: "مک‌بوک سبک و کم‌مصرف برای برنامه‌نویسی، تولید محتوا، کارهای دانشجویی و روزمره.",
+    description:
+      "MacBook Air M1 با شارژدهی عالی، کیفیت ساخت بالا و عملکرد روان برای اکوسیستم اپل، انتخابی محبوب برای کاربران دانشجویی و حرفه‌ای سبک است. این مدل برای کارهای روزمره، برنامه‌نویسی و تولید محتوا مناسب است.",
+    price: 54700000,
+    originalPrice: 58900000,
+    stock: 6,
+    rating: 4.8,
+    reviewsCount: 54,
+    badges: ["Apple", "سبک", "باتری عالی"],
+    specs: {
+      پردازنده: "Apple M1",
+      رم: "8GB Unified",
+      حافظه: "256GB SSD",
+      نمایشگر: "13.3 اینچ Retina",
+      وزن: "حدود 1.29 کیلوگرم",
+      سیستم‌عامل: "macOS",
+    },
+    warranty: "۷ روز مهلت تست",
+    shippingNote: "ارسال سریع و بیمه‌شده",
+    isActive: true,
+    isFeatured: false,
+    createdAt: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    id: "lp-lenovo-legion-5",
+    slug: "lenovo-legion-5-rtx3060",
+    title: "لپ‌تاپ Lenovo Legion 5 Ryzen 7 RTX 3060 16GB 1TB SSD",
+    brand: "Lenovo",
+    category: "لپ‌تاپ گیمینگ و مهندسی",
+    summary: "لپ‌تاپ قدرتمند برای رندر، بازی، نرم‌افزارهای مهندسی و کارهای سنگین.",
+    description:
+      "Legion 5 با پردازنده Ryzen 7 و کارت گرافیک RTX 3060 برای کاربرانی مناسب است که قدرت پردازشی، گرافیک قوی و نمایشگر با نرخ نوسازی بالا نیاز دارند. این مدل گزینه‌ای جدی برای بازی و کارهای مهندسی است.",
+    price: 76500000,
+    originalPrice: 81900000,
+    stock: 3,
+    rating: 4.6,
+    reviewsCount: 21,
+    badges: ["مهندسی", "RTX 3060", "قدرتمند"],
+    specs: {
+      پردازنده: "AMD Ryzen 7",
+      رم: "16GB DDR4",
+      حافظه: "1TB SSD",
+      گرافیک: "NVIDIA RTX 3060 6GB",
+      نمایشگر: "15.6 اینچ 165Hz",
+      کاربری: "رندر، بازی، طراحی سه‌بعدی",
+    },
+    warranty: "۷ روز مهلت تست تخصصی",
+    shippingNote: "ارسال با بسته‌بندی محافظ",
+    isActive: true,
+    isFeatured: false,
+    createdAt: "2026-09-18T00:00:00.000Z",
+  },
+];
+
 export type OptiBidJsonData = {
   requests: JsonRequest[];
   users: JsonUser[];
@@ -436,7 +658,10 @@ export type OptiBidJsonData = {
   reviews: JsonReview[];
   passwordResets: JsonPasswordReset[];
   catalogCategories: CatalogCategory[];
+  storeProducts: JsonStoreProduct[];
+  storeOrders: JsonStoreOrder[];
   settings: {
+    siteMode: SiteMode;
     commissionRate: number;
     platformWalletBalance: number;
     adminAccountHolder: string;
@@ -534,7 +759,10 @@ const emptyData = (): OptiBidJsonData => ({
   reviews: [],
   passwordResets: [],
   catalogCategories: defaultCatalogCategories,
+  storeProducts: defaultStoreProducts,
+  storeOrders: [],
   settings: {
+    siteMode: "store",
     commissionRate: 5,
     platformWalletBalance: 0,
     adminAccountHolder: "مدیر پلتفرم OptiBid",
@@ -726,6 +954,97 @@ function isPublicRequest(request: JsonRequest) {
   return request.status === "open";
 }
 
+function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
+  if (!Array.isArray(value)) return defaultStoreProducts;
+  const products: JsonStoreProduct[] = [];
+  for (const item of value) {
+    const product = item as Partial<JsonStoreProduct>;
+    const title = String(product.title || "").trim();
+    const slug = String(product.slug || product.id || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!title || !slug) continue;
+    products.push({
+      id: String(product.id || slug),
+      slug,
+      title,
+      brand: String(product.brand || "OptiBid").trim(),
+      category: String(product.category || "لپ‌تاپ").trim(),
+      summary: String(product.summary || title).trim(),
+      description: String(product.description || product.summary || title).trim(),
+      price: Math.max(0, Number(product.price || 0)),
+      originalPrice: product.originalPrice
+        ? Math.max(0, Number(product.originalPrice))
+        : undefined,
+      stock: Math.max(0, Math.floor(Number(product.stock || 0))),
+      rating: Math.max(0, Math.min(5, Number(product.rating || 4.5))),
+      reviewsCount: Math.max(0, Math.floor(Number(product.reviewsCount || 0))),
+      badges: Array.isArray(product.badges)
+        ? product.badges.map(String).slice(0, 6)
+        : [],
+      specs:
+        product.specs &&
+        typeof product.specs === "object" &&
+        !Array.isArray(product.specs)
+          ? Object.fromEntries(
+              Object.entries(product.specs as Record<string, unknown>).map(
+                ([key, val]) => [key, String(val)],
+              ),
+            )
+          : {},
+      warranty: String(product.warranty || "۷ روز مهلت تست").trim(),
+      shippingNote: String(product.shippingNote || "ارسال قابل پیگیری").trim(),
+      isActive: product.isActive !== false,
+      isFeatured: Boolean(product.isFeatured),
+      createdAt: String(product.createdAt || new Date().toISOString()),
+    });
+  }
+  return products.length ? products : defaultStoreProducts;
+}
+
+function normalizeStoreOrders(value: unknown): JsonStoreOrder[] {
+  if (!Array.isArray(value)) return [];
+  const orders: JsonStoreOrder[] = [];
+  const allowedStatuses = new Set<JsonStoreOrder["status"]>([
+    "pending_payment",
+    "paid",
+    "processing",
+    "shipped",
+    "completed",
+    "cancelled",
+  ]);
+  for (const item of value) {
+    const order = item as Partial<JsonStoreOrder>;
+    if (!order.id || !order.buyerId || !Array.isArray(order.items)) continue;
+    const status = allowedStatuses.has(order.status as JsonStoreOrder["status"])
+      ? (order.status as JsonStoreOrder["status"])
+      : "pending_payment";
+    orders.push({
+      id: String(order.id),
+      buyerId: Number(order.buyerId),
+      buyerName: String(order.buyerName || "خریدار"),
+      items: order.items.map((cartItem) => ({
+        productId: String(cartItem.productId || ""),
+        slug: String(cartItem.slug || ""),
+        title: String(cartItem.title || ""),
+        unitPrice: Number(cartItem.unitPrice || 0),
+        quantity: Math.max(1, Number(cartItem.quantity || 1)),
+        totalPrice: Number(cartItem.totalPrice || 0),
+      })),
+      totalAmount: Number(order.totalAmount || 0),
+      status,
+      receiverName: String(order.receiverName || ""),
+      receiverPhone: String(order.receiverPhone || ""),
+      shippingAddress: String(order.shippingAddress || ""),
+      note: String(order.note || ""),
+      createdAt: String(order.createdAt || new Date().toISOString()),
+    });
+  }
+  return orders;
+}
+
 function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
   const users = (Array.isArray(parsed.users) ? parsed.users : []).map(
     (user) => ({
@@ -851,7 +1170,17 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
     catalogCategories: normalizeCatalogCategories(
       (parsed as { catalogCategories?: unknown }).catalogCategories,
     ),
+    storeProducts: normalizeStoreProducts(
+      (parsed as { storeProducts?: unknown }).storeProducts,
+    ),
+    storeOrders: normalizeStoreOrders(
+      (parsed as { storeOrders?: unknown }).storeOrders,
+    ),
     settings: {
+      siteMode:
+        (parsed.settings as { siteMode?: SiteMode } | undefined)?.siteMode === "request"
+          ? "request"
+          : "store",
       commissionRate:
         typeof parsed.settings?.commissionRate === "number"
           ? parsed.settings.commissionRate
@@ -3516,6 +3845,9 @@ export async function updateJsonPlatformFinanceSettings(
   updates: Partial<OptiBidJsonData["settings"]>,
 ) {
   const data = await getOptiBidData();
+  if (updates.siteMode === "store" || updates.siteMode === "request") {
+    data.settings.siteMode = updates.siteMode;
+  }
   if (typeof updates.commissionRate === "number") {
     data.settings.commissionRate = Math.max(
       0,
@@ -3649,6 +3981,88 @@ export async function updateJsonPlatformFinanceSettings(
   }
   await writeOptiBidData(data);
   return data.settings;
+}
+
+export async function getJsonSiteMode(): Promise<SiteMode> {
+  const data = await getOptiBidData();
+  return data.settings.siteMode === "request" ? "request" : "store";
+}
+
+export async function getJsonStoreProducts() {
+  const data = await getOptiBidData();
+  return data.storeProducts
+    .filter((product) => product.isActive && product.stock > 0)
+    .sort(
+      (a, b) =>
+        Number(b.isFeatured) - Number(a.isFeatured) ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+}
+
+export async function getJsonStoreProductBySlug(slug: string) {
+  const products = await getJsonStoreProducts();
+  return products.find((product) => product.slug === slug) || null;
+}
+
+export async function createJsonStoreOrder(input: {
+  buyerId: number;
+  items: Array<{ productId: string; quantity: number }>;
+  receiverName: string;
+  receiverPhone: string;
+  shippingAddress: string;
+  note?: string;
+}) {
+  const data = await getOptiBidData();
+  const buyer = getUserOrThrow(data, input.buyerId, "buyer");
+  if (!input.items.length) throw new Error("Store cart is empty");
+  if (!input.receiverName.trim() || !input.receiverPhone.trim() || !input.shippingAddress.trim())
+    throw new Error("Store order receiver info is incomplete");
+
+  const activeProducts = new Map(
+    data.storeProducts.filter((product) => product.isActive).map((product) => [product.id, product]),
+  );
+  const orderItems = input.items.map((item) => {
+    const product = activeProducts.get(item.productId);
+    if (!product) throw new Error("Product not found");
+    const quantity = Math.max(1, Math.floor(Number(item.quantity || 1)));
+    if (product.stock < quantity) throw new Error("Product stock is not enough");
+    return {
+      productId: product.id,
+      slug: product.slug,
+      title: product.title,
+      unitPrice: product.price,
+      quantity,
+      totalPrice: product.price * quantity,
+    };
+  });
+  const totalAmount = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  const order: JsonStoreOrder = {
+    id: nextStringId("SHOP"),
+    buyerId: buyer.id,
+    buyerName: buyer.fullName,
+    items: orderItems,
+    totalAmount,
+    status: "pending_payment",
+    receiverName: input.receiverName.trim(),
+    receiverPhone: normalizePhone(input.receiverPhone),
+    shippingAddress: input.shippingAddress.trim(),
+    note: input.note?.trim() || "",
+    createdAt: new Date().toISOString(),
+  };
+  for (const item of orderItems) {
+    const product = activeProducts.get(item.productId);
+    if (product) product.stock = Math.max(0, product.stock - item.quantity);
+  }
+  data.storeOrders.unshift(order);
+  addNotification(data, {
+    userId: buyer.id,
+    type: "order",
+    title: "سفارش فروشگاهی ثبت شد",
+    body: `سفارش ${order.id} با مبلغ ${totalAmount.toLocaleString("fa-IR")} تومان ثبت شد.`,
+    href: "/buyer/dashboard",
+  });
+  await writeOptiBidData(data);
+  return order;
 }
 
 export async function getJsonPlatformFinance() {

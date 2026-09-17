@@ -4,6 +4,7 @@ import AmazingDealsSection, {
 } from "@/components/AmazingDealsSection";
 import AmazingOfferNotification from "@/components/AmazingOfferNotification";
 import SellerStars from "@/components/SellerStars";
+import StorefrontHome from "@/components/StorefrontHome";
 import BuyerModeButton from "@/components/BuyerModeButton";
 import HomeCategoryMenu from "@/components/HomeCategoryMenu";
 import HorizontalScroller from "@/components/HorizontalScroller";
@@ -30,6 +31,8 @@ import {
   getJsonRequests,
   getJsonSellerRankings,
   getOptiBidData,
+  type JsonStoreProduct,
+  type SiteMode,
 } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
@@ -96,6 +99,8 @@ export default async function HomePage() {
   let amazingDealsRequests: AmazingDealItem[] = [];
   let personalizedRequests: PersonalizedRequestItem[] = [];
   let homepageImageSlides: HomepageImageSliderSlide[] = [];
+  let siteMode: SiteMode = "store";
+  let storeProducts: JsonStoreProduct[] = [];
   let amazingSettings = {
     enabled: true,
     durationHours: 6,
@@ -183,6 +188,10 @@ export default async function HomePage() {
     ]);
 
     realStats = stats;
+    siteMode = data.settings.siteMode === "request" ? "request" : "store";
+    storeProducts = (data.storeProducts || []).filter(
+      (product) => product.isActive && product.stock > 0,
+    );
     amazingSettings = {
       enabled: data.settings.amazingDealsEnabled,
       durationHours: data.settings.amazingDealsDurationHours,
@@ -354,6 +363,10 @@ export default async function HomePage() {
       }));
   } catch (error) {
     console.error("JSON home data error:", error);
+  }
+
+  if (siteMode === "store") {
+    return <StorefrontHome products={storeProducts} />;
   }
 
   return (

@@ -22,6 +22,7 @@ const money = (value: string | number) =>
 export default function GlobalSellerRequestRadar() {
   const pathname = usePathname();
   const [sellerId, setSellerId] = useState(0);
+  const [siteMode, setSiteMode] = useState<"store" | "request">("store");
   const [requests, setRequests] = useState<SellerRadarRequest[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [minimized, setMinimized] = useState(false);
@@ -33,10 +34,18 @@ export default function GlobalSellerRequestRadar() {
     const role = localStorage.getItem("userRole");
     const id = Number(localStorage.getItem("userId") || 0);
     if (role === "seller" && id) setSellerId(id);
+    fetch("/api/site-mode")
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success && (result.siteMode === "store" || result.siteMode === "request")) {
+          setSiteMode(result.siteMode);
+        }
+      })
+      .catch(() => undefined);
   }, []);
 
   const loadRequests = useCallback(async () => {
-    if (!sellerId || shouldHideOnThisPage) return;
+    if (!sellerId || siteMode !== "request" || shouldHideOnThisPage) return;
     try {
       const response = await fetch(
         `/api/seller-matching-requests?sellerId=${sellerId}&limit=10`,
@@ -52,14 +61,14 @@ export default function GlobalSellerRequestRadar() {
     } catch {
       // اعلان شناور نباید تجربه کاربر را با خطای شبکه قطع کند.
     }
-  }, [sellerId, shouldHideOnThisPage]);
+  }, [sellerId, siteMode, shouldHideOnThisPage]);
 
   useEffect(() => {
-    if (!sellerId || shouldHideOnThisPage) return;
+    if (!sellerId || siteMode !== "request" || shouldHideOnThisPage) return;
     void loadRequests();
     const interval = window.setInterval(() => void loadRequests(), 25000);
     return () => window.clearInterval(interval);
-  }, [sellerId, shouldHideOnThisPage, loadRequests]);
+  }, [sellerId, siteMode, shouldHideOnThisPage, loadRequests]);
 
   const activeRequest = useMemo(
     () => requests[activeIndex] || requests[0] || null,
@@ -88,7 +97,7 @@ export default function GlobalSellerRequestRadar() {
     }
   };
 
-  if (!sellerId || shouldHideOnThisPage || requests.length === 0 || !activeRequest) {
+  if (!sellerId || siteMode !== "request" || shouldHideOnThisPage || requests.length === 0 || !activeRequest) {
     return null;
   }
 

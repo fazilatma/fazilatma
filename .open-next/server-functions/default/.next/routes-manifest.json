@@ -85,6 +85,14 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/sellers/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/shop/[slug]",
+      "regex": "^/shop/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/shop/(?<nxtPslug>[^/]+?)(?:/)?$"
     }
   ],
   "staticRoutes": [
@@ -353,6 +361,18 @@
       "namedRegex": "^/api/seller\\-score(?:/)?$"
     },
     {
+      "page": "/api/shop/orders",
+      "regex": "^/api/shop/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/shop/orders(?:/)?$"
+    },
+    {
+      "page": "/api/site-mode",
+      "regex": "^/api/site\\-mode(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/site\\-mode(?:/)?$"
+    },
+    {
       "page": "/api/source-files",
       "regex": "^/api/source\\-files(?:/)?$",
       "routeKeys": {},
@@ -399,6 +419,12 @@
       "regex": "^/buyers(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/buyers(?:/)?$"
+    },
+    {
+      "page": "/cart",
+      "regex": "^/cart(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cart(?:/)?$"
     },
     {
       "page": "/categories",
@@ -477,6 +503,12 @@
       "regex": "^/sellers(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/sellers(?:/)?$"
+    },
+    {
+      "page": "/shop",
+      "regex": "^/shop(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/shop(?:/)?$"
     },
     {
       "page": "/source-code",

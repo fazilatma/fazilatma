@@ -107,6 +107,7 @@ export default function AdminDashboardClient({
   );
   const [workingHours, setWorkingHours] = useState("شنبه تا چهارشنبه ۹ تا ۱۷");
   const [platformFinance, setPlatformFinance] = useState({
+    siteMode: "store" as "store" | "request",
     platformWalletBalance: realStats.platformWalletBalance || 0,
     adminAccountHolder: "",
     adminBankName: "",
@@ -1414,6 +1415,52 @@ export default function AdminDashboardClient({
                     <p className="mt-2 text-sm leading-7 text-gray-500">
                       همه بخش‌های صفحه اصلی از اینجا قابل فعال/غیرفعال‌سازی و تغییر عنوان و متن هستند؛ برای مدل درخواست خرید از واژه «امتیاز جذابیت» استفاده می‌شود، نه درصد تخفیف.
                     </p>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-purple-100 bg-gradient-to-l from-purple-50 to-white p-5">
+                    <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <h3 className="text-lg font-black text-purple-900">
+                          تغییر فاز سایت فقط برای ادمین
+                        </h3>
+                        <p className="mt-1 text-sm leading-7 text-purple-700">
+                          فاز فروشگاه اینترنتی برای شروع عمومی سایت فعال است؛ هر زمان خواستید می‌توانید سایت را به فاز درخواست خرید و رقابت فروشنده‌ها تغییر دهید.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-purple-700 shadow-sm">
+                        حالت فعلی: {platformFinance.siteMode === "store" ? "فروشگاه اینترنتی" : "درخواست خرید"}
+                      </span>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => updatePlatformFinanceField("siteMode", "store")}
+                        className={`rounded-2xl border-2 p-5 text-right transition ${platformFinance.siteMode === "store" ? "border-rose-500 bg-rose-50 text-rose-800 shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:border-rose-200"}`}
+                      >
+                        <span className="text-3xl">🛒</span>
+                        <b className="mt-3 block">فاز فروشگاه اینترنتی</b>
+                        <span className="mt-2 block text-xs leading-6">
+                          صفحه اصلی فروشگاهی، لیست لپ‌تاپ‌ها، صفحه محصول، سبد خرید و ثبت سفارش.
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updatePlatformFinanceField("siteMode", "request")}
+                        className={`rounded-2xl border-2 p-5 text-right transition ${platformFinance.siteMode === "request" ? "border-green-500 bg-green-50 text-green-800 shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:border-green-200"}`}
+                      >
+                        <span className="text-3xl">📡</span>
+                        <b className="mt-3 block">فاز درخواست خرید</b>
+                        <span className="mt-2 block text-xs leading-6">
+                          خریدار درخواست می‌گذارد و فروشنده‌ها روی درخواست پیشنهاد قیمت و مشخصات می‌دهند.
+                        </span>
+                      </button>
+                    </div>
+                    <button
+                      onClick={saveFinance}
+                      className="mt-4 rounded-xl bg-purple-700 px-6 py-3 text-sm font-black text-white transition hover:bg-purple-800"
+                    >
+                      ذخیره فاز سایت
+                    </button>
                   </div>
 
                   <div className="mb-6 rounded-3xl border border-green-100 bg-green-50/50 p-5">

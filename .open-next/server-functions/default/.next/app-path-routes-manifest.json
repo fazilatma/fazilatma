@@ -44,6 +44,8 @@
   "/api/seller-request-action/route": "/api/seller-request-action",
   "/api/seller-score/route": "/api/seller-score",
   "/api/seller/profile/route": "/api/seller/profile",
+  "/api/shop/orders/route": "/api/shop/orders",
+  "/api/site-mode/route": "/api/site-mode",
   "/api/source-files/route": "/api/source-files",
   "/api/submit-offer/route": "/api/submit-offer",
   "/api/submit-request/route": "/api/submit-request",
@@ -53,6 +55,7 @@
   "/buyer/dashboard/page": "/buyer/dashboard",
   "/buyers/[id]/page": "/buyers/[id]",
   "/buyers/page": "/buyers",
+  "/cart/page": "/cart",
   "/categories/[id]/page": "/categories/[id]",
   "/categories/page": "/categories",
   "/contact/page": "/contact",
@@ -72,5 +75,7 @@
   "/seller/sales/page": "/seller/sales",
   "/sellers/[id]/page": "/sellers/[id]",
   "/sellers/page": "/sellers",
+  "/shop/[slug]/page": "/shop/[slug]",
+  "/shop/page": "/shop",
   "/source-code/page": "/source-code"
 }
