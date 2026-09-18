@@ -1,11 +1,20 @@
 import Link from "next/link";
+import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
-import type { JsonStoreProduct } from "@/lib/json-store";
+import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
 
-export default function StorefrontHome({ products }: { products: JsonStoreProduct[] }) {
+export default function StorefrontHome({
+  products,
+  heroSlides,
+  heroDurationSeconds,
+}: {
+  products: JsonStoreProduct[];
+  heroSlides?: HomepageImageSliderSlide[];
+  heroDurationSeconds?: number;
+}) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
   const heroProduct = featured[0] || products[0];
   const brands = Array.from(new Set(products.map((product) => product.brand))).slice(0, 8);
@@ -18,34 +27,10 @@ export default function StorefrontHome({ products }: { products: JsonStoreProduc
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.45fr_0.55fr] lg:px-8">
-          <div className="overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-7 text-white shadow-xl md:p-10">
-            <div className="max-w-2xl">
-              <span className="inline-flex rounded-full bg-white/15 px-4 py-1.5 text-xs font-black ring-1 ring-white/20">
-                فروشگاه تخصصی لپ‌تاپ و کامپیوتر
-              </span>
-              <h1 className="mt-5 text-3xl font-black leading-[1.7] md:text-5xl">
-                خرید آنلاین لپ‌تاپ نو و کارکرده با مقایسه کامل مشخصات
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-8 text-blue-50 md:text-lg">
-                مدل‌های منتخب لپ‌تاپ اداری، دانشجویی، مهندسی و گیمینگ را با قیمت،
-                گارانتی تست، مشخصات فنی و شرایط ارسال مقایسه کنید.
-              </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/shop"
-                  className="rounded-2xl bg-white px-7 py-4 text-center text-sm font-black text-[#003b5c] shadow-lg transition hover:bg-blue-50"
-                >
-                  مشاهده همه لپ‌تاپ‌ها
-                </Link>
-                <Link
-                  href="/cart"
-                  className="rounded-2xl border border-white/30 px-7 py-4 text-center text-sm font-black text-white transition hover:bg-white/10"
-                >
-                  سبد خرید من
-                </Link>
-              </div>
-            </div>
-          </div>
+          <StoreHeroSlider
+            slides={heroSlides}
+            durationSeconds={heroDurationSeconds}
+          />
 
           <Link
             href={heroProduct ? `/shop/${heroProduct.slug}` : "/shop"}
@@ -68,33 +53,53 @@ export default function StorefrontHome({ products }: { products: JsonStoreProduc
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid gap-3 md:grid-cols-4">
-          <Feature icon="🚚" title="ارسال قابل پیگیری" text="ثبت سفارش، هماهنگی ارسال و کد رهگیری" />
-          <Feature icon="🛡️" title="مهلت تست" text="امکان بررسی مشخصات و سلامت کالا" />
-          <Feature icon="💳" title="پرداخت امن" text="آماده اتصال به درگاه و ثبت سفارش آنلاین" />
-          <Feature icon="📊" title="مقایسه فنی" text="بررسی CPU، RAM، حافظه، گارانتی و قیمت" />
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div className="mb-4 flex flex-col justify-between gap-2 md:flex-row md:items-end">
           <div>
             <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
-              دسته‌بندی فروشگاهی
+              دسته‌بندی تخصصی لپ‌تاپ
             </span>
             <h2 className="mt-3 text-2xl font-black text-slate-900">
-              خرید بر اساس نیاز
+              انتخاب سریع بر اساس نوع لپ‌تاپ
             </h2>
           </div>
           <p className="text-sm text-slate-500">
             شروع قیمت از {money(minPrice)} · {products.length.toLocaleString("fa-IR")} مدل فعال
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <CategoryBox title="لپ‌تاپ اداری و شرکتی" icon="💼" href="/shop?use=business" />
-          <CategoryBox title="لپ‌تاپ دانشجویی" icon="🎓" href="/shop?use=student" />
-          <CategoryBox title="لپ‌تاپ مهندسی" icon="🧮" href="/shop?use=engineering" />
-          <CategoryBox title="لپ‌تاپ گیمینگ" icon="🎮" href="/shop?use=gaming" />
+        <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
+          <LaptopType title="لپ‌تاپ لنوو" href="/shop?brand=Lenovo" />
+          <LaptopType title="لپ‌تاپ اچ‌پی" href="/shop?brand=HP" />
+          <LaptopType title="لپ‌تاپ دل" href="/shop?brand=Dell" />
+          <LaptopType title="لپ‌تاپ ایسوس" href="/shop?brand=Asus" />
+          <LaptopType title="مک‌بوک اپل" href="/shop?brand=Apple" />
+          <LaptopType title="لپ‌تاپ گیمینگ" href="/shop?use=gaming" />
+          <LaptopType title="لپ‌تاپ اداری" href="/shop?use=business" />
+          <LaptopType title="لپ‌تاپ دانشجویی" href="/shop?use=student" />
+          <LaptopType title="لپ‌تاپ مهندسی" href="/shop?use=engineering" />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                راهنمای خرید لپ‌تاپ
+              </span>
+              <h2 className="mt-3 text-2xl font-black text-slate-900">
+                قبل از خرید، بر اساس نیاز انتخاب کن
+              </h2>
+            </div>
+            <Link href="/shop" className="text-sm font-black text-rose-600">
+              مشاهده همه مدل‌ها ←
+            </Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <GuideCard title="کار اداری و حسابداری" text="Core i5، رم ۱۶GB و SSD برای سرعت پایدار روزانه کافی است." accent="blue" />
+            <GuideCard title="دانشجو و حمل روزانه" text="وزن کم، باتری سالم و نمایشگر ۱۳ تا ۱۴ اینچ اولویت دارد." accent="emerald" />
+            <GuideCard title="مهندسی و طراحی" text="پردازنده قوی‌تر، رم بالاتر و در صورت نیاز گرافیک مجزا انتخاب کنید." accent="amber" />
+            <GuideCard title="گیمینگ و تدوین" text="کارت گرافیک RTX، خنک‌کنندگی مناسب و نمایشگر ۱۴۴Hz مهم است." accent="rose" />
+          </div>
         </div>
       </section>
 
@@ -137,25 +142,42 @@ export default function StorefrontHome({ products }: { products: JsonStoreProduc
   );
 }
 
-function Feature({ icon, title, text }: { icon: string; title: string; text: string }) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-3xl">{icon}</div>
-      <h3 className="mt-3 font-black text-slate-900">{title}</h3>
-      <p className="mt-1 text-xs leading-6 text-slate-500">{text}</p>
-    </div>
-  );
-}
-
-function CategoryBox({ title, icon, href }: { title: string; icon: string; href: string }) {
+function LaptopType({ title, href }: { title: string; href: string }) {
   return (
     <Link
       href={href}
-      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-rose-200 hover:shadow-lg"
+      className="group min-w-[132px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50"
     >
-      <div className="text-4xl">{icon}</div>
-      <h3 className="mt-4 font-black text-slate-900">{title}</h3>
-      <p className="mt-2 text-xs text-slate-500">مشاهده مدل‌های مناسب</p>
+      <div className="mx-auto mb-3 w-20">
+        <div className="mx-auto h-10 rounded-t-xl border-[6px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
+        <div className="mx-auto h-2 rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
+      </div>
+      <span className="text-xs font-black text-slate-700 group-hover:text-rose-600">
+        {title}
+      </span>
     </Link>
+  );
+}
+
+function GuideCard({
+  title,
+  text,
+  accent,
+}: {
+  title: string;
+  text: string;
+  accent: "blue" | "emerald" | "amber" | "rose";
+}) {
+  const colors = {
+    blue: "bg-blue-50 text-blue-800 border-blue-100",
+    emerald: "bg-emerald-50 text-emerald-800 border-emerald-100",
+    amber: "bg-amber-50 text-amber-800 border-amber-100",
+    rose: "bg-rose-50 text-rose-800 border-rose-100",
+  }[accent];
+  return (
+    <div className={`rounded-3xl border p-5 ${colors}`}>
+      <h3 className="font-black">{title}</h3>
+      <p className="mt-2 text-xs leading-6 opacity-80">{text}</p>
+    </div>
   );
 }

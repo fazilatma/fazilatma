@@ -642,6 +642,42 @@ const defaultStoreProducts: JsonStoreProduct[] = [
   },
 ];
 
+const defaultStoreHeroSliderSlides: HomepageImageSliderSlide[] = [
+  {
+    id: "store-laptop-main",
+    title: "خرید آنلاین لپ‌تاپ نو و کارکرده با مقایسه کامل مشخصات",
+    subtitle:
+      "مدل‌های منتخب لپ‌تاپ اداری، دانشجویی، مهندسی و گیمینگ را با قیمت، گارانتی تست، مشخصات فنی و شرایط ارسال مقایسه کنید.",
+    cta: "مشاهده همه لپ‌تاپ‌ها",
+    href: "/shop",
+    isActive: true,
+  },
+  {
+    id: "store-business-laptops",
+    title: "لپ‌تاپ اداری و شرکتی برای کار مطمئن روزانه",
+    subtitle: "مدل‌های ThinkPad، Latitude و EliteBook مناسب شرکت‌ها، حسابداری و برنامه‌نویسی.",
+    cta: "مشاهده اداری‌ها",
+    href: "/shop?use=business",
+    isActive: true,
+  },
+  {
+    id: "store-gaming-laptops",
+    title: "لپ‌تاپ گیمینگ و مهندسی با گرافیک مجزا",
+    subtitle: "انتخاب مدل‌های RTX برای بازی، رندر، تدوین، طراحی و نرم‌افزارهای سنگین.",
+    cta: "مشاهده گیمینگ‌ها",
+    href: "/shop?use=gaming",
+    isActive: true,
+  },
+  {
+    id: "store-student-laptops",
+    title: "لپ‌تاپ سبک و اقتصادی برای دانشجوها",
+    subtitle: "مدل‌های سبک، SSD پرسرعت، باتری مناسب و قیمت منطقی برای استفاده روزمره.",
+    cta: "خرید دانشجویی",
+    href: "/shop?use=student",
+    isActive: true,
+  },
+];
+
 export type OptiBidJsonData = {
   requests: JsonRequest[];
   users: JsonUser[];
@@ -662,6 +698,9 @@ export type OptiBidJsonData = {
   storeOrders: JsonStoreOrder[];
   settings: {
     siteMode: SiteMode;
+    storeHeroSliderEnabled: boolean;
+    storeHeroSliderDurationSeconds: number;
+    storeHeroSliderSlides: HomepageImageSliderSlide[];
     commissionRate: number;
     platformWalletBalance: number;
     adminAccountHolder: string;
@@ -763,6 +802,9 @@ const emptyData = (): OptiBidJsonData => ({
   storeOrders: [],
   settings: {
     siteMode: "store",
+    storeHeroSliderEnabled: true,
+    storeHeroSliderDurationSeconds: 5,
+    storeHeroSliderSlides: defaultStoreHeroSliderSlides,
     commissionRate: 5,
     platformWalletBalance: 0,
     adminAccountHolder: "مدیر پلتفرم OptiBid",
@@ -1181,6 +1223,28 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         (parsed.settings as { siteMode?: SiteMode } | undefined)?.siteMode === "request"
           ? "request"
           : "store",
+      storeHeroSliderEnabled:
+        (parsed.settings as { storeHeroSliderEnabled?: boolean } | undefined)
+          ?.storeHeroSliderEnabled !== false,
+      storeHeroSliderDurationSeconds: Math.max(
+        3,
+        Math.min(
+          30,
+          Number(
+            (parsed.settings as { storeHeroSliderDurationSeconds?: number } | undefined)
+              ?.storeHeroSliderDurationSeconds || 5,
+          ),
+        ),
+      ),
+      storeHeroSliderSlides: Array.isArray(
+        (parsed.settings as { storeHeroSliderSlides?: unknown } | undefined)
+          ?.storeHeroSliderSlides,
+      )
+        ? ((parsed.settings as
+            | { storeHeroSliderSlides?: HomepageImageSliderSlide[] }
+            | undefined)?.storeHeroSliderSlides || defaultStoreHeroSliderSlides
+          ).slice(0, 4)
+        : defaultStoreHeroSliderSlides,
       commissionRate:
         typeof parsed.settings?.commissionRate === "number"
           ? parsed.settings.commissionRate
@@ -3917,6 +3981,7 @@ export async function updateJsonPlatformFinanceSettings(
       "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.";
 
   const booleanHomepageKeys = [
+    "storeHeroSliderEnabled",
     "homepageShowStats",
     "homepageShowCategories",
     "homepageShowCategorySection",
@@ -3978,6 +4043,12 @@ export async function updateJsonPlatformFinanceSettings(
     data.settings.homepageImageSliderDurationSeconds = Math.max(
       3,
       Math.min(30, Math.round(updates.homepageImageSliderDurationSeconds)),
+    );
+  }
+  if (typeof updates.storeHeroSliderDurationSeconds === "number") {
+    data.settings.storeHeroSliderDurationSeconds = Math.max(
+      3,
+      Math.min(30, Math.round(updates.storeHeroSliderDurationSeconds)),
     );
   }
   await writeOptiBidData(data);

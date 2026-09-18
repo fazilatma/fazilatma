@@ -152,6 +152,9 @@ export default function AdminDashboardClient({
       "جایگاه تبلیغات، نردبان درخواست و کمپین‌های ویژه لپ‌تاپ و کامپیوتر دست‌دوم",
     homepageImageSliderDurationSeconds: 5,
     homepageImageSliderSlides: [] as HomepageImageSliderSlide[],
+    storeHeroSliderEnabled: true,
+    storeHeroSliderDurationSeconds: 5,
+    storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
@@ -194,7 +197,11 @@ export default function AdminDashboardClient({
   const [homepageSlideFiles, setHomepageSlideFiles] = useState<
     Record<number, File | null>
   >({});
+  const [storefrontSlideFiles, setStorefrontSlideFiles] = useState<
+    Record<number, File | null>
+  >({});
   const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
+  const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
   const [withdrawalNotes, setWithdrawalNotes] = useState<
     Record<string, string>
   >({});
@@ -255,6 +262,82 @@ export default function AdminDashboardClient({
       slides[index] = { ...slides[index], ...updates };
       return { ...current, homepageImageSliderSlides: slides };
     });
+  };
+
+  const ensureStorefrontSlides = () => {
+    const current = platformFinance.storeHeroSliderSlides || [];
+    return Array.from({ length: 4 }).map((_, index) =>
+      current[index] || {
+        id: `store-slide-${index + 1}`,
+        title: [
+          "خرید آنلاین لپ‌تاپ نو و کارکرده",
+          "لپ‌تاپ اداری و شرکتی",
+          "لپ‌تاپ گیمینگ و مهندسی",
+          "لپ‌تاپ دانشجویی و سبک",
+        ][index],
+        subtitle: "متن تبلیغاتی اسلاید فروشگاه لپ‌تاپ را اینجا وارد کنید.",
+        cta: "مشاهده لپ‌تاپ‌ها",
+        href: "/shop",
+        isActive: true,
+      },
+    );
+  };
+
+  const updateStorefrontSlide = (
+    index: number,
+    updates: Partial<HomepageImageSliderSlide>,
+  ) => {
+    setPlatformFinance((current) => {
+      const slides = Array.from({ length: 4 }).map((_, slideIndex) =>
+        current.storeHeroSliderSlides?.[slideIndex] || {
+          id: `store-slide-${slideIndex + 1}`,
+          title: `اسلاید فروشگاهی ${slideIndex + 1}`,
+          subtitle: "",
+          cta: "مشاهده لپ‌تاپ‌ها",
+          href: "/shop",
+          isActive: true,
+        },
+      );
+      slides[index] = { ...slides[index], ...updates };
+      return { ...current, storeHeroSliderSlides: slides };
+    });
+  };
+
+  const saveStorefrontSlider = async () => {
+    setSavingStorefrontSlider(true);
+    try {
+      const slides = ensureStorefrontSlides();
+      const payload = new FormData();
+      payload.append("enabled", String(platformFinance.storeHeroSliderEnabled));
+      payload.append(
+        "durationSeconds",
+        String(platformFinance.storeHeroSliderDurationSeconds || 5),
+      );
+      payload.append("slides", JSON.stringify(slides));
+      Object.entries(storefrontSlideFiles).forEach(([index, file]) => {
+        if (file) payload.append(`slideImage-${index}`, file);
+      });
+      const response = await fetch("/api/admin/storefront-slider", {
+        method: "POST",
+        body: payload,
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(
+          result.message || "ذخیره اسلایدر فروشگاه لپ‌تاپ ناموفق بود.",
+        );
+      setPlatformFinance(result.settings);
+      setStorefrontSlideFiles({});
+      alert(result.message || "اسلایدر فروشگاه لپ‌تاپ ذخیره شد.");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "ذخیره اسلایدر فروشگاه لپ‌تاپ ناموفق بود.",
+      );
+    } finally {
+      setSavingStorefrontSlider(false);
+    }
   };
 
   const saveHomepageImageSlider = async () => {
@@ -1460,6 +1543,156 @@ export default function AdminDashboardClient({
                       className="mt-4 rounded-xl bg-purple-700 px-6 py-3 text-sm font-black text-white transition hover:bg-purple-800"
                     >
                       ذخیره فاز سایت
+                    </button>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-rose-100 bg-rose-50/40 p-5">
+                    <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <h3 className="text-lg font-black text-rose-900">
+                          اسلایدر صفحه اصلی فروشگاه لپ‌تاپ
+                        </h3>
+                        <p className="mt-1 text-sm leading-7 text-rose-700">
+                          این همان بخش آبی بالای صفحه اصلی فروشگاه است. حداکثر ۴ تصویر تبلیغاتی/بنری برای فروش لپ‌تاپ بارگذاری کنید.
+                        </p>
+                      </div>
+                      <label className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-rose-700 shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(platformFinance.storeHeroSliderEnabled)}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "storeHeroSliderEnabled",
+                              e.target.checked,
+                            )
+                          }
+                        />
+                        فعال
+                      </label>
+                    </div>
+                    <label className="mb-4 block max-w-xs text-sm font-bold text-gray-700">
+                      زمان تعویض اسلاید فروشگاهی (ثانیه)
+                      <input
+                        type="number"
+                        min="3"
+                        max="30"
+                        value={platformFinance.storeHeroSliderDurationSeconds}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "storeHeroSliderDurationSeconds",
+                            Number(e.target.value || 5),
+                          )
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      {ensureStorefrontSlides().map((slide, index) => (
+                        <div
+                          key={slide.id || index}
+                          className="rounded-2xl border border-rose-100 bg-white p-4"
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <b className="text-sm text-gray-900">
+                              اسلاید فروشگاهی {Number(index + 1).toLocaleString("fa-IR")}
+                            </b>
+                            <label className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                              <input
+                                type="checkbox"
+                                checked={slide.isActive !== false}
+                                onChange={(e) =>
+                                  updateStorefrontSlide(index, {
+                                    isActive: e.target.checked,
+                                  })
+                                }
+                              />
+                              فعال
+                            </label>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-[110px_1fr]">
+                            <div>
+                              <div className="mb-2 grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-gray-100 text-xs text-gray-400">
+                                {slide.image ? (
+                                  <img
+                                    src={productImageUrl(slide.image)}
+                                    alt={slide.title}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  "بدون عکس"
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(e) =>
+                                  setStorefrontSlideFiles((current) => ({
+                                    ...current,
+                                    [index]: e.target.files?.[0] || null,
+                                  }))
+                                }
+                                className="w-full text-xs"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <input
+                                value={slide.title}
+                                onChange={(e) =>
+                                  updateStorefrontSlide(index, {
+                                    title: e.target.value,
+                                  })
+                                }
+                                placeholder="عنوان بنر فروشگاهی"
+                                className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                              />
+                              <textarea
+                                value={slide.subtitle}
+                                onChange={(e) =>
+                                  updateStorefrontSlide(index, {
+                                    subtitle: e.target.value,
+                                  })
+                                }
+                                placeholder="توضیح کوتاه بنر"
+                                className="min-h-16 rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                              />
+                              <div className="grid gap-2 md:grid-cols-2">
+                                <input
+                                  value={slide.cta}
+                                  onChange={(e) =>
+                                    updateStorefrontSlide(index, {
+                                      cta: e.target.value,
+                                    })
+                                  }
+                                  placeholder="متن دکمه"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                                />
+                                <input
+                                  value={slide.href}
+                                  onChange={(e) =>
+                                    updateStorefrontSlide(index, {
+                                      href: e.target.value,
+                                    })
+                                  }
+                                  placeholder="لینک مقصد"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                                  dir="ltr"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={savingStorefrontSlider}
+                      onClick={saveStorefrontSlider}
+                      className="mt-5 rounded-xl bg-rose-600 px-7 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:bg-gray-300"
+                    >
+                      {savingStorefrontSlider
+                        ? "در حال ذخیره..."
+                        : "ذخیره اسلایدر فروشگاه و ۴ تصویر"}
                     </button>
                   </div>
 

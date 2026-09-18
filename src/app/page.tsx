@@ -101,6 +101,8 @@ export default async function HomePage() {
   let homepageImageSlides: HomepageImageSliderSlide[] = [];
   let siteMode: SiteMode = "store";
   let storeProducts: JsonStoreProduct[] = [];
+  let storeHeroSlides: HomepageImageSliderSlide[] = [];
+  let storeHeroDurationSeconds = 5;
   let amazingSettings = {
     enabled: true,
     durationHours: 6,
@@ -192,6 +194,8 @@ export default async function HomePage() {
     storeProducts = (data.storeProducts || []).filter(
       (product) => product.isActive && product.stock > 0,
     );
+    storeHeroSlides = data.settings.storeHeroSliderSlides || [];
+    storeHeroDurationSeconds = data.settings.storeHeroSliderDurationSeconds || 5;
     amazingSettings = {
       enabled: data.settings.amazingDealsEnabled,
       durationHours: data.settings.amazingDealsDurationHours,
@@ -366,7 +370,13 @@ export default async function HomePage() {
   }
 
   if (siteMode === "store") {
-    return <StorefrontHome products={storeProducts} />;
+    return (
+      <StorefrontHome
+        products={storeProducts}
+        heroSlides={storeHeroSlides}
+        heroDurationSeconds={storeHeroDurationSeconds}
+      />
+    );
   }
 
   return (

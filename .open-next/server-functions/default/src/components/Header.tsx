@@ -9,6 +9,71 @@ import {
   type CatalogCategory,
 } from "@/lib/catalog-categories";
 
+const storeLaptopCategories: CatalogCategory[] = [
+  {
+    id: "store-laptop-brands",
+    legacyId: 101,
+    name: "برند لپ‌تاپ",
+    icon: "💻",
+    isActive: true,
+    subcategories: [
+      { id: "store-brands-main", title: "برندهای اصلی", items: ["لپ‌تاپ لنوو", "لپ‌تاپ اچ‌پی", "لپ‌تاپ دل", "لپ‌تاپ ایسوس", "مک‌بوک اپل"] },
+      { id: "store-brands-series", title: "سری‌های محبوب", items: ["ThinkPad", "Latitude", "EliteBook", "TUF Gaming", "Legion"] },
+      { id: "store-brands-choice", title: "انتخاب سریع", items: ["پرفروش‌ها", "پیشنهاد ویژه", "موجود در انبار", "اقتصادی"] },
+    ],
+  },
+  {
+    id: "store-laptop-use",
+    legacyId: 102,
+    name: "کاربری لپ‌تاپ",
+    icon: "🎯",
+    isActive: true,
+    subcategories: [
+      { id: "store-use-daily", title: "کاربری روزمره", items: ["لپ‌تاپ دانشجویی", "لپ‌تاپ اداری", "لپ‌تاپ سبک", "کار خانگی"] },
+      { id: "store-use-pro", title: "کاربری حرفه‌ای", items: ["لپ‌تاپ مهندسی", "لپ‌تاپ برنامه‌نویسی", "تدوین و طراحی", "رندرینگ"] },
+      { id: "store-use-gaming", title: "قدرت پردازشی", items: ["لپ‌تاپ گیمینگ", "گرافیک RTX", "نمایشگر 144Hz", "خنک‌کنندگی قوی"] },
+    ],
+  },
+  {
+    id: "store-laptop-specs",
+    legacyId: 103,
+    name: "مشخصات فنی",
+    icon: "⚙️",
+    isActive: true,
+    subcategories: [
+      { id: "store-spec-cpu", title: "پردازنده", items: ["Core i5", "Core i7", "Ryzen 5", "Ryzen 7", "Apple M1"] },
+      { id: "store-spec-memory", title: "رم و حافظه", items: ["رم 8GB", "رم 16GB", "SSD 256GB", "SSD 512GB", "SSD 1TB"] },
+      { id: "store-spec-display", title: "نمایشگر", items: ["13 اینچ", "14 اینچ", "15.6 اینچ", "Full HD", "نرخ 144Hz"] },
+    ],
+  },
+  {
+    id: "store-laptop-budget",
+    legacyId: 104,
+    name: "بودجه و وضعیت",
+    icon: "💰",
+    isActive: true,
+    subcategories: [
+      { id: "store-budget", title: "بازه قیمت", items: ["اقتصادی", "میان‌رده", "حرفه‌ای", "ویژه گیمینگ"] },
+      { id: "store-condition", title: "وضعیت کالا", items: ["نو", "کارکرده تمیز", "استوک شرکتی", "مهلت تست"] },
+      { id: "store-service", title: "خدمات خرید", items: ["ارسال سریع", "گارانتی تست", "مقایسه فنی", "مشاوره خرید"] },
+    ],
+  },
+];
+
+function storeLaptopHref(label: string) {
+  const text = label.toLowerCase();
+  if (text.includes("لنوو") || text.includes("thinkpad") || text.includes("legion")) return "/shop?brand=Lenovo";
+  if (text.includes("اچ") || text.includes("hp") || text.includes("elitebook")) return "/shop?brand=HP";
+  if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return "/shop?brand=Dell";
+  if (text.includes("ایسوس") || text.includes("asus") || text.includes("tuf")) return "/shop?brand=Asus";
+  if (text.includes("اپل") || text.includes("مک") || text.includes("apple") || text.includes("m1")) return "/shop?brand=Apple";
+  if (text.includes("گیم") || text.includes("rtx") || text.includes("144")) return "/shop?use=gaming";
+  if (text.includes("دانشجو") || text.includes("سبک")) return "/shop?use=student";
+  if (text.includes("مهندس") || text.includes("رندر") || text.includes("تدوین") || text.includes("طراحی")) return "/shop?use=engineering";
+  if (text.includes("اداری") || text.includes("شرکتی") || text.includes("برنامه")) return "/shop?use=business";
+  return "/shop";
+}
+
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -92,9 +157,9 @@ export default function Header() {
     sessionStorage.removeItem("redirectAfterAuth");
   };
 
-  const visibleHeaderCategories = headerCategories.filter(
-    (category) => category.isActive !== false,
-  );
+  const visibleHeaderCategories = (
+    siteMode === "store" ? storeLaptopCategories : headerCategories
+  ).filter((category) => category.isActive !== false);
   const activeHeaderCategory =
     visibleHeaderCategories.find(
       (category) => category.id === activeHeaderCategoryId,
@@ -155,10 +220,11 @@ export default function Header() {
             </div>
           </Link>            <div className="group relative hidden py-5 md:block">
               <Link
-                href="/categories"
+                href={siteMode === "store" ? "/shop" : "/categories"}
                 className="flex items-center gap-1 text-gray-900 hover:text-green-600 transition font-black"
               >
-                <span className="text-lg leading-none">☰</span> دسته‌بندی کالاها
+                <span className="text-lg leading-none">☰</span>{" "}
+                {siteMode === "store" ? "دسته‌بندی لپ‌تاپ‌ها" : "دسته‌بندی کالاها"}
               </Link>
               <div className="invisible absolute right-0 top-full z-50 w-[840px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
                 <div className="grid min-h-[420px] grid-cols-12">
@@ -168,7 +234,7 @@ export default function Header() {
                       return (
                         <Link
                           key={category.id}
-                          href={categoryHref(category)}
+                          href={siteMode === "store" ? storeLaptopHref(category.name) : categoryHref(category)}
                           onMouseEnter={() => setActiveHeaderCategoryId(category.id)}
                           className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition ${
                             active
@@ -186,17 +252,19 @@ export default function Header() {
                     {activeHeaderCategory && (
                       <>
                         <Link
-                          href={categoryHref(activeHeaderCategory)}
+                          href={siteMode === "store" ? "/shop" : categoryHref(activeHeaderCategory)}
                           className="mb-5 inline-flex items-center gap-2 text-sm font-black text-[#003b5c] hover:text-[#00a8e8]"
                         >
-                          همه محصولات {activeHeaderCategory.name}
+                          {siteMode === "store"
+                            ? "همه لپ‌تاپ‌ها"
+                            : `همه محصولات ${activeHeaderCategory.name}`}
                           <span>‹</span>
                         </Link>
                         <div className="grid grid-cols-3 gap-x-8 gap-y-6">
                           {activeHeaderCategory.subcategories.map((group) => (
                             <div key={group.id}>
                               <Link
-                                href={categoryHref(activeHeaderCategory)}
+                                href={siteMode === "store" ? storeLaptopHref(group.title) : categoryHref(activeHeaderCategory)}
                                 className="mb-3 block border-r-2 border-red-500 pr-2 text-sm font-black text-gray-900 hover:text-[#00a8e8]"
                               >
                                 {group.title}
@@ -205,7 +273,7 @@ export default function Header() {
                                 {group.items.map((item) => (
                                   <Link
                                     key={item}
-                                    href={categoryHref(activeHeaderCategory)}
+                                    href={siteMode === "store" ? storeLaptopHref(item) : categoryHref(activeHeaderCategory)}
                                     className="block text-xs text-gray-500 hover:text-[#00a8e8]"
                                   >
                                     {item}

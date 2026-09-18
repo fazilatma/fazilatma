@@ -169,6 +169,12 @@
       "namedRegex": "^/api/admin/seller\\-metrics(?:/)?$"
     },
     {
+      "page": "/api/admin/storefront-slider",
+      "regex": "^/api/admin/storefront\\-slider(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/storefront\\-slider(?:/)?$"
+    },
+    {
       "page": "/api/admin/users",
       "regex": "^/api/admin/users(?:/)?$",
       "routeKeys": {},
