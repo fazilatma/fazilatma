@@ -3909,7 +3909,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 248535,
+      "bytes": 248533,
       "imports": [
         {
           "path": "path",
@@ -6210,7 +6210,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 1640961,
+      "bytes": 1642437,
       "imports": [],
       "format": "cjs"
     },
@@ -8387,7 +8387,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_1oxuwqq._.js": {
-      "bytes": 43305,
+      "bytes": 44473,
       "imports": [],
       "format": "cjs"
     },
@@ -17039,7 +17039,7 @@
           "bytesInOutput": 461
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 209359
+          "bytesInOutput": 209357
         },
         ".open-next/cloudflare-templates/shims/throw.js": {
           "bytesInOutput": 215
@@ -17345,7 +17345,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 1989840
+          "bytesInOutput": 1991744
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -17687,7 +17687,7 @@
           "bytesInOutput": 18432
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_1oxuwqq._.js": {
-          "bytesInOutput": 50837
+          "bytesInOutput": 52432
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_0y7yi1y._.js": {
           "bytesInOutput": 25540
@@ -18329,7 +18329,7 @@
           "bytesInOutput": 70965
         }
       },
-      "bytes": 8859472
+      "bytes": 8862969
     }
   }
 }

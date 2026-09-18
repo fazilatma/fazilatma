@@ -26,7 +26,7 @@ export default function StorefrontHome({
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
   const heroProduct = featured[0] || products[0];
-  const brands = Array.from(new Set(products.map((product) => product.brand))).slice(0, 8);
+  const bottomLaptopCategories = laptopCategoryItems.slice(0, 18);
   const minPrice = products.reduce(
     (min, product) => Math.min(min, product.price),
     products[0]?.price || 0,
@@ -150,15 +150,38 @@ export default function StorefrontHome({
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-black text-slate-900">برندهای موجود</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {brands.map((brand) => (
+          <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900">
+                دسته‌بندی‌های محبوب لپ‌تاپ
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-slate-500">
+                انتخاب سریع بین برندها، کاربری‌ها و مشخصات مهم لپ‌تاپ؛ حداقل ۱۰ دسته برای دسترسی سریع‌تر خریدار.
+              </p>
+            </div>
+            <Link href="/shop" className="text-sm font-black text-rose-600">
+              مشاهده همه دسته‌ها ←
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            {bottomLaptopCategories.map((item) => (
               <Link
-                key={brand}
-                href={`/shop?brand=${encodeURIComponent(brand)}`}
-                className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                key={`bottom-${item.title}`}
+                href={item.href}
+                className="group rounded-3xl border border-slate-200 bg-slate-50 px-4 py-5 text-center transition hover:-translate-y-1 hover:border-rose-200 hover:bg-rose-50 hover:shadow-lg"
               >
-                {brand}
+                <div className="mx-auto mb-3 w-20">
+                  <div className="mx-auto h-10 rounded-t-xl border-[6px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
+                  <div className="mx-auto h-2 rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
+                </div>
+                {item.badge && (
+                  <span className="mb-2 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-rose-600 shadow-sm">
+                    {item.badge}
+                  </span>
+                )}
+                <span className="block text-sm font-black text-slate-700 group-hover:text-rose-600">
+                  {item.title}
+                </span>
               </Link>
             ))}
           </div>
