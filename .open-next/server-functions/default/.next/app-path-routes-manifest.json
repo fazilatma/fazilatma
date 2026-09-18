@@ -50,6 +50,7 @@
   "/api/source-files/route": "/api/source-files",
   "/api/submit-offer/route": "/api/submit-offer",
   "/api/submit-request/route": "/api/submit-request",
+  "/api/support-chat/route": "/api/support-chat",
   "/api/wallet/topup/route": "/api/wallet/topup",
   "/api/wallet/withdraw/route": "/api/wallet/withdraw",
   "/become-seller/page": "/become-seller",
@@ -80,5 +81,6 @@
   "/shop/guides/[slug]/page": "/shop/guides/[slug]",
   "/shop/guides/page": "/shop/guides",
   "/shop/page": "/shop",
-  "/source-code/page": "/source-code"
+  "/source-code/page": "/source-code",
+  "/support/page": "/support"
 }

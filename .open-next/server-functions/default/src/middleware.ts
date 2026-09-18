@@ -1,7 +1,14 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const publicPagePrefixes = ["/login", "/register", "/forgot-password", "/shop", "/cart"];
+const publicPagePrefixes = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/shop",
+  "/cart",
+  "/support",
+];
 
 const publicApiPrefixes = [
   "/api/login",
@@ -12,6 +19,7 @@ const publicApiPrefixes = [
   "/api/live-content",
   "/api/catalog-categories",
   "/api/site-mode",
+  "/api/support-chat",
   "/api/health",
 ];
 

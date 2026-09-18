@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import GlobalSellerRequestRadar from "@/components/GlobalSellerRequestRadar";
 import LiveContentBootstrap from "@/components/LiveContentBootstrap";
+import SupportChatWidget from "@/components/SupportChatWidget";
 
 export const metadata: Metadata = {
   title: "OptiBid - فروشگاه لپ‌تاپ و پلتفرم درخواست خرید",
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <GlobalSellerRequestRadar />
         <main className="flex-grow">{children}</main>
         <Footer />
+        <SupportChatWidget />
       </body>
     </html>
   );

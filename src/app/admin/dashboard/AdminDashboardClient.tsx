@@ -155,6 +155,18 @@ export default function AdminDashboardClient({
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
+    supportPageTitle: "پشتیبانی فروشگاه OptiBid",
+    supportPageSubtitle:
+      "برای راهنمای خرید لپ‌تاپ، پیگیری سفارش، پرداخت، ارسال و خدمات پس از خرید با تیم پشتیبانی در ارتباط باشید.",
+    supportPhone: "۰۲۱-۱۲۳۴۵۶۷۸",
+    supportMobile: "۰۹۱۲۱۲۳۴۵۶۷",
+    supportEmail: "support@optibid.ir",
+    supportAddress: "تبریز، خیابان ولیعصر، برج فناوری، طبقه ۱۰",
+    supportWorkingHours: "شنبه تا چهارشنبه ۹ تا ۱۷، پنجشنبه ۹ تا ۱۳",
+    supportTelegram: "https://t.me/optibid_support",
+    supportWhatsapp: "https://wa.me/989121234567",
+    supportFaqText: "",
+    supportChatWelcome: "سلام، به پشتیبانی آنلاین OptiBid خوش آمدید.",
     homepageShowOpportunityRequests: true,
     homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
     homepageOpportunitySubtitle:
@@ -192,6 +204,7 @@ export default function AdminDashboardClient({
   const [platformTransactions, setPlatformTransactions] = useState<any[]>([]);
   const [escrowTransactions, setEscrowTransactions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [supportChatMessages, setSupportChatMessages] = useState<any[]>([]);
   const [zarinpalPayments, setZarinpalPayments] = useState<any[]>([]);
   const [zarinpalPrerequisites, setZarinpalPrerequisites] = useState<any>(null);
   const [homepageSlideFiles, setHomepageSlideFiles] = useState<
@@ -216,6 +229,7 @@ export default function AdminDashboardClient({
         setPlatformTransactions(result.platformTransactions || []);
         setEscrowTransactions(result.escrowTransactions || []);
         setWithdrawals(result.withdrawals || []);
+        setSupportChatMessages(result.supportChatMessages || []);
         setZarinpalPayments(result.zarinpalPayments || []);
         setZarinpalPrerequisites(result.zarinpalPrerequisites || null);
       })
@@ -740,6 +754,12 @@ export default function AdminDashboardClient({
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "contact" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
                   📞 اطلاعات تماس با ما
+                </button>
+                <button
+                  onClick={() => setActiveTab("support")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "support" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🎧 صفحه و چت پشتیبانی
                 </button>
                 <button
                   onClick={() => setActiveTab("financial")}
@@ -2157,6 +2177,142 @@ export default function AdminDashboardClient({
                   >
                     ذخیره تنظیمات صفحه اصلی
                   </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "support" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold">🎧 مدیریت صفحه پشتیبانی و چت آنلاین</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-500">
+                      اطلاعات تماس، متن صفحه پشتیبانی، سوالات پرتکرار و پیام خوشامد چت آنلاین از این بخش قابل تغییر است.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="block text-sm font-bold text-gray-700">
+                      عنوان صفحه پشتیبانی
+                      <input
+                        value={platformFinance.supportPageTitle}
+                        onChange={(e) => updatePlatformFinanceField("supportPageTitle", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      ایمیل پشتیبانی
+                      <input
+                        value={platformFinance.supportEmail}
+                        onChange={(e) => updatePlatformFinanceField("supportEmail", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      توضیح بالای صفحه
+                      <textarea
+                        value={platformFinance.supportPageSubtitle}
+                        onChange={(e) => updatePlatformFinanceField("supportPageSubtitle", e.target.value)}
+                        className="mt-2 min-h-24 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      شماره تلفن پشتیبانی
+                      <input
+                        value={platformFinance.supportPhone}
+                        onChange={(e) => updatePlatformFinanceField("supportPhone", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      موبایل / واتساپ
+                      <input
+                        value={platformFinance.supportMobile}
+                        onChange={(e) => updatePlatformFinanceField("supportMobile", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      آدرس پشتیبانی
+                      <input
+                        value={platformFinance.supportAddress}
+                        onChange={(e) => updatePlatformFinanceField("supportAddress", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      ساعات پاسخ‌گویی
+                      <input
+                        value={platformFinance.supportWorkingHours}
+                        onChange={(e) => updatePlatformFinanceField("supportWorkingHours", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      لینک تلگرام پشتیبانی
+                      <input
+                        value={platformFinance.supportTelegram}
+                        onChange={(e) => updatePlatformFinanceField("supportTelegram", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      لینک واتساپ پشتیبانی
+                      <input
+                        value={platformFinance.supportWhatsapp}
+                        onChange={(e) => updatePlatformFinanceField("supportWhatsapp", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      پیام خوشامد چت آنلاین
+                      <input
+                        value={platformFinance.supportChatWelcome}
+                        onChange={(e) => updatePlatformFinanceField("supportChatWelcome", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      سوالات پرتکرار؛ هر خط: سوال|پاسخ
+                      <textarea
+                        value={platformFinance.supportFaqText}
+                        onChange={(e) => updatePlatformFinanceField("supportFaqText", e.target.value)}
+                        className="mt-2 min-h-40 w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    onClick={saveFinance}
+                    className="mt-6 rounded-xl bg-purple-600 px-8 py-3 font-bold text-white transition hover:bg-purple-700"
+                  >
+                    ذخیره تنظیمات پشتیبانی
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-xl font-bold">پیام‌های دریافتی چت آنلاین</h2>
+                  {supportChatMessages.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
+                      هنوز پیامی از چت پشتیبانی ثبت نشده است.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {supportChatMessages.slice(0, 20).map((message) => (
+                        <div key={message.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm">
+                          <div className="mb-2 flex flex-wrap justify-between gap-3">
+                            <b className="text-[#003b5c]">{message.name || "بازدیدکننده"}</b>
+                            <span className="font-mono text-xs text-gray-400">{message.id}</span>
+                          </div>
+                          <p className="leading-7 text-gray-700">{message.content}</p>
+                          <p className="mt-2 text-xs text-gray-500">
+                            موبایل: {message.phone || "—"} · ایمیل: {message.email || "—"} · {new Date(message.createdAt).toLocaleString("fa-IR")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

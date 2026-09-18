@@ -343,6 +343,12 @@ export default function Header() {
                 >
                   راهنمای خرید
                 </Link>
+                <Link
+                  href="/support"
+                  className="text-gray-700 hover:text-rose-600 transition font-medium"
+                >
+                  پشتیبانی
+                </Link>
               </>
             ) : (
               <>
@@ -556,6 +562,12 @@ export default function Header() {
                     className="text-gray-700 hover:text-rose-600 transition py-2"
                   >
                     📘 راهنمای خرید
+                  </Link>
+                  <Link
+                    href="/support"
+                    className="text-gray-700 hover:text-rose-600 transition py-2"
+                  >
+                    🎧 پشتیبانی
                   </Link>
                   <Link
                     href="/cart"

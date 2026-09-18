@@ -405,6 +405,12 @@
       "namedRegex": "^/api/submit\\-request(?:/)?$"
     },
     {
+      "page": "/api/support-chat",
+      "regex": "^/api/support\\-chat(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/support\\-chat(?:/)?$"
+    },
+    {
       "page": "/api/wallet/topup",
       "regex": "^/api/wallet/topup(?:/)?$",
       "routeKeys": {},
@@ -535,6 +541,12 @@
       "regex": "^/source\\-code(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/source\\-code(?:/)?$"
+    },
+    {
+      "page": "/support",
+      "regex": "^/support(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/support(?:/)?$"
     }
   ],
   "dataRoutes": [],

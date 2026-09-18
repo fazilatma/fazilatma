@@ -422,6 +422,16 @@ export type JsonStoreOrder = {
   createdAt: string;
 };
 
+export type JsonSupportChatMessage = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  content: string;
+  status: "open" | "answered";
+  createdAt: string;
+};
+
 const defaultHomepageImageSliderSlides: HomepageImageSliderSlide[] = [
   {
     id: "urgent-laptop-requests",
@@ -696,11 +706,23 @@ export type OptiBidJsonData = {
   catalogCategories: CatalogCategory[];
   storeProducts: JsonStoreProduct[];
   storeOrders: JsonStoreOrder[];
+  supportChatMessages: JsonSupportChatMessage[];
   settings: {
     siteMode: SiteMode;
     storeHeroSliderEnabled: boolean;
     storeHeroSliderDurationSeconds: number;
     storeHeroSliderSlides: HomepageImageSliderSlide[];
+    supportPageTitle: string;
+    supportPageSubtitle: string;
+    supportPhone: string;
+    supportMobile: string;
+    supportEmail: string;
+    supportAddress: string;
+    supportWorkingHours: string;
+    supportTelegram: string;
+    supportWhatsapp: string;
+    supportFaqText: string;
+    supportChatWelcome: string;
     commissionRate: number;
     platformWalletBalance: number;
     adminAccountHolder: string;
@@ -800,11 +822,26 @@ const emptyData = (): OptiBidJsonData => ({
   catalogCategories: defaultCatalogCategories,
   storeProducts: defaultStoreProducts,
   storeOrders: [],
+  supportChatMessages: [],
   settings: {
     siteMode: "store",
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: defaultStoreHeroSliderSlides,
+    supportPageTitle: "پشتیبانی فروشگاه OptiBid",
+    supportPageSubtitle:
+      "برای راهنمای خرید لپ‌تاپ، پیگیری سفارش، پرداخت، ارسال و خدمات پس از خرید با تیم پشتیبانی در ارتباط باشید.",
+    supportPhone: "۰۲۱-۱۲۳۴۵۶۷۸",
+    supportMobile: "۰۹۱۲۱۲۳۴۵۶۷",
+    supportEmail: "support@optibid.ir",
+    supportAddress: "تبریز، خیابان ولیعصر، برج فناوری، طبقه ۱۰",
+    supportWorkingHours: "شنبه تا چهارشنبه ۹ تا ۱۷، پنجشنبه ۹ تا ۱۳",
+    supportTelegram: "https://t.me/optibid_support",
+    supportWhatsapp: "https://wa.me/989121234567",
+    supportFaqText:
+      "پیگیری سفارش|از بخش سبد خرید یا داشبورد خریدار، وضعیت سفارش و کد پیگیری را بررسی کنید.\nمشاوره خرید لپ‌تاپ|از چت آنلاین یا شماره پشتیبانی، کاربری و بودجه خود را اعلام کنید تا مدل مناسب پیشنهاد شود.\nمهلت تست|برای کالاهای فروشگاهی، مهلت تست طبق توضیحات صفحه محصول و شرایط سفارش اعمال می‌شود.\nپرداخت و ارسال|پس از ثبت سفارش، اطلاعات تماس و آدرس بررسی و هماهنگی ارسال انجام می‌شود.",
+    supportChatWelcome:
+      "سلام، به پشتیبانی آنلاین OptiBid خوش آمدید. پیام خود را بنویسید تا همکاران ما پاسخ دهند.",
     commissionRate: 5,
     platformWalletBalance: 0,
     adminAccountHolder: "مدیر پلتفرم OptiBid",
@@ -1087,6 +1124,25 @@ function normalizeStoreOrders(value: unknown): JsonStoreOrder[] {
   return orders;
 }
 
+function normalizeSupportChatMessages(value: unknown): JsonSupportChatMessage[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      const source = item as Partial<JsonSupportChatMessage>;
+      if (!source.id || !source.content) return null;
+      return {
+        id: String(source.id),
+        name: String(source.name || "بازدیدکننده"),
+        phone: String(source.phone || ""),
+        email: String(source.email || ""),
+        content: String(source.content || "").slice(0, 1500),
+        status: source.status === "answered" ? "answered" : "open",
+        createdAt: String(source.createdAt || new Date().toISOString()),
+      } satisfies JsonSupportChatMessage;
+    })
+    .filter((item): item is JsonSupportChatMessage => Boolean(item));
+}
+
 function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
   const users = (Array.isArray(parsed.users) ? parsed.users : []).map(
     (user) => ({
@@ -1218,6 +1274,9 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
     storeOrders: normalizeStoreOrders(
       (parsed as { storeOrders?: unknown }).storeOrders,
     ),
+    supportChatMessages: normalizeSupportChatMessages(
+      (parsed as { supportChatMessages?: unknown }).supportChatMessages,
+    ),
     settings: {
       siteMode:
         (parsed.settings as { siteMode?: SiteMode } | undefined)?.siteMode === "request"
@@ -1245,6 +1304,41 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
             | undefined)?.storeHeroSliderSlides || defaultStoreHeroSliderSlides
           ).slice(0, 4)
         : defaultStoreHeroSliderSlides,
+      supportPageTitle:
+        (parsed.settings as { supportPageTitle?: string } | undefined)
+          ?.supportPageTitle || "پشتیبانی فروشگاه OptiBid",
+      supportPageSubtitle:
+        (parsed.settings as { supportPageSubtitle?: string } | undefined)
+          ?.supportPageSubtitle ||
+        "برای راهنمای خرید لپ‌تاپ، پیگیری سفارش، پرداخت، ارسال و خدمات پس از خرید با تیم پشتیبانی در ارتباط باشید.",
+      supportPhone:
+        (parsed.settings as { supportPhone?: string } | undefined)
+          ?.supportPhone || "۰۲۱-۱۲۳۴۵۶۷۸",
+      supportMobile:
+        (parsed.settings as { supportMobile?: string } | undefined)
+          ?.supportMobile || "۰۹۱۲۱۲۳۴۵۶۷",
+      supportEmail:
+        (parsed.settings as { supportEmail?: string } | undefined)
+          ?.supportEmail || "support@optibid.ir",
+      supportAddress:
+        (parsed.settings as { supportAddress?: string } | undefined)
+          ?.supportAddress || "تبریز، خیابان ولیعصر، برج فناوری، طبقه ۱۰",
+      supportWorkingHours:
+        (parsed.settings as { supportWorkingHours?: string } | undefined)
+          ?.supportWorkingHours ||
+        "شنبه تا چهارشنبه ۹ تا ۱۷، پنجشنبه ۹ تا ۱۳",
+      supportTelegram:
+        (parsed.settings as { supportTelegram?: string } | undefined)
+          ?.supportTelegram || "https://t.me/optibid_support",
+      supportWhatsapp:
+        (parsed.settings as { supportWhatsapp?: string } | undefined)
+          ?.supportWhatsapp || "https://wa.me/989121234567",
+      supportFaqText:
+        (parsed.settings as { supportFaqText?: string } | undefined)
+          ?.supportFaqText || emptyData().settings.supportFaqText,
+      supportChatWelcome:
+        (parsed.settings as { supportChatWelcome?: string } | undefined)
+          ?.supportChatWelcome || emptyData().settings.supportChatWelcome,
       commissionRate:
         typeof parsed.settings?.commissionRate === "number"
           ? parsed.settings.commissionRate
@@ -4039,6 +4133,24 @@ export async function updateJsonPlatformFinanceSettings(
       settingsRecord[key] = String(updatesRecord[key]).trim().slice(0, 300);
     }
   }
+  const supportStringLimits: Record<string, number> = {
+    supportPageTitle: 120,
+    supportPageSubtitle: 420,
+    supportPhone: 40,
+    supportMobile: 40,
+    supportEmail: 120,
+    supportAddress: 260,
+    supportWorkingHours: 180,
+    supportTelegram: 220,
+    supportWhatsapp: 220,
+    supportFaqText: 2400,
+    supportChatWelcome: 300,
+  };
+  for (const [key, limit] of Object.entries(supportStringLimits)) {
+    if (typeof updatesRecord[key] === "string") {
+      settingsRecord[key] = String(updatesRecord[key]).trim().slice(0, limit);
+    }
+  }
   if (typeof updates.homepageImageSliderDurationSeconds === "number") {
     data.settings.homepageImageSliderDurationSeconds = Math.max(
       3,
@@ -4137,6 +4249,60 @@ export async function createJsonStoreOrder(input: {
   return order;
 }
 
+export function parseSupportFaq(text?: string) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => {
+      const [question, ...answerParts] = line.split("|");
+      return {
+        question: question?.trim() || "",
+        answer: answerParts.join("|").trim(),
+      };
+    })
+    .filter((item) => item.question && item.answer);
+}
+
+export async function getJsonSupportContent() {
+  const data = await getOptiBidData();
+  return {
+    title: data.settings.supportPageTitle,
+    subtitle: data.settings.supportPageSubtitle,
+    phone: data.settings.supportPhone,
+    mobile: data.settings.supportMobile,
+    email: data.settings.supportEmail,
+    address: data.settings.supportAddress,
+    workingHours: data.settings.supportWorkingHours,
+    telegram: data.settings.supportTelegram,
+    whatsapp: data.settings.supportWhatsapp,
+    faqText: data.settings.supportFaqText,
+    faqs: parseSupportFaq(data.settings.supportFaqText),
+    chatWelcome: data.settings.supportChatWelcome,
+  };
+}
+
+export async function createJsonSupportChatMessage(input: {
+  name?: string;
+  phone?: string;
+  email?: string;
+  content: string;
+}) {
+  const data = await getOptiBidData();
+  const content = input.content.trim().slice(0, 1500);
+  if (!content) throw new Error("Support chat message is empty");
+  const message: JsonSupportChatMessage = {
+    id: nextStringId("SUP"),
+    name: input.name?.trim().slice(0, 80) || "بازدیدکننده",
+    phone: normalizePhone(input.phone).slice(0, 20),
+    email: input.email?.trim().toLowerCase().slice(0, 120) || "",
+    content,
+    status: "open",
+    createdAt: new Date().toISOString(),
+  };
+  data.supportChatMessages.unshift(message);
+  await writeOptiBidData(data);
+  return message;
+}
+
 export async function getJsonPlatformFinance() {
   const data = await getOptiBidData();
   return {
@@ -4144,6 +4310,7 @@ export async function getJsonPlatformFinance() {
     platformTransactions: data.platformTransactions,
     escrowTransactions: data.transactions,
     withdrawals: data.withdrawals,
+    supportChatMessages: data.supportChatMessages || [],
     zarinpalPayments: data.zarinpalPayments || [],
     zarinpalPrerequisites: buildZarinpalPrerequisites(data.settings),
   };
