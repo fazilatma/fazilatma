@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
 import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
@@ -104,21 +105,26 @@ export default function StorefrontHome({
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900">پیشنهادهای منتخب لپ‌تاپ</h2>
-            <p className="mt-2 text-sm text-slate-500">
-              مدل‌های منتخب برای خرید آنلاین، مقایسه سریع مشخصات و انتخاب مطمئن‌تر.
-            </p>
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <LaptopFilterSidebar products={products} sticky={false} />
+          <div className="min-w-0 flex-1">
+            <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900">پیشنهادهای منتخب لپ‌تاپ</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  مدل‌های منتخب برای خرید آنلاین، مقایسه سریع مشخصات و انتخاب مطمئن‌تر.
+                </p>
+              </div>
+              <Link href="/shop" className="text-sm font-black text-rose-600">
+                مشاهده همه محصولات ←
+              </Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {featured.length > 0
+                ? featured.map((product) => <StoreProductCard key={product.id} product={product} />)
+                : products.slice(0, 4).map((product) => <StoreProductCard key={product.id} product={product} />)}
+            </div>
           </div>
-          <Link href="/shop" className="text-sm font-black text-rose-600">
-            مشاهده همه محصولات ←
-          </Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.length > 0
-            ? featured.map((product) => <StoreProductCard key={product.id} product={product} />)
-            : products.slice(0, 4).map((product) => <StoreProductCard key={product.id} product={product} />)}
         </div>
       </section>
 

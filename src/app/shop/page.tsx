@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
 import { getJsonStoreProducts, type JsonStoreProduct } from "@/lib/json-store";
 
@@ -37,36 +38,212 @@ const useKeyword: Record<string, string[]> = {
   gaming: ["گیمینگ", "gaming", "rtx", "بازی", "144"],
 };
 
+const normalizeFilterValue = (value: string) => value.trim().toLowerCase();
+
+function productFilterTags(product: JsonStoreProduct) {
+  const text = lowerSearchText(product);
+  const tags = new Set<string>();
+  const add = (key: string, value: string) =>
+    tags.add(`${key}:${normalizeFilterValue(value)}`);
+
+  if (text.includes("8gb")) add("ram", "8GB");
+  if (text.includes("16gb")) add("ram", "16GB");
+  if (text.includes("32gb")) add("ram", "32GB");
+  if (text.includes("ips")) add("panel", "IPS");
+  if (text.includes("full hd")) add("panel", "Full HD");
+  if (text.includes("retina")) add("panel", "Retina");
+  if (text.includes("144hz")) add("panel", "144Hz");
+  if (text.includes("13.3") || text.includes("13 اینچ")) add("display", "13");
+  if (text.includes("14 اینچ")) add("display", "14");
+  if (text.includes("15.6") || text.includes("15.6 اینچ")) add("display", "15.6");
+  if (text.includes("i5")) add("cpu", "i5");
+  if (text.includes("i7")) add("cpu", "i7");
+  if (text.includes("ryzen 7")) add("cpu", "Ryzen 7");
+  if (text.includes("m1")) add("cpu", "M1");
+  if (text.includes("256gb")) add("ssd", "256GB");
+  if (text.includes("512gb")) add("ssd", "512GB");
+  if (text.includes("1tb")) add("ssd", "1TB");
+
+  const fixedTags: Record<string, string[]> = {
+    "lp-thinkpad-t14-g3": [
+      "cpuGen:12",
+      "gpuType:integrated",
+      "gpu:iris",
+      "hdd:none",
+      "touch:no",
+      "cover:matte",
+      "cardReader:yes",
+      "optical:no",
+      "webcam:yes",
+      "fingerprint:yes",
+      "rotate:no",
+      "sim:no",
+      "battery:good",
+      "battery:long",
+      "series:thinkpad",
+      "use:business",
+      "generationModel:pro",
+      "color:black",
+      "custom:ssd-upgrade",
+    ],
+    "lp-dell-latitude-7420": [
+      "cpuGen:11",
+      "gpuType:integrated",
+      "gpu:iris",
+      "hdd:none",
+      "touch:no",
+      "cover:matte",
+      "cardReader:yes",
+      "optical:no",
+      "webcam:yes",
+      "fingerprint:yes",
+      "rotate:no",
+      "sim:no",
+      "battery:good",
+      "series:latitude",
+      "use:business",
+      "generationModel:pro",
+      "color:gray",
+    ],
+    "lp-hp-elitebook-840-g8": [
+      "cpuGen:11",
+      "gpuType:integrated",
+      "gpu:iris",
+      "hdd:none",
+      "touch:no",
+      "cover:matte",
+      "cardReader:yes",
+      "optical:no",
+      "webcam:yes",
+      "fingerprint:yes",
+      "rotate:no",
+      "sim:no",
+      "battery:good",
+      "series:elitebook",
+      "use:student",
+      "use:business",
+      "generationModel:midrange",
+      "color:silver",
+    ],
+    "lp-asus-tuf-f15-rtx3050": [
+      "cpuGen:12",
+      "gpuType:dedicated",
+      "gpuType:rtx",
+      "gpu:3050",
+      "hdd:none",
+      "touch:no",
+      "cover:matte",
+      "cardReader:no",
+      "optical:no",
+      "webcam:yes",
+      "fingerprint:no",
+      "rotate:no",
+      "sim:no",
+      "battery:good",
+      "series:tuf",
+      "use:gaming",
+      "use:engineering",
+      "generationModel:pro",
+      "color:black",
+    ],
+    "lp-macbook-air-m1": [
+      "cpuGen:apple",
+      "gpuType:integrated",
+      "gpu:apple-gpu",
+      "hdd:none",
+      "touch:no",
+      "cover:glossy",
+      "cardReader:no",
+      "optical:no",
+      "webcam:yes",
+      "fingerprint:yes",
+      "rotate:no",
+      "sim:no",
+      "battery:long",
+      "series:macbook",
+      "use:student",
+      "generationModel:midrange",
+      "color:silver",
+    ],
+    "lp-lenovo-legion-5": [
+      "cpuGen:ryzen",
+      "gpuType:dedicated",
+      "gpuType:rtx",
+      "gpu:3060",
+      "hdd:none",
+      "touch:no",
+      "cover:matte",
+      "cardReader:no",
+      "optical:no",
+      "webcam:yes",
+      "fingerprint:no",
+      "rotate:no",
+      "sim:no",
+      "battery:good",
+      "series:legion",
+      "use:gaming",
+      "use:engineering",
+      "generationModel:pro",
+      "color:black",
+      "custom:ram-upgrade",
+    ],
+  };
+
+  for (const tag of fixedTags[product.id] || []) tags.add(tag.toLowerCase());
+  return tags;
+}
+
 function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const text = lowerSearchText(product);
   const brand = getParam(params, "brand");
   const use = getParam(params, "use");
-  const ram = getParam(params, "ram");
-  const cpu = getParam(params, "cpu");
-  const gpu = getParam(params, "gpu");
-  const ssd = getParam(params, "ssd");
-  const hdd = getParam(params, "hdd");
-  const display = getParam(params, "display");
-  const panel = getParam(params, "panel");
-  const series = getParam(params, "series");
   const minPrice = Number(getParam(params, "minPrice") || 0);
   const maxPrice = Number(getParam(params, "maxPrice") || 0);
+  const tags = productFilterTags(product);
 
   if (getParam(params, "available") === "1" && product.stock <= 0) return false;
   if (brand && product.brand !== brand) return false;
   if (use) {
     const keywords = useKeyword[use] || [];
-    if (keywords.length && !keywords.some((keyword) => text.includes(keyword.toLowerCase())))
+    const useTagMatched = tags.has(`use:${normalizeFilterValue(use)}`);
+    if (
+      !useTagMatched &&
+      keywords.length &&
+      !keywords.some((keyword) => text.includes(keyword.toLowerCase()))
+    )
       return false;
   }
-  if (ram && !text.includes(ram.toLowerCase())) return false;
-  if (cpu && !text.includes(cpu.toLowerCase())) return false;
-  if (gpu && !text.includes(gpu.toLowerCase())) return false;
-  if (ssd && !text.includes(ssd.toLowerCase())) return false;
-  if (hdd && !text.includes(hdd.toLowerCase())) return false;
-  if (display && !text.includes(display.toLowerCase())) return false;
-  if (panel && !text.includes(panel.toLowerCase())) return false;
-  if (series && !text.includes(series.toLowerCase())) return false;
+
+  const tagFilterKeys = [
+    "ram",
+    "cpu",
+    "cpuGen",
+    "gpuType",
+    "gpu",
+    "ssd",
+    "hdd",
+    "display",
+    "panel",
+    "touch",
+    "cover",
+    "cardReader",
+    "optical",
+    "webcam",
+    "fingerprint",
+    "rotate",
+    "sim",
+    "battery",
+    "series",
+    "generationModel",
+    "color",
+    "custom",
+  ];
+  for (const key of tagFilterKeys) {
+    const value = getParam(params, key);
+    if (value && !tags.has(`${key.toLowerCase()}:${normalizeFilterValue(value)}`))
+      return false;
+  }
+
   if (minPrice && product.price < minPrice) return false;
   if (maxPrice && product.price > maxPrice) return false;
   return true;
@@ -215,72 +392,7 @@ export default async function ShopPage({
       </section>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:px-8">
-        <aside className="h-fit rounded-[1.75rem] border border-slate-200 bg-white shadow-sm lg:sticky lg:top-24 lg:w-[310px] lg:flex-none">
-          <div className="flex items-center justify-between border-b border-slate-100 p-5">
-            <div>
-              <h2 className="text-lg font-black text-slate-900">فیلترها</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                {appliedFilters
-                  ? `${appliedFilters.toLocaleString("fa-IR")} فیلتر فعال`
-                  : "انتخاب سریع مشخصات لپ‌تاپ"}
-              </p>
-            </div>
-            <Link
-              href="/shop"
-              className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 hover:bg-rose-50 hover:text-rose-600"
-            >
-              حذف همه
-            </Link>
-          </div>
-
-          <div className="max-h-[calc(100vh-150px)] overflow-y-auto p-5 pt-2">
-            <Link
-              href={buildHref(params, "available", "1")}
-              className="mb-2 flex items-center justify-between rounded-2xl px-2 py-3 text-sm font-black text-slate-800 hover:bg-slate-50"
-            >
-              <span>فقط کالاهای موجود</span>
-              <span
-                className={`relative h-5 w-10 rounded-full border transition ${getParam(params, "available") === "1" ? "border-rose-500 bg-rose-500" : "border-slate-300 bg-white"}`}
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition ${getParam(params, "available") === "1" ? "right-5" : "right-0.5 bg-slate-200"}`}
-                />
-              </span>
-            </Link>
-
-            <PriceFilter params={params} />
-            <FilterGroup
-              title="برندها"
-              queryKey="brand"
-              params={params}
-              options={brands.map((brand) => ({ label: brand, value: brand }))}
-              defaultOpen
-            />
-            <FilterGroup title="ظرفیت حافظه RAM" queryKey="ram" params={params} options={ramOptions} defaultOpen />
-            <FilterGroup title="نوع پنل" queryKey="panel" params={params} options={panelOptions} />
-            <FilterGroup title="ابعاد نمایشگر" queryKey="display" params={params} options={displayOptions} />
-            <BooleanGroup title="صفحه نمایش لمسی" labels={["دارد", "ندارد"]} />
-            <BooleanGroup title="پوشش نمایشگر" labels={["مات", "براق"]} />
-            <FilterGroup title="سری پردازنده مرکزی" queryKey="cpu" params={params} options={cpuOptions} />
-            <FilterGroup title="نسل پردازنده مرکزی" queryKey="cpu" params={params} options={[{ label: "نسل ۱۱", value: "نسل ۱۱" }, { label: "نسل ۱۲", value: "نسل ۱۲" }, { label: "Ryzen", value: "Ryzen" }]} />
-            <FilterGroup title="نوع پردازنده گرافیکی" queryKey="gpu" params={params} options={[{ label: "گرافیک مجتمع", value: "Intel" }, { label: "گرافیک مجزا", value: "NVIDIA" }, { label: "RTX", value: "RTX" }]} />
-            <FilterGroup title="مدل پردازنده گرافیکی" queryKey="gpu" params={params} options={gpuOptions} />
-            <FilterGroup title="ظرفیت حافظه HDD" queryKey="hdd" params={params} options={[{ label: "بدون HDD", value: "SSD" }, { label: "۱ ترابایت HDD", value: "HDD" }]} />
-            <FilterGroup title="ظرفیت حافظه SSD" queryKey="ssd" params={params} options={ssdOptions} />
-            <BooleanGroup title="درگاه کارت خوان" labels={["دارد", "ندارد"]} defaultOpen />
-            <BooleanGroup title="درایو نوری" labels={["دارد", "ندارد"]} />
-            <BooleanGroup title="وب کم" labels={["دارد", "ندارد"]} />
-            <BooleanGroup title="حسگر اثر انگشت" labels={["دارد", "ندارد"]} />
-            <BooleanGroup title="امکان چرخش ۳۶۰ درجه" labels={["دارد", "ندارد"]} />
-            <BooleanGroup title="پشتیبانی از سیم کارت" labels={["دارد", "ندارد"]} />
-            <BooleanGroup title="باتری" labels={["سلامت بالای ۸۰٪", "شارژدهی مناسب"]} />
-            <FilterGroup title="سری لپ‌تاپ" queryKey="series" params={params} options={seriesOptions} />
-            <FilterGroup title="نوع کاربری" queryKey="use" params={params} options={useOptions} defaultOpen />
-            <FilterGroup title="نسل و مدل" queryKey="series" params={params} options={[{ label: "اقتصادی", value: "اقتصادی" }, { label: "میان‌رده", value: "میان" }, { label: "حرفه‌ای", value: "حرفه" }]} />
-            <BooleanGroup title="رنگ‌ها" labels={["مشکی", "نقره‌ای", "خاکستری"]} />
-            <BooleanGroup title="کاستوم شده" labels={["ارتقا رم", "ارتقا SSD"]} />
-          </div>
-        </aside>
+        <LaptopFilterSidebar products={products} params={params} />
 
         <main className="min-w-0 flex-1">
           <div className="mb-5 flex flex-col gap-3 rounded-[1.5rem] bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
