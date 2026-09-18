@@ -3,8 +3,11 @@ import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
 import {
+  getLaptopCollectionProducts,
   laptopCategoryItems,
+  laptopCollectionItems,
   laptopGuideItems,
+  type LaptopCollectionItem,
   type LaptopGuideItem,
 } from "@/lib/laptop-storefront";
 import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
@@ -28,6 +31,10 @@ export default function StorefrontHome({
     (min, product) => Math.min(min, product.price),
     products[0]?.price || 0,
   );
+  const collectionRows = laptopCollectionItems.map((collection) => ({
+    collection,
+    products: getLaptopCollectionProducts(products, collection.slug).slice(0, 3),
+  }));
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
@@ -107,6 +114,16 @@ export default function StorefrontHome({
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        {collectionRows.map(({ collection, products: rowProducts }) => (
+          <StoreCollectionRow
+            key={collection.slug}
+            collection={collection}
+            products={rowProducts}
+          />
+        ))}
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row">
           <LaptopFilterSidebar products={products} sticky={false} />
@@ -147,6 +164,96 @@ export default function StorefrontHome({
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function CollectionIcon({ icon }: { icon: LaptopCollectionItem["icon"] }) {
+  const common = "h-7 w-7";
+  if (icon === "trend") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 17 9 12l4 4 7-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M15 7h5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (icon === "fire") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 21c3.9 0 7-2.7 7-6.6 0-2.8-1.6-5.1-3.3-6.9-.5 2-1.6 3.2-3 4.2.2-3.2-1-5.8-3.5-8.2.2 4.2-4.2 6-4.2 10.9C5 18.3 8.1 21 12 21Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 12v8H4v-8m16 0H4m16 0H4m4-4a2 2 0 1 1 4 0v4H8V8Zm8 0a2 2 0 1 0-4 0v4h4V8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StoreCollectionRow({
+  collection,
+  products,
+}: {
+  collection: LaptopCollectionItem;
+  products: JsonStoreProduct[];
+}) {
+  const colors = {
+    emerald: {
+      badge: "bg-emerald-50 text-emerald-700",
+      icon: "bg-emerald-100 text-emerald-700",
+      link: "text-emerald-700 hover:text-emerald-800",
+      border: "border-emerald-100",
+    },
+    blue: {
+      badge: "bg-blue-50 text-blue-700",
+      icon: "bg-blue-100 text-blue-700",
+      link: "text-blue-700 hover:text-blue-800",
+      border: "border-blue-100",
+    },
+    rose: {
+      badge: "bg-rose-50 text-rose-700",
+      icon: "bg-rose-100 text-rose-700",
+      link: "text-rose-700 hover:text-rose-800",
+      border: "border-rose-100",
+    },
+  }[collection.accent];
+
+  return (
+    <div className={`rounded-[2rem] border bg-white p-5 shadow-sm ${colors.border}`}>
+      <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div className="flex items-start gap-3">
+          <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${colors.icon}`}>
+            <CollectionIcon icon={collection.icon} />
+          </div>
+          <div>
+            <span className={`rounded-full px-3 py-1 text-xs font-black ${colors.badge}`}>
+              {collection.badge}
+            </span>
+            <h2 className="mt-3 text-2xl font-black text-slate-900">
+              {collection.title}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+              {collection.subtitle}
+            </p>
+          </div>
+        </div>
+        <Link href={collection.href} className={`text-sm font-black ${colors.link}`}>
+          مشاهده صفحه {collection.shortTitle} ←
+        </Link>
+      </div>
+      {products.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+          فعلاً محصولی برای این بخش ثبت نشده است.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {products.map((product) => (
+            <StoreProductCard key={`${collection.slug}-${product.id}`} product={product} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

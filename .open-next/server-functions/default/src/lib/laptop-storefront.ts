@@ -1,3 +1,5 @@
+import type { JsonStoreProduct } from "@/lib/json-store";
+
 export type LaptopCategoryItem = {
   title: string;
   href: string;
@@ -14,6 +16,17 @@ export type LaptopGuideItem = {
   icon: "briefcase" | "student" | "engineering" | "gaming";
   keywords: string[];
   checklist: string[];
+};
+
+export type LaptopCollectionItem = {
+  slug: "growing" | "best-selling" | "special-offers";
+  title: string;
+  shortTitle: string;
+  subtitle: string;
+  href: string;
+  badge: string;
+  accent: "emerald" | "blue" | "rose";
+  icon: "trend" | "fire" | "sale";
 };
 
 export const laptopCategoryItems: LaptopCategoryItem[] = [
@@ -105,4 +118,99 @@ export const laptopGuideItems: LaptopGuideItem[] = [
 
 export function getLaptopGuide(slug: string) {
   return laptopGuideItems.find((guide) => guide.slug === slug) || null;
+}
+
+export const laptopCollectionItems: LaptopCollectionItem[] = [
+  {
+    slug: "growing",
+    title: "محصولات در حال رشد",
+    shortTitle: "در حال رشد",
+    subtitle:
+      "مدل‌هایی که با توجه به تقاضای بازار لپ‌تاپ، مشخصات فنی و جذابیت قیمت، رشد توجه بیشتری دارند.",
+    href: "/shop/collections/growing",
+    badge: "رشد تقاضا",
+    accent: "emerald",
+    icon: "trend",
+  },
+  {
+    slug: "best-selling",
+    title: "محصولات پرفروش",
+    shortTitle: "پرفروش",
+    subtitle:
+      "لپ‌تاپ‌هایی که برای کار اداری، دانشجویی و حرفه‌ای بیشترین انتخاب و بازدید را می‌گیرند.",
+    href: "/shop/collections/best-selling",
+    badge: "پرفروش",
+    accent: "blue",
+    icon: "fire",
+  },
+  {
+    slug: "special-offers",
+    title: "فروش ویژه",
+    shortTitle: "فروش ویژه",
+    subtitle:
+      "مدل‌هایی با قیمت جذاب‌تر، تخفیف بیشتر و فرصت خرید بهتر برای شروع سریع‌تر.",
+    href: "/shop/collections/special-offers",
+    badge: "تخفیف ویژه",
+    accent: "rose",
+    icon: "sale",
+  },
+];
+
+export function getLaptopCollection(slug: string) {
+  return laptopCollectionItems.find((collection) => collection.slug === slug) || null;
+}
+
+export function storeProductDiscountPercent(product: JsonStoreProduct) {
+  if (!product.originalPrice || product.originalPrice <= product.price) return 0;
+  return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+}
+
+function normalizedProductText(product: JsonStoreProduct) {
+  return `${product.title} ${product.brand} ${product.category} ${product.summary} ${product.description} ${product.badges.join(" ")} ${Object.values(product.specs || {}).join(" ")}`.toLowerCase();
+}
+
+function growthScore(product: JsonStoreProduct) {
+  const text = normalizedProductText(product);
+  let score = product.rating * 12 + product.reviewsCount / 2;
+  if (text.includes("rtx")) score += 28;
+  if (text.includes("گیمینگ") || text.includes("مهندسی")) score += 18;
+  if (text.includes("core i7") || text.includes("ryzen 7")) score += 14;
+  if (text.includes("apple") || text.includes("m1") || text.includes("macbook")) score += 12;
+  if (text.includes("16gb") || text.includes("1tb")) score += 8;
+  score += storeProductDiscountPercent(product) * 1.5;
+  return score;
+}
+
+export function getLaptopCollectionProducts(
+  products: JsonStoreProduct[],
+  slug: LaptopCollectionItem["slug"] | string,
+) {
+  const activeProducts = products.filter(
+    (product) => product.isActive !== false && product.stock > 0,
+  );
+
+  if (slug === "growing") {
+    return [...activeProducts].sort((a, b) => growthScore(b) - growthScore(a));
+  }
+
+  if (slug === "best-selling") {
+    return [...activeProducts].sort(
+      (a, b) =>
+        b.reviewsCount - a.reviewsCount ||
+        b.rating - a.rating ||
+        Number(b.isFeatured) - Number(a.isFeatured),
+    );
+  }
+
+  if (slug === "special-offers") {
+    return [...activeProducts]
+      .filter((product) => storeProductDiscountPercent(product) > 0)
+      .sort(
+        (a, b) =>
+          storeProductDiscountPercent(b) - storeProductDiscountPercent(a) ||
+          b.reviewsCount - a.reviewsCount,
+      );
+  }
+
+  return activeProducts;
 }
