@@ -1,3 +1,0 @@
-module.exports=[83925,a=>{"use strict";var b=a.i(87924),c=a.i(72131);let d="optibid_store_cart_v1";a.s(["CART_KEY",0,d,"default",0,function({product:a,className:e="",label:f="افزودن به سبد خرید"}){let[g,h]=(0,c.useState)(!1);return(0,b.jsx)("button",{type:"button",onClick:()=>{let b=[],c=b.find(b=>b.id===a.id);c?c.quantity+=1:b.push({...a,quantity:1}),localStorage.setItem(d,JSON.stringify(b)),window.dispatchEvent(new CustomEvent("optibid-store-cart-updated")),h(!0),window.setTimeout(()=>h(!1),1800)},className:e||"w-full rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:bg-rose-700",children:g?"✓ به سبد اضافه شد":f})}])}];
-
-//# sourceMappingURL=src_components_StoreAddToCartButton_tsx_11fm1o_._.js.map

@@ -77,6 +77,8 @@
   "/sellers/[id]/page": "app/sellers/[id]/page.js",
   "/sellers/page": "app/sellers/page.js",
   "/shop/[slug]/page": "app/shop/[slug]/page.js",
+  "/shop/guides/[slug]/page": "app/shop/guides/[slug]/page.js",
+  "/shop/guides/page": "app/shop/guides/page.js",
   "/shop/page": "app/shop/page.js",
   "/source-code/page": "app/source-code/page.js"
 }

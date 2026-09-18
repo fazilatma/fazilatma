@@ -18,6 +18,34 @@ function readCart(): CartItem[] {
   }
 }
 
+function CartLaptopVisual({ item }: { item: CartItem }) {
+  const brandColor = item.brand === "Apple"
+    ? "from-slate-200 to-slate-50"
+    : item.brand === "Asus"
+      ? "from-rose-100 to-slate-50"
+      : item.brand === "HP"
+        ? "from-blue-100 to-slate-50"
+        : item.brand === "Dell"
+          ? "from-cyan-100 to-slate-50"
+          : "from-emerald-100 to-slate-50";
+  return (
+    <Link
+      href={`/shop/${item.slug}`}
+      className={`relative grid h-28 w-32 shrink-0 place-items-center overflow-hidden rounded-3xl bg-gradient-to-br ${brandColor} ring-1 ring-slate-200 transition hover:ring-rose-200`}
+      aria-label={`تصویر ${item.title}`}
+    >
+      <div className="absolute right-3 top-3 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-black text-[#003b5c] shadow-sm">
+        {item.brand}
+      </div>
+      <div className="mt-4 w-20">
+        <div className="mx-auto h-12 rounded-t-xl border-[7px] border-slate-800 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] shadow-lg" />
+        <div className="mx-auto h-2.5 rounded-b-xl bg-slate-600" />
+        <div className="mx-auto h-1.5 w-12 rounded-b-lg bg-slate-400" />
+      </div>
+    </Link>
+  );
+}
+
 export default function StoreCartClient() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -44,20 +72,22 @@ export default function StoreCartClient() {
     [items],
   );
 
-  const updateQuantity = (id: string, quantity: number) => {
-    const next = items
-      .map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item,
-      )
-      .filter((item) => item.quantity > 0);
+  const persistCart = (next: CartItem[]) => {
     setItems(next);
     localStorage.setItem(CART_KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent("optibid-store-cart-updated"));
+  };
+
+  const updateQuantity = (id: string, quantity: number) => {
+    const next = items.map((item) =>
+      item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item,
+    );
+    persistCart(next);
   };
 
   const removeItem = (id: string) => {
     const next = items.filter((item) => item.id !== id);
-    setItems(next);
-    localStorage.setItem(CART_KEY, JSON.stringify(next));
+    persistCart(next);
   };
 
   const submitOrder = async () => {
@@ -94,6 +124,7 @@ export default function StoreCartClient() {
       if (!result.success) throw new Error(result.message || "ثبت سفارش ناموفق بود.");
       localStorage.removeItem(CART_KEY);
       setItems([]);
+      window.dispatchEvent(new CustomEvent("optibid-store-cart-updated"));
       alert(`${result.message}\nکد سفارش: ${result.order?.id || "—"}`);
     } catch (error) {
       alert(error instanceof Error ? error.message : "ثبت سفارش فروشگاهی ناموفق بود.");
@@ -121,12 +152,15 @@ export default function StoreCartClient() {
         {items.map((item) => (
           <article key={item.id} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-              <div>
-                <Link href={`/shop/${item.slug}`} className="text-lg font-black text-[#003b5c] hover:text-rose-600">
-                  {item.title}
-                </Link>
-                <p className="mt-1 text-sm text-slate-500">{item.brand} · {item.warranty}</p>
-                <p className="mt-2 text-xl font-black text-slate-900">{money(item.price)}</p>
+              <div className="flex min-w-0 items-center gap-4">
+                <CartLaptopVisual item={item} />
+                <div className="min-w-0">
+                  <Link href={`/shop/${item.slug}`} className="line-clamp-2 text-lg font-black text-[#003b5c] hover:text-rose-600">
+                    {item.title}
+                  </Link>
+                  <p className="mt-1 text-sm text-slate-500">{item.brand} · {item.warranty}</p>
+                  <p className="mt-2 text-xl font-black text-slate-900">{money(item.price)}</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { CART_KEY } from "@/components/StoreAddToCartButton";
 import {
   categoryHref,
   defaultCatalogCategories,
@@ -74,11 +75,26 @@ function storeLaptopHref(label: string) {
   return "/shop";
 }
 
+function readStoreCartCount() {
+  if (typeof window === "undefined") return 0;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+    if (!Array.isArray(parsed)) return 0;
+    return parsed.reduce(
+      (sum, item) => sum + Math.max(1, Number(item?.quantity || 1)),
+      0,
+    );
+  } catch {
+    return 0;
+  }
+}
+
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [previousUserRole, setPreviousUserRole] = useState<string | null>(null);
   const [siteMode, setSiteMode] = useState<"store" | "request">("store");
+  const [cartCount, setCartCount] = useState(0);
   const [headerCategories, setHeaderCategories] = useState<CatalogCategory[]>(
     defaultCatalogCategories,
   );
@@ -94,6 +110,10 @@ export default function Header() {
     // خواندن نقش کاربر از لوکال استوریج در کلاینت‌ساید
     setUserRole(localStorage.getItem("userRole"));
     setPreviousUserRole(localStorage.getItem("previousUserRole"));
+    const refreshCartCount = () => setCartCount(readStoreCartCount());
+    refreshCartCount();
+    window.addEventListener("storage", refreshCartCount);
+    window.addEventListener("optibid-store-cart-updated", refreshCartCount);
     fetch("/api/site-mode")
       .then((response) => response.json())
       .then((result) => {
@@ -110,6 +130,10 @@ export default function Header() {
         }
       })
       .catch(() => undefined);
+    return () => {
+      window.removeEventListener("storage", refreshCartCount);
+      window.removeEventListener("optibid-store-cart-updated", refreshCartCount);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -314,7 +338,7 @@ export default function Header() {
                   لپ‌تاپ گیمینگ
                 </Link>
                 <Link
-                  href="/how-it-works"
+                  href="/shop/guides"
                   className="pr-6 text-gray-700 hover:text-rose-600 transition font-medium"
                 >
                   راهنمای خرید
@@ -367,9 +391,14 @@ export default function Header() {
             </Link>
             <Link
               href={siteMode === "store" ? "/cart" : "/request-purchase"}
-              className={`${siteMode === "store" ? "bg-rose-600 hover:bg-rose-700" : "bg-orange-500 hover:bg-orange-600"} text-white px-5 py-2 rounded-lg transition font-bold text-sm`}
+              className={`${siteMode === "store" ? "bg-rose-600 hover:bg-rose-700" : "bg-orange-500 hover:bg-orange-600"} relative inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition`}
             >
-              {siteMode === "store" ? "سبد خرید" : "ثبت درخواست خرید"}
+              <span>{siteMode === "store" ? "سبد خرید" : "ثبت درخواست خرید"}</span>
+              {siteMode === "store" && cartCount > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1.5 text-xs font-black text-rose-600 shadow-sm">
+                  {cartCount.toLocaleString("fa-IR")}
+                </span>
+              )}
             </Link>
 
             {userRole ? (
@@ -523,10 +552,21 @@ export default function Header() {
                     🎮 لپ‌تاپ گیمینگ
                   </Link>
                   <Link
-                    href="/cart"
-                    className="bg-rose-600 text-white px-6 py-2 rounded-lg hover:bg-rose-700 transition text-center font-bold"
+                    href="/shop/guides"
+                    className="text-gray-700 hover:text-rose-600 transition py-2"
                   >
-                    سبد خرید
+                    📘 راهنمای خرید
+                  </Link>
+                  <Link
+                    href="/cart"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-6 py-2 text-center font-bold text-white transition hover:bg-rose-700"
+                  >
+                    <span>سبد خرید</span>
+                    {cartCount > 0 && (
+                      <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1.5 text-xs font-black text-rose-600">
+                        {cartCount.toLocaleString("fa-IR")}
+                      </span>
+                    )}
                   </Link>
                 </>
               ) : (

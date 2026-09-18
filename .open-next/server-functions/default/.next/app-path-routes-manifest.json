@@ -77,6 +77,8 @@
   "/sellers/[id]/page": "/sellers/[id]",
   "/sellers/page": "/sellers",
   "/shop/[slug]/page": "/shop/[slug]",
+  "/shop/guides/[slug]/page": "/shop/guides/[slug]",
+  "/shop/guides/page": "/shop/guides",
   "/shop/page": "/shop",
   "/source-code/page": "/source-code"
 }

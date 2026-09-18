@@ -3,6 +3,7 @@ import Link from "next/link";
 import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
 import { getJsonStoreProducts, type JsonStoreProduct } from "@/lib/json-store";
+import { laptopCategoryItems } from "@/lib/laptop-storefront";
 
 export const dynamic = "force-dynamic";
 
@@ -332,18 +333,6 @@ const seriesOptions: FilterOption[] = [
   { label: "MacBook", value: "MacBook" },
 ];
 
-const laptopCategoryStrip = [
-  { title: "لپ‌تاپ لنوو", href: "/shop?brand=Lenovo" },
-  { title: "لپ‌تاپ اچ‌پی", href: "/shop?brand=HP" },
-  { title: "لپ‌تاپ دل", href: "/shop?brand=Dell" },
-  { title: "لپ‌تاپ ایسوس", href: "/shop?brand=Asus" },
-  { title: "مک‌بوک اپل", href: "/shop?brand=Apple" },
-  { title: "لپ‌تاپ گیمینگ", href: "/shop?use=gaming" },
-  { title: "لپ‌تاپ اداری", href: "/shop?use=business" },
-  { title: "لپ‌تاپ دانشجویی", href: "/shop?use=student" },
-  { title: "لپ‌تاپ مهندسی", href: "/shop?use=engineering" },
-];
-
 export default async function ShopPage({
   searchParams,
 }: {
@@ -373,7 +362,7 @@ export default async function ShopPage({
 
       <section className="mx-auto max-w-7xl px-4 pt-7 sm:px-6 lg:px-8">
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
-          {laptopCategoryStrip.map((item) => (
+          {laptopCategoryItems.map((item) => (
             <Link
               key={item.title}
               href={item.href}
@@ -383,7 +372,12 @@ export default async function ShopPage({
                 <div className="mx-auto h-10 rounded-t-xl border-[6px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
                 <div className="mx-auto h-2 rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
               </div>
-              <span className="text-xs font-black text-slate-700 group-hover:text-rose-600">
+              {item.badge && (
+                <span className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-rose-600 shadow-sm">
+                  {item.badge}
+                </span>
+              )}
+              <span className="block text-xs font-black text-slate-700 group-hover:text-rose-600">
                 {item.title}
               </span>
             </Link>

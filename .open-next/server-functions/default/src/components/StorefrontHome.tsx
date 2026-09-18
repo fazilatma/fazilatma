@@ -2,6 +2,11 @@ import Link from "next/link";
 import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
+import {
+  laptopCategoryItems,
+  laptopGuideItems,
+  type LaptopGuideItem,
+} from "@/lib/laptop-storefront";
 import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
 
 const money = (value: number | string) =>
@@ -68,15 +73,14 @@ export default function StorefrontHome({
           </p>
         </div>
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
-          <LaptopType title="لپ‌تاپ لنوو" href="/shop?brand=Lenovo" />
-          <LaptopType title="لپ‌تاپ اچ‌پی" href="/shop?brand=HP" />
-          <LaptopType title="لپ‌تاپ دل" href="/shop?brand=Dell" />
-          <LaptopType title="لپ‌تاپ ایسوس" href="/shop?brand=Asus" />
-          <LaptopType title="مک‌بوک اپل" href="/shop?brand=Apple" />
-          <LaptopType title="لپ‌تاپ گیمینگ" href="/shop?use=gaming" />
-          <LaptopType title="لپ‌تاپ اداری" href="/shop?use=business" />
-          <LaptopType title="لپ‌تاپ دانشجویی" href="/shop?use=student" />
-          <LaptopType title="لپ‌تاپ مهندسی" href="/shop?use=engineering" />
+          {laptopCategoryItems.map((item) => (
+            <LaptopType
+              key={item.title}
+              title={item.title}
+              href={item.href}
+              badge={item.badge}
+            />
+          ))}
         </div>
       </section>
 
@@ -96,10 +100,9 @@ export default function StorefrontHome({
             </Link>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
-            <GuideCard title="کار اداری و حسابداری" text="Core i5، رم ۱۶GB و SSD برای سرعت پایدار روزانه کافی است." accent="blue" />
-            <GuideCard title="دانشجو و حمل روزانه" text="وزن کم، باتری سالم و نمایشگر ۱۳ تا ۱۴ اینچ اولویت دارد." accent="emerald" />
-            <GuideCard title="مهندسی و طراحی" text="پردازنده قوی‌تر، رم بالاتر و در صورت نیاز گرافیک مجزا انتخاب کنید." accent="amber" />
-            <GuideCard title="گیمینگ و تدوین" text="کارت گرافیک RTX، خنک‌کنندگی مناسب و نمایشگر ۱۴۴Hz مهم است." accent="rose" />
+            {laptopGuideItems.map((guide) => (
+              <GuideCard key={guide.slug} guide={guide} />
+            ))}
           </div>
         </div>
       </section>
@@ -148,7 +151,15 @@ export default function StorefrontHome({
   );
 }
 
-function LaptopType({ title, href }: { title: string; href: string }) {
+function LaptopType({
+  title,
+  href,
+  badge,
+}: {
+  title: string;
+  href: string;
+  badge?: string;
+}) {
   return (
     <Link
       href={href}
@@ -158,32 +169,75 @@ function LaptopType({ title, href }: { title: string; href: string }) {
         <div className="mx-auto h-10 rounded-t-xl border-[6px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
         <div className="mx-auto h-2 rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
       </div>
-      <span className="text-xs font-black text-slate-700 group-hover:text-rose-600">
+      {badge && (
+        <span className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-rose-600 shadow-sm">
+          {badge}
+        </span>
+      )}
+      <span className="block text-xs font-black text-slate-700 group-hover:text-rose-600">
         {title}
       </span>
     </Link>
   );
 }
 
-function GuideCard({
-  title,
-  text,
-  accent,
-}: {
-  title: string;
-  text: string;
-  accent: "blue" | "emerald" | "amber" | "rose";
-}) {
-  const colors = {
-    blue: "bg-blue-50 text-blue-800 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-800 border-emerald-100",
-    amber: "bg-amber-50 text-amber-800 border-amber-100",
-    rose: "bg-rose-50 text-rose-800 border-rose-100",
-  }[accent];
+function GuideIcon({ icon }: { icon: LaptopGuideItem["icon"] }) {
+  const common = "h-8 w-8";
+  if (icon === "briefcase") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 7V6a3 3 0 0 1 6 0v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" strokeWidth="2" />
+        <path d="M4 13h16M10 13v1h4v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (icon === "student") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 8l9-4 9 4-9 4-9-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M7 11v4c0 1.7 2.2 3 5 3s5-1.3 5-3v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M21 8v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (icon === "engineering") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M14.5 5.5 18 9m-8.5 9L6 14.5m1.5-7 9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M15 4l5 5-9.5 9.5H5.5v-5L15 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
   return (
-    <div className={`rounded-3xl border p-5 ${colors}`}>
-      <h3 className="font-black">{title}</h3>
-      <p className="mt-2 text-xs leading-6 opacity-80">{text}</p>
-    </div>
+    <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8 13h8m-10 4 2-7a4 4 0 0 1 3.8-3h.4A4 4 0 0 1 16 10l2 7a2 2 0 0 1-3 2l-1.2-1.2h-3.6L9 19a2 2 0 0 1-3-2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12v3m-1.5-1.5h3M15.5 13.5h.01M17 15h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function GuideCard({ guide }: { guide: LaptopGuideItem }) {
+  const colors = {
+    blue: "bg-blue-50 text-blue-800 border-blue-100 hover:bg-blue-100",
+    emerald: "bg-emerald-50 text-emerald-800 border-emerald-100 hover:bg-emerald-100",
+    amber: "bg-amber-50 text-amber-800 border-amber-100 hover:bg-amber-100",
+    rose: "bg-rose-50 text-rose-800 border-rose-100 hover:bg-rose-100",
+  }[guide.accent];
+  return (
+    <Link
+      href={guide.href}
+      className={`group rounded-3xl border p-5 transition hover:-translate-y-1 hover:shadow-lg ${colors}`}
+    >
+      <div className="mb-4 inline-grid h-14 w-14 place-items-center rounded-2xl bg-white/80 shadow-sm transition group-hover:scale-105">
+        <GuideIcon icon={guide.icon} />
+      </div>
+      <h3 className="font-black">{guide.title}</h3>
+      <p className="mt-2 text-xs leading-6 opacity-80">{guide.text}</p>
+      <span className="mt-4 inline-flex text-xs font-black opacity-80">
+        مشاهده راهنما ←
+      </span>
+    </Link>
   );
 }

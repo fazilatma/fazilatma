@@ -87,6 +87,14 @@
       "namedRegex": "^/sellers/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/shop/guides/[slug]",
+      "regex": "^/shop/guides/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/shop/guides/(?<nxtPslug>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/shop/[slug]",
       "regex": "^/shop/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -515,6 +523,12 @@
       "regex": "^/shop(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/shop(?:/)?$"
+    },
+    {
+      "page": "/shop/guides",
+      "regex": "^/shop/guides(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/shop/guides(?:/)?$"
     },
     {
       "page": "/source-code",
