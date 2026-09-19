@@ -60,29 +60,29 @@ export default function StoreAdSlider() {
 
   return (
     <section
-      className={`relative min-h-[175px] overflow-hidden rounded-[2rem] bg-gradient-to-l ${activeSlide.accent} p-5 text-white shadow-xl md:min-h-[205px]`}
+      className={`relative min-h-[125px] overflow-hidden rounded-[2rem] bg-gradient-to-l ${activeSlide.accent} p-4 text-white shadow-xl md:min-h-[150px] md:p-5`}
       aria-label="اسلایدر تبلیغاتی فروشگاه لپ‌تاپ"
     >
       <div className="absolute -left-12 bottom-0 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute -right-16 -top-14 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute bottom-5 left-7 hidden w-44 opacity-25 md:block">
-        <div className="mx-auto h-20 rounded-t-3xl border-[10px] border-white/80 bg-white/10" />
-        <div className="mx-auto h-3 rounded-b-3xl bg-white/80" />
+      <div className="absolute bottom-4 left-7 hidden w-40 opacity-25 md:block">
+        <div className="mx-auto h-16 rounded-t-3xl border-[8px] border-white/80 bg-white/10" />
+        <div className="mx-auto h-2.5 rounded-b-3xl bg-white/80" />
       </div>
 
       <div className="relative z-10 max-w-2xl">
         <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-black ring-1 ring-white/20">
           {activeSlide.eyebrow}
         </span>
-        <h2 className="mt-3 text-2xl font-black leading-9 md:text-3xl">
+        <h2 className="mt-2 text-xl font-black leading-8 md:text-2xl">
           {activeSlide.title}
         </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-white/85">
+        <p className="mt-1 max-w-4xl text-xs leading-6 text-white/85 md:text-sm">
           {activeSlide.text}
         </p>
         <Link
           href={activeSlide.href}
-          className="mt-4 inline-flex rounded-2xl bg-white px-6 py-3 text-sm font-black text-[#003b5c] shadow-lg transition hover:bg-blue-50"
+          className="mt-3 inline-flex rounded-2xl bg-white px-5 py-2.5 text-xs font-black text-[#003b5c] shadow-lg transition hover:bg-blue-50 md:text-sm"
         >
           {activeSlide.cta}
         </Link>
