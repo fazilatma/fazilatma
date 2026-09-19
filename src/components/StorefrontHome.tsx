@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
+import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
 import {
@@ -44,11 +45,12 @@ export default function StorefrontHome({
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[318px_minmax(0,1fr)] lg:px-8">
           <LaptopFilterSidebar products={products} sticky={false} />
 
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-6">
             <StoreHeroSlider
               slides={heroSlides}
               durationSeconds={heroDurationSeconds}
             />
+            <StoreAdSlider />
           </div>
         </div>
 
