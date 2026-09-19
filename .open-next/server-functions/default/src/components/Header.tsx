@@ -10,6 +10,93 @@ import {
   type CatalogCategory,
 } from "@/lib/catalog-categories";
 
+
+type StoreTopNavMenu = {
+  title: string;
+  href: string;
+  groups: Array<{ title: string; items: string[] }>;
+};
+
+const storeTopNavMenus: StoreTopNavMenu[] = [
+  {
+    title: "لپ‌تاپ",
+    href: "/shop",
+    groups: [
+      { title: "بر اساس برند", items: ["لپ‌تاپ لنوو", "لپ‌تاپ اچ‌پی", "لپ‌تاپ دل", "لپ‌تاپ ایسوس", "مک‌بوک اپل"] },
+      { title: "بر اساس کاربری", items: ["لپ‌تاپ اداری", "لپ‌تاپ استوک", "لپ‌تاپ گیمینگ", "لپ‌تاپ مهندسی", "لپ‌تاپ دانشجویی"] },
+      { title: "بر اساس مشخصات", items: ["رم ۱۶ گیگ", "SSD 512GB", "Core i7", "گرافیک RTX", "لپ‌تاپ سبک"] },
+    ],
+  },
+  {
+    title: "قطعات کامپیوتر",
+    href: "/shop?category=computer-parts",
+    groups: [
+      { title: "قطعات پردازنده", items: ["پردازنده", "پردازنده بر اساس برند", "پردازنده Intel", "پردازنده AMD", "Core Ultra و Core i"] },
+      { title: "پردازنده بر اساس نسل Intel", items: ["پردازنده نسل ۱۴", "پردازنده نسل ۱۳", "پردازنده نسل ۱۲", "پردازنده نسل ۱۱", "پردازنده نسل ۱۰"] },
+      { title: "پردازنده بر اساس مدل AMD", items: ["Ryzen 9", "Ryzen 7", "Ryzen 5", "Ryzen 3", "سوکت AM5 و AM4"] },
+      { title: "سایر قطعات", items: ["مادربرد", "کارت گرافیک", "مانیتور", "رم کامپیوتر", "هارد اینترنال", "SSD", "کیس", "پاور", "خنک کننده پردازنده", "فن کیس", "خمیر سیلیکون"] },
+    ],
+  },
+  {
+    title: "لوازم جانبی کامپیوتر",
+    href: "/shop?category=accessories",
+    groups: [
+      { title: "ماوس بر اساس برند", items: ["ماوس MSI", "ماوس Redragon", "ماوس Razer", "ماوس Logitech", "ماوس Green", "ماوس Apple"] },
+      { title: "ماوس بر اساس نوع اتصال", items: ["ماوس بی‌سیم", "ماوس سیم‌دار", "ماوس گیمینگ"] },
+      { title: "کیبورد و ورودی", items: ["کیبورد", "کیبورد و ماوس", "دسته و فرمان بازی", "پد ماوس"] },
+      { title: "صوت، تصویر و ابزار", items: ["هدست و هدفون", "میکروفون", "اسپیکر", "وب‌کم", "کارت صدا", "پایه دیواری و مانیتور", "پاوربانک"] },
+    ],
+  },
+  {
+    title: "کامپیوتر آماده",
+    href: "/shop?category=ready-pc",
+    groups: [
+      { title: "کامپیوتر آماده", items: ["کیس آماده اداری", "کیس آماده گیمینگ", "کامپیوتر اقتصادی", "کامپیوتر حرفه‌ای"] },
+      { title: "فرم‌فکتور", items: ["مینی پی‌سی", "آل‌این‌وان", "کامپیوتر کوچک", "ورک‌استیشن"] },
+      { title: "کاربری", items: ["حسابداری", "برنامه‌نویسی", "طراحی", "رندرینگ", "بازی"] },
+    ],
+  },
+  {
+    title: "وسایل گیمینگ",
+    href: "/shop?use=gaming",
+    groups: [
+      { title: "بر اساس برند", items: ["لپ‌تاپ گیمینگ ایسوس", "لپ‌تاپ گیمینگ لنوو", "لپ‌تاپ گیمینگ HP", "لپ‌تاپ گیمینگ ایسر"] },
+      { title: "تجهیزات گیمینگ", items: ["مانیتور گیمینگ", "کیبورد گیمینگ", "ماوس گیمینگ", "هدست گیمینگ", "اسپیکر گیمینگ"] },
+      { title: "قطعات گیمینگ", items: ["پردازنده گیمینگ", "کارت گرافیک گیمینگ", "مادربرد گیمینگ", "کیس گیمینگ", "پاور گیمینگ", "فن پردازنده گیمینگ"] },
+      { title: "اکسسوری گیمینگ", items: ["صندلی گیمینگ", "میز گیمینگ", "اکسسوری گیمینگ", "تجهیزات گیمینگ", "محصولات سفید گیمینگ"] },
+    ],
+  },
+  {
+    title: "کنسول بازی",
+    href: "/shop?category=console",
+    groups: [
+      { title: "کنسول‌ها", items: ["PlayStation", "Xbox", "Nintendo Switch", "کنسول دستی"] },
+      { title: "لوازم جانبی کنسول", items: ["دسته بازی", "هدست کنسول", "پایه شارژ", "کیف و محافظ"] },
+      { title: "بازی و اشتراک", items: ["بازی PS5", "بازی Xbox", "اکانت و اشتراک", "کارت هدیه"] },
+    ],
+  },
+  {
+    title: "تجهیزات شبکه",
+    href: "/shop?category=network",
+    groups: [
+      { title: "مودم و روتر ADSL/VDSL", items: ["مودم روتر TP-Link", "مودم روتر D-Link", "مودم روتر Asus", "مودم روتر Netis", "مودم روتر Neterbit"] },
+      { title: "مودم روتر 3G/4G/5G", items: ["مودم روتر TP-Link 4G", "مودم روتر D-Link 4G", "مودم روتر Naztech 4G", "مودم روتر Neterbit 4G", "مودم روتر DU 5G"] },
+      { title: "مودم روتر فیبر نوری", items: ["مودم روتر فیبر نوری Huawei", "مودم روتر فیبر نوری", "ONT فیبر نوری"] },
+      { title: "شبکه و توسعه", items: ["کارت شبکه", "سوییچ و اکستندر", "روتر و اکسس پوینت", "کابل شبکه"] },
+    ],
+  },
+  {
+    title: "ماشین‌های اداری",
+    href: "/shop?category=office-machines",
+    groups: [
+      { title: "پرینتر بر اساس برند", items: ["پرینتر HP", "پرینتر Canon", "پرینتر Epson", "پرینتر Brother"] },
+      { title: "پرینتر بر اساس نوع چاپ", items: ["پرینتر لیزری", "پرینتر جوهرافشان", "پرینتر چندکاره", "پرینتر لیبل"] },
+      { title: "پرینتر بر اساس کاربری", items: ["پرینتر خانگی", "پرینتر اداری", "پرینتر فروشگاهی"] },
+      { title: "سایر ماشین‌های اداری", items: ["اسکنر", "لیبل پرینتر", "بارکد خوان", "تونر و کارتریج", "ویدئو پروژکتور", "پرده نمایش", "کاغذ خردکن"] },
+    ],
+  },
+];
+
 const storeLaptopCategories: CatalogCategory[] = [
   {
     id: "store-laptop-brands",
@@ -76,6 +163,70 @@ function storeLaptopHref(label: string) {
   if (text.includes("مهندس") || text.includes("رندر") || text.includes("تدوین") || text.includes("طراحی")) return "/shop?use=engineering";
   if (text.includes("اداری") || text.includes("شرکتی") || text.includes("برنامه")) return "/shop?use=business";
   return "/shop";
+}
+
+
+function StoreTopNavItem({ menu }: { menu: StoreTopNavMenu }) {
+  return (
+    <div className="group relative py-5">
+      <Link
+        href={menu.href}
+        className="flex items-center gap-1 text-sm font-bold text-gray-700 transition hover:text-rose-600"
+      >
+        {menu.title}
+        <span className="text-xs text-gray-400 transition group-hover:rotate-180">⌄</span>
+      </Link>
+      <div className="invisible fixed left-1/2 top-16 z-50 w-[min(78rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-b-[2rem] border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+        <div className="grid min-h-[360px] grid-cols-12">
+          <div className="col-span-3 border-l border-gray-100 bg-gray-50 p-4">
+            <Link
+              href={menu.href}
+              className="mb-4 block rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#003b5c] shadow-sm transition hover:text-rose-600"
+            >
+              همه موارد {menu.title} ‹
+            </Link>
+            <div className="space-y-2">
+              {menu.groups.map((group) => (
+                <a
+                  key={group.title}
+                  href={`#${group.title}`}
+                  className="block rounded-xl px-3 py-2 text-xs font-bold text-gray-600 transition hover:bg-white hover:text-rose-600"
+                >
+                  {group.title}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div className="col-span-9 max-h-[70vh] overflow-y-auto p-6">
+            <div className="grid grid-cols-4 gap-x-8 gap-y-7">
+              {menu.groups.map((group) => (
+                <div key={group.title} id={group.title}>
+                  <Link
+                    href={storeLaptopHref(group.title)}
+                    className="mb-3 block border-r-2 border-rose-500 pr-2 text-sm font-black text-gray-900 hover:text-rose-600"
+                  >
+                    <span className="ml-1 text-rose-500">•</span>
+                    {group.title}
+                  </Link>
+                  <div className="space-y-2">
+                    {group.items.map((item) => (
+                      <Link
+                        key={item}
+                        href={storeLaptopHref(item)}
+                        className="block text-xs leading-6 text-gray-500 transition hover:text-rose-600"
+                      >
+                        {item}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function readStoreCartCount() {
@@ -322,45 +473,12 @@ export default function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6 space-x-reverse">
+          <div className="hidden md:flex items-center space-x-5 space-x-reverse">
             {siteMode === "store" ? (
               <>
-                <Link
-                  href="/shop"
-                  className="text-gray-700 hover:text-rose-600 transition font-medium"
-                >
-                  فروشگاه لپ‌تاپ
-                </Link>
-                <Link
-                  href="/shop?use=business"
-                  className="text-gray-700 hover:text-rose-600 transition font-medium"
-                >
-                  لپ‌تاپ اداری
-                </Link>
-                <Link
-                  href="/shop?condition=stock"
-                  className="text-gray-700 hover:text-rose-600 transition font-medium"
-                >
-                  لپ‌تاپ استوک
-                </Link>
-                <Link
-                  href="/shop?use=gaming"
-                  className="text-gray-700 hover:text-rose-600 transition font-medium"
-                >
-                  لپ‌تاپ گیمینگ
-                </Link>
-                <Link
-                  href="/shop?use=engineering"
-                  className="text-gray-700 hover:text-rose-600 transition font-medium"
-                >
-                  لپ‌تاپ مهندسی
-                </Link>
-                <Link
-                  href="/shop/guides"
-                  className="pr-6 text-gray-700 hover:text-rose-600 transition font-medium"
-                >
-                  راهنمای خرید
-                </Link>
+                {storeTopNavMenus.map((menu) => (
+                  <StoreTopNavItem key={menu.title} menu={menu} />
+                ))}
                 <Link
                   href="/support"
                   className="text-gray-700 hover:text-rose-600 transition font-medium"
