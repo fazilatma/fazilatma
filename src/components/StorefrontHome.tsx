@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HorizontalScroller from "@/components/HorizontalScroller";
 import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
@@ -25,7 +26,6 @@ export default function StorefrontHome({
   heroDurationSeconds?: number;
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
-  const heroProduct = featured[0] || products[0];
   const bottomLaptopCategories = laptopCategoryItems.slice(0, 24);
   const minPrice = products.reduce(
     (min, product) => Math.min(min, product.price),
@@ -35,11 +35,13 @@ export default function StorefrontHome({
     collection,
     products: getLaptopCollectionProducts(products, collection.slug).slice(0, 3),
   }));
+  const specialOfferProducts =
+    getLaptopCollectionProducts(products, "special-offers").slice(0, 8);
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
       <section className="bg-white">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[318px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[318px_minmax(0,1fr)_300px]">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[318px_minmax(0,1fr)] lg:px-8">
           <LaptopFilterSidebar products={products} sticky={false} />
 
           <div className="min-w-0">
@@ -48,24 +50,38 @@ export default function StorefrontHome({
               durationSeconds={heroDurationSeconds}
             />
           </div>
+        </div>
 
-          <Link
-            href={heroProduct ? `/shop/${heroProduct.slug}` : "/shop"}
-            className="group overflow-hidden rounded-[2rem] border border-rose-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl lg:col-start-2 xl:col-start-auto"
-          >
-            <div className="rounded-[1.5rem] bg-rose-50 p-4 text-center">
-              <p className="text-xs font-black text-rose-600">پیشنهاد ویژه امروز</p>
-              <h2 className="mt-3 line-clamp-2 min-h-14 text-lg font-black leading-7 text-slate-900">
-                {heroProduct?.title || "لپ‌تاپ منتخب OptiBid"}
+        <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
+          <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
+                پیشنهاد ویژه
+              </span>
+              <h2 className="mt-3 text-2xl font-black text-slate-900">
+                پیشنهادهای ویژه امروز
               </h2>
-              <p className="mt-3 text-2xl font-black text-rose-600">
-                {heroProduct ? money(heroProduct.price) : "—"}
+              <p className="mt-2 text-sm leading-7 text-slate-500">
+                چند مدل منتخب با قیمت جذاب‌تر؛ با فلش‌ها بین پیشنهادها جابه‌جا شوید.
               </p>
             </div>
-            <span className="mt-4 block rounded-2xl bg-[#003b5c] px-5 py-3 text-center text-sm font-black text-white transition group-hover:bg-rose-600">
-              مشاهده جزئیات و خرید
-            </span>
-          </Link>
+            <Link href="/shop/collections/special-offers" className="text-sm font-black text-rose-600">
+              مشاهده همه فروش ویژه ←
+            </Link>
+          </div>
+          <HorizontalScroller
+            arrowClassName="bg-white/95 text-rose-600 hover:bg-white"
+            contentClassName="flex gap-4 overflow-x-auto scroll-smooth pb-2"
+            scrollAmount={560}
+          >
+            {(specialOfferProducts.length > 0 ? specialOfferProducts : featured).map(
+              (product) => (
+                <div key={`hero-special-${product.id}`} className="w-[270px] shrink-0 md:w-[300px]">
+                  <StoreProductCard product={product} />
+                </div>
+              ),
+            )}
+          </HorizontalScroller>
         </div>
       </section>
 
