@@ -27,7 +27,6 @@ export default function StorefrontHome({
   heroDurationSeconds?: number;
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
-  const bottomLaptopCategories = laptopCategoryItems.slice(0, 24);
   const minPrice = products.reduce(
     (min, product) => Math.min(min, product.price),
     products[0]?.price || 0,
@@ -52,6 +51,7 @@ export default function StorefrontHome({
             />
             <StoreAdSlider />
             <StoreLaptopBrandSlider />
+            <SmartLaptopPickStrip />
             <SpecialOfferCarousel
               products={specialOfferProducts.length > 0 ? specialOfferProducts : featured}
             />
@@ -60,28 +60,53 @@ export default function StorefrontHome({
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-4 flex flex-col justify-between gap-2 md:flex-row md:items-end">
-          <div>
-            <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
-              دسته‌بندی تخصصی لپ‌تاپ
-            </span>
-            <h2 className="mt-3 text-2xl font-black text-slate-900">
-              انتخاب سریع بر اساس نوع لپ‌تاپ
-            </h2>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                مسیرهای سریع خرید
+              </span>
+              <h2 className="mt-3 text-2xl font-black text-slate-900">
+                خرید بر اساس بودجه و کاربری
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-slate-500">
+                به جای تکرار دسته‌بندی برندها، این بخش خریدار را سریع به مدل‌های مناسب بودجه و نوع استفاده هدایت می‌کند.
+              </p>
+            </div>
+            <Link href="/shop" className="text-sm font-black text-emerald-700">
+              مشاهده همه مدل‌ها ←
+            </Link>
           </div>
-          <p className="text-sm text-slate-500">
-            شروع قیمت از {money(minPrice)} · {products.length.toLocaleString("fa-IR")} مدل فعال
-          </p>
-        </div>
-        <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
-          {laptopCategoryItems.map((item) => (
-            <LaptopType
-              key={item.title}
-              title={item.title}
-              href={item.href}
-              badge={item.badge}
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <QuickPathCard
+              title="اقتصادی و دانشجویی"
+              text="مدل‌های سبک، قیمت منطقی و مناسب کلاس، وب‌گردی و کار روزمره."
+              href="/shop?use=student&maxPrice=45000000"
+              icon="🎓"
+              color="emerald"
             />
-          ))}
+            <QuickPathCard
+              title="اداری و شرکتی"
+              text="لپ‌تاپ‌های پایدار برای حسابداری، آفیس، جلسات و استفاده طولانی."
+              href="/shop?use=business&ram=16GB"
+              icon="💼"
+              color="blue"
+            />
+            <QuickPathCard
+              title="مهندسی و طراحی"
+              text="پردازنده قوی، رم بالاتر و SSD پرسرعت برای نرم‌افزارهای تخصصی."
+              href="/shop?use=engineering&ram=16GB"
+              icon="🧮"
+              color="amber"
+            />
+            <QuickPathCard
+              title="گیمینگ و تدوین"
+              text="مدل‌های RTX و گرافیک مجزا برای بازی، تدوین و کارهای سنگین."
+              href="/shop?use=gaming&gpuType=rtx"
+              icon="🎮"
+              color="rose"
+            />
+          </div>
         </div>
       </section>
 
@@ -142,37 +167,23 @@ export default function StorefrontHome({
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
               <h2 className="text-2xl font-black text-slate-900">
-                دسته‌بندی‌های محبوب لپ‌تاپ
+                چک‌لیست خرید مطمئن لپ‌تاپ
               </h2>
               <p className="mt-2 text-sm leading-7 text-slate-500">
-                انتخاب سریع بین برندها، کاربری‌ها و مشخصات مهم لپ‌تاپ؛ حداقل ۱۰ دسته برای دسترسی سریع‌تر خریدار.
+                نکاتی که قبل از خرید لپ‌تاپ نو، استوک یا کارکرده بهتر است بررسی کنید.
               </p>
             </div>
-            <Link href="/shop" className="text-sm font-black text-rose-600">
-              مشاهده همه دسته‌ها ←
+            <Link href="/support" className="text-sm font-black text-rose-600">
+              مشاوره و پشتیبانی خرید ←
             </Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-            {bottomLaptopCategories.map((item) => (
-              <Link
-                key={`bottom-${item.title}`}
-                href={item.href}
-                className="group rounded-3xl border border-slate-200 bg-slate-50 px-4 py-5 text-center transition hover:-translate-y-1 hover:border-rose-200 hover:bg-rose-50 hover:shadow-lg"
-              >
-                <div className="mx-auto mb-3 w-20">
-                  <div className="mx-auto h-10 rounded-t-xl border-[6px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
-                  <div className="mx-auto h-2 rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
-                </div>
-                {item.badge && (
-                  <span className="mb-2 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-rose-600 shadow-sm">
-                    {item.badge}
-                  </span>
-                )}
-                <span className="block text-sm font-black text-slate-700 group-hover:text-rose-600">
-                  {item.title}
-                </span>
-              </Link>
-            ))}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <TrustCard icon="🧪" title="مهلت تست و بررسی سلامت" text="قبل از نهایی‌کردن خرید، سلامت باتری، نمایشگر، پورت‌ها و قطعات را بررسی کنید." />
+            <TrustCard icon="⚙️" title="مقایسه کانفیگ واقعی" text="CPU، RAM، SSD، گرافیک و نسل پردازنده را با نیاز خودتان تطبیق دهید." />
+            <TrustCard icon="🔋" title="باتری و شارژدهی" text="برای مدل‌های کارکرده، سلامت باتری و شارژدهی روزانه اهمیت زیادی دارد." />
+            <TrustCard icon="🚚" title="ارسال قابل پیگیری" text="پس از ثبت سفارش، اطلاعات ارسال و هماهنگی تحویل از مسیر پشتیبانی قابل پیگیری است." />
+            <TrustCard icon="💳" title="پرداخت امن" text="در فاز فروشگاهی، سفارش از مسیر پرداخت آنلاین یا روش‌های فعال سایت ثبت می‌شود." />
+            <TrustCard icon="🎧" title="مشاوره انتخاب مدل" text="اگر بین چند مدل مردد هستید، از بخش پشتیبانی آنلاین برای انتخاب بهتر کمک بگیرید." />
           </div>
         </div>
       </section>
@@ -236,6 +247,70 @@ function StoreLaptopBrandSlider() {
   );
 }
 
+function SmartLaptopPickStrip() {
+  const picks = [
+    {
+      title: "برای کار اداری",
+      text: "ThinkPad، Latitude یا EliteBook با رم ۱۶ گیگ و SSD انتخاب امن‌تری است.",
+      href: "/shop?use=business&ram=16GB",
+      icon: "💼",
+      color: "bg-blue-50 text-blue-800 border-blue-100",
+    },
+    {
+      title: "برای دانشجو",
+      text: "وزن کم، باتری سالم و نمایشگر ۱۴ اینچ برای حمل روزانه مناسب‌تر است.",
+      href: "/shop?use=student&display=14",
+      icon: "🎓",
+      color: "bg-emerald-50 text-emerald-800 border-emerald-100",
+    },
+    {
+      title: "برای گیم و تدوین",
+      text: "مدل‌های دارای RTX و خنک‌کنندگی بهتر را در اولویت بگذارید.",
+      href: "/shop?use=gaming&gpuType=rtx",
+      icon: "🎮",
+      color: "bg-rose-50 text-rose-800 border-rose-100",
+    },
+    {
+      title: "برای خرید اقتصادی",
+      text: "استوک تمیز با مهلت تست می‌تواند بهترین نسبت قیمت به کارایی باشد.",
+      href: "/shop?condition=stock&maxPrice=45000000",
+      icon: "💰",
+      color: "bg-amber-50 text-amber-800 border-amber-100",
+    },
+  ];
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+            پیشنهاد هوشمند OptiBid
+          </span>
+          <h2 className="mt-2 text-xl font-black text-slate-900">
+            نمی‌دانی کدام لپ‌تاپ مناسب‌تر است؟
+          </h2>
+        </div>
+        <Link href="/shop/guides" className="text-xs font-black text-rose-600 md:text-sm">
+          راهنمای کامل خرید ←
+        </Link>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {picks.map((pick) => (
+          <Link
+            key={pick.title}
+            href={pick.href}
+            className={`rounded-2xl border p-4 transition hover:-translate-y-1 hover:shadow-md ${pick.color}`}
+          >
+            <div className="text-2xl">{pick.icon}</div>
+            <h3 className="mt-2 text-sm font-black">{pick.title}</h3>
+            <p className="mt-1 text-xs leading-6 opacity-80">{pick.text}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SpecialOfferCarousel({ products }: { products: JsonStoreProduct[] }) {
   return (
     <section className="rounded-[2rem] border border-rose-100 bg-white p-4 shadow-sm">
@@ -267,6 +342,55 @@ function SpecialOfferCarousel({ products }: { products: JsonStoreProduct[] }) {
         ))}
       </HorizontalScroller>
     </section>
+  );
+}
+
+function QuickPathCard({
+  title,
+  text,
+  href,
+  icon,
+  color,
+}: {
+  title: string;
+  text: string;
+  href: string;
+  icon: string;
+  color: "emerald" | "blue" | "amber" | "rose";
+}) {
+  const colors = {
+    emerald: "border-emerald-100 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
+    blue: "border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100",
+    amber: "border-amber-100 bg-amber-50 text-amber-800 hover:bg-amber-100",
+    rose: "border-rose-100 bg-rose-50 text-rose-800 hover:bg-rose-100",
+  }[color];
+  return (
+    <Link
+      href={href}
+      className={`rounded-3xl border p-5 transition hover:-translate-y-1 hover:shadow-lg ${colors}`}
+    >
+      <div className="text-3xl">{icon}</div>
+      <h3 className="mt-3 font-black">{title}</h3>
+      <p className="mt-2 text-xs leading-6 opacity-80">{text}</p>
+    </Link>
+  );
+}
+
+function TrustCard({
+  icon,
+  title,
+  text,
+}: {
+  icon: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-100 bg-slate-50 p-5 transition hover:-translate-y-1 hover:border-blue-100 hover:bg-blue-50/60 hover:shadow-md">
+      <div className="text-3xl">{icon}</div>
+      <h3 className="mt-3 font-black text-slate-900">{title}</h3>
+      <p className="mt-2 text-xs leading-6 text-slate-500">{text}</p>
+    </div>
   );
 }
 
