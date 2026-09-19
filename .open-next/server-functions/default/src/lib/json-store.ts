@@ -3997,6 +3997,7 @@ export async function completeJsonZarinpalPayment(input: {
         description: `پرداخت زرین‌پال سفارش فروشگاهی ${storeOrder.id} - کد رهگیری ${input.refId}`,
         orderId: storeOrder.id,
       });
+      decrementStoreOrderStock(data, storeOrder);
       storeOrder.status = "paid";
       storeOrder.paymentMethod = "zarinpal";
       storeOrder.gatewayAuthority = input.authority;
@@ -4308,10 +4309,6 @@ export async function createJsonStoreOrder(input: {
     note: input.note?.trim() || "",
     createdAt: new Date().toISOString(),
   };
-  for (const item of orderItems) {
-    const product = activeProducts.get(item.productId);
-    if (product) product.stock = Math.max(0, product.stock - item.quantity);
-  }
   data.storeOrders.unshift(order);
   addNotification(data, {
     userId: buyer.id,
@@ -4322,6 +4319,15 @@ export async function createJsonStoreOrder(input: {
   });
   await writeOptiBidData(data);
   return order;
+}
+
+function decrementStoreOrderStock(data: OptiBidJsonData, order: JsonStoreOrder) {
+  for (const item of order.items) {
+    const product = data.storeProducts.find(
+      (storeProduct) => storeProduct.id === item.productId,
+    );
+    if (product) product.stock = Math.max(0, product.stock - item.quantity);
+  }
 }
 
 export async function payJsonStoreOrder(input: {
@@ -4368,6 +4374,7 @@ export async function payJsonStoreOrder(input: {
     });
   }
 
+  decrementStoreOrderStock(data, order);
   order.status = "paid";
   order.paymentMethod = input.paymentMethod;
   order.gatewayAuthority = input.gatewayAuthority || order.gatewayAuthority;

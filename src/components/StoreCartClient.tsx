@@ -141,16 +141,19 @@ export default function StoreCartClient() {
           `${payResult.message || "پرداخت سفارش ناموفق بود."}\nکد سفارش ثبت‌شده: ${result.order?.id || "—"}`,
         );
 
-      localStorage.removeItem(CART_KEY);
-      setItems([]);
-      window.dispatchEvent(new CustomEvent("optibid-store-cart-updated"));
-
       if (payResult.redirectUrl) {
+        sessionStorage.setItem(
+          "optibidPendingStoreOrderId",
+          String(result.order?.id || ""),
+        );
         alert(payResult.message || "به درگاه بانکی منتقل می‌شوید.");
         window.location.assign(payResult.redirectUrl);
         return;
       }
 
+      localStorage.removeItem(CART_KEY);
+      setItems([]);
+      window.dispatchEvent(new CustomEvent("optibid-store-cart-updated"));
       alert(`${payResult.message || result.message}\nکد سفارش: ${result.order?.id || "—"}`);
     } catch (error) {
       alert(error instanceof Error ? error.message : "ثبت سفارش فروشگاهی ناموفق بود.");

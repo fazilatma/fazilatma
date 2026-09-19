@@ -15,8 +15,12 @@ function resultHtml(input: {
   message: string;
   orderId?: string;
   refId?: string;
+  clearStoreCart?: boolean;
 }) {
-  return `<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${input.title}</title><style>body{margin:0;background:#eef4f8;font-family:Tahoma,Arial,sans-serif;color:#0f172a}.wrap{min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;width:100%;background:#fff;border:1px solid #dbe4ee;border-radius:28px;box-shadow:0 24px 70px rgba(15,23,42,.18);padding:32px;text-align:center}.icon{width:76px;height:76px;border-radius:999px;margin:0 auto 18px;display:grid;place-items:center;font-size:34px;background:${input.ok ? "#dcfce7;color:#15803d" : "#fee2e2;color:#b91c1c"}}h1{margin:0 0 12px;font-size:24px;color:#003b5c}p{line-height:2;color:#475569}.meta{margin:18px 0;padding:14px;border-radius:18px;background:#f8fafc;text-align:right;font-size:13px}.meta div{display:flex;justify-content:space-between;gap:12px;margin:6px 0}.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}a{display:inline-block;border-radius:14px;padding:12px 18px;text-decoration:none;font-weight:800}.primary{background:#003b5c;color:#fff}.secondary{background:#e0f2fe;color:#0369a1}</style></head><body><main class="wrap"><section class="card"><div class="icon">${input.ok ? "✓" : "!"}</div><h1>${input.title}</h1><p>${input.message}</p>${input.orderId || input.refId ? `<div class="meta">${input.orderId ? `<div><span>شماره سفارش</span><b dir="ltr">${input.orderId}</b></div>` : ""}${input.refId ? `<div><span>کد رهگیری زرین‌پال</span><b dir="ltr">${input.refId}</b></div>` : ""}</div>` : ""}<div class="btns"><a class="primary" href="/buyer/dashboard">بازگشت به داشبورد خریدار</a><a class="secondary" href="/">صفحه اصلی</a></div></section></main></body></html>`;
+  const clearCartScript = input.clearStoreCart
+    ? `<script>try{localStorage.removeItem("optibid_store_cart_v1");sessionStorage.removeItem("optibidPendingStoreOrderId");window.dispatchEvent(new CustomEvent("optibid-store-cart-updated"));}catch(e){}</script>`
+    : "";
+  return `<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${input.title}</title><style>body{margin:0;background:#eef4f8;font-family:Tahoma,Arial,sans-serif;color:#0f172a}.wrap{min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;width:100%;background:#fff;border:1px solid #dbe4ee;border-radius:28px;box-shadow:0 24px 70px rgba(15,23,42,.18);padding:32px;text-align:center}.icon{width:76px;height:76px;border-radius:999px;margin:0 auto 18px;display:grid;place-items:center;font-size:34px;background:${input.ok ? "#dcfce7;color:#15803d" : "#fee2e2;color:#b91c1c"}}h1{margin:0 0 12px;font-size:24px;color:#003b5c}p{line-height:2;color:#475569}.meta{margin:18px 0;padding:14px;border-radius:18px;background:#f8fafc;text-align:right;font-size:13px}.meta div{display:flex;justify-content:space-between;gap:12px;margin:6px 0}.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}a{display:inline-block;border-radius:14px;padding:12px 18px;text-decoration:none;font-weight:800}.primary{background:#003b5c;color:#fff}.secondary{background:#e0f2fe;color:#0369a1}</style></head><body><main class="wrap"><section class="card"><div class="icon">${input.ok ? "✓" : "!"}</div><h1>${input.title}</h1><p>${input.message}</p>${input.orderId || input.refId ? `<div class="meta">${input.orderId ? `<div><span>شماره سفارش</span><b dir="ltr">${input.orderId}</b></div>` : ""}${input.refId ? `<div><span>کد رهگیری زرین‌پال</span><b dir="ltr">${input.refId}</b></div>` : ""}</div>` : ""}<div class="btns"><a class="primary" href="/buyer/dashboard?tab=storeOrders">بازگشت به داشبورد خریدار</a><a class="secondary" href="/">صفحه اصلی</a></div></section></main>${clearCartScript}</body></html>`;
 }
 
 export async function GET(request: Request) {
@@ -78,6 +82,8 @@ export async function GET(request: Request) {
       message: verified.message,
     });
 
+    const isStoreOrder = String(result.order.id || "").startsWith("SHOP-");
+
     return new NextResponse(
       resultHtml({
         ok: true,
@@ -86,6 +92,7 @@ export async function GET(request: Request) {
           "پرداخت سفارش با موفقیت تایید شد. وضعیت سفارش در داشبورد خریدار به‌روزرسانی شد.",
         orderId: result.order.id,
         refId: verified.refId,
+        clearStoreCart: isStoreOrder,
       }),
       { headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
