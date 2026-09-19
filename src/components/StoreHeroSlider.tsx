@@ -88,7 +88,7 @@ export default function StoreHeroSlider({
     );
 
   return (
-    <div className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-5 text-white shadow-xl md:min-h-[260px] md:p-6 xl:min-h-[275px]">
+    <div className="relative min-h-[185px] overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-4 text-white shadow-xl md:min-h-[220px] md:p-5 xl:min-h-[235px]">
       {imageUrl && (
         <img
           src={imageUrl}
@@ -101,32 +101,32 @@ export default function StoreHeroSlider({
       <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
 
       {!imageUrl && (
-        <div className="absolute bottom-6 left-10 hidden w-52 opacity-30 lg:block">
-          <div className="mx-auto h-24 rounded-t-3xl border-[10px] border-white/70 bg-white/10" />
-          <div className="mx-auto h-3.5 rounded-b-3xl bg-white/70" />
+        <div className="absolute bottom-5 left-10 hidden w-48 opacity-30 lg:block">
+          <div className="mx-auto h-20 rounded-t-3xl border-[9px] border-white/70 bg-white/10" />
+          <div className="mx-auto h-3 rounded-b-3xl bg-white/70" />
         </div>
       )}
 
-      <div className="relative z-10 flex min-h-[170px] flex-col justify-center md:min-h-[205px] xl:min-h-[220px]">
-        <span className="mb-3 inline-flex w-fit rounded-full bg-white/15 px-4 py-1.5 text-xs font-black ring-1 ring-white/20">
+      <div className="relative z-10 flex min-h-[145px] flex-col justify-center md:min-h-[170px] xl:min-h-[185px]">
+        <span className="mb-2 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-xs font-black ring-1 ring-white/20">
           فروشگاه تخصصی لپ‌تاپ و کامپیوتر
         </span>
-        <h1 className="max-w-6xl text-2xl font-black leading-[1.45] md:text-4xl xl:text-[2.75rem]">
+        <h1 className="max-w-7xl text-2xl font-black leading-[1.35] md:text-3xl xl:text-4xl">
           {slide.title}
         </h1>
-        <p className="mt-2 max-w-5xl text-sm leading-7 text-blue-50 md:text-base">
+        <p className="mt-2 max-w-6xl text-xs leading-6 text-blue-50 md:text-sm">
           {slide.subtitle}
         </p>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Link
             href={slide.href || "/shop"}
-            className="rounded-2xl bg-white px-6 py-3 text-center text-sm font-black text-[#003b5c] shadow-lg transition hover:bg-blue-50"
+            className="rounded-2xl bg-white px-5 py-2.5 text-center text-xs font-black text-[#003b5c] shadow-lg transition hover:bg-blue-50 md:text-sm"
           >
             {slide.cta || "مشاهده لپ‌تاپ‌ها"}
           </Link>
           <Link
             href="/cart"
-            className="rounded-2xl border border-white/30 px-6 py-3 text-center text-sm font-black text-white transition hover:bg-white/10"
+            className="rounded-2xl border border-white/30 px-5 py-2.5 text-center text-xs font-black text-white transition hover:bg-white/10 md:text-sm"
           >
             سبد خرید من
           </Link>
@@ -138,7 +138,7 @@ export default function StoreHeroSlider({
           <button
             type="button"
             onClick={previous}
-            className="absolute right-4 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
+            className="absolute right-4 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
             aria-label="اسلاید قبلی"
           >
             ›
@@ -146,7 +146,7 @@ export default function StoreHeroSlider({
           <button
             type="button"
             onClick={next}
-            className="absolute left-4 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
+            className="absolute left-4 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
             aria-label="اسلاید بعدی"
           >
             ‹

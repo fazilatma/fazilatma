@@ -183,7 +183,7 @@ export default function LaptopFilterSidebar({
 
   return (
     <aside
-      className={`h-fit rounded-[1.75rem] border border-slate-200 bg-white shadow-sm ${sticky ? "lg:sticky lg:top-24" : ""} lg:w-[318px] lg:flex-none`}
+      className={`h-fit rounded-[1.75rem] border border-slate-200 bg-white shadow-sm ${sticky ? "lg:sticky lg:top-24" : ""} lg:w-[280px] lg:flex-none xl:w-[292px]`}
       aria-label="فیلترهای فروشگاه لپ‌تاپ"
     >
       <div className="flex items-center justify-between border-b border-slate-100 p-5">

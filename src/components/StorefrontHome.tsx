@@ -42,7 +42,7 @@ export default function StorefrontHome({
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
       <section className="bg-white">
-        <div className="mx-auto grid w-full max-w-[112rem] gap-4 px-3 py-6 sm:px-5 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid w-full gap-4 px-2 py-5 sm:px-4 lg:grid-cols-[292px_minmax(0,1fr)] lg:px-5 xl:px-6 2xl:px-8">
           <LaptopFilterSidebar products={products} sticky={false} />
 
           <div className="min-w-0 space-y-6">
