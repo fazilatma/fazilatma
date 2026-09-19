@@ -3538,6 +3538,7 @@ export async function getJsonBuyerDashboard(buyerId: number) {
   const orders = data.orders.filter((item) => item.buyerId === buyer.id);
   const { password: _buyerPassword, ...safeBuyer } = buyer;
   return {
+    siteMode: data.settings.siteMode === "request" ? "request" : "store",
     buyer: safeBuyer,
     requests: enrichedRequests,
     offers: offers.map((offer) => ({

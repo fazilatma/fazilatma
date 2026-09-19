@@ -9,6 +9,7 @@ import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
 import { generateInvoiceHTML } from "@/utils/invoiceGenerator";
 
 type BuyerDashboardData = {
+  siteMode?: "store" | "request";
   buyer: {
     id: number;
     fullName: string;
@@ -162,7 +163,28 @@ export default function BuyerDashboardPage() {
       sessionStorage.getItem("optibidChatTargetName") ||
       "فروشنده انتخاب‌شده";
 
-    if (requestedTab === "messages") setActiveTab("messages");
+    if (
+      requestedTab &&
+      [
+        "overview",
+        "cart",
+        "storeOrders",
+        "requests",
+        "offers",
+        "orders",
+        "receive",
+        "wallet",
+        "messages",
+        "reviews",
+        "notifications",
+        "survey",
+        "invoices",
+        "archive",
+        "profile",
+        "settings",
+      ].includes(requestedTab)
+    )
+      setActiveTab(requestedTab);
     if (chatWith) {
       setExternalChatTarget({ id: chatWith, name: chatName });
       setActiveChatUserId(chatWith);
@@ -431,24 +453,51 @@ export default function BuyerDashboardPage() {
   const receivedReviews = (data?.reviews || []).filter(
     (review) => review.revieweeId === data?.buyer.id,
   );
+  const isStoreMode = data?.siteMode !== "request";
+  const storeOrders = data?.storeOrders || [];
+  const storePendingPaymentOrders = storeOrders.filter(
+    (order) => order.status === "pending_payment",
+  );
+  const storePaidOrders = storeOrders.filter((order) =>
+    ["paid", "processing", "shipped", "completed"].includes(order.status),
+  );
 
-  const tabs = [
-    ["overview", "پیشخوان", "🏠"],
-    ["requests", "درخواست‌ها", "📝"],
-    ["offers", "پیشنهادها", "🎯"],
-    ["orders", "سفارش‌ها", "📦"],
-    ["storeOrders", "خرید فروشگاهی", "🛒"],
-    ["receive", "دریافت کالا", "📥"],
-    ["wallet", "کیف پول", "💰"],
-    ["messages", "پیام‌ها", "💬"],
-    ["reviews", "دیدگاه‌ها", "🗣️"],
-    ["notifications", "اعلان‌ها", "🔔"],
-    ["survey", "نظرسنجی", "⭐"],
-    ["invoices", "فاکتورها", "🧾"],
-    ["archive", "بایگانی", "🗂️"],
-    ["profile", "پروفایل", "👤"],
-    ["settings", "تنظیمات", "⚙️"],
-  ] as const;
+  const tabs = isStoreMode
+    ? ([
+        ["overview", "پیشخوان", "🏠"],
+        ["cart", "سبد خرید", "🛒"],
+        ["storeOrders", "خریدهای من", "📦"],
+        ["wallet", "کیف پول", "💰"],
+        ["messages", "پیام‌ها", "💬"],
+        ["notifications", "اعلان‌ها", "🔔"],
+        ["profile", "پروفایل", "👤"],
+        ["settings", "تنظیمات", "⚙️"],
+      ] as const)
+    : ([
+        ["overview", "پیشخوان", "🏠"],
+        ["requests", "درخواست‌ها", "📝"],
+        ["offers", "پیشنهادها", "🎯"],
+        ["orders", "سفارش‌ها", "📦"],
+        ["receive", "دریافت کالا", "📥"],
+        ["wallet", "کیف پول", "💰"],
+        ["messages", "پیام‌ها", "💬"],
+        ["reviews", "دیدگاه‌ها", "🗣️"],
+        ["notifications", "اعلان‌ها", "🔔"],
+        ["survey", "نظرسنجی", "⭐"],
+        ["invoices", "فاکتورها", "🧾"],
+        ["archive", "بایگانی", "🗂️"],
+        ["profile", "پروفایل", "👤"],
+        ["settings", "تنظیمات", "⚙️"],
+      ] as const);
+
+  useEffect(() => {
+    if (
+      isStoreMode &&
+      ["requests", "offers", "orders", "receive", "survey", "invoices", "archive"].includes(activeTab)
+    ) {
+      setActiveTab("overview");
+    }
+  }, [isStoreMode, activeTab]);
 
   if (loading)
     return (
@@ -490,21 +539,33 @@ export default function BuyerDashboardPage() {
         <section className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
           <div className="rounded-2xl border border-gray-100 bg-white p-5 text-center shadow-sm">
             <p className="text-3xl font-bold text-[#003b5c]">
-              {data.requests.length}
+              {isStoreMode
+                ? storeOrders.length.toLocaleString("fa-IR")
+                : data.requests.length.toLocaleString("fa-IR")}
             </p>
-            <p className="mt-1 text-sm text-gray-500">درخواست‌های من</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {isStoreMode ? "خریدهای فروشگاهی" : "درخواست‌های من"}
+            </p>
           </div>
           <div className="rounded-2xl border-b-4 border-red-500 bg-white p-5 text-center shadow-sm">
             <p className="text-3xl font-bold text-red-600">
-              {pendingOrders.length}
+              {isStoreMode
+                ? storePendingPaymentOrders.length.toLocaleString("fa-IR")
+                : pendingOrders.length.toLocaleString("fa-IR")}
             </p>
-            <p className="mt-1 text-sm text-gray-500">آماده پرداخت</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {isStoreMode ? "در انتظار پرداخت" : "آماده پرداخت"}
+            </p>
           </div>
           <div className="rounded-2xl border-b-4 border-blue-500 bg-white p-5 text-center shadow-sm">
             <p className="text-3xl font-bold text-[#003b5c]">
-              {shippedOrders.length}
+              {isStoreMode
+                ? storePaidOrders.length.toLocaleString("fa-IR")
+                : shippedOrders.length.toLocaleString("fa-IR")}
             </p>
-            <p className="mt-1 text-sm text-gray-500">در انتظار دریافت</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {isStoreMode ? "پرداخت‌شده" : "در انتظار دریافت"}
+            </p>
           </div>
           <div className="rounded-2xl border-b-4 border-[#00a8e8] bg-white p-5 text-center shadow-sm">
             <p className="text-xl font-bold text-[#00a8e8]">
@@ -514,7 +575,7 @@ export default function BuyerDashboardPage() {
           </div>
         </section>
 
-        {pendingOrders.length > 0 && (
+        {!isStoreMode && pendingOrders.length > 0 && (
           <div className="mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl bg-gradient-to-l from-[#003b5c] to-[#005e94] p-5 text-white sm:flex-row">
             <div>
               <h2 className="font-bold">
@@ -860,6 +921,34 @@ export default function BuyerDashboardPage() {
                   </OrderCard>
                 ))
               )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === "cart" && (
+          <section className="rounded-3xl border border-rose-100 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto grid h-20 w-20 place-items-center rounded-[2rem] bg-rose-50 text-4xl">
+              🛒
+            </div>
+            <h1 className="mt-5 text-2xl font-black text-[#003b5c]">
+              سبد خرید فروشگاه
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-gray-500">
+              در فاز فروشگاهی، خرید لپ‌تاپ‌ها از مسیر سبد خرید انجام می‌شود؛ کالاها را اضافه کنید، آدرس ارسال را وارد کنید و پرداخت بانکی را ادامه دهید.
+            </p>
+            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link
+                href="/cart"
+                className="rounded-2xl bg-rose-600 px-7 py-3 text-sm font-black text-white shadow-lg transition hover:bg-rose-700"
+              >
+                مشاهده سبد خرید
+              </Link>
+              <Link
+                href="/shop"
+                className="rounded-2xl border border-rose-200 bg-rose-50 px-7 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-100"
+              >
+                ادامه خرید لپ‌تاپ
+              </Link>
             </div>
           </section>
         )}
