@@ -1817,6 +1817,12 @@ function getUserOrThrow(data: OptiBidJsonData, id: number, role?: UserRole) {
   return user;
 }
 
+function getStoreBuyerUserOrThrow(data: OptiBidJsonData, id: number) {
+  const user = data.users.find((item) => item.id === id && item.role !== "admin");
+  if (!user) throw new Error("Store buyer not found");
+  return user;
+}
+
 export async function createJsonUser(input: {
   fullName?: string;
   username?: string;
@@ -3854,7 +3860,7 @@ export async function prepareJsonStoreZarinpalPayment(input: {
   origin?: string;
 }) {
   const data = await getOptiBidData();
-  const buyer = getUserOrThrow(data, input.buyerId, "buyer");
+  const buyer = getStoreBuyerUserOrThrow(data, input.buyerId);
   const order = data.storeOrders.find(
     (item) =>
       item.id === input.orderId &&
@@ -3976,7 +3982,7 @@ export async function completeJsonZarinpalPayment(input: {
     (item) => item.authority === input.authority,
   );
   if (!payment) throw new Error("Zarinpal payment not found");
-  const buyer = getUserOrThrow(data, payment.buyerId, "buyer");
+  const buyer = getStoreBuyerUserOrThrow(data, payment.buyerId);
 
   payment.status = "verified";
   payment.refId = input.refId;
@@ -4277,7 +4283,7 @@ export async function createJsonStoreOrder(input: {
   note?: string;
 }) {
   const data = await getOptiBidData();
-  const buyer = getUserOrThrow(data, input.buyerId, "buyer");
+  const buyer = getStoreBuyerUserOrThrow(data, input.buyerId);
   if (!input.items.length) throw new Error("Store cart is empty");
   if (!input.receiverName.trim() || !input.receiverPhone.trim() || !input.shippingAddress.trim())
     throw new Error("Store order receiver info is incomplete");
@@ -4342,7 +4348,7 @@ export async function payJsonStoreOrder(input: {
   gatewayRefId?: string;
 }) {
   const data = await getOptiBidData();
-  const buyer = getUserOrThrow(data, input.buyerId, "buyer");
+  const buyer = getStoreBuyerUserOrThrow(data, input.buyerId);
   const order = data.storeOrders.find(
     (item) =>
       item.id === input.orderId &&
