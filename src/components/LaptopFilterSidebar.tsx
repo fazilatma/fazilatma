@@ -64,6 +64,7 @@ function activeCount(params: LaptopFilterParams) {
     "rotate",
     "sim",
     "battery",
+    "condition",
     "series",
     "generationModel",
     "color",
@@ -237,6 +238,7 @@ export default function LaptopFilterSidebar({
         <FilterGroup title="امکان چرخش ۳۶۰ درجه" queryKey="rotate" params={params} options={[{ label: "دارد", value: "yes" }, { label: "ندارد", value: "no" }]} />
         <FilterGroup title="پشتیبانی از سیم کارت" queryKey="sim" params={params} options={[{ label: "دارد", value: "yes" }, { label: "ندارد", value: "no" }]} />
         <FilterGroup title="باتری" queryKey="battery" params={params} options={batteryOptions} />
+        <FilterGroup title="وضعیت کالا" queryKey="condition" params={params} options={[{ label: "لپ‌تاپ استوک", value: "stock" }, { label: "کارکرده تمیز", value: "used" }, { label: "نو", value: "new" }]} />
         <FilterGroup title="سری لپ‌تاپ" queryKey="series" params={params} options={seriesOptions} />
         <FilterGroup title="نوع کاربری" queryKey="use" params={params} options={useOptions} />
         <FilterGroup title="نسل و مدل" queryKey="generationModel" params={params} options={generationModelOptions} />

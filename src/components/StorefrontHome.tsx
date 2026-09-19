@@ -26,7 +26,7 @@ export default function StorefrontHome({
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
   const heroProduct = featured[0] || products[0];
-  const bottomLaptopCategories = laptopCategoryItems.slice(0, 18);
+  const bottomLaptopCategories = laptopCategoryItems.slice(0, 24);
   const minPrice = products.reduce(
     (min, product) => Math.min(min, product.price),
     products[0]?.price || 0,
@@ -39,15 +39,19 @@ export default function StorefrontHome({
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
       <section className="bg-white">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.45fr_0.55fr] lg:px-8">
-          <StoreHeroSlider
-            slides={heroSlides}
-            durationSeconds={heroDurationSeconds}
-          />
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[318px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[318px_minmax(0,1fr)_300px]">
+          <LaptopFilterSidebar products={products} sticky={false} />
+
+          <div className="min-w-0">
+            <StoreHeroSlider
+              slides={heroSlides}
+              durationSeconds={heroDurationSeconds}
+            />
+          </div>
 
           <Link
             href={heroProduct ? `/shop/${heroProduct.slug}` : "/shop"}
-            className="group overflow-hidden rounded-[2rem] border border-rose-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            className="group overflow-hidden rounded-[2rem] border border-rose-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl lg:col-start-2 xl:col-start-auto"
           >
             <div className="rounded-[1.5rem] bg-rose-50 p-4 text-center">
               <p className="text-xs font-black text-rose-600">پیشنهاد ویژه امروز</p>
@@ -125,26 +129,21 @@ export default function StorefrontHome({
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <LaptopFilterSidebar products={products} sticky={false} />
-          <div className="min-w-0 flex-1">
-            <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900">پیشنهادهای منتخب لپ‌تاپ</h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  مدل‌های منتخب برای خرید آنلاین، مقایسه سریع مشخصات و انتخاب مطمئن‌تر.
-                </p>
-              </div>
-              <Link href="/shop" className="text-sm font-black text-rose-600">
-                مشاهده همه محصولات ←
-              </Link>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {featured.length > 0
-                ? featured.map((product) => <StoreProductCard key={product.id} product={product} />)
-                : products.slice(0, 4).map((product) => <StoreProductCard key={product.id} product={product} />)}
-            </div>
+        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">پیشنهادهای منتخب لپ‌تاپ</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              مدل‌های منتخب برای خرید آنلاین، مقایسه سریع مشخصات و انتخاب مطمئن‌تر.
+            </p>
           </div>
+          <Link href="/shop" className="text-sm font-black text-rose-600">
+            مشاهده همه محصولات ←
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {featured.length > 0
+            ? featured.map((product) => <StoreProductCard key={product.id} product={product} />)
+            : products.slice(0, 4).map((product) => <StoreProductCard key={product.id} product={product} />)}
         </div>
       </section>
 

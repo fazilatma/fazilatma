@@ -68,6 +68,9 @@ function storeLaptopHref(label: string) {
   if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return "/shop?brand=Dell";
   if (text.includes("ایسوس") || text.includes("asus") || text.includes("tuf")) return "/shop?brand=Asus";
   if (text.includes("اپل") || text.includes("مک") || text.includes("apple") || text.includes("m1")) return "/shop?brand=Apple";
+  if (text.includes("استوک")) return "/shop?condition=stock";
+  if (text.includes("کارکرده")) return "/shop?condition=used";
+  if (text.includes("نو")) return "/shop?condition=new";
   if (text.includes("گیم") || text.includes("rtx") || text.includes("144")) return "/shop?use=gaming";
   if (text.includes("دانشجو") || text.includes("سبک")) return "/shop?use=student";
   if (text.includes("مهندس") || text.includes("رندر") || text.includes("تدوین") || text.includes("طراحی")) return "/shop?use=engineering";
@@ -332,10 +335,22 @@ export default function Header() {
                   لپ‌تاپ اداری
                 </Link>
                 <Link
+                  href="/shop?condition=stock"
+                  className="text-gray-700 hover:text-rose-600 transition font-medium"
+                >
+                  لپ‌تاپ استوک
+                </Link>
+                <Link
                   href="/shop?use=gaming"
                   className="text-gray-700 hover:text-rose-600 transition font-medium"
                 >
                   لپ‌تاپ گیمینگ
+                </Link>
+                <Link
+                  href="/shop?use=engineering"
+                  className="text-gray-700 hover:text-rose-600 transition font-medium"
+                >
+                  لپ‌تاپ مهندسی
                 </Link>
                 <Link
                   href="/shop/guides"
@@ -552,10 +567,22 @@ export default function Header() {
                     💼 لپ‌تاپ اداری
                   </Link>
                   <Link
+                    href="/shop?condition=stock"
+                    className="text-gray-700 hover:text-rose-600 transition py-2"
+                  >
+                    ♻️ لپ‌تاپ استوک
+                  </Link>
+                  <Link
                     href="/shop?use=gaming"
                     className="text-gray-700 hover:text-rose-600 transition py-2"
                   >
                     🎮 لپ‌تاپ گیمینگ
+                  </Link>
+                  <Link
+                    href="/shop?use=engineering"
+                    className="text-gray-700 hover:text-rose-600 transition py-2"
+                  >
+                    🧮 لپ‌تاپ مهندسی
                   </Link>
                   <Link
                     href="/shop/guides"

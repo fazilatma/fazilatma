@@ -64,6 +64,8 @@ function productFilterTags(product: JsonStoreProduct) {
   if (text.includes("256gb")) add("ssd", "256GB");
   if (text.includes("512gb")) add("ssd", "512GB");
   if (text.includes("1tb")) add("ssd", "1TB");
+  if (text.includes("استوک")) add("condition", "stock");
+  if (text.includes("کارکرده")) add("condition", "used");
 
   const fixedTags: Record<string, string[]> = {
     "lp-thinkpad-t14-g3": [
@@ -86,6 +88,7 @@ function productFilterTags(product: JsonStoreProduct) {
       "generationModel:pro",
       "color:black",
       "custom:ssd-upgrade",
+      "condition:stock",
     ],
     "lp-dell-latitude-7420": [
       "cpuGen:11",
@@ -105,6 +108,7 @@ function productFilterTags(product: JsonStoreProduct) {
       "use:business",
       "generationModel:pro",
       "color:gray",
+      "condition:stock",
     ],
     "lp-hp-elitebook-840-g8": [
       "cpuGen:11",
@@ -125,6 +129,7 @@ function productFilterTags(product: JsonStoreProduct) {
       "use:business",
       "generationModel:midrange",
       "color:silver",
+      "condition:stock",
     ],
     "lp-asus-tuf-f15-rtx3050": [
       "cpuGen:12",
@@ -146,6 +151,7 @@ function productFilterTags(product: JsonStoreProduct) {
       "use:engineering",
       "generationModel:pro",
       "color:black",
+      "condition:new",
     ],
     "lp-macbook-air-m1": [
       "cpuGen:apple",
@@ -165,6 +171,7 @@ function productFilterTags(product: JsonStoreProduct) {
       "use:student",
       "generationModel:midrange",
       "color:silver",
+      "condition:new",
     ],
     "lp-lenovo-legion-5": [
       "cpuGen:ryzen",
@@ -187,6 +194,7 @@ function productFilterTags(product: JsonStoreProduct) {
       "generationModel:pro",
       "color:black",
       "custom:ram-upgrade",
+      "condition:used",
     ],
   };
 
@@ -234,6 +242,7 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
     "rotate",
     "sim",
     "battery",
+    "condition",
     "series",
     "generationModel",
     "color",
