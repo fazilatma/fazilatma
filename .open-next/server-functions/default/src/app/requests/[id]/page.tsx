@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import BuyerModeButton from "@/components/BuyerModeButton";
+import ContactBuyerOptions from "@/components/ContactBuyerOptions";
 import ContactSellerOptions from "@/components/ContactSellerOptions";
 import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
 import { RequestSpecsDetails } from "@/components/RequestSpecsDetails";
@@ -40,6 +42,10 @@ export default async function RequestDetailPage({
       .map((user) => [user.id, user]),
   );
   const buyer = data.users.find((user) => user.id === request.buyerId);
+  const cookieStore = await cookies();
+  const viewerSession = cookieStore.get("optibid_user")?.value || "";
+  const viewerId = Number(viewerSession.split(":")[1] || 0);
+  const canViewSellerOffers = Boolean(viewerId && viewerId === request.buyerId);
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50 pb-16">
@@ -199,23 +205,50 @@ export default async function RequestDetailPage({
               requestBuyerId={request.buyerId}
               requestCategory={request.category}
               requestStatus={request.status}
-              sellerOffers={offers.map((offer) => ({
-                sellerId: offer.sellerId,
-                status: offer.status,
-              }))}
+              sellerOffers={
+                canViewSellerOffers
+                  ? offers.map((offer) => ({
+                      sellerId: offer.sellerId,
+                      status: offer.status,
+                    }))
+                  : []
+              }
             />
+
+            {buyer && (
+              <ContactBuyerOptions
+                buyerId={buyer.id}
+                buyerName={buyer.fullName}
+                buyerPhone={buyer.phone}
+                buyerEmail={buyer.email}
+                requestId={request.id}
+                requestTitle={request.title}
+                compact
+              />
+            )}
 
             <section className="rounded-3xl border border-gray-200 bg-white p-7 shadow-sm">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-xl font-bold">
-                  پیشنهادهای واقعی فروشندگان ({offers.length})
+                  {canViewSellerOffers
+                    ? `پیشنهادهای واقعی فروشندگان (${offers.length})`
+                    : "پیشنهادهای فروشندگان محفوظ است"}
                 </h2>
                 <span className="text-sm text-gray-500">
-                  به‌روزرسانی از JSON
+                  {canViewSellerOffers
+                    ? "فقط برای خریدار صاحب درخواست"
+                    : "جزئیات پیشنهادها خصوصی است"}
                 </span>
               </div>
 
-              {offers.length === 0 ? (
+              {!canViewSellerOffers ? (
+                <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 p-8 text-center text-amber-800">
+                  <b>جزئیات پیشنهاد فروشندگان فقط برای خریدار صاحب همین درخواست قابل مشاهده است.</b>
+                  <p className="mt-2 text-sm leading-7">
+                    فروشنده‌ها برای جلوگیری از رقابت ناسالم، پیشنهادهای سایر فروشندگان را نمی‌بینند؛ اما می‌توانند با خریدار ارتباط بگیرند و پیشنهاد خودشان را ثبت یا ویرایش کنند.
+                  </p>
+                </div>
+              ) : offers.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-gray-500">
                   هنوز فروشنده‌ای برای این درخواست پیشنهاد ثبت نکرده است.
                 </div>

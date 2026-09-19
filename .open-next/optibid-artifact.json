@@ -1,6 +1,6 @@
 {
-  "sourceHash": "490e25a7aa41f4ec9edf97fda11dfb9c659fedbcca472e6b7baa7d507063b9c2",
-  "fileCount": 162,
-  "builtAt": "2026-09-19T09:29:30.065Z",
+  "sourceHash": "a359aaa30c736598a17b5dc3dec6a2cbb019b99d20fb961e6a03ad61b81dbe86",
+  "fileCount": 163,
+  "builtAt": "2026-09-19T11:07:26.019Z",
   "builder": "scripts/worker-artifact.mjs"
 }
