@@ -2,13 +2,55 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
-import { LaptopVisual } from "@/components/StoreProductCard";
-import { getJsonStoreProductBySlug, getJsonStoreProducts } from "@/lib/json-store";
+import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
+import {
+  getJsonStoreProductBySlug,
+  getJsonStoreProducts,
+  type JsonStoreProduct,
+} from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
+
+function productSearchText(product: JsonStoreProduct) {
+  return `${product.title} ${product.brand} ${product.category} ${product.summary} ${product.description} ${product.badges.join(" ")} ${Object.values(product.specs || {}).join(" ")}`.toLowerCase();
+}
+
+function relatedScore(product: JsonStoreProduct, candidate: JsonStoreProduct) {
+  const productText = productSearchText(product);
+  const candidateText = productSearchText(candidate);
+  let score = 0;
+  if (candidate.brand === product.brand) score += 90;
+  if (candidate.category === product.category) score += 55;
+  for (const badge of product.badges || []) {
+    if (candidate.badges?.includes(badge)) score += 18;
+  }
+  for (const key of ["پردازنده", "رم", "حافظه", "گرافیک", "نمایشگر"]) {
+    const value = product.specs?.[key];
+    if (value && candidate.specs?.[key] === value) score += 14;
+  }
+  for (const keyword of [
+    "اداری",
+    "دانشجویی",
+    "مهندسی",
+    "گیمینگ",
+    "استوک",
+    "سبک",
+    "rtx",
+    "ssd",
+    "core i7",
+    "core i5",
+  ]) {
+    if (productText.includes(keyword) && candidateText.includes(keyword)) score += 10;
+  }
+  const priceGap = Math.abs(candidate.price - product.price);
+  score += Math.max(0, 30 - priceGap / 2_000_000);
+  score += Math.min(20, candidate.reviewsCount / 4);
+  score += candidate.rating * 2;
+  return score;
+}
 
 export async function generateMetadata({
   params,
@@ -32,9 +74,17 @@ export default async function StoreProductPage({
   const { slug } = await params;
   const product = await getJsonStoreProductBySlug(slug);
   if (!product) notFound();
-  const related = (await getJsonStoreProducts())
-    .filter((item) => item.id !== product.id && item.brand === product.brand)
-    .slice(0, 3);
+  const allProducts = await getJsonStoreProducts();
+  const related = allProducts
+    .filter((item) => item.id !== product.id)
+    .map((item) => ({ product: item, score: relatedScore(product, item) }))
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.product)
+    .slice(0, 8);
+  const sameBrandCount = related.filter((item) => item.brand === product.brand).length;
+  const sameCategoryCount = related.filter(
+    (item) => item.category === product.category,
+  ).length;
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
@@ -131,13 +181,38 @@ export default async function StoreProductPage({
 
         {related.length > 0 && (
           <section className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black text-slate-900">محصولات مشابه {product.brand}</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+              <div>
+                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
+                  پیشنهادهای مشابه
+                </span>
+                <h2 className="mt-3 text-2xl font-black text-slate-900">
+                  محصولات مشابه و جایگزین‌های پیشنهادی
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+                  مدل‌هایی نزدیک به {product.brand} و هم‌رده از نظر کاربری، قیمت، مشخصات فنی و محبوبیت کاربران.
+                </p>
+              </div>
+              <Link href="/shop" className="text-sm font-black text-rose-600">
+                مشاهده همه مدل‌ها ←
+              </Link>
+            </div>
+
+            <div className="mb-5 flex flex-wrap gap-2 text-xs font-bold">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                {sameBrandCount.toLocaleString("fa-IR")} مدل از همین برند
+              </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                {sameCategoryCount.toLocaleString("fa-IR")} مدل هم‌دسته
+              </span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+                مرتب‌شده بر اساس شباهت و محبوبیت
+              </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {related.map((item) => (
-                <Link key={item.id} href={`/shop/${item.slug}`} className="rounded-2xl bg-slate-50 p-4 transition hover:bg-rose-50">
-                  <p className="font-black text-slate-900">{item.title}</p>
-                  <p className="mt-2 text-sm font-black text-rose-600">{money(item.price)}</p>
-                </Link>
+                <StoreProductCard key={item.id} product={item} />
               ))}
             </div>
           </section>
