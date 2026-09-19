@@ -44,8 +44,21 @@ export default async function RequestDetailPage({
   const buyer = data.users.find((user) => user.id === request.buyerId);
   const cookieStore = await cookies();
   const viewerSession = cookieStore.get("optibid_user")?.value || "";
-  const viewerId = Number(viewerSession.split(":")[1] || 0);
-  const canViewSellerOffers = Boolean(viewerId && viewerId === request.buyerId);
+  const [viewerRole = "", viewerIdRaw = "0"] = viewerSession.split(":");
+  const viewerId = Number(viewerIdRaw || 0);
+  const isRequestOwner = Boolean(viewerId && viewerId === request.buyerId);
+  const canViewSellerOffers = isRequestOwner;
+  const sellerOffersForAction = (
+    canViewSellerOffers
+      ? offers
+      : viewerRole === "seller"
+        ? offers.filter((offer) => offer.sellerId === viewerId)
+        : []
+  ).map((offer) => ({
+    sellerId: offer.sellerId,
+    status: offer.status,
+  }));
+  const canShowBuyerContact = Boolean(buyer && !isRequestOwner);
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50 pb-16">
@@ -205,17 +218,10 @@ export default async function RequestDetailPage({
               requestBuyerId={request.buyerId}
               requestCategory={request.category}
               requestStatus={request.status}
-              sellerOffers={
-                canViewSellerOffers
-                  ? offers.map((offer) => ({
-                      sellerId: offer.sellerId,
-                      status: offer.status,
-                    }))
-                  : []
-              }
+              sellerOffers={sellerOffersForAction}
             />
 
-            {buyer && (
+            {buyer && canShowBuyerContact && (
               <ContactBuyerOptions
                 buyerId={buyer.id}
                 buyerName={buyer.fullName}
