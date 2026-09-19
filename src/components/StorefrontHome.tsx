@@ -45,45 +45,17 @@ export default function StorefrontHome({
         <div className="grid w-full gap-4 px-2 py-5 sm:px-4 lg:grid-cols-[292px_minmax(0,1fr)] lg:px-5 xl:px-6 2xl:px-8">
           <LaptopFilterSidebar products={products} sticky={false} />
 
-          <div className="min-w-0 space-y-6">
+          <div className="min-w-0 space-y-5">
             <StoreHeroSlider
               slides={heroSlides}
               durationSeconds={heroDurationSeconds}
             />
             <StoreAdSlider />
+            <StoreLaptopBrandSlider />
+            <SpecialOfferCarousel
+              products={specialOfferProducts.length > 0 ? specialOfferProducts : featured}
+            />
           </div>
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-            <div>
-              <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
-                پیشنهاد ویژه
-              </span>
-              <h2 className="mt-3 text-2xl font-black text-slate-900">
-                پیشنهادهای ویژه امروز
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-500">
-                چند مدل منتخب با قیمت جذاب‌تر؛ با فلش‌ها بین پیشنهادها جابه‌جا شوید.
-              </p>
-            </div>
-            <Link href="/shop/collections/special-offers" className="text-sm font-black text-rose-600">
-              مشاهده همه فروش ویژه ←
-            </Link>
-          </div>
-          <HorizontalScroller
-            arrowClassName="bg-white/95 text-rose-600 hover:bg-white"
-            contentClassName="flex gap-4 overflow-x-auto scroll-smooth pb-2"
-            scrollAmount={560}
-          >
-            {(specialOfferProducts.length > 0 ? specialOfferProducts : featured).map(
-              (product) => (
-                <div key={`hero-special-${product.id}`} className="w-[270px] shrink-0 md:w-[300px]">
-                  <StoreProductCard product={product} />
-                </div>
-              ),
-            )}
-          </HorizontalScroller>
         </div>
       </section>
 
@@ -205,6 +177,96 @@ export default function StorefrontHome({
         </div>
       </section>
     </div>
+  );
+}
+
+
+const brandCircleItems = [
+  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?brand=Asus", color: "from-indigo-500 to-fuchsia-500" },
+  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?brand=Lenovo", color: "from-red-500 to-slate-800" },
+  { title: "HP", subtitle: "EliteBook", href: "/shop?brand=HP", color: "from-sky-500 to-blue-700" },
+  { title: "Dell", subtitle: "Latitude", href: "/shop?brand=Dell", color: "from-cyan-500 to-slate-700" },
+  { title: "Apple", subtitle: "MacBook", href: "/shop?brand=Apple", color: "from-slate-500 to-slate-900" },
+  { title: "RTX", subtitle: "گیمینگ", href: "/shop?gpuType=rtx", color: "from-rose-500 to-orange-500" },
+  { title: "SSD", subtitle: "سرعت بالا", href: "/shop?ssd=512GB", color: "from-emerald-500 to-teal-700" },
+  { title: "i7", subtitle: "حرفه‌ای", href: "/shop?cpu=i7", color: "from-violet-500 to-[#003b5c]" },
+];
+
+function StoreLaptopBrandSlider() {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+            انتخاب سریع برند و مشخصات
+          </span>
+          <h2 className="mt-2 text-xl font-black text-slate-900">
+            برندهای محبوب و گزینه‌های پرجستجو
+          </h2>
+        </div>
+        <Link href="/shop" className="text-xs font-black text-rose-600 md:text-sm">
+          مشاهده همه لپ‌تاپ‌ها ←
+        </Link>
+      </div>
+      <HorizontalScroller
+        arrowClassName="bg-white/95 text-[#003b5c] hover:bg-white"
+        contentClassName="flex gap-3 overflow-x-auto scroll-smooth pb-1"
+        scrollAmount={420}
+      >
+        {brandCircleItems.map((item) => (
+          <Link
+            key={item.title}
+            href={item.href}
+            className="group w-32 shrink-0 text-center"
+          >
+            <div
+              className={`mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br ${item.color} p-[3px] shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-lg`}
+            >
+              <div className="grid h-full w-full place-items-center rounded-full bg-white text-xl font-black text-slate-800">
+                {item.title}
+              </div>
+            </div>
+            <p className="mt-2 text-xs font-black text-slate-800 group-hover:text-rose-600">
+              {item.subtitle}
+            </p>
+          </Link>
+        ))}
+      </HorizontalScroller>
+    </section>
+  );
+}
+
+function SpecialOfferCarousel({ products }: { products: JsonStoreProduct[] }) {
+  return (
+    <section className="rounded-[2rem] border border-rose-100 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
+            پیشنهاد ویژه
+          </span>
+          <h2 className="mt-2 text-xl font-black text-slate-900 md:text-2xl">
+            پیشنهادهای ویژه امروز
+          </h2>
+          <p className="mt-1 text-sm leading-7 text-slate-500">
+            چند مدل منتخب با قیمت جذاب‌تر؛ با فلش‌ها بین پیشنهادها جابه‌جا شوید.
+          </p>
+        </div>
+        <Link href="/shop/collections/special-offers" className="text-sm font-black text-rose-600">
+          مشاهده همه فروش ویژه ←
+        </Link>
+      </div>
+      <HorizontalScroller
+        arrowClassName="bg-white/95 text-rose-600 hover:bg-white"
+        contentClassName="flex gap-4 overflow-x-auto scroll-smooth pb-2"
+        scrollAmount={560}
+      >
+        {products.map((product) => (
+          <div key={`hero-special-${product.id}`} className="w-[270px] shrink-0 md:w-[300px]">
+            <StoreProductCard product={product} />
+          </div>
+        ))}
+      </HorizontalScroller>
+    </section>
   );
 }
 

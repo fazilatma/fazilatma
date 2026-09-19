@@ -3914,7 +3914,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 249956,
+      "bytes": 249955,
       "imports": [
         {
           "path": "path",
@@ -6220,7 +6220,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 1695188,
+      "bytes": 1698279,
       "imports": [],
       "format": "cjs"
     },
@@ -8453,7 +8453,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_0pnnh16._.js": {
-      "bytes": 45795,
+      "bytes": 48148,
       "imports": [],
       "format": "cjs"
     },
@@ -17189,7 +17189,7 @@
           "bytesInOutput": 461
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 210490
+          "bytesInOutput": 210489
         },
         ".open-next/cloudflare-templates/shims/throw.js": {
           "bytesInOutput": 215
@@ -17495,7 +17495,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2063118
+          "bytesInOutput": 2066564
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -17843,7 +17843,7 @@
           "bytesInOutput": 18432
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_0pnnh16._.js": {
-          "bytesInOutput": 53986
+          "bytesInOutput": 56716
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_1fknvor._.js": {
           "bytesInOutput": 31556
@@ -18494,7 +18494,7 @@
           "bytesInOutput": 71139
         }
       },
-      "bytes": 9073580
+      "bytes": 9079755
     }
   }
 }
