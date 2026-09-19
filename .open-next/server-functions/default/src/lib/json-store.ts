@@ -3493,7 +3493,11 @@ export async function sendJsonMessage(input: {
 
 export async function getJsonBuyerDashboard(buyerId: number) {
   const data = await getOptiBidData();
-  const buyer = getUserOrThrow(data, buyerId, "buyer");
+  const buyer =
+    data.settings.siteMode === "store"
+      ? data.users.find((item) => item.id === buyerId && item.role !== "admin")
+      : getUserOrThrow(data, buyerId, "buyer");
+  if (!buyer) throw new Error("Buyer not found");
   const requests = data.requests.filter((item) => item.buyerId === buyer.id);
   const enrichedRequests = requests.map((request) => ({
     ...request,

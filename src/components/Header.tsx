@@ -191,6 +191,9 @@ export default function Header() {
     visibleHeaderCategories.find(
       (category) => category.id === activeHeaderCategoryId,
     ) || visibleHeaderCategories[0];
+  const effectiveUserRole =
+    siteMode === "store" && userRole === "seller" ? "buyer" : userRole;
+  const showRoleSwitchButtons = siteMode !== "store";
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -424,7 +427,7 @@ export default function Header() {
 
             {userRole ? (
               <div className="flex items-center gap-3 border-r border-gray-200 pr-3">
-                {userRole === "admin" && (
+                {effectiveUserRole === "admin" && (
                   <Link
                     href="/admin/dashboard"
                     className="text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-lg transition font-bold text-sm"
@@ -432,7 +435,7 @@ export default function Header() {
                     پنل مدیریت
                   </Link>
                 )}
-                {(userRole === "buyer" || userRole === "seller") && (
+                {(effectiveUserRole === "buyer" || effectiveUserRole === "seller") && (
                   <Link
                     href="/account/completion"
                     className="text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition font-bold text-sm"
@@ -440,15 +443,15 @@ export default function Header() {
                     تکمیل اطلاعات
                   </Link>
                 )}
-                {userRole === "buyer" && (
+                {effectiveUserRole === "buyer" && (
                   <Link
                     href="/buyer/dashboard"
                     className="text-green-700 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-lg transition font-bold text-sm"
                   >
-                    داشبورد من
+                    داشبورد خریدار
                   </Link>
                 )}
-                {userRole === "seller" && (
+                {effectiveUserRole === "seller" && (
                   <Link
                     href="/seller/dashboard"
                     className="text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition font-bold text-sm"
@@ -456,7 +459,7 @@ export default function Header() {
                     داشبورد فروشنده
                   </Link>
                 )}
-                {userRole === "seller" && previousUserRole === "buyer" && (
+                {showRoleSwitchButtons && userRole === "seller" && previousUserRole === "buyer" && (
                   <button
                     onClick={switchBackToBuyerMode}
                     className="text-green-700 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-lg transition font-bold text-sm"
@@ -464,7 +467,7 @@ export default function Header() {
                     بازگشت به حالت خریدار
                   </button>
                 )}
-                {userRole === "buyer" && previousUserRole === "seller" && (
+                {showRoleSwitchButtons && userRole === "buyer" && previousUserRole === "seller" && (
                   <button
                     onClick={switchBackToSellerMode}
                     className="text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition font-bold text-sm"
@@ -502,7 +505,7 @@ export default function Header() {
           <div className="mr-auto ml-1 flex items-center gap-1 md:hidden">
             {userRole ? (
               <Link
-                href={`/${userRole === "admin" ? "admin" : userRole}/dashboard`}
+                href={`/${effectiveUserRole === "admin" ? "admin" : effectiveUserRole}/dashboard`}
                 className="rounded-lg bg-[#003b5c] px-3 py-2 text-xs font-bold text-white shadow-sm"
               >
                 داشبورد
@@ -661,19 +664,23 @@ export default function Header() {
                 >
                   <span>👤</span> داشبورد خریدار
                 </Link>
-                <Link
-                  href="/seller/dashboard"
-                  className="text-gray-700 hover:text-green-600 transition flex items-center gap-2"
-                >
-                  <span>💼</span> داشبورد فروشنده
-                </Link>
-                <Link
-                  href="/seller/sales"
-                  className="text-gray-700 hover:text-green-600 transition flex items-center gap-2"
-                >
-                  <span>💰</span> فروش‌های من (فروشنده)
-                </Link>
-                {(userRole === "buyer" || userRole === "seller") && (
+                {siteMode !== "store" && (
+                  <>
+                    <Link
+                      href="/seller/dashboard"
+                      className="text-gray-700 hover:text-green-600 transition flex items-center gap-2"
+                    >
+                      <span>💼</span> داشبورد فروشنده
+                    </Link>
+                    <Link
+                      href="/seller/sales"
+                      className="text-gray-700 hover:text-green-600 transition flex items-center gap-2"
+                    >
+                      <span>💰</span> فروش‌های من (فروشنده)
+                    </Link>
+                  </>
+                )}
+                {(effectiveUserRole === "buyer" || effectiveUserRole === "seller") && (
                   <Link
                     href="/account/completion"
                     className="text-amber-700 bg-amber-50 px-2 py-1 rounded hover:bg-amber-100 transition flex items-center gap-2"
@@ -691,13 +698,13 @@ export default function Header() {
               {userRole ? (
                 <div className="flex flex-col gap-2 pt-2 border-t">
                   <div className="text-center text-sm font-bold text-gray-500 mb-2">
-                    {userRole === "admin"
+                    {effectiveUserRole === "admin"
                       ? "شما ادمین هستید"
-                      : userRole === "seller"
+                      : effectiveUserRole === "seller"
                         ? "شما فروشنده هستید"
                         : "شما خریدار هستید"}
                   </div>
-                  {userRole === "seller" && previousUserRole === "buyer" && (
+                  {showRoleSwitchButtons && userRole === "seller" && previousUserRole === "buyer" && (
                     <button
                       onClick={switchBackToBuyerMode}
                       className="w-full text-center border border-green-200 bg-green-50 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition font-bold"
@@ -705,7 +712,7 @@ export default function Header() {
                       بازگشت به حالت خریدار
                     </button>
                   )}
-                  {userRole === "buyer" && previousUserRole === "seller" && (
+                  {showRoleSwitchButtons && userRole === "buyer" && previousUserRole === "seller" && (
                     <button
                       onClick={switchBackToSellerMode}
                       className="w-full text-center border border-blue-200 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition font-bold"
