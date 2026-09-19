@@ -45,6 +45,7 @@
   "/api/seller-request-action/route": "app/api/seller-request-action/route.js",
   "/api/seller-score/route": "app/api/seller-score/route.js",
   "/api/seller/profile/route": "app/api/seller/profile/route.js",
+  "/api/shop/orders/pay/route": "app/api/shop/orders/pay/route.js",
   "/api/shop/orders/route": "app/api/shop/orders/route.js",
   "/api/site-mode/route": "app/api/site-mode/route.js",
   "/api/source-files/route": "app/api/source-files/route.js",

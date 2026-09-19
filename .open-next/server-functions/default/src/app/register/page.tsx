@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -22,6 +22,7 @@ const isMobile = (value: string) => /^09\d{9}$/.test(normalizePhone(value));
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [siteMode, setSiteMode] = useState<"store" | "request">("store");
   const [accountType, setAccountType] = useState<"seller" | "buyer">("buyer");
   const [identifier, setIdentifier] = useState("");
   const [fullName, setFullName] = useState("");
@@ -29,6 +30,18 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/site-mode", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success && (result.siteMode === "store" || result.siteMode === "request")) {
+          setSiteMode(result.siteMode);
+          if (result.siteMode === "store") setAccountType("buyer");
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   const identifierType = useMemo(() => {
     if (isEmail(identifier)) return "email";
@@ -38,7 +51,7 @@ export default function RegisterPage() {
 
   const startSocialRegister = (provider: "google" | "facebook") => {
     const query = new URLSearchParams({
-      role: accountType,
+      role: siteMode === "store" ? "buyer" : accountType,
       redirect: "/account/completion",
     });
     window.location.assign(`/api/auth/social/${provider}?${query.toString()}`);
@@ -68,7 +81,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       const form = new FormData();
-      form.append("role", accountType);
+      form.append("role", siteMode === "store" ? "buyer" : accountType);
       form.append("identifier", identifier.trim());
       if (identifierType === "email")
         form.append("email", identifier.trim().toLowerCase());
@@ -154,34 +167,47 @@ export default function RegisterPage() {
         </div>
 
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
-          <h2 className="mb-5 text-center text-xl font-bold text-gray-900">
-            نوع حساب را انتخاب کنید
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setAccountType("buyer")}
-              className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "buyer" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
-            >
+          {siteMode === "store" ? (
+            <div className="rounded-3xl border-2 border-green-200 bg-green-50 p-5 text-center">
               <div className="text-4xl">🛒</div>
-              <h3 className="mt-3 font-bold">خریدار</h3>
-              <p className="mt-2 text-xs leading-6 text-gray-500">
-                درخواست خرید ثبت می‌کنم و پیشنهاد فروشندگان را مقایسه می‌کنم.
+              <h2 className="mt-3 text-xl font-black text-gray-900">
+                ثبت‌نام خریدار فروشگاه
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-gray-600">
+                در فاز فروشگاهی، فقط حساب خریدار ساخته می‌شود تا بتوانید لپ‌تاپ‌ها را به سبد خرید اضافه کنید، سفارش ثبت کنید و پرداخت بانکی انجام دهید.
               </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setAccountType("seller")}
-              className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "seller" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
-            >
-              <div className="text-4xl">🏪</div>
-              <h3 className="mt-3 font-bold">فروشنده</h3>
-              <p className="mt-2 text-xs leading-6 text-gray-500">
-                بعد از تکمیل اطلاعات فروشگاه، روی درخواست‌های مرتبط پیشنهاد
-                می‌دهم.
-              </p>
-            </button>
-          </div>
+            </div>
+          ) : (
+            <>
+              <h2 className="mb-5 text-center text-xl font-bold text-gray-900">
+                نوع حساب را انتخاب کنید
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setAccountType("buyer")}
+                  className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "buyer" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
+                >
+                  <div className="text-4xl">🛒</div>
+                  <h3 className="mt-3 font-bold">خریدار</h3>
+                  <p className="mt-2 text-xs leading-6 text-gray-500">
+                    درخواست خرید ثبت می‌کنم و پیشنهاد فروشندگان را مقایسه می‌کنم.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType("seller")}
+                  className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "seller" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
+                >
+                  <div className="text-4xl">🏪</div>
+                  <h3 className="mt-3 font-bold">فروشنده</h3>
+                  <p className="mt-2 text-xs leading-6 text-gray-500">
+                    بعد از تکمیل اطلاعات فروشگاه، روی درخواست‌های مرتبط پیشنهاد می‌دهم.
+                  </p>
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-xl">

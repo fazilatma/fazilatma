@@ -389,6 +389,12 @@
       "namedRegex": "^/api/shop/orders(?:/)?$"
     },
     {
+      "page": "/api/shop/orders/pay",
+      "regex": "^/api/shop/orders/pay(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/shop/orders/pay(?:/)?$"
+    },
+    {
       "page": "/api/site-mode",
       "regex": "^/api/site\\-mode(?:/)?$",
       "routeKeys": {},

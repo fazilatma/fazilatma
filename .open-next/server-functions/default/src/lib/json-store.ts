@@ -419,6 +419,10 @@ export type JsonStoreOrder = {
   receiverPhone: string;
   shippingAddress: string;
   note?: string;
+  paymentMethod?: PaymentMethod;
+  gatewayAuthority?: string;
+  gatewayRefId?: string;
+  paidAt?: string;
   createdAt: string;
 };
 
@@ -1118,6 +1122,10 @@ function normalizeStoreOrders(value: unknown): JsonStoreOrder[] {
       receiverPhone: String(order.receiverPhone || ""),
       shippingAddress: String(order.shippingAddress || ""),
       note: String(order.note || ""),
+      paymentMethod: order.paymentMethod,
+      gatewayAuthority: String(order.gatewayAuthority || ""),
+      gatewayRefId: String(order.gatewayRefId || ""),
+      paidAt: String(order.paidAt || ""),
       createdAt: String(order.createdAt || new Date().toISOString()),
     });
   }
@@ -3836,6 +3844,40 @@ export async function prepareJsonZarinpalPayment(input: {
   };
 }
 
+export async function prepareJsonStoreZarinpalPayment(input: {
+  buyerId: number;
+  orderId: string;
+  origin?: string;
+}) {
+  const data = await getOptiBidData();
+  const buyer = getUserOrThrow(data, input.buyerId, "buyer");
+  const order = data.storeOrders.find(
+    (item) =>
+      item.id === input.orderId &&
+      item.buyerId === buyer.id &&
+      item.status === "pending_payment",
+  );
+  if (!order) throw new Error("Pending store order not found");
+  const prerequisites = buildZarinpalPrerequisites({
+    ...data.settings,
+    zarinpalDescription:
+      data.settings.zarinpalDescription || "پرداخت سفارش فروشگاهی OptiBid",
+    zarinpalCallbackBaseUrl:
+      data.settings.zarinpalCallbackBaseUrl || input.origin || "",
+  });
+  if (!prerequisites.ready) {
+    throw new Error(
+      `Zarinpal is not ready: ${prerequisites.missingItems.join("، ")}`,
+    );
+  }
+  return {
+    buyer: { id: buyer.id, fullName: buyer.fullName, email: buyer.email },
+    order,
+    amount: Math.max(0, Math.floor(Number(order.totalAmount || 0))),
+    prerequisites,
+  };
+}
+
 export async function createJsonZarinpalPaymentAttempt(input: {
   orderId: string;
   buyerId: number;
@@ -3931,12 +3973,6 @@ export async function completeJsonZarinpalPayment(input: {
   );
   if (!payment) throw new Error("Zarinpal payment not found");
   const buyer = getUserOrThrow(data, payment.buyerId, "buyer");
-  const order = data.orders.find(
-    (item) => item.id === payment.orderId && item.buyerId === buyer.id,
-  );
-  if (!order) throw new Error("Zarinpal order not found");
-  if (money(order.totalAmount) !== payment.amount)
-    throw new Error("Zarinpal amount mismatch");
 
   payment.status = "verified";
   payment.refId = input.refId;
@@ -3945,6 +3981,45 @@ export async function completeJsonZarinpalPayment(input: {
   payment.code = input.code ?? payment.code;
   payment.message = input.message || payment.message;
   payment.updatedAt = new Date().toISOString();
+
+  const storeOrder = data.storeOrders.find(
+    (item) => item.id === payment.orderId && item.buyerId === buyer.id,
+  );
+  if (storeOrder) {
+    if (Math.max(0, Math.floor(Number(storeOrder.totalAmount || 0))) !== payment.amount)
+      throw new Error("Zarinpal amount mismatch");
+    if (storeOrder.status === "pending_payment") {
+      addWalletTransaction(data, {
+        userId: buyer.id,
+        type: "gateway_payment",
+        amount: -payment.amount,
+        balanceAfter: buyer.walletBalance,
+        description: `پرداخت زرین‌پال سفارش فروشگاهی ${storeOrder.id} - کد رهگیری ${input.refId}`,
+        orderId: storeOrder.id,
+      });
+      storeOrder.status = "paid";
+      storeOrder.paymentMethod = "zarinpal";
+      storeOrder.gatewayAuthority = input.authority;
+      storeOrder.gatewayRefId = input.refId;
+      storeOrder.paidAt = new Date().toISOString();
+      addNotification(data, {
+        userId: buyer.id,
+        type: "payment",
+        title: "پرداخت زرین‌پال سفارش فروشگاهی موفق بود",
+        body: `پرداخت سفارش ${storeOrder.id} با کد رهگیری ${input.refId} تایید شد.`,
+        href: "/buyer/dashboard?tab=storeOrders",
+      });
+    }
+    await writeOptiBidData(data);
+    return { order: storeOrder, payment };
+  }
+
+  const order = data.orders.find(
+    (item) => item.id === payment.orderId && item.buyerId === buyer.id,
+  );
+  if (!order) throw new Error("Zarinpal order not found");
+  if (money(order.totalAmount) !== payment.amount)
+    throw new Error("Zarinpal amount mismatch");
 
   if (order.status === "pending_payment") {
     const amount = money(order.totalAmount);
@@ -4244,6 +4319,66 @@ export async function createJsonStoreOrder(input: {
     title: "سفارش فروشگاهی ثبت شد",
     body: `سفارش ${order.id} با مبلغ ${totalAmount.toLocaleString("fa-IR")} تومان ثبت شد.`,
     href: "/buyer/dashboard",
+  });
+  await writeOptiBidData(data);
+  return order;
+}
+
+export async function payJsonStoreOrder(input: {
+  buyerId: number;
+  orderId: string;
+  paymentMethod: PaymentMethod;
+  gatewayAuthority?: string;
+  gatewayRefId?: string;
+}) {
+  const data = await getOptiBidData();
+  const buyer = getUserOrThrow(data, input.buyerId, "buyer");
+  const order = data.storeOrders.find(
+    (item) =>
+      item.id === input.orderId &&
+      item.buyerId === buyer.id &&
+      item.status === "pending_payment",
+  );
+  if (!order) throw new Error("Pending store order not found");
+  const amount = Math.max(0, Math.floor(Number(order.totalAmount || 0)));
+  if (!amount) throw new Error("Invalid store order amount");
+
+  if (input.paymentMethod === "wallet") {
+    if (buyer.walletBalance < amount) throw new Error("Insufficient wallet balance");
+    buyer.walletBalance -= amount;
+    addWalletTransaction(data, {
+      userId: buyer.id,
+      type: "gateway_payment",
+      amount: -amount,
+      balanceAfter: buyer.walletBalance,
+      description: `پرداخت سفارش فروشگاهی ${order.id} از کیف پول`,
+      orderId: order.id,
+    });
+  } else {
+    addWalletTransaction(data, {
+      userId: buyer.id,
+      type: "gateway_payment",
+      amount: -amount,
+      balanceAfter: buyer.walletBalance,
+      description:
+        input.paymentMethod === "zarinpal"
+          ? `پرداخت زرین‌پال سفارش فروشگاهی ${order.id}`
+          : `پرداخت اینترنتی سفارش فروشگاهی ${order.id}`,
+      orderId: order.id,
+    });
+  }
+
+  order.status = "paid";
+  order.paymentMethod = input.paymentMethod;
+  order.gatewayAuthority = input.gatewayAuthority || order.gatewayAuthority;
+  order.gatewayRefId = input.gatewayRefId || order.gatewayRefId;
+  order.paidAt = new Date().toISOString();
+  addNotification(data, {
+    userId: buyer.id,
+    type: "payment",
+    title: "پرداخت سفارش فروشگاهی موفق بود",
+    body: `پرداخت سفارش ${order.id} با مبلغ ${amount.toLocaleString("fa-IR")} تومان ثبت شد.`,
+    href: "/buyer/dashboard?tab=storeOrders",
   });
   await writeOptiBidData(data);
   return order;

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { createJsonUser, type JsonKycDocument } from "@/lib/json-store";
+import {
+  createJsonUser,
+  getJsonSiteMode,
+  type JsonKycDocument,
+} from "@/lib/json-store";
 import { removeKycFiles, saveKycFile } from "@/lib/kyc-storage";
 import { removeAvatarFile, saveAvatarFile } from "@/lib/avatar-storage";
 
@@ -92,7 +96,13 @@ export async function POST(request: Request) {
     const explicitEmail = text(form, "email").toLowerCase();
     const explicitPhone = text(form, "phone");
     const password = text(form, "password");
-    const role = text(form, "role") === "seller" ? "seller" : "buyer";
+    const siteMode = await getJsonSiteMode();
+    const role =
+      siteMode === "store"
+        ? "buyer"
+        : text(form, "role") === "seller"
+          ? "seller"
+          : "buyer";
 
     const email =
       explicitEmail || (isEmail(identifier) ? identifier.toLowerCase() : "");

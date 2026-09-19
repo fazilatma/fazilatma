@@ -45,6 +45,7 @@
   "/api/seller-request-action/route": "/api/seller-request-action",
   "/api/seller-score/route": "/api/seller-score",
   "/api/seller/profile/route": "/api/seller/profile",
+  "/api/shop/orders/pay/route": "/api/shop/orders/pay",
   "/api/shop/orders/route": "/api/shop/orders",
   "/api/site-mode/route": "/api/site-mode",
   "/api/source-files/route": "/api/source-files",

@@ -49,6 +49,9 @@ function CartLaptopVisual({ item }: { item: CartItem }) {
 export default function StoreCartClient() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<
+    "zarinpal" | "gateway" | "wallet"
+  >("zarinpal");
   const [form, setForm] = useState({
     receiverName: "",
     receiverPhone: "",
@@ -122,10 +125,33 @@ export default function StoreCartClient() {
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.message || "ثبت سفارش ناموفق بود.");
+
+      const payResponse = await fetch("/api/shop/orders/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerId: userId,
+          orderId: result.order?.id,
+          paymentMethod,
+        }),
+      });
+      const payResult = await payResponse.json();
+      if (!payResult.success)
+        throw new Error(
+          `${payResult.message || "پرداخت سفارش ناموفق بود."}\nکد سفارش ثبت‌شده: ${result.order?.id || "—"}`,
+        );
+
       localStorage.removeItem(CART_KEY);
       setItems([]);
       window.dispatchEvent(new CustomEvent("optibid-store-cart-updated"));
-      alert(`${result.message}\nکد سفارش: ${result.order?.id || "—"}`);
+
+      if (payResult.redirectUrl) {
+        alert(payResult.message || "به درگاه بانکی منتقل می‌شوید.");
+        window.location.assign(payResult.redirectUrl);
+        return;
+      }
+
+      alert(`${payResult.message || result.message}\nکد سفارش: ${result.order?.id || "—"}`);
     } catch (error) {
       alert(error instanceof Error ? error.message : "ثبت سفارش فروشگاهی ناموفق بود.");
     } finally {
@@ -233,13 +259,39 @@ export default function StoreCartClient() {
           />
         </div>
 
+        <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
+          <label className="block text-sm font-black text-slate-800">
+            روش پرداخت فروشگاهی
+            <select
+              value={paymentMethod}
+              onChange={(event) =>
+                setPaymentMethod(
+                  event.target.value as "zarinpal" | "gateway" | "wallet",
+                )
+              }
+              className="mt-2 w-full rounded-xl border border-rose-200 bg-white px-3 py-3 text-sm outline-none focus:border-rose-400"
+            >
+              <option value="zarinpal">درگاه بانکی زرین‌پال</option>
+              <option value="gateway">پرداخت اینترنتی آزمایشی</option>
+              <option value="wallet">پرداخت از کیف پول</option>
+            </select>
+          </label>
+          <p className="mt-2 text-xs leading-6 text-rose-700">
+            سفارش فروشگاهی بعد از ثبت، مثل فاز درخواست خرید به مسیر پرداخت متصل می‌شود.
+          </p>
+        </div>
+
         <button
           type="button"
           disabled={submitting}
           onClick={submitOrder}
           className="mt-5 w-full rounded-2xl bg-rose-600 px-5 py-4 text-sm font-black text-white shadow-lg transition hover:bg-rose-700 disabled:bg-slate-300"
         >
-          {submitting ? "در حال ثبت سفارش..." : "ثبت سفارش و ادامه پرداخت"}
+          {submitting
+            ? "در حال ثبت سفارش..."
+            : paymentMethod === "zarinpal"
+              ? "ثبت سفارش و پرداخت بانکی"
+              : "ثبت سفارش و ادامه پرداخت"}
         </button>
         <p className="mt-3 text-xs leading-6 text-slate-500">
           پس از ثبت سفارش، جزئیات پرداخت و ارسال در حساب کاربری شما ثبت می‌شود.

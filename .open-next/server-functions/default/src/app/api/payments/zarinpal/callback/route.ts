@@ -83,7 +83,7 @@ export async function GET(request: Request) {
         ok: true,
         title: "پرداخت زرین‌پال با موفقیت تایید شد",
         message:
-          "وجه سفارش وارد حساب امانی OptiBid شد. فروشنده اکنون می‌تواند کالا را ارسال کند.",
+          "پرداخت سفارش با موفقیت تایید شد. وضعیت سفارش در داشبورد خریدار به‌روزرسانی شد.",
         orderId: result.order.id,
         refId: verified.refId,
       }),
