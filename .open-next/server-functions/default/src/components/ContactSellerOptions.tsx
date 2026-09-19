@@ -136,57 +136,66 @@ export default function ContactSellerOptions({
 
   return (
     <div
-      className={`${compact ? "mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-4" : "rounded-3xl border border-sky-100 bg-white p-6 shadow-sm"} ${className}`}
+      className={`${
+        compact
+          ? "rounded-3xl border border-sky-100 bg-gradient-to-l from-sky-50/90 to-white p-4 shadow-sm"
+          : "rounded-3xl border border-sky-100 bg-white p-6 shadow-sm"
+      } ${className}`}
       dir="rtl"
     >
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-start">
+        <div className="min-w-0">
           <p className="text-sm font-black text-[#003b5c]">
             راه‌های ارتباط با فروشنده
           </p>
           <p className="mt-1 text-xs leading-6 text-slate-600">
-            OptiBid فقط بستر معرفی و مقایسه است؛ خریدار می‌تواند مستقیم، امن یا
-            از طریق چت داخلی هماهنگ کند.
+            خریدار می‌تواند مستقیم، بدون نمایش شماره یا با چت داخلی OptiBid هماهنگ کند.
           </p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+        <span className="w-fit shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
           هر ۳ گزینه فعال
         </span>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-3">
         <button
           type="button"
           onClick={openDirectContact}
-          className="rounded-2xl border border-emerald-200 bg-white px-3 py-3 text-right text-xs font-bold text-emerald-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:bg-emerald-50"
+          className="flex min-h-24 items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-right text-xs font-bold text-emerald-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:bg-emerald-50"
         >
-          <span className="block text-lg">📞</span>
-          اطلاعات تماس فروشنده
-          <span className="mt-1 block font-normal text-emerald-700/80">
-            {hasDirectContact ? "شماره/ایمیل مستقیم" : "در انتظار تکمیل پروفایل"}
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-lg">📞</span>
+          <span className="min-w-0">
+            <span className="block">اطلاعات تماس فروشنده</span>
+            <span className="mt-1 block font-normal leading-5 text-emerald-700/80">
+              {hasDirectContact ? "شماره/ایمیل مستقیم" : "در انتظار تکمیل پروفایل"}
+            </span>
           </span>
         </button>
         <button
           type="button"
           onClick={sendRelayRequest}
           disabled={sendingRelay}
-          className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-right text-xs font-bold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 disabled:cursor-wait disabled:opacity-60"
+          className="flex min-h-24 items-center gap-3 rounded-2xl border border-blue-200 bg-white px-4 py-3 text-right text-xs font-bold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 disabled:cursor-wait disabled:opacity-60"
         >
-          <span className="block text-lg">☎️</span>
-          تماس از طریق OptiBid
-          <span className="mt-1 block font-normal text-blue-700/80">
-            {sendingRelay ? "در حال ارسال درخواست..." : "بدون نمایش شماره"}
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-lg">☎️</span>
+          <span className="min-w-0">
+            <span className="block">تماس از طریق OptiBid</span>
+            <span className="mt-1 block font-normal leading-5 text-blue-700/80">
+              {sendingRelay ? "در حال ارسال درخواست..." : "بدون نمایش شماره"}
+            </span>
           </span>
         </button>
         <button
           type="button"
           onClick={openOptibidChat}
-          className="rounded-2xl border border-violet-200 bg-white px-3 py-3 text-right text-xs font-bold text-violet-800 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:bg-violet-50"
+          className="flex min-h-24 items-center gap-3 rounded-2xl border border-violet-200 bg-white px-4 py-3 text-right text-xs font-bold text-violet-800 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:bg-violet-50"
         >
-          <span className="block text-lg">💬</span>
-          چت از طریق OptiBid
-          <span className="mt-1 block font-normal text-violet-700/80">
-            گفتگو داخل داشبورد
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-lg">💬</span>
+          <span className="min-w-0">
+            <span className="block">چت از طریق OptiBid</span>
+            <span className="mt-1 block font-normal leading-5 text-violet-700/80">
+              گفتگو داخل داشبورد
+            </span>
           </span>
         </button>
       </div>

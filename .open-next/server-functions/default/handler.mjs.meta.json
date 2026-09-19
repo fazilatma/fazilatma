@@ -3914,7 +3914,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 249548,
+      "bytes": 249550,
       "imports": [
         {
           "path": "path",
@@ -6220,7 +6220,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 1681893,
+      "bytes": 1682584,
       "imports": [],
       "format": "cjs"
     },
@@ -8031,7 +8031,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_0fyvyln._.js": {
-      "bytes": 35094,
+      "bytes": 35747,
       "imports": [],
       "format": "cjs"
     },
@@ -8705,12 +8705,12 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_1x30-s6._.js": {
-      "bytes": 17963,
+      "bytes": 18616,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_app_requests_[id]_169nyaz._.js": {
-      "bytes": 17643,
+      "bytes": 17637,
       "imports": [],
       "format": "cjs"
     },
@@ -8878,7 +8878,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_ContactSellerOptions_tsx_14vdifn._.js": {
-      "bytes": 6410,
+      "bytes": 7063,
       "imports": [],
       "format": "cjs"
     },
@@ -17159,7 +17159,7 @@
           "bytesInOutput": 461
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 210133
+          "bytesInOutput": 210135
         },
         ".open-next/cloudflare-templates/shims/throw.js": {
           "bytesInOutput": 215
@@ -17465,7 +17465,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2046046
+          "bytesInOutput": 2046673
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -17684,7 +17684,7 @@
           "bytesInOutput": 23295
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_0fyvyln._.js": {
-          "bytesInOutput": 45305
+          "bytesInOutput": 45894
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_app_buyer_dashboard_page_tsx_1crypvy._.js": {
           "bytesInOutput": 63944
@@ -17894,10 +17894,10 @@
           "bytesInOutput": 23283
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_1x30-s6._.js": {
-          "bytesInOutput": 27044
+          "bytesInOutput": 27633
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_app_requests_[id]_169nyaz._.js": {
-          "bytesInOutput": 23022
+          "bytesInOutput": 23017
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0yw1xzc._.js": {
           "bytesInOutput": 5434
@@ -17951,7 +17951,7 @@
           "bytesInOutput": 20691
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_ContactSellerOptions_tsx_14vdifn._.js": {
-          "bytesInOutput": 9784
+          "bytesInOutput": 10373
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1fhh88c._.js": {
           "bytesInOutput": 13420
@@ -18458,7 +18458,7 @@
           "bytesInOutput": 71139
         }
       },
-      "bytes": 8976595
+      "bytes": 8978986
     }
   }
 }

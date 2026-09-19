@@ -331,24 +331,12 @@ export default async function RequestDetailPage({
                               </div>
                             )}
                             {seller && (
-                              <>
-                                <Link
-                                  href={`/sellers/${seller.id}`}
-                                  className="mt-3 inline-block text-sm font-bold text-[#00a8e8]"
-                                >
-                                  مشاهده پروفایل فروشنده
-                                </Link>
-                                <ContactSellerOptions
-                                  sellerId={seller.id}
-                                  sellerName={seller.fullName}
-                                  sellerPhone={seller.phone}
-                                  sellerEmail={seller.email}
-                                  requestId={request.id}
-                                  requestTitle={request.title}
-                                  requestBuyerId={request.buyerId}
-                                  compact
-                                />
-                              </>
+                              <Link
+                                href={`/sellers/${seller.id}`}
+                                className="mt-3 inline-block text-sm font-bold text-[#00a8e8]"
+                              >
+                                مشاهده پروفایل فروشنده
+                              </Link>
                             )}
                           </div>
                           <div className="text-left">
@@ -371,6 +359,19 @@ export default async function RequestDetailPage({
                             />
                           </div>
                         </div>
+                        {seller && (
+                          <ContactSellerOptions
+                            sellerId={seller.id}
+                            sellerName={seller.fullName}
+                            sellerPhone={seller.phone}
+                            sellerEmail={seller.email}
+                            requestId={request.id}
+                            requestTitle={request.title}
+                            requestBuyerId={request.buyerId}
+                            compact
+                            className="mt-5 w-full"
+                          />
+                        )}
                       </div>
                     );
                   })}
