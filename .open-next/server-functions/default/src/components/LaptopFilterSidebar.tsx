@@ -249,6 +249,49 @@ export default function LaptopFilterSidebar({
   );
 }
 
+
+export function MobileLaptopFilterMenu({
+  products,
+  params = {},
+  title = "فیلترهای خرید لپ‌تاپ",
+  subtitle = "برای باز کردن فیلترها لمس کنید",
+}: {
+  products: JsonStoreProduct[];
+  params?: LaptopFilterParams;
+  title?: string;
+  subtitle?: string;
+}) {
+  const appliedFilters = activeCount(params);
+
+  return (
+    <details className="group rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm lg:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3 text-slate-900 transition hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#003b5c] text-white shadow-sm">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-black">{title}</span>
+            <span className="mt-1 block text-xs leading-5 text-slate-500">
+              {appliedFilters
+                ? `${appliedFilters.toLocaleString("fa-IR")} فیلتر فعال — برای تغییر لمس کنید`
+                : subtitle}
+            </span>
+          </span>
+        </span>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-lg font-black text-slate-500 transition group-open:rotate-180">
+          ⌄
+        </span>
+      </summary>
+      <div className="mt-3 overflow-hidden rounded-[1.5rem] border border-slate-100 bg-slate-50/60 p-2">
+        <LaptopFilterSidebar products={products} params={params} sticky={false} />
+      </div>
+    </details>
+  );
+}
+
 function PriceFilter({ params }: { params: LaptopFilterParams }) {
   const options = [
     { label: "تا ۴۵ میلیون تومان", maxPrice: "45000000" },

@@ -1,21 +1,17 @@
 import Link from "next/link";
 import HorizontalScroller from "@/components/HorizontalScroller";
-import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
+import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
 import {
   getLaptopCollectionProducts,
-  laptopCategoryItems,
   laptopCollectionItems,
   laptopGuideItems,
   type LaptopCollectionItem,
   type LaptopGuideItem,
 } from "@/lib/laptop-storefront";
 import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
-
-const money = (value: number | string) =>
-  `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
 
 export default function StorefrontHome({
   products,
@@ -27,10 +23,6 @@ export default function StorefrontHome({
   heroDurationSeconds?: number;
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
-  const minPrice = products.reduce(
-    (min, product) => Math.min(min, product.price),
-    products[0]?.price || 0,
-  );
   const collectionRows = laptopCollectionItems.map((collection) => ({
     collection,
     products: getLaptopCollectionProducts(products, collection.slug).slice(0, 3),
@@ -42,7 +34,9 @@ export default function StorefrontHome({
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
       <section className="bg-white">
         <div className="grid w-full gap-4 px-2 py-5 sm:px-4 lg:grid-cols-[292px_minmax(0,1fr)] lg:px-5 xl:px-6 2xl:px-8">
-          <LaptopFilterSidebar products={products} sticky={false} />
+          <div className="hidden lg:block">
+            <LaptopFilterSidebar products={products} sticky={false} />
+          </div>
 
           <div className="min-w-0 space-y-5">
             <StoreHeroSlider
@@ -50,6 +44,11 @@ export default function StorefrontHome({
               durationSeconds={heroDurationSeconds}
             />
             <StoreAdSlider />
+            <MobileLaptopFilterMenu
+              products={products}
+              title="فیلتر سریع لپ‌تاپ"
+              subtitle="برای باز کردن فیلترهای کامل، این منو را لمس کنید"
+            />
             <StoreLaptopBrandSlider />
             <SmartLaptopPickStrip />
             <SpecialOfferCarousel
@@ -67,10 +66,10 @@ export default function StorefrontHome({
                 مسیرهای سریع خرید
               </span>
               <h2 className="mt-3 text-2xl font-black text-slate-900">
-                خرید بر اساس بودجه و کاربری
+                پیشنهاد خرید بر اساس بودجه و کاربری
               </h2>
               <p className="mt-2 text-sm leading-7 text-slate-500">
-                به جای تکرار دسته‌بندی برندها، این بخش خریدار را سریع به مدل‌های مناسب بودجه و نوع استفاده هدایت می‌کند.
+                مسیرهای آماده برای رسیدن سریع به لپ‌تاپ مناسب دانشجویی، اداری، مهندسی یا گیمینگ.
               </p>
             </div>
             <Link href="/shop" className="text-sm font-black text-emerald-700">
@@ -115,10 +114,10 @@ export default function StorefrontHome({
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
-                راهنمای خرید لپ‌تاپ
+                راهنمای سریع فروشگاه
               </span>
               <h2 className="mt-3 text-2xl font-black text-slate-900">
-                قبل از خرید، بر اساس نیاز انتخاب کن
+                قبل از خرید، نیازت را دقیق‌تر مشخص کن
               </h2>
             </div>
             <Link href="/shop" className="text-sm font-black text-rose-600">
@@ -481,36 +480,6 @@ function StoreCollectionRow({
         </div>
       )}
     </div>
-  );
-}
-
-function LaptopType({
-  title,
-  href,
-  badge,
-}: {
-  title: string;
-  href: string;
-  badge?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group min-w-[132px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50"
-    >
-      <div className="mx-auto mb-3 w-20">
-        <div className="mx-auto h-10 rounded-t-xl border-[6px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
-        <div className="mx-auto h-2 rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
-      </div>
-      {badge && (
-        <span className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-rose-600 shadow-sm">
-          {badge}
-        </span>
-      )}
-      <span className="block text-xs font-black text-slate-700 group-hover:text-rose-600">
-        {title}
-      </span>
-    </Link>
   );
 }
 

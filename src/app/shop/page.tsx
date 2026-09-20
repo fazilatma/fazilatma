@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import LaptopFilterSidebar from "@/components/LaptopFilterSidebar";
+import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
 import { getJsonStoreProducts, type JsonStoreProduct } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
@@ -395,7 +395,15 @@ export default async function ShopPage({
       </section>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:px-8">
-        <LaptopFilterSidebar products={products} params={params} />
+        <div className="hidden lg:block">
+          <LaptopFilterSidebar products={products} params={params} />
+        </div>
+        <MobileLaptopFilterMenu
+          products={products}
+          params={params}
+          title="فیلترهای فروشگاه"
+          subtitle="برای نمایش فیلترهای کامل، این منو را لمس کنید"
+        />
 
         <main className="min-w-0 flex-1">
           <div className="mb-5 flex flex-col gap-3 rounded-[1.5rem] bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
