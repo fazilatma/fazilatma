@@ -396,6 +396,8 @@ export type JsonStoreProduct = {
   specs: Record<string, string>;
   warranty: string;
   shippingNote: string;
+  priceUpdatedAt?: string;
+  marketReferenceNote?: string;
   isActive: boolean;
   isFeatured: boolean;
   createdAt: string;
@@ -489,12 +491,12 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     summary: "لپ‌تاپ خوش‌ساخت و سبک برای کارهای اداری، حسابداری، برنامه‌نویسی و استفاده روزانه.",
     description:
       "ThinkPad T14 نسل سوم با بدنه مقاوم، کیبورد حرفه‌ای و سخت‌افزار متعادل برای شرکت‌ها، دانشجویان و کاربران حرفه‌ای مناسب است. این مدل با رم ۱۶ گیگابایت و حافظه SSD سرعت خوبی برای کارهای روزمره و نرم‌افزارهای اداری ارائه می‌دهد.",
-    price: 42500000,
-    originalPrice: 46800000,
+    price: 72900000,
+    originalPrice: 79500000,
     stock: 8,
     rating: 4.6,
     reviewsCount: 37,
-    badges: ["اداری", "استوک تمیز", "مهلت تست"],
+    badges: ["اداری", "استوک تمیز", "قیمت به‌روز"],
     specs: {
       پردازنده: "Intel Core i5 نسل ۱۲",
       رم: "16GB DDR4",
@@ -505,6 +507,8 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     },
     warranty: "۷ روز مهلت تست سلامت",
     shippingNote: "ارسال سریع و قابل پیگیری",
+    priceUpdatedAt: "2026-09-22",
+    marketReferenceNote: "برآورد شده از بازه قیمت چند فروشگاه و مقایسه‌گر ایرانی در ۱۴۰۵/۰۷/۰۱",
     isActive: true,
     isFeatured: true,
     createdAt: "2026-09-18T00:00:00.000Z",
@@ -518,12 +522,12 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     summary: "گزینه‌ای حرفه‌ای برای مدیران، کارشناسان و کاربرانی که بدنه سبک و کیفیت ساخت بالا می‌خواهند.",
     description:
       "Latitude 7420 با پردازنده Core i7، نمایشگر باکیفیت و شارژدهی مناسب، برای جلسات، کارهای سازمانی و استفاده طولانی‌مدت طراحی شده است. این محصول برای کاربرانی مناسب است که پایداری و حمل آسان برایشان مهم است.",
-    price: 49800000,
-    originalPrice: 53500000,
+    price: 36900000,
+    originalPrice: 42500000,
     stock: 5,
     rating: 4.7,
     reviewsCount: 42,
-    badges: ["پرفروش", "سبک", "شرکتی"],
+    badges: ["قیمت بازار", "سبک", "شرکتی"],
     specs: {
       پردازنده: "Intel Core i7 نسل ۱۱",
       رم: "16GB LPDDR4x",
@@ -534,6 +538,8 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     },
     warranty: "۷ روز مهلت تست و تضمین اصالت مشخصات",
     shippingNote: "ارسال به سراسر کشور",
+    priceUpdatedAt: "2026-09-22",
+    marketReferenceNote: "تنظیم‌شده بر اساس قیمت‌های بازار استوک و کانفیگ مشابه در ۱۴۰۵/۰۷/۰۱",
     isActive: true,
     isFeatured: true,
     createdAt: "2026-09-18T00:00:00.000Z",
@@ -547,12 +553,12 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     summary: "لپ‌تاپ باریک، شیک و مناسب کارهای دانشگاهی، اداری و جلسات آنلاین.",
     description:
       "EliteBook 840 G8 با طراحی حرفه‌ای، وزن مناسب، نمایشگر ۱۴ اینچ و امکانات امنیتی، انتخابی متعادل برای دانشجویان و کاربران کاری است. رم ۱۶ گیگابایت و SSD پرسرعت، اجرای نرم‌افزارهای روزمره را روان می‌کند.",
-    price: 38900000,
-    originalPrice: 42100000,
+    price: 39800000,
+    originalPrice: 43900000,
     stock: 11,
     rating: 4.5,
     reviewsCount: 29,
-    badges: ["دانشجویی", "سبک", "مهلت تست"],
+    badges: ["دانشجویی", "سبک", "قیمت به‌روز"],
     specs: {
       پردازنده: "Intel Core i5 نسل ۱۱",
       رم: "16GB DDR4",
@@ -563,6 +569,8 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     },
     warranty: "۷ روز مهلت تست",
     shippingNote: "بسته‌بندی ایمن و ارسال قابل پیگیری",
+    priceUpdatedAt: "2026-09-22",
+    marketReferenceNote: "برآورد شده از مدل‌های EliteBook G8 هم‌رده در بازار در ۱۴۰۵/۰۷/۰۱",
     isActive: true,
     isFeatured: true,
     createdAt: "2026-09-18T00:00:00.000Z",
@@ -576,12 +584,12 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     summary: "مدل گیمینگ با گرافیک مجزا برای بازی، تدوین و کارهای گرافیکی نیمه‌حرفه‌ای.",
     description:
       "Asus TUF Gaming F15 برای کاربرانی طراحی شده که علاوه بر کارهای روزمره، بازی، تدوین و نرم‌افزارهای گرافیکی را هم اجرا می‌کنند. گرافیک RTX 3050، حافظه ۱ ترابایت SSD و سیستم خنک‌کننده قدرتمند از ویژگی‌های اصلی این مدل است.",
-    price: 68400000,
-    originalPrice: 72900000,
+    price: 78900000,
+    originalPrice: 83900000,
     stock: 4,
     rating: 4.4,
     reviewsCount: 18,
-    badges: ["گیمینگ", "RTX", "ویژه"],
+    badges: ["گیمینگ", "RTX", "قیمت به‌روز"],
     specs: {
       پردازنده: "Intel Core i7 نسل ۱۲",
       رم: "16GB DDR5",
@@ -592,6 +600,8 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     },
     warranty: "۷ روز مهلت تست سخت‌افزار",
     shippingNote: "ارسال با بسته‌بندی محافظ",
+    priceUpdatedAt: "2026-09-22",
+    marketReferenceNote: "برآورد شده از قیمت فروشگاه‌ها و مدل‌های RTX هم‌رده در ۱۴۰۵/۰۷/۰۱",
     isActive: true,
     isFeatured: true,
     createdAt: "2026-09-18T00:00:00.000Z",
@@ -605,12 +615,12 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     summary: "مک‌بوک سبک و کم‌مصرف برای برنامه‌نویسی، تولید محتوا، کارهای دانشجویی و روزمره.",
     description:
       "MacBook Air M1 با شارژدهی عالی، کیفیت ساخت بالا و عملکرد روان برای اکوسیستم اپل، انتخابی محبوب برای کاربران دانشجویی و حرفه‌ای سبک است. این مدل برای کارهای روزمره، برنامه‌نویسی و تولید محتوا مناسب است.",
-    price: 54700000,
-    originalPrice: 58900000,
+    price: 69900000,
+    originalPrice: 76900000,
     stock: 6,
     rating: 4.8,
     reviewsCount: 54,
-    badges: ["Apple", "سبک", "باتری عالی"],
+    badges: ["Apple", "سبک", "قیمت به‌روز"],
     specs: {
       پردازنده: "Apple M1",
       رم: "8GB Unified",
@@ -621,6 +631,8 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     },
     warranty: "۷ روز مهلت تست",
     shippingNote: "ارسال سریع و بیمه‌شده",
+    priceUpdatedAt: "2026-09-22",
+    marketReferenceNote: "برآورد شده از بازه قیمت مک‌بوک Air M1 در مراجع مقایسه قیمت در ۱۴۰۵/۰۷/۰۱",
     isActive: true,
     isFeatured: false,
     createdAt: "2026-09-18T00:00:00.000Z",
@@ -634,12 +646,12 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     summary: "لپ‌تاپ قدرتمند برای رندر، بازی، نرم‌افزارهای مهندسی و کارهای سنگین.",
     description:
       "Legion 5 با پردازنده Ryzen 7 و کارت گرافیک RTX 3060 برای کاربرانی مناسب است که قدرت پردازشی، گرافیک قوی و نمایشگر با نرخ نوسازی بالا نیاز دارند. این مدل گزینه‌ای جدی برای بازی و کارهای مهندسی است.",
-    price: 76500000,
-    originalPrice: 81900000,
+    price: 68900000,
+    originalPrice: 74900000,
     stock: 3,
     rating: 4.6,
     reviewsCount: 21,
-    badges: ["مهندسی", "RTX 3060", "قدرتمند"],
+    badges: ["مهندسی", "RTX 3060", "قیمت به‌روز"],
     specs: {
       پردازنده: "AMD Ryzen 7",
       رم: "16GB DDR4",
@@ -650,11 +662,84 @@ const defaultStoreProducts: JsonStoreProduct[] = [
     },
     warranty: "۷ روز مهلت تست تخصصی",
     shippingNote: "ارسال با بسته‌بندی محافظ",
+    priceUpdatedAt: "2026-09-22",
+    marketReferenceNote: "برآورد شده از قیمت‌های Legion 5 RTX 3060 و مدل‌های گیمینگ هم‌رده در ۱۴۰۵/۰۷/۰۱",
     isActive: true,
     isFeatured: false,
     createdAt: "2026-09-18T00:00:00.000Z",
   },
 ];
+
+const STORE_MARKET_PRICE_REFRESH_DATE = "2026-09-22";
+
+const latestStoreMarketPrices: Record<
+  string,
+  Pick<JsonStoreProduct, "price" | "originalPrice" | "priceUpdatedAt" | "marketReferenceNote"> & {
+    badges?: string[];
+  }
+> = {
+  "lp-thinkpad-t14-g3": {
+    price: 72_900_000,
+    originalPrice: 79_500_000,
+    priceUpdatedAt: STORE_MARKET_PRICE_REFRESH_DATE,
+    marketReferenceNote:
+      "برآورد شده از بازه قیمت چند فروشگاه و مقایسه‌گر ایرانی در ۱۴۰۵/۰۷/۰۱",
+    badges: ["اداری", "استوک تمیز", "قیمت به‌روز"],
+  },
+  "lp-dell-latitude-7420": {
+    price: 36_900_000,
+    originalPrice: 42_500_000,
+    priceUpdatedAt: STORE_MARKET_PRICE_REFRESH_DATE,
+    marketReferenceNote:
+      "تنظیم‌شده بر اساس قیمت‌های بازار استوک و کانفیگ مشابه در ۱۴۰۵/۰۷/۰۱",
+    badges: ["قیمت بازار", "سبک", "شرکتی"],
+  },
+  "lp-hp-elitebook-840-g8": {
+    price: 39_800_000,
+    originalPrice: 43_900_000,
+    priceUpdatedAt: STORE_MARKET_PRICE_REFRESH_DATE,
+    marketReferenceNote:
+      "برآورد شده از مدل‌های EliteBook G8 هم‌رده در بازار در ۱۴۰۵/۰۷/۰۱",
+    badges: ["دانشجویی", "سبک", "قیمت به‌روز"],
+  },
+  "lp-asus-tuf-f15-rtx3050": {
+    price: 78_900_000,
+    originalPrice: 83_900_000,
+    priceUpdatedAt: STORE_MARKET_PRICE_REFRESH_DATE,
+    marketReferenceNote:
+      "برآورد شده از قیمت فروشگاه‌ها و مدل‌های RTX هم‌رده در ۱۴۰۵/۰۷/۰۱",
+    badges: ["گیمینگ", "RTX", "قیمت به‌روز"],
+  },
+  "lp-macbook-air-m1": {
+    price: 69_900_000,
+    originalPrice: 76_900_000,
+    priceUpdatedAt: STORE_MARKET_PRICE_REFRESH_DATE,
+    marketReferenceNote:
+      "برآورد شده از بازه قیمت مک‌بوک Air M1 در مراجع مقایسه قیمت در ۱۴۰۵/۰۷/۰۱",
+    badges: ["Apple", "سبک", "قیمت به‌روز"],
+  },
+  "lp-lenovo-legion-5": {
+    price: 68_900_000,
+    originalPrice: 74_900_000,
+    priceUpdatedAt: STORE_MARKET_PRICE_REFRESH_DATE,
+    marketReferenceNote:
+      "برآورد شده از قیمت‌های Legion 5 RTX 3060 و مدل‌های گیمینگ هم‌رده در ۱۴۰۵/۰۷/۰۱",
+    badges: ["مهندسی", "RTX 3060", "قیمت به‌روز"],
+  },
+};
+
+function applyLatestStoreMarketPrice(product: JsonStoreProduct): JsonStoreProduct {
+  const latest = latestStoreMarketPrices[product.id];
+  if (!latest) return product;
+  return {
+    ...product,
+    price: latest.price,
+    originalPrice: latest.originalPrice,
+    priceUpdatedAt: latest.priceUpdatedAt,
+    marketReferenceNote: latest.marketReferenceNote,
+    badges: latest.badges || product.badges,
+  };
+}
 
 const defaultStoreHeroSliderSlides: HomepageImageSliderSlide[] = [
   {
@@ -1049,7 +1134,7 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       .replace(/[^a-z0-9-]+/g, "-")
       .replace(/^-+|-+$/g, "");
     if (!title || !slug) continue;
-    products.push({
+    const normalizedProduct: JsonStoreProduct = {
       id: String(product.id || slug),
       slug,
       title,
@@ -1079,10 +1164,17 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
           : {},
       warranty: String(product.warranty || "۷ روز مهلت تست").trim(),
       shippingNote: String(product.shippingNote || "ارسال قابل پیگیری").trim(),
+      priceUpdatedAt: product.priceUpdatedAt
+        ? String(product.priceUpdatedAt).trim()
+        : undefined,
+      marketReferenceNote: product.marketReferenceNote
+        ? String(product.marketReferenceNote).trim()
+        : undefined,
       isActive: product.isActive !== false,
       isFeatured: Boolean(product.isFeatured),
       createdAt: String(product.createdAt || new Date().toISOString()),
-    });
+    };
+    products.push(applyLatestStoreMarketPrice(normalizedProduct));
   }
   return products.length ? products : defaultStoreProducts;
 }

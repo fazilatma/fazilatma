@@ -162,6 +162,11 @@ export default async function StoreProductPage({
                 <p className="mt-2 text-xs leading-6 text-slate-500">
                   {product.warranty} · {product.shippingNote}
                 </p>
+                {product.marketReferenceNote && (
+                  <p className="mt-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold leading-6 text-emerald-700">
+                    قیمت بر اساس بررسی بازار به‌روزرسانی شده است: {product.marketReferenceNote}
+                  </p>
+                )}
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <StoreAddToCartButton
                     product={{
