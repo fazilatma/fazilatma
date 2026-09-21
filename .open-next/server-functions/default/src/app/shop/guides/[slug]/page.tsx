@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import StoreProductCard from "@/components/StoreProductCard";
 import { getJsonStoreProducts } from "@/lib/json-store";
 import { getLaptopGuide, laptopGuideItems } from "@/lib/laptop-storefront";
+import { articleJsonLd, breadcrumbJsonLd, buildSeoMetadata, itemListJsonLd, jsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,13 @@ export async function generateMetadata({
   const { slug } = await params;
   const guide = getLaptopGuide(slug);
   if (!guide) return { title: "راهنمای خرید لپ‌تاپ | OptiBid" };
-  return {
-    title: `${guide.title} | راهنمای خرید لپ‌تاپ OptiBid`,
-    description: `${guide.text} پیشنهادهای مناسب ${guide.shortTitle} را در فروشگاه لپ‌تاپ OptiBid ببینید.`,
-  };
+  return buildSeoMetadata({
+    title: `${guide.title} | راهنمای خرید لپ‌تاپ`,
+    description: `${guide.text} پیشنهادهای مناسب ${guide.shortTitle}، چک‌لیست انتخاب، قیمت شروع و مدل‌های مرتبط را در فروشگاه OptiBid ببینید.`,
+    path: guide.href,
+    type: "article",
+    keywords: [guide.title, guide.shortTitle, "راهنمای خرید لپ‌تاپ", "خرید لپ‌تاپ"],
+  });
 }
 
 export default async function LaptopGuidePage({
@@ -44,6 +48,26 @@ export default async function LaptopGuidePage({
     (min, product) => Math.min(min, product.price),
     relatedProducts[0]?.price || 0,
   );
+  const guideArticleStructuredData = articleJsonLd({
+    title: guide.title,
+    description: `${guide.text} ${guide.checklist.join("، ")}`,
+    url: guide.href,
+  });
+  const relatedProductsStructuredData = itemListJsonLd({
+    name: `پیشنهادهای مناسب ${guide.shortTitle}`,
+    description: guide.text,
+    url: guide.href,
+    items: relatedProducts.map((product) => ({
+      name: product.title,
+      url: `/shop/${product.slug}`,
+    })),
+  });
+  const breadcrumbStructuredData = breadcrumbJsonLd([
+    { name: "خانه", url: "/" },
+    { name: "فروشگاه لپ‌تاپ", url: "/shop" },
+    { name: "راهنمای خرید", url: "/shop/guides" },
+    { name: guide.title, url: guide.href },
+  ]);
 
   const theme = {
     blue: {
@@ -73,6 +97,18 @@ export default async function LaptopGuidePage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(guideArticleStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(relatedProductsStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbStructuredData) }}
+      />
       <section className={`bg-gradient-to-l ${gradientClass} px-4 py-14 text-white`}>
         <div className="mx-auto max-w-7xl">
           <nav className="mb-6 text-sm text-white/80">

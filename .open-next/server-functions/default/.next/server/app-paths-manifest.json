@@ -66,6 +66,7 @@
   "/forgot-password/page": "app/forgot-password/page.js",
   "/how-it-works/page": "app/how-it-works/page.js",
   "/login/page": "app/login/page.js",
+  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
   "/page": "app/page.js",
   "/register/page": "app/register/page.js",
   "/request-board/page": "app/request-board/page.js",
@@ -74,6 +75,7 @@
   "/requests/[id]/offer/page": "app/requests/[id]/offer/page.js",
   "/requests/[id]/page": "app/requests/[id]/page.js",
   "/requests/page": "app/requests/page.js",
+  "/robots.txt/route": "app/robots.txt/route.js",
   "/seller/dashboard/page": "app/seller/dashboard/page.js",
   "/seller/sales/page": "app/seller/sales/page.js",
   "/sellers/[id]/page": "app/sellers/[id]/page.js",
@@ -84,6 +86,7 @@
   "/shop/guides/[slug]/page": "app/shop/guides/[slug]/page.js",
   "/shop/guides/page": "app/shop/guides/page.js",
   "/shop/page": "app/shop/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/source-code/page": "app/source-code/page.js",
   "/support/page": "app/support/page.js"
 }

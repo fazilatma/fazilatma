@@ -1,18 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { laptopGuideItems } from "@/lib/laptop-storefront";
+import { buildSeoMetadata, itemListJsonLd, jsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "راهنمای خرید لپ‌تاپ | OptiBid",
+export const metadata: Metadata = buildSeoMetadata({
+  title: "راهنمای خرید لپ‌تاپ اداری، دانشجویی، مهندسی و گیمینگ | OptiBid",
   description:
-    "راهنمای انتخاب لپ‌تاپ برای کار اداری، دانشجویی، مهندسی، طراحی، گیمینگ و تدوین در فروشگاه OptiBid.",
-};
+    "راهنمای انتخاب و خرید لپ‌تاپ بر اساس کاربری: اداری، دانشجویی، مهندسی، طراحی، گیمینگ و تدوین همراه با پیشنهاد مدل‌های مناسب در OptiBid.",
+  path: "/shop/guides",
+  type: "article",
+});
 
 export default function LaptopGuidesPage() {
+  const guidesStructuredData = itemListJsonLd({
+    name: "راهنماهای خرید لپ‌تاپ OptiBid",
+    description: "راهنمای انتخاب لپ‌تاپ بر اساس کاربری و بودجه.",
+    url: "/shop/guides",
+    items: laptopGuideItems.map((guide) => ({
+      name: guide.title,
+      url: guide.href,
+    })),
+  });
+
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(guidesStructuredData) }}
+      />
       <section className="bg-white py-12 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">

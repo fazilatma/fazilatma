@@ -66,6 +66,7 @@
   "/forgot-password/page": "/forgot-password",
   "/how-it-works/page": "/how-it-works",
   "/login/page": "/login",
+  "/manifest.webmanifest/route": "/manifest.webmanifest",
   "/page": "/",
   "/register/page": "/register",
   "/request-board/page": "/request-board",
@@ -74,6 +75,7 @@
   "/requests/[id]/offer/page": "/requests/[id]/offer",
   "/requests/[id]/page": "/requests/[id]",
   "/requests/page": "/requests",
+  "/robots.txt/route": "/robots.txt",
   "/seller/dashboard/page": "/seller/dashboard",
   "/seller/sales/page": "/seller/sales",
   "/sellers/[id]/page": "/sellers/[id]",
@@ -84,6 +86,7 @@
   "/shop/guides/[slug]/page": "/shop/guides/[slug]",
   "/shop/guides/page": "/shop/guides",
   "/shop/page": "/shop",
+  "/sitemap.xml/route": "/sitemap.xml",
   "/source-code/page": "/source-code",
   "/support/page": "/support"
 }

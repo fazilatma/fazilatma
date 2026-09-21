@@ -8,6 +8,7 @@ import {
   getLaptopCollectionProducts,
   laptopCollectionItems,
 } from "@/lib/laptop-storefront";
+import { breadcrumbJsonLd, buildSeoMetadata, itemListJsonLd, jsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +20,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const collection = getLaptopCollection(slug);
   if (!collection) return { title: "بخش فروشگاه لپ‌تاپ | OptiBid" };
-  return {
+  return buildSeoMetadata({
     title: `${collection.title} | فروشگاه لپ‌تاپ OptiBid`,
-    description: collection.subtitle,
-  };
+    description: `${collection.subtitle} مشاهده و مقایسه مدل‌های منتخب با قیمت، مشخصات فنی و وضعیت موجودی در OptiBid.`,
+    path: collection.href,
+  });
 }
 
 export default async function LaptopCollectionPage({
@@ -38,6 +40,21 @@ export default async function LaptopCollectionPage({
     await getJsonStoreProducts(),
     collection.slug,
   );
+  const collectionStructuredData = itemListJsonLd({
+    name: collection.title,
+    description: collection.subtitle,
+    url: collection.href,
+    items: products.slice(0, 24).map((product) => ({
+      name: product.title,
+      url: `/shop/${product.slug}`,
+    })),
+  });
+  const breadcrumbStructuredData = breadcrumbJsonLd([
+    { name: "خانه", url: "/" },
+    { name: "فروشگاه لپ‌تاپ", url: "/shop" },
+    { name: "بخش‌های ویژه", url: "/shop/collections" },
+    { name: collection.title, url: collection.href },
+  ]);
 
   const theme = {
     emerald: {
@@ -59,6 +76,14 @@ export default async function LaptopCollectionPage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(collectionStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbStructuredData) }}
+      />
       <section className={`bg-gradient-to-l ${theme.gradient} px-4 py-14 text-white`}>
         <div className="mx-auto max-w-7xl">
           <nav className="mb-6 text-sm text-white/80">

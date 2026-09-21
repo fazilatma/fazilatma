@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import StoreCartClient from "@/components/StoreCartClient";
+import { buildSeoMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildSeoMetadata({
   title: "سبد خرید | فروشگاه OptiBid",
   description: "مدیریت سبد خرید و ثبت سفارش فروشگاهی در OptiBid.",
-};
+  path: "/cart",
+  robots: { index: false, follow: false },
+});
 
 export default function CartPage() {
   return (

@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getJsonSupportContent } from "@/lib/json-store";
+import { absoluteUrl, buildSeoMetadata, jsonLd, siteName } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildSeoMetadata({
   title: "پشتیبانی OptiBid | تماس، پیگیری سفارش و راهنمای خرید لپ‌تاپ",
   description:
     "صفحه پشتیبانی OptiBid برای تماس، پیگیری سفارش، راهنمای خرید لپ‌تاپ، پرداخت، ارسال و چت آنلاین.",
-};
+  path: "/support",
+});
 
 export default async function SupportPage() {
   const support = await getJsonSupportContent();
@@ -18,9 +20,60 @@ export default async function SupportPage() {
     { title: "ایمیل پشتیبانی", value: support.email, href: `mailto:${support.email}`, icon: "✉️" },
     { title: "ساعات پاسخ‌گویی", value: support.workingHours, href: "", icon: "⏱️" },
   ];
+  const supportStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    name: support.title,
+    description: support.subtitle,
+    url: absoluteUrl("/support"),
+    inLanguage: "fa-IR",
+    mainEntity: {
+      "@type": "Organization",
+      name: siteName,
+      url: absoluteUrl("/"),
+      telephone: support.phone || support.mobile,
+      email: support.email,
+      address: support.address,
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          telephone: support.phone || support.mobile,
+          email: support.email,
+          areaServed: "IR",
+          availableLanguage: ["fa-IR"],
+          hoursAvailable: support.workingHours,
+        },
+      ],
+    },
+  };
+  const faqStructuredData = support.faqs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: support.faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      }
+    : null;
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(supportStructuredData) }}
+      />
+      {faqStructuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd(faqStructuredData) }}
+        />
+      )}
       <section className="bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] px-4 py-16 text-white">
         <div className="mx-auto max-w-7xl">
           <span className="rounded-full bg-white/15 px-4 py-1.5 text-xs font-black ring-1 ring-white/20">

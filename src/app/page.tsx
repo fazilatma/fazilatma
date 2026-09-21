@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import AmazingDealsSection, {
   type AmazingDealItem,
@@ -24,6 +25,7 @@ import {
   type CatalogCategory,
 } from "@/lib/catalog-categories";
 import type { ProductValuationFactors } from "@/lib/request-valuation";
+import { buildSeoMetadata } from "@/lib/seo";
 import {
   getJsonBuyerRankings,
   getJsonHomepageStats,
@@ -36,6 +38,23 @@ import {
 } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildSeoMetadata({
+  title: "خرید لپ‌تاپ نو و استوک | فروشگاه تخصصی OptiBid",
+  description:
+    "خرید آنلاین لپ‌تاپ نو، استوک، اداری، دانشجویی، مهندسی و گیمینگ در OptiBid با مقایسه مشخصات فنی، قیمت، مهلت تست و پشتیبانی انتخاب مدل.",
+  path: "/",
+  keywords: [
+    "خرید لپ تاپ",
+    "فروشگاه لپ تاپ",
+    "لپ تاپ استوک",
+    "لپ تاپ گیمینگ",
+    "لپ تاپ دانشجویی",
+    "لپ تاپ اداری",
+    "OptiBid",
+  ],
+});
+
 
 type HomeCategory = CatalogCategory & { count: number };
 

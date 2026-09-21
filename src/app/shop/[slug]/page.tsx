@@ -8,6 +8,13 @@ import {
   getJsonStoreProducts,
   type JsonStoreProduct,
 } from "@/lib/json-store";
+import {
+  breadcrumbJsonLd,
+  buildSeoMetadata,
+  jsonLd,
+  productJsonLd,
+  storeSeoKeywords,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -60,10 +67,19 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getJsonStoreProductBySlug(slug);
   if (!product) return { title: "محصول پیدا نشد | OptiBid" };
-  return {
-    title: `${product.title} | فروشگاه لپ‌تاپ OptiBid`,
-    description: product.summary,
-  };
+  return buildSeoMetadata({
+    title: `${product.title} | خرید لپ‌تاپ`,
+    description: `${product.summary} قیمت ${money(product.price)}، مشخصات فنی کامل، وضعیت موجودی، مهلت تست و پیشنهادهای مشابه در فروشگاه OptiBid.`,
+    path: `/shop/${product.slug}`,
+    keywords: [
+      product.title,
+      product.brand,
+      product.category,
+      ...product.badges,
+      ...Object.values(product.specs || {}).slice(0, 4),
+      ...storeSeoKeywords,
+    ],
+  });
 }
 
 export default async function StoreProductPage({
@@ -85,9 +101,23 @@ export default async function StoreProductPage({
   const sameCategoryCount = related.filter(
     (item) => item.category === product.category,
   ).length;
+  const productStructuredData = productJsonLd(product);
+  const breadcrumbStructuredData = breadcrumbJsonLd([
+    { name: "خانه", url: "/" },
+    { name: "فروشگاه لپ‌تاپ", url: "/shop" },
+    { name: product.title, url: `/shop/${product.slug}` },
+  ]);
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(productStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbStructuredData) }}
+      />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <nav className="mb-6 text-sm text-slate-500">
           <Link href="/" className="hover:text-rose-600">خانه</Link>

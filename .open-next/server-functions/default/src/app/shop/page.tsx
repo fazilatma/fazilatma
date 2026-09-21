@@ -4,14 +4,9 @@ import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/Laptop
 import StoreProductCard from "@/components/StoreProductCard";
 import { getJsonStoreProducts, type JsonStoreProduct } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
+import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "فروشگاه لپ‌تاپ OptiBid | خرید آنلاین لپ‌تاپ نو و کارکرده",
-  description:
-    "فروشگاه تخصصی لپ‌تاپ OptiBid برای مقایسه و خرید آنلاین لپ‌تاپ‌های نو، استوک، اداری، دانشجویی، مهندسی و گیمینگ.",
-};
 
 type ShopSearchParams = Record<string, string | string[] | undefined>;
 
@@ -20,9 +15,6 @@ type FilterOption = {
   value: string;
   hint?: string;
 };
-
-const money = (value: number | string) =>
-  `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
 
 const getParam = (params: ShopSearchParams, key: string) => {
   const value = params[key];
@@ -276,24 +268,6 @@ function buildHref(
   return payload ? `/shop?${payload}` : "/shop";
 }
 
-function activeCount(params: ShopSearchParams) {
-  return [
-    "available",
-    "brand",
-    "use",
-    "ram",
-    "cpu",
-    "gpu",
-    "ssd",
-    "hdd",
-    "display",
-    "panel",
-    "series",
-    "minPrice",
-    "maxPrice",
-  ].filter((key) => Boolean(getParam(params, key))).length;
-}
-
 const ramOptions: FilterOption[] = [
   { label: "۸ گیگابایت", value: "8GB" },
   { label: "۱۶ گیگابایت", value: "16GB" },
@@ -342,6 +316,93 @@ const seriesOptions: FilterOption[] = [
   { label: "MacBook", value: "MacBook" },
 ];
 
+const seoFilterLabels: Record<string, Record<string, string>> = {
+  brand: {
+    Lenovo: "لپ‌تاپ لنوو",
+    HP: "لپ‌تاپ اچ‌پی",
+    Dell: "لپ‌تاپ دل",
+    Asus: "لپ‌تاپ ایسوس",
+    Apple: "مک‌بوک اپل",
+  },
+  use: Object.fromEntries(useOptions.map((option) => [option.value, option.label])),
+  condition: {
+    stock: "لپ‌تاپ استوک",
+    used: "لپ‌تاپ کارکرده تمیز",
+    new: "لپ‌تاپ نو",
+  },
+  ram: Object.fromEntries(ramOptions.map((option) => [option.value, option.label])),
+  cpu: Object.fromEntries(cpuOptions.map((option) => [option.value, option.label])),
+  gpuType: {
+    rtx: "لپ‌تاپ با گرافیک RTX",
+    dedicated: "لپ‌تاپ با گرافیک مجزا",
+    integrated: "لپ‌تاپ با گرافیک مجتمع",
+  },
+  ssd: Object.fromEntries(ssdOptions.map((option) => [option.value, option.label])),
+  display: Object.fromEntries(displayOptions.map((option) => [option.value, option.label])),
+};
+
+const canonicalShopKeys = [
+  "brand",
+  "use",
+  "condition",
+  "ram",
+  "cpu",
+  "gpuType",
+  "ssd",
+  "display",
+  "minPrice",
+  "maxPrice",
+];
+
+function canonicalShopPath(params: ShopSearchParams) {
+  const query = new URLSearchParams();
+  for (const key of canonicalShopKeys) {
+    const value = getParam(params, key);
+    if (value) query.set(key, value);
+  }
+  const payload = query.toString();
+  return payload ? `/shop?${payload}` : "/shop";
+}
+
+function shopSeoSubject(params: ShopSearchParams) {
+  const labels: string[] = [];
+  for (const [key, values] of Object.entries(seoFilterLabels)) {
+    const value = getParam(params, key);
+    if (value && values[value]) labels.push(values[value]);
+  }
+  const minPrice = getParam(params, "minPrice");
+  const maxPrice = getParam(params, "maxPrice");
+  if (maxPrice && !minPrice) labels.push(`لپ‌تاپ تا ${Number(maxPrice).toLocaleString("fa-IR")} تومان`);
+  if (minPrice && !maxPrice) labels.push(`لپ‌تاپ از ${Number(minPrice).toLocaleString("fa-IR")} تومان`);
+  if (minPrice && maxPrice) {
+    labels.push(
+      `لپ‌تاپ ${Number(minPrice).toLocaleString("fa-IR")} تا ${Number(maxPrice).toLocaleString("fa-IR")} تومان`,
+    );
+  }
+  return labels.slice(0, 2).join(" و ") || "لپ‌تاپ نو و استوک";
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<ShopSearchParams>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const subject = shopSeoSubject(params);
+  const path = canonicalShopPath(params);
+  const title =
+    subject === "لپ‌تاپ نو و استوک"
+      ? "فروشگاه لپ‌تاپ | خرید لپ‌تاپ نو، استوک و گیمینگ"
+      : `خرید ${subject} | فروشگاه لپ‌تاپ OptiBid`;
+
+  return buildSeoMetadata({
+    title,
+    description: `خرید و مقایسه ${subject} در فروشگاه OptiBid با مشخصات کامل، قیمت شفاف، مهلت تست، پشتیبانی خرید و امکان ثبت سفارش آنلاین.`,
+    path,
+    keywords: [subject, ...storeSeoKeywords].filter(Boolean),
+  });
+}
+
 export default async function ShopPage({
   searchParams,
 }: {
@@ -351,10 +412,23 @@ export default async function ShopPage({
   const products = await getJsonStoreProducts();
   const filteredProducts = products.filter((product) => matchesFilter(product, params));
   const brands = Array.from(new Set(products.map((product) => product.brand)));
-  const appliedFilters = activeCount(params);
+  const currentShopPath = canonicalShopPath(params);
+  const productListStructuredData = itemListJsonLd({
+    name: shopSeoSubject(params),
+    description: "لیست محصولات فروشگاه لپ‌تاپ OptiBid با قیمت، مشخصات فنی و امکان ثبت سفارش آنلاین.",
+    url: currentShopPath,
+    items: filteredProducts.slice(0, 24).map((product) => ({
+      name: product.title,
+      url: `/shop/${product.slug}`,
+    })),
+  });
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
+      />
       <section className="bg-white py-10 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
@@ -444,6 +518,23 @@ export default async function ShopPage({
               ))}
             </div>
           )}
+
+          <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-900">
+              راهنمای خرید لپ‌تاپ در OptiBid
+            </h2>
+            <div className="mt-3 grid gap-4 text-sm leading-8 text-slate-600 md:grid-cols-3">
+              <p>
+                در این فروشگاه می‌توانید مدل‌های مختلف لپ‌تاپ لنوو، اچ‌پی، دل، ایسوس و مک‌بوک را بر اساس برند، قیمت، رم، پردازنده، حافظه SSD و نوع کاربری مقایسه کنید.
+              </p>
+              <p>
+                برای خرید لپ‌تاپ اداری، دانشجویی، مهندسی، گیمینگ یا لپ‌تاپ استوک، فیلترهای صفحه کمک می‌کند سریع‌تر به مدل مناسب بودجه و نیازتان برسید.
+              </p>
+              <p>
+                هر محصول دارای صفحه اختصاصی با مشخصات فنی، قیمت، وضعیت موجودی، مهلت تست و پیشنهادهای مشابه است تا انتخاب نهایی مطمئن‌تر انجام شود.
+              </p>
+            </div>
+          </section>
         </main>
       </div>
     </div>

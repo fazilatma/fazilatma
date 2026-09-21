@@ -12,6 +12,7 @@ import {
   type LaptopGuideItem,
 } from "@/lib/laptop-storefront";
 import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
+import { itemListJsonLd, jsonLd } from "@/lib/seo";
 
 export default function StorefrontHome({
   products,
@@ -29,9 +30,25 @@ export default function StorefrontHome({
   }));
   const specialOfferProducts =
     getLaptopCollectionProducts(products, "special-offers").slice(0, 8);
+  const productListStructuredData = itemListJsonLd({
+    name: "فروشگاه لپ‌تاپ OptiBid",
+    description: "خرید آنلاین لپ‌تاپ نو، استوک، اداری، دانشجویی، مهندسی و گیمینگ در OptiBid.",
+    url: "/",
+    items: products
+      .filter((product) => product.isActive !== false)
+      .slice(0, 12)
+      .map((product) => ({
+        name: product.title,
+        url: `/shop/${product.slug}`,
+      })),
+  });
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
+      />
       <section className="bg-white">
         <div className="grid w-full gap-4 px-2 py-5 sm:px-4 lg:grid-cols-[292px_minmax(0,1fr)] lg:px-5 xl:px-6 2xl:px-8">
           <div className="hidden lg:block">

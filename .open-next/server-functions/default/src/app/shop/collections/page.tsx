@@ -1,18 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { laptopCollectionItems } from "@/lib/laptop-storefront";
+import { buildSeoMetadata, itemListJsonLd, jsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "بخش‌های ویژه فروشگاه لپ‌تاپ | OptiBid",
+export const metadata: Metadata = buildSeoMetadata({
+  title: "محصولات پرفروش، در حال رشد و فروش ویژه لپ‌تاپ | OptiBid",
   description:
-    "محصولات در حال رشد، محصولات پرفروش و فروش ویژه در فروشگاه لپ‌تاپ OptiBid.",
-};
+    "صفحه بخش‌های ویژه فروشگاه لپ‌تاپ OptiBid شامل محصولات در حال رشد، لپ‌تاپ‌های پرفروش و فروش ویژه با قیمت جذاب.",
+  path: "/shop/collections",
+});
 
 export default function LaptopCollectionsPage() {
+  const collectionsStructuredData = itemListJsonLd({
+    name: "بخش‌های ویژه فروشگاه لپ‌تاپ OptiBid",
+    description: "محصولات در حال رشد، محصولات پرفروش و فروش ویژه لپ‌تاپ.",
+    url: "/shop/collections",
+    items: laptopCollectionItems.map((collection) => ({
+      name: collection.title,
+      url: collection.href,
+    })),
+  });
+
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(collectionsStructuredData) }}
+      />
       <section className="bg-white py-12 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
