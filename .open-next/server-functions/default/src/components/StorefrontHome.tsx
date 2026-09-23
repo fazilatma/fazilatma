@@ -2,7 +2,7 @@ import Link from "next/link";
 import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
-import StoreProductCard from "@/components/StoreProductCard";
+import StoreProductSeoCard from "@/components/StoreProductSeoCard";
 import {
   getLaptopCollectionProducts,
   laptopCollectionItems,
@@ -172,8 +172,8 @@ export default function StorefrontHome({
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {featured.length > 0
-            ? featured.map((product) => <StoreProductCard key={product.id} product={product} />)
-            : products.slice(0, 4).map((product) => <StoreProductCard key={product.id} product={product} />)}
+            ? featured.map((product) => <StoreProductSeoCard key={product.id} product={product} />)
+            : products.slice(0, 4).map((product) => <StoreProductSeoCard key={product.id} product={product} />)}
         </div>
       </section>
 
@@ -347,7 +347,7 @@ function SpecialOfferCarousel({ products }: { products: JsonStoreProduct[] }) {
       <div className="flex gap-4 overflow-x-auto scroll-smooth pb-2">
         {products.map((product) => (
           <div key={`hero-special-${product.id}`} className="w-[270px] shrink-0 md:w-[300px]">
-            <StoreProductCard product={product} />
+            <StoreProductSeoCard product={product} />
           </div>
         ))}
       </div>
@@ -486,7 +486,7 @@ function StoreCollectionRow({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {products.map((product) => (
-            <StoreProductCard key={`${collection.slug}-${product.id}`} product={product} />
+            <StoreProductSeoCard key={`${collection.slug}-${product.id}`} product={product} />
           ))}
         </div>
       )}

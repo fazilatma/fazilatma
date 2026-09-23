@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 import { productImageUrl, type ProductImageAttachment } from "@/lib/product-image-shared";
 
 type StoreHeroSlide = {
@@ -52,40 +49,17 @@ const fallbackSlides: StoreHeroSlide[] = [
 
 export default function StoreHeroSlider({
   slides,
-  durationSeconds = 5,
+  durationSeconds: _durationSeconds = 5,
 }: {
   slides?: StoreHeroSlide[];
   durationSeconds?: number;
 }) {
-  const activeSlides = useMemo(() => {
-    const normalized = (slides || [])
-      .filter((slide) => slide.isActive !== false)
-      .slice(0, 4);
-    return normalized.length > 0 ? normalized : fallbackSlides;
-  }, [slides]);
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (activeSlides.length <= 1) return;
-    const timer = window.setInterval(
-      () => setIndex((current) => (current + 1) % activeSlides.length),
-      Math.max(3, durationSeconds) * 1000,
-    );
-    return () => window.clearInterval(timer);
-  }, [activeSlides.length, durationSeconds]);
-
-  useEffect(() => {
-    setIndex(0);
-  }, [activeSlides.length]);
-
-  const slide = activeSlides[index] || activeSlides[0];
+  const activeSlides = (slides || [])
+    .filter((slide) => slide.isActive !== false)
+    .slice(0, 4);
+  const displaySlides = activeSlides.length > 0 ? activeSlides : fallbackSlides;
+  const slide = displaySlides[0];
   const imageUrl = slide.image ? productImageUrl(slide.image) : "";
-
-  const next = () => setIndex((current) => (current + 1) % activeSlides.length);
-  const previous = () =>
-    setIndex((current) =>
-      current === 0 ? activeSlides.length - 1 : current - 1,
-    );
 
   return (
     <div className="relative min-h-[185px] overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-4 text-white shadow-xl md:min-h-[220px] md:p-5 xl:min-h-[235px]">
@@ -131,39 +105,20 @@ export default function StoreHeroSlider({
             سبد خرید من
           </Link>
         </div>
-      </div>
-
-      {activeSlides.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={previous}
-            className="absolute right-4 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
-            aria-label="اسلاید قبلی"
-          >
-            ›
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            className="absolute left-4 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
-            aria-label="اسلاید بعدی"
-          >
-            ‹
-          </button>
-          <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-            {activeSlides.map((item, slideIndex) => (
-              <button
-                key={item.id || slideIndex}
-                type="button"
-                onClick={() => setIndex(slideIndex)}
-                className={`h-2.5 rounded-full transition ${slideIndex === index ? "w-8 bg-white" : "w-2.5 bg-white/45"}`}
-                aria-label={`اسلاید ${slideIndex + 1}`}
-              />
+        {displaySlides.length > 1 && (
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-white/90">
+            {displaySlides.slice(1).map((item) => (
+              <Link
+                key={item.id}
+                href={item.href || "/shop"}
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1 transition hover:bg-white/20"
+              >
+                {item.cta || item.title}
+              </Link>
             ))}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
