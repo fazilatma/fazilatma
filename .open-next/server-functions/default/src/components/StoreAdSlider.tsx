@@ -1,8 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-
 const slides = [
   {
     id: "stock-test",
@@ -43,25 +39,12 @@ const slides = [
 ];
 
 export default function StoreAdSlider() {
-  const [index, setIndex] = useState(0);
-  const activeSlide = useMemo(() => slides[index] || slides[0], [index]);
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setIndex((current) => (current + 1) % slides.length),
-      5500,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const next = () => setIndex((current) => (current + 1) % slides.length);
-  const previous = () =>
-    setIndex((current) => (current === 0 ? slides.length - 1 : current - 1));
+  const activeSlide = slides[0];
 
   return (
     <section
       className={`relative min-h-[105px] overflow-hidden rounded-[2rem] bg-gradient-to-l ${activeSlide.accent} p-4 text-white shadow-xl md:min-h-[125px]`}
-      aria-label="اسلایدر تبلیغاتی فروشگاه لپ‌تاپ"
+      aria-label="پیشنهاد ویژه فروشگاه لپ‌تاپ"
     >
       <div className="absolute -left-12 bottom-0 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute -right-16 -top-14 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
@@ -80,40 +63,21 @@ export default function StoreAdSlider() {
         <p className="mt-1 max-w-5xl text-xs leading-5 text-white/85 md:text-sm">
           {activeSlide.text}
         </p>
-        <Link
-          href={activeSlide.href}
-          className="mt-2.5 inline-flex rounded-2xl bg-white px-4 py-2 text-xs font-black text-[#003b5c] shadow-lg transition hover:bg-blue-50 md:text-sm"
-        >
-          {activeSlide.cta}
-        </Link>
-      </div>
-
-      <button
-        type="button"
-        onClick={previous}
-        className="absolute right-4 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
-        aria-label="تبلیغ قبلی"
-      >
-        ›
-      </button>
-      <button
-        type="button"
-        onClick={next}
-        className="absolute left-4 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-black text-[#003b5c] shadow-lg transition hover:bg-white"
-        aria-label="تبلیغ بعدی"
-      >
-        ‹
-      </button>
-      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-        {slides.map((slide, slideIndex) => (
-          <button
-            key={slide.id}
-            type="button"
-            onClick={() => setIndex(slideIndex)}
-            className={`h-2.5 rounded-full transition ${slideIndex === index ? "w-8 bg-white" : "w-2.5 bg-white/45"}`}
-            aria-label={`تبلیغ ${slideIndex + 1}`}
-          />
-        ))}
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {slides.map((slide) => (
+            <Link
+              key={slide.id}
+              href={slide.href}
+              className={`rounded-2xl px-4 py-2 text-xs font-black shadow-lg transition md:text-sm ${
+                slide.id === activeSlide.id
+                  ? "bg-white text-[#003b5c] hover:bg-blue-50"
+                  : "border border-white/30 text-white hover:bg-white/10"
+              }`}
+            >
+              {slide.cta}
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );

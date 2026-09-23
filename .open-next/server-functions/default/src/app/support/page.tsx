@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SupportChatWidget from "@/components/SupportChatWidget";
 import { getJsonSupportContent } from "@/lib/json-store";
 import { absoluteUrl, buildSeoMetadata, jsonLd, siteName } from "@/lib/seo";
 
@@ -103,7 +104,7 @@ export default async function SupportPage() {
         </div>
       </section>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main id="online-support" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {contactCards.map((card) => {
             const body = (
@@ -190,6 +191,7 @@ export default async function SupportPage() {
           </p>
         </section>
       </main>
+      <SupportChatWidget />
     </div>
   );
 }

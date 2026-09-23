@@ -1,11 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import "./globals.css";
-import Header from "@/components/Header";
+import StoreStaticHeader from "@/components/StoreStaticHeader";
 import Footer from "@/components/Footer";
-import GlobalSellerRequestRadar from "@/components/GlobalSellerRequestRadar";
-import LiveContentBootstrap from "@/components/LiveContentBootstrap";
-import SupportChatWidget from "@/components/SupportChatWidget";
 import { getJsonSiteMode } from "@/lib/json-store";
 import {
   absoluteUrl,
@@ -85,6 +83,16 @@ export const revalidate = 0;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const siteMode = await getJsonSiteMode();
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
+  const hasUserSession = Boolean(cookieStore.get("optibid_user")?.value);
+  const useStaticStoreHeader = siteMode === "store" && !isAdmin && !hasUserSession;
+  const DynamicHeader = useStaticStoreHeader
+    ? null
+    : (await import("@/components/Header")).default;
+  const DynamicSellerRadar = siteMode === "request"
+    ? (await import("@/components/GlobalSellerRequestRadar")).default
+    : null;
 
   return (
     <html lang="fa" dir="rtl">
@@ -99,12 +107,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
-        <LiveContentBootstrap />
-        <Header />
-        {siteMode === "request" && <GlobalSellerRequestRadar />}
+        {useStaticStoreHeader ? <StoreStaticHeader /> : DynamicHeader ? <DynamicHeader /> : null}
+        {DynamicSellerRadar ? <DynamicSellerRadar /> : null}
         <main className="flex-grow">{children}</main>
         <Footer />
-        <SupportChatWidget />
+        <a
+          href="/support#online-support"
+          className="fixed bottom-4 left-4 z-50 rounded-full bg-[#003b5c] px-5 py-3 text-sm font-black text-white shadow-xl ring-4 ring-cyan-100 transition hover:-translate-y-0.5 hover:bg-[#005f8f]"
+        >
+          پشتیبانی آنلاین
+        </a>
       </body>
     </html>
   );

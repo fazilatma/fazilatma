@@ -1,5 +1,4 @@
 import Link from "next/link";
-import HorizontalScroller from "@/components/HorizontalScroller";
 import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
@@ -188,6 +187,9 @@ export default function StorefrontHome({
               <p className="mt-2 text-sm leading-7 text-slate-500">
                 نکاتی که قبل از خرید لپ‌تاپ نو، استوک یا کارکرده بهتر است بررسی کنید.
               </p>
+              <h3 className="mt-3 text-base font-black text-slate-800">
+                مهم‌ترین معیارهای انتخاب لپ‌تاپ
+              </h3>
             </div>
             <Link href="/support" className="text-sm font-black text-rose-600">
               مشاوره و پشتیبانی خرید ←
@@ -235,11 +237,7 @@ function StoreLaptopBrandSlider() {
           مشاهده همه لپ‌تاپ‌ها ←
         </Link>
       </div>
-      <HorizontalScroller
-        arrowClassName="bg-white/95 text-[#003b5c] hover:bg-white"
-        contentClassName="flex gap-3 overflow-x-auto scroll-smooth pb-1"
-        scrollAmount={420}
-      >
+      <div className="flex gap-3 overflow-x-auto scroll-smooth pb-1">
         {brandCircleItems.map((item) => (
           <Link
             key={item.title}
@@ -258,7 +256,7 @@ function StoreLaptopBrandSlider() {
             </p>
           </Link>
         ))}
-      </HorizontalScroller>
+      </div>
     </section>
   );
 }
@@ -346,17 +344,13 @@ function SpecialOfferCarousel({ products }: { products: JsonStoreProduct[] }) {
           مشاهده همه فروش ویژه ←
         </Link>
       </div>
-      <HorizontalScroller
-        arrowClassName="bg-white/95 text-rose-600 hover:bg-white"
-        contentClassName="flex gap-4 overflow-x-auto scroll-smooth pb-2"
-        scrollAmount={560}
-      >
+      <div className="flex gap-4 overflow-x-auto scroll-smooth pb-2">
         {products.map((product) => (
           <div key={`hero-special-${product.id}`} className="w-[270px] shrink-0 md:w-[300px]">
             <StoreProductCard product={product} />
           </div>
         ))}
-      </HorizontalScroller>
+      </div>
     </section>
   );
 }
