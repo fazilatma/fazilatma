@@ -53,6 +53,14 @@ function unauthorizedApi() {
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const host = request.headers.get("host") || "";
+  if (host.toLowerCase() === "www.optibid.ir") {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.hostname = "optibid.ir";
+    canonicalUrl.protocol = "https";
+    canonicalUrl.port = "";
+    return NextResponse.redirect(canonicalUrl, 308);
+  }
   if (isPublicPath(pathname)) return NextResponse.next();
 
   const isAdmin = request.cookies.get("optibid_admin")?.value === "1";

@@ -43,22 +43,22 @@ export default function StoreProductCard({ product }: { product: JsonStoreProduc
 
   return (
     <article className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:border-rose-200 hover:shadow-xl">
-      <Link href={`/shop/${product.slug}`}>
+      <Link href={`/shop/${product.slug}`} className="block">
         <LaptopVisual product={product} compact />
+        <div className="px-3 pt-3">
+          <div className="mb-2 flex flex-wrap gap-1">
+            {product.badges.slice(0, 2).map((badge) => (
+              <span key={badge} className="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
+                {badge}
+              </span>
+            ))}
+          </div>
+          <p className="line-clamp-2 min-h-12 text-sm font-black leading-6 text-slate-900 transition group-hover:text-rose-600">
+            {product.title}
+          </p>
+        </div>
       </Link>
       <div className="p-3">
-        <div className="mb-2 flex flex-wrap gap-1">
-          {product.badges.slice(0, 2).map((badge) => (
-            <span key={badge} className="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
-              {badge}
-            </span>
-          ))}
-        </div>
-        <Link href={`/shop/${product.slug}`}>
-          <h3 className="line-clamp-2 min-h-12 text-sm font-black leading-6 text-slate-900 transition group-hover:text-rose-600">
-            {product.title}
-          </h3>
-        </Link>
         <div className="mt-3 space-y-1 text-xs text-slate-500">
           {keySpecs.map(([key, value]) => (
             <p key={key} className="line-clamp-1">

@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import GlobalSellerRequestRadar from "@/components/GlobalSellerRequestRadar";
 import LiveContentBootstrap from "@/components/LiveContentBootstrap";
 import SupportChatWidget from "@/components/SupportChatWidget";
+import { getJsonSiteMode } from "@/lib/json-store";
 import {
   absoluteUrl,
   defaultSeoDescription,
@@ -82,7 +83,9 @@ export const viewport: Viewport = {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const siteMode = await getJsonSiteMode();
+
   return (
     <html lang="fa" dir="rtl">
       <head>
@@ -98,7 +101,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
         <LiveContentBootstrap />
         <Header />
-        <GlobalSellerRequestRadar />
+        {siteMode === "request" && <GlobalSellerRequestRadar />}
         <main className="flex-grow">{children}</main>
         <Footer />
         <SupportChatWidget />

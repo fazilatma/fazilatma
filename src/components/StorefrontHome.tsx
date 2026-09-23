@@ -89,7 +89,7 @@ export default function StorefrontHome({
                 مسیرهای آماده برای رسیدن سریع به لپ‌تاپ مناسب دانشجویی، اداری، مهندسی یا گیمینگ.
               </p>
             </div>
-            <Link href="/shop" className="text-sm font-black text-emerald-700">
+            <Link href="/shop#budget-use" className="text-sm font-black text-emerald-700">
               مشاهده همه مدل‌ها ←
             </Link>
           </div>
@@ -137,7 +137,7 @@ export default function StorefrontHome({
                 قبل از خرید، نیازت را دقیق‌تر مشخص کن
               </h2>
             </div>
-            <Link href="/shop" className="text-sm font-black text-rose-600">
+            <Link href="/shop#buying-guides" className="text-sm font-black text-rose-600">
               مشاهده همه مدل‌ها ←
             </Link>
           </div>
@@ -167,7 +167,7 @@ export default function StorefrontHome({
               مدل‌های منتخب برای خرید آنلاین، مقایسه سریع مشخصات و انتخاب مطمئن‌تر.
             </p>
           </div>
-          <Link href="/shop" className="text-sm font-black text-rose-600">
+          <Link href="/shop#selected-products" className="text-sm font-black text-rose-600">
             مشاهده همه محصولات ←
           </Link>
         </div>
@@ -231,7 +231,7 @@ function StoreLaptopBrandSlider() {
             برندهای محبوب و گزینه‌های پرجستجو
           </h2>
         </div>
-        <Link href="/shop" className="text-xs font-black text-rose-600 md:text-sm">
+        <Link href="/shop#brand-search" className="text-xs font-black text-rose-600 md:text-sm">
           مشاهده همه لپ‌تاپ‌ها ←
         </Link>
       </div>
@@ -318,7 +318,7 @@ function SmartLaptopPickStrip() {
             className={`rounded-2xl border p-4 transition hover:-translate-y-1 hover:shadow-md ${pick.color}`}
           >
             <div className="text-2xl">{pick.icon}</div>
-            <h3 className="mt-2 text-sm font-black">{pick.title}</h3>
+            <p className="mt-2 text-sm font-black">{pick.title}</p>
             <p className="mt-1 text-xs leading-6 opacity-80">{pick.text}</p>
           </Link>
         ))}
@@ -386,7 +386,7 @@ function QuickPathCard({
       className={`rounded-3xl border p-5 transition hover:-translate-y-1 hover:shadow-lg ${colors}`}
     >
       <div className="text-3xl">{icon}</div>
-      <h3 className="mt-3 font-black">{title}</h3>
+      <p className="mt-3 font-black">{title}</p>
       <p className="mt-2 text-xs leading-6 opacity-80">{text}</p>
     </Link>
   );
@@ -404,7 +404,7 @@ function TrustCard({
   return (
     <div className="rounded-3xl border border-slate-100 bg-slate-50 p-5 transition hover:-translate-y-1 hover:border-blue-100 hover:bg-blue-50/60 hover:shadow-md">
       <div className="text-3xl">{icon}</div>
-      <h3 className="mt-3 font-black text-slate-900">{title}</h3>
+      <p className="mt-3 font-black text-slate-900">{title}</p>
       <p className="mt-2 text-xs leading-6 text-slate-500">{text}</p>
     </div>
   );
@@ -552,7 +552,7 @@ function GuideCard({ guide }: { guide: LaptopGuideItem }) {
       <div className="mb-4 inline-grid h-14 w-14 place-items-center rounded-2xl bg-white/80 shadow-sm transition group-hover:scale-105">
         <GuideIcon icon={guide.icon} />
       </div>
-      <h3 className="font-black">{guide.title}</h3>
+      <p className="font-black">{guide.title}</p>
       <p className="mt-2 text-xs leading-6 opacity-80">{guide.text}</p>
       <span className="mt-4 inline-flex text-xs font-black opacity-80">
         مشاهده راهنما ←

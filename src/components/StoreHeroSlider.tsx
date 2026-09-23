@@ -21,7 +21,7 @@ const fallbackSlides: StoreHeroSlide[] = [
     subtitle:
       "مدل‌های منتخب لپ‌تاپ اداری، دانشجویی، مهندسی و گیمینگ را با قیمت، گارانتی تست، مشخصات فنی و شرایط ارسال مقایسه کنید.",
     cta: "مشاهده همه لپ‌تاپ‌ها",
-    href: "/shop",
+    href: "/shop#hero",
     isActive: true,
   },
   {

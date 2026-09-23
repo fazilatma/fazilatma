@@ -20,7 +20,7 @@ type StoreTopNavMenu = {
 const storeTopNavMenus: StoreTopNavMenu[] = [
   {
     title: "لپ‌تاپ",
-    href: "/shop",
+    href: "/shop#laptop-menu",
     groups: [
       { title: "بر اساس برند", items: ["لپ‌تاپ لنوو", "لپ‌تاپ اچ‌پی", "لپ‌تاپ دل", "لپ‌تاپ ایسوس", "مک‌بوک اپل"] },
       { title: "بر اساس کاربری", items: ["لپ‌تاپ اداری", "لپ‌تاپ استوک", "لپ‌تاپ گیمینگ", "لپ‌تاپ مهندسی", "لپ‌تاپ دانشجویی"] },
@@ -150,19 +150,26 @@ const storeLaptopCategories: CatalogCategory[] = [
 
 function storeLaptopHref(label: string) {
   const text = label.toLowerCase();
-  if (text.includes("لنوو") || text.includes("thinkpad") || text.includes("legion")) return "/shop?brand=Lenovo";
-  if (text.includes("اچ") || text.includes("hp") || text.includes("elitebook")) return "/shop?brand=HP";
-  if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return "/shop?brand=Dell";
-  if (text.includes("ایسوس") || text.includes("asus") || text.includes("tuf")) return "/shop?brand=Asus";
-  if (text.includes("اپل") || text.includes("مک") || text.includes("apple") || text.includes("m1")) return "/shop?brand=Apple";
-  if (text.includes("استوک")) return "/shop?condition=stock";
-  if (text.includes("کارکرده")) return "/shop?condition=used";
-  if (text.includes("نو")) return "/shop?condition=new";
-  if (text.includes("گیم") || text.includes("rtx") || text.includes("144")) return "/shop?use=gaming";
-  if (text.includes("دانشجو") || text.includes("سبک")) return "/shop?use=student";
-  if (text.includes("مهندس") || text.includes("رندر") || text.includes("تدوین") || text.includes("طراحی")) return "/shop?use=engineering";
-  if (text.includes("اداری") || text.includes("شرکتی") || text.includes("برنامه")) return "/shop?use=business";
-  return "/shop";
+  const fragment = encodeURIComponent(
+    text
+      .replace(/[\s\u200c]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 70) || "shop",
+  );
+  const withFragment = (href: string) => `${href}#${fragment}`;
+  if (text.includes("لنوو") || text.includes("thinkpad") || text.includes("legion")) return withFragment("/shop?brand=Lenovo");
+  if (text.includes("اچ") || text.includes("hp") || text.includes("elitebook")) return withFragment("/shop?brand=HP");
+  if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return withFragment("/shop?brand=Dell");
+  if (text.includes("ایسوس") || text.includes("asus") || text.includes("tuf")) return withFragment("/shop?brand=Asus");
+  if (text.includes("اپل") || text.includes("مک") || text.includes("apple") || text.includes("m1")) return withFragment("/shop?brand=Apple");
+  if (text.includes("استوک")) return withFragment("/shop?condition=stock");
+  if (text.includes("کارکرده")) return withFragment("/shop?condition=used");
+  if (text.includes("نو")) return withFragment("/shop?condition=new");
+  if (text.includes("گیم") || text.includes("rtx") || text.includes("144")) return withFragment("/shop?use=gaming");
+  if (text.includes("دانشجو") || text.includes("سبک")) return withFragment("/shop?use=student");
+  if (text.includes("مهندس") || text.includes("رندر") || text.includes("تدوین") || text.includes("طراحی")) return withFragment("/shop?use=engineering");
+  if (text.includes("اداری") || text.includes("شرکتی") || text.includes("برنامه")) return withFragment("/shop?use=business");
+  return withFragment("/shop");
 }
 
 
@@ -401,7 +408,7 @@ export default function Header() {
             </div>
           </Link>            <div className="group relative hidden py-5 md:block">
               <Link
-                href={siteMode === "store" ? "/shop" : "/categories"}
+                href={siteMode === "store" ? "/shop#store-categories" : "/categories"}
                 className="flex items-center gap-1 text-gray-900 hover:text-green-600 transition font-black"
               >
                 <span className="text-lg leading-none">☰</span>{" "}
@@ -433,7 +440,7 @@ export default function Header() {
                     {activeHeaderCategory && (
                       <>
                         <Link
-                          href={siteMode === "store" ? "/shop" : categoryHref(activeHeaderCategory)}
+                          href={siteMode === "store" ? "/shop#all-laptops" : categoryHref(activeHeaderCategory)}
                           className="mb-5 inline-flex items-center gap-2 text-sm font-black text-[#003b5c] hover:text-[#00a8e8]"
                         >
                           {siteMode === "store"
@@ -676,7 +683,7 @@ export default function Header() {
               {siteMode === "store" ? (
                 <>
                   <Link
-                    href="/shop"
+                    href="/shop#mobile-store"
                     className="text-gray-700 hover:text-rose-600 transition py-2 font-bold"
                   >
                     🛍️ فروشگاه لپ‌تاپ

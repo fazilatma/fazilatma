@@ -45,7 +45,7 @@ export default function ContactClient({ initialContent }: { initialContent: Live
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold mb-1">آدرس</h3>
+                    <p className="font-bold mb-1">آدرس</p>
                     <p className="text-gray-600 text-sm">{liveContent.contactAddressFa}</p>
                   </div>
                 </div>
@@ -57,8 +57,8 @@ export default function ContactClient({ initialContent }: { initialContent: Live
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold mb-1">ایمیل</h3>
-                    <p className="text-gray-600 text-sm">info@parscoders.ir</p>
+                    <p className="font-bold mb-1">ایمیل</p>
+                    <p className="text-gray-600 text-sm">info [at] optibid.ir</p>
                   </div>
                 </div>
 
@@ -69,7 +69,7 @@ export default function ContactClient({ initialContent }: { initialContent: Live
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold mb-1">تلفن</h3>
+                    <p className="font-bold mb-1">تلفن</p>
                     <p className="text-gray-600 text-sm">۰۲۱-۱۲۳۴۵۶۷۸</p>
                   </div>
                 </div>
@@ -81,7 +81,7 @@ export default function ContactClient({ initialContent }: { initialContent: Live
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold mb-1">ساعات کاری</h3>
+                    <p className="font-bold mb-1">ساعات کاری</p>
                     <p className="text-gray-600 text-sm">شنبه تا چهارشنبه: ۹ تا ۱۷</p>
                     <p className="text-gray-600 text-sm">پنجشنبه: ۹ تا ۱۳</p>
                   </div>

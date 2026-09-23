@@ -12,12 +12,15 @@ export const metadata: Metadata = buildSeoMetadata({
   path: "/support",
 });
 
+const maskEmail = (email: string) =>
+  email ? email.replace("@", " [at] ").replace(/\./g, " [dot] ") : "—";
+
 export default async function SupportPage() {
   const support = await getJsonSupportContent();
   const contactCards = [
     { title: "تلفن پشتیبانی", value: support.phone, href: `tel:${support.phone.replace(/\s+/g, "")}`, icon: "☎️" },
     { title: "موبایل و واتساپ", value: support.mobile, href: support.whatsapp || `tel:${support.mobile.replace(/\s+/g, "")}`, icon: "💬" },
-    { title: "ایمیل پشتیبانی", value: support.email, href: `mailto:${support.email}`, icon: "✉️" },
+    { title: "ایمیل پشتیبانی", value: maskEmail(support.email), href: "", icon: "✉️" },
     { title: "ساعات پاسخ‌گویی", value: support.workingHours, href: "", icon: "⏱️" },
   ];
   const supportStructuredData = {
@@ -32,14 +35,12 @@ export default async function SupportPage() {
       name: siteName,
       url: absoluteUrl("/"),
       telephone: support.phone || support.mobile,
-      email: support.email,
       address: support.address,
       contactPoint: [
         {
           "@type": "ContactPoint",
           contactType: "customer support",
           telephone: support.phone || support.mobile,
-          email: support.email,
           areaServed: "IR",
           availableLanguage: ["fa-IR"],
           hoursAvailable: support.workingHours,

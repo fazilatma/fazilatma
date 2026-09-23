@@ -10,7 +10,7 @@ export default async function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About */}
           <div>
-            <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <div className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
               <svg
                 width="32"
                 height="32"
@@ -40,7 +40,7 @@ export default async function Footer() {
                 />
               </svg>
               OptiBid
-            </h3>
+            </div>
             <p className="text-gray-400 text-sm">
               پلتفرم آگهی درخواست خرید؛ خریدار نیازش را ثبت می‌کند و فروشنده‌ها
               پیشنهاد رقابتی می‌دهند.
@@ -87,7 +87,7 @@ export default async function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-bold mb-4">دسترسی سریع</h4>
+            <div className="font-bold mb-4">دسترسی سریع</div>
             <ul className="space-y-2 space-y-reverse text-gray-400">
               <li>
                 <Link
@@ -142,7 +142,7 @@ export default async function Footer() {
 
           {/* Support */}
           <div>
-            <h4 className="font-bold mb-4">پشتیبانی</h4>
+            <div className="font-bold mb-4">پشتیبانی</div>
             <ul className="space-y-2 space-y-reverse text-gray-400">
               <li>
                 <Link href="/help" className="hover:text-green-400 transition">
@@ -180,7 +180,7 @@ export default async function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="font-bold mb-4">تماس با ما</h4>
+            <div className="font-bold mb-4">تماس با ما</div>
             <ul className="space-y-2 space-y-reverse text-gray-400 text-sm">
               <li className="flex items-center gap-2">
                 <svg
@@ -196,7 +196,7 @@ export default async function Footer() {
                     d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                   />
                 </svg>
-                info@parscoders.ir
+                info [at] optibid.ir
               </li>
               <li className="flex items-center gap-2">
                 <svg

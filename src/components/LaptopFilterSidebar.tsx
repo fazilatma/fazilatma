@@ -188,7 +188,7 @@ export default function LaptopFilterSidebar({
     >
       <div className="flex items-center justify-between border-b border-slate-100 p-5">
         <div>
-          <h2 className="text-lg font-black text-slate-900">فیلترها</h2>
+          <div className="text-lg font-black text-slate-900">فیلترها</div>
           <p className="mt-1 text-xs text-slate-500">
             {appliedFilters
               ? `${appliedFilters.toLocaleString("fa-IR")} فیلتر فعال`
@@ -196,7 +196,7 @@ export default function LaptopFilterSidebar({
           </p>
         </div>
         <Link
-          href="/shop"
+          href="/shop#filters"
           className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 hover:bg-rose-50 hover:text-rose-600"
         >
           حذف همه
