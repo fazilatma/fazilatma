@@ -1,25 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import AmazingDealsSection, {
-  type AmazingDealItem,
-} from "@/components/AmazingDealsSection";
-import AmazingOfferNotification from "@/components/AmazingOfferNotification";
-import SellerStars from "@/components/SellerStars";
+import type { AmazingDealItem } from "@/components/AmazingDealsSection";
 import StorefrontHome from "@/components/StorefrontHome";
-import BuyerModeButton from "@/components/BuyerModeButton";
-import HomeCategoryMenu from "@/components/HomeCategoryMenu";
-import HorizontalScroller from "@/components/HorizontalScroller";
-import HomepageImageSlider, {
-  type HomepageImageSliderSlide,
-} from "@/components/HomepageImageSlider";
-import PersonalizedRequestRows, {
-  type PersonalizedRequestItem,
-} from "@/components/PersonalizedRequestRows";
-import { ProductHeroImage } from "@/components/ProductImages";
-import RequestSpecsModalButton from "@/components/RequestSpecsModalButton";
-import SellerModeButton from "@/components/SellerModeButton";
-import UserAvatar from "@/components/UserAvatar";
-import type { ProductImageAttachment } from "@/lib/product-image-shared";
+import type { PersonalizedRequestItem } from "@/components/PersonalizedRequestRows";
+import { productImageUrl, type ProductImageAttachment } from "@/lib/product-image-shared";
 import {
   defaultCatalogCategories,
   type CatalogCategory,
@@ -33,6 +17,7 @@ import {
   getJsonRequests,
   getJsonSellerRankings,
   getOptiBidData,
+  type HomepageImageSliderSlide,
   type JsonStoreProduct,
   type SiteMode,
 } from "@/lib/json-store";
@@ -398,6 +383,30 @@ export default async function HomePage() {
     );
   }
 
+  const [
+    { default: AmazingDealsSection },
+    { default: AmazingOfferNotification },
+    { default: SellerStars },
+    { default: BuyerModeButton },
+    { default: HomeCategoryMenu },
+    { default: HomepageImageSlider },
+    { default: PersonalizedRequestRows },
+    { default: RequestSpecsModalButton },
+    { default: SellerModeButton },
+    { default: UserAvatar },
+  ] = await Promise.all([
+    import("@/components/AmazingDealsSection"),
+    import("@/components/AmazingOfferNotification"),
+    import("@/components/SellerStars"),
+    import("@/components/BuyerModeButton"),
+    import("@/components/HomeCategoryMenu"),
+    import("@/components/HomepageImageSlider"),
+    import("@/components/PersonalizedRequestRows"),
+    import("@/components/RequestSpecsModalButton"),
+    import("@/components/SellerModeButton"),
+    import("@/components/UserAvatar"),
+  ]);
+
   return (
     <div dir="rtl" className="min-h-screen">
       <AmazingOfferNotification
@@ -619,12 +628,7 @@ export default async function HomePage() {
                   </div>
 
                   <Link href={`/requests/${request.id}`} className="block">
-                    <ProductHeroImage
-                      images={request.productImages}
-                      title={request.title}
-                      category={request.category}
-                      className="mx-auto h-28 w-28 rounded-xl"
-                    />
+                    <RequestMiniVisual request={request} className="mx-auto h-28 w-28 rounded-xl" />
                   </Link>
 
                   <div className="p-3">
@@ -896,7 +900,7 @@ function RequestSliderSection({
           مشاهده همه
         </Link>
       </div>
-      <HorizontalScroller contentClassName="flex snap-x gap-3 overflow-x-auto scroll-smooth pb-2">
+      <div className="flex snap-x gap-3 overflow-x-auto scroll-smooth pb-2">
         {items.map((request) => (
           <SliderRequestCard
             key={`${title}-${request.id}`}
@@ -904,7 +908,32 @@ function RequestSliderSection({
             showGrowthSignals={showGrowthSignals}
           />
         ))}
-      </HorizontalScroller>
+      </div>
+    </div>
+  );
+}
+
+
+function RequestMiniVisual({
+  request,
+  className = "mx-auto h-24 w-24 rounded-xl",
+}: {
+  request: HomeRequestCard;
+  className?: string;
+}) {
+  const imageUrl = productImageUrl(request.productImages?.[0]);
+  if (imageUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt={request.title}
+        className={`${className} object-cover`}
+      />
+    );
+  }
+  return (
+    <div className={`${className} grid place-items-center bg-gradient-to-br from-green-50 to-blue-50 text-xs font-black text-[#003b5c]`}>
+      {request.category || "درخواست"}
     </div>
   );
 }
@@ -921,12 +950,7 @@ function SliderRequestCard({
   return (
     <article className="w-44 shrink-0 snap-start rounded-2xl border border-gray-100 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <Link href={`/requests/${request.id}`} className="block">
-        <ProductHeroImage
-          images={request.productImages}
-          title={request.title}
-          category={request.category}
-          className="mx-auto h-24 w-24 rounded-xl"
-        />
+        <RequestMiniVisual request={request} />
       </Link>
       <Link href={`/requests/${request.id}`}>
         <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-extrabold leading-5 text-gray-900">
