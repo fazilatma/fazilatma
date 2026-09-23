@@ -398,6 +398,7 @@ export type JsonStoreProduct = {
   shippingNote: string;
   priceUpdatedAt?: string;
   marketReferenceNote?: string;
+  externalSourceUrl?: string;
   isActive: boolean;
   isFeatured: boolean;
   createdAt: string;
@@ -731,6 +732,12 @@ const latestStoreMarketPrices: Record<
 function applyLatestStoreMarketPrice(product: JsonStoreProduct): JsonStoreProduct {
   const latest = latestStoreMarketPrices[product.id];
   if (!latest) return product;
+  if (product.externalSourceUrl) return product;
+  if (
+    product.priceUpdatedAt &&
+    product.priceUpdatedAt >= STORE_MARKET_PRICE_REFRESH_DATE
+  )
+    return product;
   return {
     ...product,
     price: latest.price,
@@ -1169,6 +1176,9 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
         : undefined,
       marketReferenceNote: product.marketReferenceNote
         ? String(product.marketReferenceNote).trim()
+        : undefined,
+      externalSourceUrl: product.externalSourceUrl
+        ? String(product.externalSourceUrl).trim()
         : undefined,
       isActive: product.isActive !== false,
       isFeatured: Boolean(product.isFeatured),

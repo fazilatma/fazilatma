@@ -215,6 +215,15 @@ export default function AdminDashboardClient({
   >({});
   const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
   const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
+  const [productImportUrl, setProductImportUrl] = useState("");
+  const [productImportLimit, setProductImportLimit] = useState(20);
+  const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
+  const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
+  const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
+  const [productImportMessage, setProductImportMessage] = useState("");
+  const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
+  const [scanningProductImport, setScanningProductImport] = useState(false);
+  const [applyingProductImport, setApplyingProductImport] = useState(false);
   const [withdrawalNotes, setWithdrawalNotes] = useState<
     Record<string, string>
   >({});
@@ -656,6 +665,44 @@ export default function AdminDashboardClient({
     }
   };
 
+  const runProductImport = async (action: "preview" | "import") => {
+    if (!productImportUrl.trim()) {
+      alert("لینک فروشگاه یا صفحه محصول را وارد کنید.");
+      return;
+    }
+    if (action === "preview") setScanningProductImport(true);
+    else setApplyingProductImport(true);
+    setProductImportMessage("");
+    try {
+      const response = await fetch("/api/admin/store-products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: productImportUrl.trim(),
+          limit: productImportLimit,
+          action,
+          strategy: productImportStrategy,
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "درون‌ریزی ناموفق بود.");
+      setProductImportPreview(result.products || []);
+      setProductImportWarnings(result.warnings || []);
+      setProductImportScannedUrls(result.scannedUrls || []);
+      setProductImportMessage(result.message || "عملیات انجام شد.");
+      if (action === "import") {
+        alert(result.message || "محصولات وارد شدند.");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "درون‌ریزی ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setScanningProductImport(false);
+      setApplyingProductImport(false);
+    }
+  };
+
   return (
     <div
       dir="rtl"
@@ -748,6 +795,12 @@ export default function AdminDashboardClient({
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "homepage" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
                   🏠 مدیریت صفحه اصلی
+                </button>
+                <button
+                  onClick={() => setActiveTab("storeImport")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "storeImport" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  📦 درون‌ریزی محصولات فروشگاه
                 </button>
                 <button
                   onClick={() => setActiveTab("contact")}
@@ -1506,6 +1559,161 @@ export default function AdminDashboardClient({
                       ذخیره تغییرات ظاهر
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "storeImport" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold">📦 درون‌ریزی محصولات و قیمت از لینک فروشگاه</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-500">
+                      لینک صفحه محصول یا صفحه دسته‌بندی یک فروشگاه را وارد کنید؛ سیستم تلاش می‌کند نام محصول، برند، قیمت، موجودی و مشخصات را از داده‌های ساختاریافته یا متن صفحه استخراج کند و در فروشگاه OptiBid اضافه/به‌روزرسانی کند.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 rounded-3xl border border-blue-100 bg-blue-50/50 p-5 lg:grid-cols-[1fr_160px]">
+                    <label className="block text-sm font-bold text-gray-700">
+                      لینک فروشگاه، دسته‌بندی یا صفحه محصول
+                      <input
+                        value={productImportUrl}
+                        onChange={(e) => setProductImportUrl(e.target.value)}
+                        placeholder="مثلاً https://example.com/product/laptop یا لینک دسته‌بندی لپ‌تاپ"
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-left outline-none focus:ring-2 focus:ring-blue-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      حداکثر محصول در هر بار
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={productImportLimit}
+                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(50, Number(e.target.value || 20))))}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 lg:col-span-2">
+                      روش برخورد با محصول مشابه
+                      <select
+                        value={productImportStrategy}
+                        onChange={(e) => setProductImportStrategy(e.target.value === "add-only" ? "add-only" : "merge")}
+                        className="mt-2 w-full max-w-md rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="merge">اگر محصول مشابه پیدا شد، قیمت و مشخصات همان محصول به‌روزرسانی شود</option>
+                        <option value="add-only">حتی اگر مشابه بود، به عنوان محصول جدید اضافه شود</option>
+                      </select>
+                    </label>
+                    <div className="flex flex-col gap-3 sm:flex-row lg:col-span-2">
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport}
+                        onClick={() => runProductImport("preview")}
+                        className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:bg-gray-300"
+                      >
+                        {scanningProductImport ? "در حال اسکن..." : "اسکن و پیش‌نمایش"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport}
+                        onClick={() => runProductImport("import")}
+                        className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                      >
+                        {applyingProductImport ? "در حال درون‌ریزی..." : "درون‌ریزی و ذخیره در سایت"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
+                    نکته: بعضی سایت‌ها قیمت را با JavaScript بعد از بارگذاری صفحه نمایش می‌دهند یا دسترسی ربات را محدود می‌کنند؛ در این حالت بهتر است لینک مستقیم صفحه محصول را بدهید. برای سرعت و پایداری، هر بار حداکثر ۵۰ محصول اسکن می‌شود.
+                  </div>
+
+                  {productImportMessage && (
+                    <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                      {productImportMessage}
+                    </div>
+                  )}
+
+                  {productImportWarnings.length > 0 && (
+                    <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 p-4 text-sm leading-7 text-orange-800">
+                      <b>هشدارها:</b>
+                      <ul className="mt-2 list-disc space-y-1 pr-5">
+                        {productImportWarnings.slice(0, 8).map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {productImportScannedUrls.length > 0 && (
+                    <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+                      <summary className="cursor-pointer font-black text-slate-800">
+                        لینک‌های اسکن‌شده ({productImportScannedUrls.length.toLocaleString("fa-IR")})
+                      </summary>
+                      <div className="mt-3 max-h-44 space-y-1 overflow-auto text-left" dir="ltr">
+                        {productImportScannedUrls.map((url) => (
+                          <div key={url} className="truncate rounded-lg bg-white px-2 py-1">{url}</div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {productImportPreview.length > 0 && (
+                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
+                      <div className="bg-gray-50 px-4 py-3 text-sm font-black text-gray-700">
+                        پیش‌نمایش محصولات پیدا شده
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[820px] text-right text-sm">
+                          <thead className="bg-gray-50 text-xs text-gray-500">
+                            <tr>
+                              <th className="px-4 py-3">عملیات</th>
+                              <th className="px-4 py-3">محصول</th>
+                              <th className="px-4 py-3">برند</th>
+                              <th className="px-4 py-3">قیمت جدید</th>
+                              <th className="px-4 py-3">قیمت قبلی/اصلی</th>
+                              <th className="px-4 py-3">منبع</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 bg-white">
+                            {productImportPreview.map((product) => (
+                              <tr key={`${product.externalSourceUrl}-${product.title}`}>
+                                <td className="px-4 py-3">
+                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${product.action === "update" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                                    {product.action === "update" ? "به‌روزرسانی" : "محصول جدید"}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <b className="block text-gray-900">{product.title}</b>
+                                  {product.matchedProduct && (
+                                    <span className="mt-1 block text-xs text-gray-500">
+                                      مشابه در سایت: {product.matchedProduct.title}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">{product.brand}</td>
+                                <td className="px-4 py-3 font-black text-rose-600">
+                                  {Number(product.price || 0).toLocaleString("fa-IR")} تومان
+                                </td>
+                                <td className="px-4 py-3 text-gray-500">
+                                  {product.matchedProduct
+                                    ? `${Number(product.matchedProduct.price || 0).toLocaleString("fa-IR")} تومان`
+                                    : product.originalPrice
+                                      ? `${Number(product.originalPrice || 0).toLocaleString("fa-IR")} تومان`
+                                      : "—"}
+                                </td>
+                                <td className="max-w-[220px] truncate px-4 py-3 text-left text-xs text-blue-600" dir="ltr">
+                                  {product.externalSourceUrl}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

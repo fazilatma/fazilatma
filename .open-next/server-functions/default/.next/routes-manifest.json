@@ -185,6 +185,12 @@
       "namedRegex": "^/api/admin/seller\\-metrics(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/import",
+      "regex": "^/api/admin/store\\-products/import(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/import(?:/)?$"
+    },
+    {
       "page": "/api/admin/storefront-slider",
       "regex": "^/api/admin/storefront\\-slider(?:/)?$",
       "routeKeys": {},

@@ -10,6 +10,7 @@
   "/api/admin/kyc-document/route": "app/api/admin/kyc-document/route.js",
   "/api/admin/kyc/route": "app/api/admin/kyc/route.js",
   "/api/admin/seller-metrics/route": "app/api/admin/seller-metrics/route.js",
+  "/api/admin/store-products/import/route": "app/api/admin/store-products/import/route.js",
   "/api/admin/storefront-slider/route": "app/api/admin/storefront-slider/route.js",
   "/api/admin/users/route": "app/api/admin/users/route.js",
   "/api/admin/withdrawals/route": "app/api/admin/withdrawals/route.js",
