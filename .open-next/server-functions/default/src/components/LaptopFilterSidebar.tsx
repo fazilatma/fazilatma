@@ -189,11 +189,11 @@ export default function LaptopFilterSidebar({
       <div className="flex items-center justify-between border-b border-slate-100 p-5">
         <div>
           <div className="text-lg font-black text-slate-900">فیلترها</div>
-          <p className="mt-1 text-xs text-slate-500">
+          <div className="mt-1 text-xs text-slate-500">
             {appliedFilters
               ? `${appliedFilters.toLocaleString("fa-IR")} فیلتر فعال`
               : "مشخصات کامل لپ‌تاپ"}
-          </p>
+          </div>
         </div>
         <Link
           href="/shop#filters"

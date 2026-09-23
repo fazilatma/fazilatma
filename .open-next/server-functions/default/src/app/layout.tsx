@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import "./globals.css";
 import StoreStaticHeader from "@/components/StoreStaticHeader";
 import Footer from "@/components/Footer";
-import { getJsonSiteMode } from "@/lib/json-store";
 import {
   absoluteUrl,
   defaultSeoDescription,
@@ -82,15 +81,14 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const siteMode = await getJsonSiteMode();
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
   const hasUserSession = Boolean(cookieStore.get("optibid_user")?.value);
-  const useStaticStoreHeader = siteMode === "store" && !isAdmin && !hasUserSession;
+  const useStaticStoreHeader = !isAdmin && !hasUserSession;
   const DynamicHeader = useStaticStoreHeader
     ? null
     : (await import("@/components/Header")).default;
-  const DynamicSellerRadar = siteMode === "request"
+  const DynamicSellerRadar = hasUserSession
     ? (await import("@/components/GlobalSellerRequestRadar")).default
     : null;
 
@@ -112,7 +110,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <main className="flex-grow">{children}</main>
         <Footer />
         <a
-          href="/support#online-support"
+          href="/support?ref=floating-support#online-support"
           className="fixed bottom-4 left-4 z-50 rounded-full bg-[#003b5c] px-5 py-3 text-sm font-black text-white shadow-xl ring-4 ring-cyan-100 transition hover:-translate-y-0.5 hover:bg-[#005f8f]"
         >
           پشتیبانی آنلاین

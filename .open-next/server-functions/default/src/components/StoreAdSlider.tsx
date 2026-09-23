@@ -5,7 +5,7 @@ const slides = [
     eyebrow: "تبلیغ ویژه فروشگاه",
     title: "لپ‌تاپ استوک شرکتی با مهلت تست",
     text: "مدل‌های تمیز اداری و مهندسی را با مشخصات دقیق، قیمت شفاف و امکان بررسی سلامت انتخاب کنید.",
-    href: "/shop?condition=stock",
+    href: "/shop?condition=stock&ref=stock",
     cta: "مشاهده استوک‌ها",
     accent: "from-emerald-500 to-[#003b5c]",
   },
@@ -14,7 +14,7 @@ const slides = [
     eyebrow: "ارتقای کاربردی",
     title: "انتخاب سریع بر اساس RAM و SSD",
     text: "اگر سرعت اجرای برنامه‌ها مهم است، مدل‌های رم ۱۶ گیگ و SSD 512GB را یکجا ببینید.",
-    href: "/shop?ram=16GB&ssd=512GB",
+    href: "/shop?ram=16GB&ssd=512GB&ref=ad-speed",
     cta: "مدل‌های سریع",
     accent: "from-blue-500 to-[#003b5c]",
   },
@@ -23,7 +23,7 @@ const slides = [
     eyebrow: "برای بازی و تدوین",
     title: "لپ‌تاپ گیمینگ و RTX",
     text: "برای بازی، تدوین، طراحی و کارهای سنگین، مدل‌های دارای گرافیک مجزا را مقایسه کنید.",
-    href: "/shop?gpuType=rtx",
+    href: "/shop?gpuType=rtx&ref=rtx",
     cta: "مشاهده RTX",
     accent: "from-rose-500 to-[#003b5c]",
   },
@@ -60,9 +60,9 @@ export default function StoreAdSlider() {
         <h2 className="mt-1.5 text-lg font-black leading-7 md:text-2xl">
           {activeSlide.title}
         </h2>
-        <p className="mt-1 max-w-5xl text-xs leading-5 text-white/85 md:text-sm">
+        <div className="mt-1 max-w-5xl text-xs leading-5 text-white/85 md:text-sm">
           {activeSlide.text}
-        </p>
+        </div>
         <div className="mt-2.5 flex flex-wrap gap-2">
           {slides.map((slide) => (
             <Link

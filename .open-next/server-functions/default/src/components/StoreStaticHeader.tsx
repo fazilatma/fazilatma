@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 const quickLinks = [
-  { href: "/shop#brand-search", label: "همه لپ‌تاپ‌ها" },
-  { href: "/shop?use=business#static-header", label: "اداری" },
-  { href: "/shop?use=student#static-header", label: "دانشجویی" },
-  { href: "/shop?use=gaming#static-header", label: "گیمینگ" },
-  { href: "/shop?condition=stock#static-header", label: "استوک" },
+  { href: "/shop?ref=brand-search#brand-search", label: "همه لپ‌تاپ‌ها" },
+  { href: "/shop?use=business&ref=business#static-header", label: "اداری" },
+  { href: "/shop?use=student&ref=student#static-header", label: "دانشجویی" },
+  { href: "/shop?use=gaming&ref=gaming#static-header", label: "گیمینگ" },
+  { href: "/shop?condition=stock&ref=stock#static-header", label: "استوک" },
   { href: "/shop/collections/special-offers", label: "فروش ویژه" },
-  { href: "/support", label: "پشتیبانی" },
+  { href: "/support?ref=static-header", label: "پشتیبانی" },
 ];
 
 function Logo() {

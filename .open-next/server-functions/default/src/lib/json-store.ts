@@ -755,7 +755,7 @@ const defaultStoreHeroSliderSlides: HomepageImageSliderSlide[] = [
     subtitle:
       "مدل‌های منتخب لپ‌تاپ اداری، دانشجویی، مهندسی و گیمینگ را با قیمت، گارانتی تست، مشخصات فنی و شرایط ارسال مقایسه کنید.",
     cta: "مشاهده همه لپ‌تاپ‌ها",
-    href: "/shop#hero",
+    href: "/shop?ref=hero#hero",
     isActive: true,
   },
   {
@@ -763,7 +763,7 @@ const defaultStoreHeroSliderSlides: HomepageImageSliderSlide[] = [
     title: "لپ‌تاپ اداری و شرکتی برای کار مطمئن روزانه",
     subtitle: "مدل‌های ThinkPad، Latitude و EliteBook مناسب شرکت‌ها، حسابداری و برنامه‌نویسی.",
     cta: "مشاهده اداری‌ها",
-    href: "/shop?use=business",
+    href: "/shop?use=business&ref=business",
     isActive: true,
   },
   {
@@ -771,7 +771,7 @@ const defaultStoreHeroSliderSlides: HomepageImageSliderSlide[] = [
     title: "لپ‌تاپ گیمینگ و مهندسی با گرافیک مجزا",
     subtitle: "انتخاب مدل‌های RTX برای بازی، رندر، تدوین، طراحی و نرم‌افزارهای سنگین.",
     cta: "مشاهده گیمینگ‌ها",
-    href: "/shop?use=gaming",
+    href: "/shop?use=gaming&ref=gaming",
     isActive: true,
   },
   {
@@ -779,7 +779,7 @@ const defaultStoreHeroSliderSlides: HomepageImageSliderSlide[] = [
     title: "لپ‌تاپ سبک و اقتصادی برای دانشجوها",
     subtitle: "مدل‌های سبک، SSD پرسرعت، باتری مناسب و قیمت منطقی برای استفاده روزمره.",
     cta: "خرید دانشجویی",
-    href: "/shop?use=student",
+    href: "/shop?use=student&ref=student",
     isActive: true,
   },
 ];

@@ -37,13 +37,20 @@ function StaticLaptopVisual({ product }: { product: JsonStoreProduct }) {
   );
 }
 
-export default function StoreProductSeoCard({ product }: { product: JsonStoreProduct }) {
+export default function StoreProductSeoCard({
+  product,
+  sectionId = "",
+}: {
+  product: JsonStoreProduct;
+  sectionId?: string;
+}) {
   const discount = discountPercent(product);
   const keySpecs = Object.entries(product.specs || {}).slice(0, 3);
+  const productHref = `/shop/${product.slug}${sectionId ? `#${sectionId}` : ""}`;
 
   return (
     <article className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:border-rose-200 hover:shadow-xl">
-      <Link href={`/shop/${product.slug}`} className="block">
+      <Link href={productHref} className="block">
         <StaticLaptopVisual product={product} />
         <div className="px-3 pt-3">
           <div className="mb-2 flex flex-wrap gap-1">
@@ -53,17 +60,17 @@ export default function StoreProductSeoCard({ product }: { product: JsonStorePro
               </span>
             ))}
           </div>
-          <p className="line-clamp-2 min-h-12 text-sm font-black leading-6 text-slate-900 transition group-hover:text-rose-600">
+          <div className="line-clamp-2 min-h-12 text-sm font-black leading-6 text-slate-900 transition group-hover:text-rose-600">
             {product.title}
-          </p>
+          </div>
         </div>
       </Link>
       <div className="p-3">
         <div className="mt-3 space-y-1 text-xs text-slate-500">
           {keySpecs.map(([key, value]) => (
-            <p key={key} className="line-clamp-1">
+            <div key={key} className="line-clamp-1">
               <b className="text-slate-700">{key}:</b> {value}
-            </p>
+            </div>
           ))}
         </div>
         <div className="mt-4 flex items-end justify-between gap-3">
@@ -72,9 +79,9 @@ export default function StoreProductSeoCard({ product }: { product: JsonStorePro
               ★ {product.rating.toLocaleString("fa-IR")} <span className="text-slate-400">({product.reviewsCount.toLocaleString("fa-IR")})</span>
             </div>
             {discount > 0 && (
-              <p className="mt-1 text-xs text-slate-400 line-through">{money(product.originalPrice || 0)}</p>
+              <div className="mt-1 text-xs text-slate-400 line-through">{money(product.originalPrice || 0)}</div>
             )}
-            <p className="mt-1 text-lg font-black text-slate-900">{money(product.price)}</p>
+            <div className="mt-1 text-lg font-black text-slate-900">{money(product.price)}</div>
           </div>
           <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
             موجود

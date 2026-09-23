@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { getLiveContent } from "@/lib/live-content";
+import { DEFAULT_LIVE_CONTENT } from "@/lib/live-content";
 
-export default async function Footer() {
-  const liveContent = await getLiveContent();
+export default function Footer() {
+  const liveContent = DEFAULT_LIVE_CONTENT;
 
   return (
     <footer className="bg-gray-900 text-white" dir="rtl">
@@ -41,10 +41,9 @@ export default async function Footer() {
               </svg>
               OptiBid
             </div>
-            <p className="text-gray-400 text-sm">
-              پلتفرم آگهی درخواست خرید؛ خریدار نیازش را ثبت می‌کند و فروشنده‌ها
-              پیشنهاد رقابتی می‌دهند.
-            </p>
+            <div className="text-gray-400 text-sm">
+              فروشگاه تخصصی و راهنمای انتخاب لپ‌تاپ برای مقایسه قیمت، مشخصات و خرید مطمئن‌تر.
+            </div>
             <div className="flex gap-4 mt-4">
               <a
                 href="#"
@@ -245,7 +244,7 @@ export default async function Footer() {
 
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-          <p>© ۱۴۰۳ OptiBid - تمامی حقوق محفوظ است.</p>
+          <div>© ۱۴۰۳ OptiBid - تمامی حقوق محفوظ است.</div>
         </div>
       </div>
     </footer>

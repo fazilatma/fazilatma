@@ -18,7 +18,7 @@ const fallbackSlides: StoreHeroSlide[] = [
     subtitle:
       "مدل‌های منتخب لپ‌تاپ اداری، دانشجویی، مهندسی و گیمینگ را با قیمت، گارانتی تست، مشخصات فنی و شرایط ارسال مقایسه کنید.",
     cta: "مشاهده همه لپ‌تاپ‌ها",
-    href: "/shop#hero",
+    href: "/shop?ref=hero#hero",
     isActive: true,
   },
   {
@@ -26,7 +26,7 @@ const fallbackSlides: StoreHeroSlide[] = [
     title: "لپ‌تاپ‌های اداری و شرکتی آماده کار",
     subtitle: "ThinkPad، Latitude و EliteBook برای حسابداری، برنامه‌نویسی، جلسات و کار روزانه.",
     cta: "مشاهده مدل‌های اداری",
-    href: "/shop?use=business",
+    href: "/shop?use=business&ref=business",
     isActive: true,
   },
   {
@@ -34,7 +34,7 @@ const fallbackSlides: StoreHeroSlide[] = [
     title: "لپ‌تاپ گیمینگ و مهندسی با گرافیک مجزا",
     subtitle: "مدل‌های RTX برای بازی، طراحی، تدوین، رندر و نرم‌افزارهای سنگین.",
     cta: "مشاهده گیمینگ‌ها",
-    href: "/shop?use=gaming",
+    href: "/shop?use=gaming&ref=gaming",
     isActive: true,
   },
   {
@@ -42,7 +42,7 @@ const fallbackSlides: StoreHeroSlide[] = [
     title: "انتخاب اقتصادی برای دانشجو و استفاده روزمره",
     subtitle: "لپ‌تاپ سبک، باتری مناسب، SSD پرسرعت و قیمت منطقی برای خرید مطمئن‌تر.",
     cta: "خرید دانشجویی",
-    href: "/shop?use=student",
+    href: "/shop?use=student&ref=student",
     isActive: true,
   },
 ];
@@ -88,9 +88,9 @@ export default function StoreHeroSlider({
         <h1 className="max-w-7xl text-2xl font-black leading-[1.35] md:text-3xl xl:text-4xl">
           {slide.title}
         </h1>
-        <p className="mt-2 max-w-6xl text-xs leading-6 text-blue-50 md:text-sm">
+        <div className="mt-2 max-w-6xl text-xs leading-6 text-blue-50 md:text-sm">
           {slide.subtitle}
-        </p>
+        </div>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Link
             href={slide.href || "/shop"}
