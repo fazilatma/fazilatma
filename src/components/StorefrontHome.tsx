@@ -494,14 +494,13 @@ function StoreCollectionRow({
           فعلاً محصولی برای این بخش ثبت نشده است.
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {products.map((product) => (
-            <div key={`${collection.slug}-${product.id}`} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <div className="text-sm font-black leading-7 text-slate-900">{product.title}</div>
-              <div className="mt-2 text-xs font-bold text-slate-500">
-                {Number(product.price || 0).toLocaleString("fa-IR")} تومان · {product.brand}
-              </div>
-            </div>
+            <StoreProductSeoCard
+              key={`${collection.slug}-${product.id}`}
+              product={product}
+              sectionId={`collection-${collection.slug}`}
+            />
           ))}
         </div>
       )}
