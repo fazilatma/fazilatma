@@ -49,8 +49,8 @@ export default function StoreProductSeoCard({
   const productHref = `/shop/${product.slug}${sectionId ? `#${sectionId}` : ""}`;
 
   return (
-    <article className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:border-rose-200 hover:shadow-xl">
-      <Link href={productHref} className="block">
+    <Link href={productHref} className="group block">
+      <article className="h-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-sm transition group-hover:-translate-y-1 group-hover:border-rose-200 group-hover:shadow-xl">
         <StaticLaptopVisual product={product} />
         <div className="px-3 pt-3">
           <div className="mb-2 flex flex-wrap gap-1">
@@ -64,33 +64,33 @@ export default function StoreProductSeoCard({
             {product.title}
           </div>
         </div>
-      </Link>
-      <div className="p-3">
-        <div className="mt-3 space-y-1 text-xs text-slate-500">
-          {keySpecs.map(([key, value]) => (
-            <div key={key} className="line-clamp-1">
-              <b className="text-slate-700">{key}:</b> {value}
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex items-end justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-1 text-xs text-amber-500">
-              ★ {product.rating.toLocaleString("fa-IR")} <span className="text-slate-400">({product.reviewsCount.toLocaleString("fa-IR")})</span>
-            </div>
-            {discount > 0 && (
-              <div className="mt-1 text-xs text-slate-400 line-through">{money(product.originalPrice || 0)}</div>
-            )}
-            <div className="mt-1 text-lg font-black text-slate-900">{money(product.price)}</div>
+        <div className="p-3">
+          <div className="mt-3 space-y-1 text-xs text-slate-500">
+            {keySpecs.map(([key, value]) => (
+              <div key={key} className="line-clamp-1">
+                <b className="text-slate-700">{key}:</b> {value}
+              </div>
+            ))}
           </div>
-          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
-            موجود
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-1 text-xs text-amber-500">
+                ★ {product.rating.toLocaleString("fa-IR")} <span className="text-slate-400">({product.reviewsCount.toLocaleString("fa-IR")})</span>
+              </div>
+              {discount > 0 && (
+                <div className="mt-1 text-xs text-slate-400 line-through">{money(product.originalPrice || 0)}</div>
+              )}
+              <div className="mt-1 text-lg font-black text-slate-900">{money(product.price)}</div>
+            </div>
+            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
+              موجود
+            </span>
+          </div>
+          <span className="mt-4 block rounded-2xl bg-slate-900 px-4 py-3 text-center text-xs font-black text-white transition group-hover:bg-rose-600">
+            مشاهده جزئیات و خرید
           </span>
         </div>
-        <span className="mt-4 block rounded-2xl bg-slate-900 px-4 py-3 text-center text-xs font-black text-white transition group-hover:bg-rose-600">
-          مشاهده جزئیات و خرید
-        </span>
-      </div>
-    </article>
+      </article>
+    </Link>
   );
 }
