@@ -212,6 +212,12 @@
       "namedRegex": "^/api/admin/store\\-products/import(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/refresh-prices",
+      "regex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$"
+    },
+    {
       "page": "/api/admin/storefront-slider",
       "regex": "^/api/admin/storefront\\-slider(?:/)?$",
       "routeKeys": {},

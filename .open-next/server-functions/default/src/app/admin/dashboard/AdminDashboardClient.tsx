@@ -70,6 +70,14 @@ const productImportCategoryOptions = [
 
 const allProductImportCategoryIds = productImportCategoryOptions.map((option) => option.id);
 
+const priceRefreshReferenceOptions = [
+  { id: "torob", label: "ترب", hint: "جستجو در بازار ترب و قیمت‌های فروشنده‌ها" },
+  { id: "digikala", label: "دیجی‌کالا", hint: "جستجو در داده‌های قابل خواندن دیجی‌کالا" },
+  { id: "google", label: "سرچ گوگل", hint: "جستجوی عمومی قیمت در نتایج قابل خواندن" },
+  { id: "instagram", label: "اینستاگرام", hint: "برای محصولاتی که لینک منبع اینستاگرام دارند" },
+  { id: "telegram", label: "تلگرام", hint: "برای محصولاتی که لینک منبع تلگرام دارند" },
+] as const;
+
 export default function AdminDashboardClient({
   realStats,
   sellerRankings,
@@ -249,6 +257,13 @@ export default function AdminDashboardClient({
   const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
   const [scanningProductImport, setScanningProductImport] = useState(false);
   const [applyingProductImport, setApplyingProductImport] = useState(false);
+  const [priceRefreshReferences, setPriceRefreshReferences] = useState<string[]>(["torob", "digikala"]);
+  const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
+  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(1000);
+  const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
+  const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
+  const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
+  const [priceRefreshWarnings, setPriceRefreshWarnings] = useState<string[]>([]);
   const [withdrawalNotes, setWithdrawalNotes] = useState<
     Record<string, string>
   >({});
@@ -696,6 +711,48 @@ export default function AdminDashboardClient({
         ? current.filter((item) => item !== categoryId)
         : [...current, categoryId],
     );
+  };
+
+  const togglePriceRefreshReference = (referenceId: string) => {
+    setPriceRefreshReferences((current) =>
+      current.includes(referenceId)
+        ? current.filter((item) => item !== referenceId)
+        : [...current, referenceId],
+    );
+  };
+
+  const refreshStorePrices = async () => {
+    if (priceRefreshReferences.length === 0) {
+      alert("حداقل یک مرجع قیمت را انتخاب کنید.");
+      return;
+    }
+    setRefreshingStorePrices(true);
+    setPriceRefreshMessage("");
+    try {
+      const response = await fetch("/api/admin/store-products/refresh-prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          references: priceRefreshReferences,
+          maxProducts: priceRefreshMaxProducts,
+          priceMultiplier: priceRefreshMultiplier,
+          onlyActive: true,
+        }),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "به‌روزرسانی قیمت‌ها ناموفق بود.");
+      setPriceRefreshMessage(result.message || "قیمت‌ها به‌روزرسانی شدند.");
+      setPriceRefreshResults(result.results || []);
+      setPriceRefreshWarnings(result.warnings || []);
+      alert(result.message || "قیمت‌ها به‌روزرسانی شدند.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "به‌روزرسانی قیمت‌ها ناموفق بود.";
+      setPriceRefreshMessage(message);
+      alert(message);
+    } finally {
+      setRefreshingStorePrices(false);
+    }
   };
 
   const runProductImport = async (action: "preview" | "import") => {
@@ -1757,6 +1814,126 @@ export default function AdminDashboardClient({
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
                     نکته: در حالت «کل سایت»، سیستم ابتدا sitemap و robots.txt را بررسی می‌کند و سپس لینک‌های محصول قابل کشف را تا سقف تعیین‌شده وارد می‌کند. اگر فروشگاه مقصد قیمت را فقط با JavaScript نمایش دهد یا دسترسی ربات را ببندد، ممکن است لازم باشد لینک sitemap یا لینک مستقیم دسته‌بندی/محصول را بدهید.
+                  </div>
+
+                  <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">
+                    <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <h3 className="text-lg font-black text-emerald-900">
+                          🔄 به‌روزرسانی قیمت محصولات موجود
+                        </h3>
+                        <p className="mt-1 text-sm leading-7 text-emerald-700">
+                          ادمین می‌تواند منابع قیمت را انتخاب کند تا قیمت محصولات فعلی سایت از همان مراجع به‌روزرسانی شود.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={refreshingStorePrices}
+                        onClick={refreshStorePrices}
+                        className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                      >
+                        {refreshingStorePrices ? "در حال به‌روزرسانی..." : "به‌روزرسانی قیمت‌ها"}
+                      </button>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[1fr_170px]">
+                      <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <b className="text-sm text-gray-900">مرجع‌های به‌روزرسانی قیمت</b>
+                          <div className="flex gap-2 text-xs font-black">
+                            <button
+                              type="button"
+                              onClick={() => setPriceRefreshReferences(priceRefreshReferenceOptions.map((item) => item.id))}
+                              className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
+                            >
+                              انتخاب همه
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPriceRefreshReferences([])}
+                              className="rounded-full bg-slate-100 px-3 py-1 text-slate-600"
+                            >
+                              پاک کردن
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                          {priceRefreshReferenceOptions.map((reference) => {
+                            const checked = priceRefreshReferences.includes(reference.id);
+                            return (
+                              <label
+                                key={reference.id}
+                                className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-gray-700 hover:border-emerald-100"}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => togglePriceRefreshReference(reference.id)}
+                                  className="mt-1"
+                                />
+                                <span>
+                                  <span className="block text-sm font-black">{reference.label}</span>
+                                  <span className="mt-1 block text-[11px] leading-5 text-gray-500">{reference.hint}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="grid gap-3">
+                        <label className="block text-sm font-bold text-gray-700">
+                          ضریب قیمت
+                          <input
+                            type="number"
+                            min="0.1"
+                            max="10"
+                            step="0.01"
+                            value={priceRefreshMultiplier}
+                            onChange={(e) => setPriceRefreshMultiplier(Math.max(0.1, Math.min(10, Number(e.target.value || 1))))}
+                            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </label>
+                        <label className="block text-sm font-bold text-gray-700">
+                          حداکثر محصول
+                          <input
+                            type="number"
+                            min="1"
+                            max="1000"
+                            value={priceRefreshMaxProducts}
+                            onChange={(e) => setPriceRefreshMaxProducts(Math.max(1, Math.min(1000, Number(e.target.value || 1000))))}
+                            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {priceRefreshMessage && (
+                      <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4 text-sm font-bold text-emerald-800">
+                        {priceRefreshMessage}
+                      </div>
+                    )}
+                    {priceRefreshWarnings.length > 0 && (
+                      <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-xs leading-6 text-amber-800">
+                        {priceRefreshWarnings.slice(0, 6).map((warning) => (
+                          <div key={warning}>• {warning}</div>
+                        ))}
+                      </div>
+                    )}
+                    {priceRefreshResults.length > 0 && (
+                      <details className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
+                        <summary className="cursor-pointer font-black text-slate-800">
+                          مشاهده نتیجه به‌روزرسانی ({priceRefreshResults.length.toLocaleString("fa-IR")})
+                        </summary>
+                        <div className="mt-3 max-h-64 space-y-2 overflow-auto">
+                          {priceRefreshResults.slice(0, 80).map((item) => (
+                            <div key={`${item.productId}-${item.status}`} className="rounded-xl bg-slate-50 p-3">
+                              <b>{item.title}</b>
+                              <span className="mr-2 text-slate-500">{item.message}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                   </div>
 
                   {productImportMessage && (

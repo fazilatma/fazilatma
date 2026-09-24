@@ -11,6 +11,7 @@
   "/api/admin/kyc/route": "/api/admin/kyc",
   "/api/admin/seller-metrics/route": "/api/admin/seller-metrics",
   "/api/admin/store-products/import/route": "/api/admin/store-products/import",
+  "/api/admin/store-products/refresh-prices/route": "/api/admin/store-products/refresh-prices",
   "/api/admin/storefront-slider/route": "/api/admin/storefront-slider",
   "/api/admin/users/route": "/api/admin/users",
   "/api/admin/withdrawals/route": "/api/admin/withdrawals",
