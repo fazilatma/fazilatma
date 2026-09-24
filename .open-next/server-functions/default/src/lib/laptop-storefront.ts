@@ -7,13 +7,24 @@ export type LaptopCategoryItem = {
 };
 
 export type LaptopGuideItem = {
-  slug: "business" | "student" | "engineering" | "gaming";
+  slug: string;
   title: string;
   shortTitle: string;
   text: string;
   href: string;
+  shopHref?: string;
   accent: "blue" | "emerald" | "amber" | "rose";
-  icon: "briefcase" | "student" | "engineering" | "gaming";
+  icon:
+    | "briefcase"
+    | "student"
+    | "engineering"
+    | "gaming"
+    | "test"
+    | "settings"
+    | "battery"
+    | "shipping"
+    | "payment"
+    | "support";
   keywords: string[];
   checklist: string[];
 };
@@ -116,6 +127,108 @@ export const laptopGuideItems: LaptopGuideItem[] = [
       "سیستم خنک‌کننده قوی برای کار طولانی",
       "نمایشگر با نرخ نوسازی بالا",
       "SSD یک ترابایت برای بازی‌ها و فایل‌های حجیم",
+    ],
+  },
+  {
+    slug: "health-check",
+    title: "مهلت تست و بررسی سلامت لپ‌تاپ",
+    shortTitle: "بررسی سلامت",
+    text: "قبل از خرید، سلامت باتری، نمایشگر، پورت‌ها، کیبورد، بدنه و قطعات اصلی را بررسی کنید.",
+    href: "/shop/guides/health-check",
+    shopHref: "/shop?condition=stock&ref=guide-health-check",
+    accent: "emerald",
+    icon: "test",
+    keywords: ["استوک", "کارکرده", "مهلت تست", "سلامت", "باتری", "نمایشگر"],
+    checklist: [
+      "وضعیت باتری و شارژدهی واقعی بررسی شود",
+      "نمایشگر از نظر پیکسل سوخته، خط، هاله و نور یکنواخت کنترل شود",
+      "پورت‌ها، کیبورد، تاچ‌پد، وب‌کم و اسپیکر تست شوند",
+      "مشخصات واقعی CPU، RAM، SSD و گرافیک با آگهی تطبیق داده شود",
+    ],
+  },
+  {
+    slug: "spec-comparison",
+    title: "مقایسه کانفیگ واقعی لپ‌تاپ",
+    shortTitle: "مقایسه کانفیگ",
+    text: "پردازنده، رم، SSD، گرافیک و نسل قطعات را با نیاز واقعی خود تطبیق دهید.",
+    href: "/shop/guides/spec-comparison",
+    shopHref: "/shop?ram=16GB&ssd=512GB&ref=guide-spec-comparison",
+    accent: "blue",
+    icon: "settings",
+    keywords: ["core i5", "core i7", "ryzen", "16gb", "512gb", "ssd", "گرافیک"],
+    checklist: [
+      "برای کار روزمره Core i5 و رم ۱۶ گیگ معمولاً کافی است",
+      "برای طراحی و تدوین، گرافیک مجزا و رم بالاتر ارزش بیشتری دارد",
+      "برای سرعت سیستم، SSD از ظرفیت HDD مهم‌تر است",
+      "نسل پردازنده و نوع رم را با قیمت نهایی مقایسه کنید",
+    ],
+  },
+  {
+    slug: "battery",
+    title: "راهنمای باتری و شارژدهی لپ‌تاپ",
+    shortTitle: "باتری و شارژدهی",
+    text: "برای حمل روزانه، سلامت باتری، وزن دستگاه و اندازه نمایشگر اهمیت زیادی دارد.",
+    href: "/shop/guides/battery",
+    shopHref: "/shop?use=student&display=14&battery=long&ref=guide-battery",
+    accent: "emerald",
+    icon: "battery",
+    keywords: ["دانشجویی", "سبک", "باتری", "14", "13.3", "شارژدهی"],
+    checklist: [
+      "برای دانشگاه و رفت‌وآمد، وزن کمتر از ۱.۵ کیلوگرم بهتر است",
+      "سلامت باتری مدل‌های کارکرده حتماً بررسی شود",
+      "نمایشگر ۱۳ تا ۱۴ اینچ حمل روزانه را آسان‌تر می‌کند",
+      "شارژر اصلی و پورت شارژ باید تست شود",
+    ],
+  },
+  {
+    slug: "shipping",
+    title: "ارسال قابل پیگیری سفارش لپ‌تاپ",
+    shortTitle: "ارسال و پیگیری",
+    text: "بعد از ثبت سفارش، وضعیت ارسال، هماهنگی تحویل و پیگیری سفارش باید شفاف باشد.",
+    href: "/shop/guides/shipping",
+    shopHref: "/support?ref=guide-shipping#online-support",
+    accent: "amber",
+    icon: "shipping",
+    keywords: ["لپ‌تاپ", "ارسال", "پشتیبانی", "سفارش", "تحویل"],
+    checklist: [
+      "آدرس و شماره تماس گیرنده سفارش دقیق ثبت شود",
+      "بسته‌بندی محافظ برای لپ‌تاپ ضروری است",
+      "کد یا مسیر پیگیری ارسال را از پشتیبانی دریافت کنید",
+      "در زمان تحویل، وضعیت ظاهری بسته بررسی شود",
+    ],
+  },
+  {
+    slug: "payment",
+    title: "پرداخت امن خرید لپ‌تاپ",
+    shortTitle: "پرداخت امن",
+    text: "برای خرید مطمئن، قیمت نهایی، روش پرداخت و اطلاعات سفارش را قبل از پرداخت کنترل کنید.",
+    href: "/shop/guides/payment",
+    shopHref: "/cart?ref=guide-payment",
+    accent: "blue",
+    icon: "payment",
+    keywords: ["لپ‌تاپ", "قیمت", "پرداخت", "سبد خرید", "سفارش"],
+    checklist: [
+      "قیمت نهایی و تعداد کالا قبل از پرداخت بررسی شود",
+      "مدل، کانفیگ و شرایط تست را دوباره کنترل کنید",
+      "از مسیرهای پرداخت فعال سایت استفاده کنید",
+      "رسید پرداخت و شماره سفارش را نگه دارید",
+    ],
+  },
+  {
+    slug: "advice",
+    title: "مشاوره انتخاب مدل لپ‌تاپ",
+    shortTitle: "مشاوره خرید",
+    text: "اگر بین چند مدل مردد هستید، بر اساس بودجه، کاربری و اولویت‌ها بهترین گزینه را انتخاب کنید.",
+    href: "/shop/guides/advice",
+    shopHref: "/support?ref=guide-advice#online-support",
+    accent: "rose",
+    icon: "support",
+    keywords: ["لپ‌تاپ", "اداری", "دانشجویی", "مهندسی", "گیمینگ", "مشاوره"],
+    checklist: [
+      "بودجه و نوع استفاده اصلی خود را مشخص کنید",
+      "بین مدل نو، استوک و کارکرده تمیز مقایسه انجام دهید",
+      "حداقل رم، حافظه و پردازنده مورد نیازتان را تعیین کنید",
+      "اگر مردد هستید، از پشتیبانی برای انتخاب نهایی کمک بگیرید",
     ],
   },
 ];

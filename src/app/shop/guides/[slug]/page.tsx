@@ -129,10 +129,10 @@ export default async function LaptopGuidePage({
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm">
             <Link
-              href={`/shop?use=${guide.slug}`}
+              href={guide.shopHref || `/shop?use=${guide.slug}`}
               className="rounded-2xl bg-white px-6 py-3 font-black text-[#003b5c] shadow-lg"
             >
-              مشاهده مدل‌های مناسب
+              {guide.shopHref?.startsWith("/support") ? "رفتن به پشتیبانی" : guide.shopHref?.startsWith("/cart") ? "رفتن به سبد خرید" : "مشاهده مدل‌های مناسب"}
             </Link>
             <Link
               href="/cart"

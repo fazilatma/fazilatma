@@ -210,42 +210,42 @@ export default function StorefrontHome({
               icon="🧪"
               title="مهلت تست و بررسی سلامت"
               text="مدل‌های استوک و کارکرده را با تمرکز روی سلامت باتری، نمایشگر، پورت‌ها و قطعات بررسی کنید."
-              href="/shop?condition=stock&ref=checklist-health"
+              href="/shop/guides/health-check"
               cta="مشاهده لپ‌تاپ‌های استوک"
             />
             <TrustCard
               icon="⚙️"
               title="مقایسه کانفیگ واقعی"
               text="برای تطبیق CPU، RAM، SSD، گرافیک و نسل پردازنده، مدل‌های مناسب کانفیگ بالاتر را ببینید."
-              href="/shop?ram=16GB&ssd=512GB&ref=checklist-specs"
+              href="/shop/guides/spec-comparison"
               cta="مقایسه کانفیگ‌ها"
             />
             <TrustCard
               icon="🔋"
               title="باتری و شارژدهی"
               text="برای حمل روزانه و کلاس، مدل‌های سبک با باتری مناسب و نمایشگر ۱۴ اینچ انتخاب مطمئن‌تری هستند."
-              href="/shop?use=student&display=14&battery=long&ref=checklist-battery"
+              href="/shop/guides/battery"
               cta="مشاهده مدل‌های سبک"
             />
             <TrustCard
               icon="🚚"
               title="ارسال قابل پیگیری"
               text="برای هماهنگی ارسال، پیگیری تحویل و پرسش درباره سفارش، صفحه پشتیبانی فروشگاه را ببینید."
-              href="/support?ref=checklist-shipping#online-support"
+              href="/shop/guides/shipping"
               cta="پیگیری ارسال"
             />
             <TrustCard
               icon="💳"
               title="پرداخت امن"
               text="برای ثبت سفارش و بررسی مسیر پرداخت، ابتدا مدل مناسب را انتخاب کنید و سپس وارد سبد خرید شوید."
-              href="/cart?ref=checklist-payment"
+              href="/shop/guides/payment"
               cta="رفتن به سبد خرید"
             />
             <TrustCard
               icon="🎧"
               title="مشاوره انتخاب مدل"
               text="اگر بین چند مدل مردد هستید، از راهنمای خرید یا پشتیبانی آنلاین برای انتخاب بهتر کمک بگیرید."
-              href="/support?ref=checklist-advice#online-support"
+              href="/shop/guides/advice"
               cta="دریافت مشاوره"
             />
           </div>
