@@ -1,5 +1,4 @@
 import Link from "next/link";
-import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductSeoCard from "@/components/StoreProductSeoCard";
@@ -49,22 +48,13 @@ export default function StorefrontHome({
         dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
       />
       <section className="bg-white">
-        <div className="grid w-full gap-4 px-2 py-5 sm:px-4 lg:grid-cols-[292px_minmax(0,1fr)] lg:px-5 xl:px-6 2xl:px-8">
-          <div className="hidden lg:block">
-            <LaptopFilterSidebar products={products} sticky={false} />
-          </div>
-
+        <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="min-w-0 space-y-5">
             <StoreHeroSlider
               slides={heroSlides}
               durationSeconds={heroDurationSeconds}
             />
             <StoreAdSlider />
-            <MobileLaptopFilterMenu
-              products={products}
-              title="فیلتر سریع لپ‌تاپ"
-              subtitle="برای باز کردن فیلترهای کامل، این منو را لمس کنید"
-            />
             <StoreLaptopBrandSlider />
             <SmartLaptopPickStrip />
             <SpecialOfferCarousel
