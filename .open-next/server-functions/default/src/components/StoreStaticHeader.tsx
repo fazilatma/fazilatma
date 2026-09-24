@@ -38,9 +38,17 @@ export default function StoreStaticHeader() {
                   {link.label}
                 </Link>
               ))}
-              <Link href="/cart" className="mt-2 block rounded-2xl bg-[#003b5c] px-4 py-3 text-center text-sm font-black text-white">
-                سبد خرید
-              </Link>
+              <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3">
+                <Link href="/login" className="block rounded-2xl border border-[#003b5c]/20 bg-white px-4 py-3 text-center text-sm font-black text-[#003b5c]">
+                  ورود
+                </Link>
+                <Link href="/register" className="block rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-center text-sm font-black text-emerald-700">
+                  ثبت‌نام
+                </Link>
+                <Link href="/cart" className="block rounded-2xl bg-[#003b5c] px-4 py-3 text-center text-sm font-black text-white">
+                  سبد خرید
+                </Link>
+              </div>
             </div>
           </details>
         </div>
@@ -55,9 +63,23 @@ export default function StoreStaticHeader() {
           ))}
         </nav>
 
-        <Link href="/cart" className="rounded-2xl bg-[#003b5c] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#005f8f]">
-          سبد خرید
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/login"
+            className="hidden rounded-2xl border border-[#003b5c]/20 bg-white px-4 py-2 text-sm font-black text-[#003b5c] shadow-sm transition hover:bg-blue-50 sm:inline-flex"
+          >
+            ورود
+          </Link>
+          <Link
+            href="/register"
+            className="hidden rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-100 sm:inline-flex"
+          >
+            ثبت‌نام
+          </Link>
+          <Link href="/cart" className="rounded-2xl bg-[#003b5c] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#005f8f]">
+            سبد خرید
+          </Link>
+        </div>
       </div>
     </header>
   );
