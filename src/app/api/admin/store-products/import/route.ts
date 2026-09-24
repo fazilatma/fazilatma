@@ -8,6 +8,8 @@ import {
   findMatchingStoreProductIndex,
   importedDraftToStoreProduct,
   scanStoreProductsFromUrl,
+  storeProductIdentityKey,
+  type ImportedStoreProductDraft,
 } from "@/lib/store-product-import";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +21,9 @@ type ImportBody = {
   limit?: number;
   action?: ImportAction;
   strategy?: "merge" | "add-only";
+  scanMode?: "page" | "full-site";
+  fullSite?: boolean;
+  priceMultiplier?: number;
 };
 
 function publicProduct(product: JsonStoreProduct, index: number) {
@@ -37,6 +42,80 @@ function publicProduct(product: JsonStoreProduct, index: number) {
   };
 }
 
+function normalizePriceMultiplier(value: unknown) {
+  const number = Number(value || 1);
+  if (!Number.isFinite(number) || number <= 0) return 1;
+  return Math.max(0.1, Math.min(10, number));
+}
+
+function roundToman(value: number) {
+  return Math.max(0, Math.round(Number(value || 0) / 10_000) * 10_000);
+}
+
+function applyPriceMultiplier(
+  draft: ImportedStoreProductDraft,
+  priceMultiplier: number,
+): ImportedStoreProductDraft {
+  if (priceMultiplier === 1) return draft;
+  return {
+    ...draft,
+    price: roundToman(draft.price * priceMultiplier),
+    originalPrice: draft.originalPrice
+      ? roundToman(draft.originalPrice * priceMultiplier)
+      : undefined,
+  };
+}
+
+function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
+  const importedIsNewer =
+    String(imported.priceUpdatedAt || "") >= String(existing.priceUpdatedAt || "");
+  return {
+    ...existing,
+    title: existing.title || imported.title,
+    brand: existing.brand || imported.brand,
+    category: existing.category || imported.category,
+    summary: imported.summary || existing.summary,
+    description:
+      imported.description.length > existing.description.length
+        ? imported.description
+        : existing.description,
+    price: importedIsNewer ? imported.price : existing.price,
+    originalPrice: importedIsNewer ? imported.originalPrice : existing.originalPrice,
+    stock: Math.max(existing.stock || 0, imported.stock || 0),
+    specs: { ...existing.specs, ...imported.specs },
+    badges: Array.from(
+      new Set([...(existing.badges || []), ...(imported.badges || []), "قیمت به‌روز"]),
+    ).slice(0, 6),
+    shippingNote: imported.shippingNote || existing.shippingNote,
+    priceUpdatedAt: importedIsNewer ? imported.priceUpdatedAt : existing.priceUpdatedAt,
+    marketReferenceNote: importedIsNewer
+      ? imported.marketReferenceNote
+      : existing.marketReferenceNote,
+    externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
+    isActive: true,
+  } satisfies JsonStoreProduct;
+}
+
+function dedupeStoreProducts(products: JsonStoreProduct[]) {
+  const output: JsonStoreProduct[] = [];
+  const indexByIdentity = new Map<string, number>();
+  let duplicatesRemoved = 0;
+
+  for (const product of products) {
+    const identity = storeProductIdentityKey(product);
+    const existingIndex = indexByIdentity.get(identity);
+    if (existingIndex === undefined) {
+      indexByIdentity.set(identity, output.length);
+      output.push(product);
+      continue;
+    }
+    output[existingIndex] = mergeProducts(output[existingIndex], product);
+    duplicatesRemoved += 1;
+  }
+
+  return { products: output, duplicatesRemoved };
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ImportBody;
@@ -48,11 +127,28 @@ export async function POST(request: Request) {
       );
     }
     const action: ImportAction = body.action === "import" ? "import" : "preview";
-    const limit = Math.max(1, Math.min(50, Number(body.limit || 20)));
+    const fullSite = body.fullSite === true || body.scanMode === "full-site";
+    const limit = Math.max(1, Math.min(1000, Number(body.limit || (fullSite ? 1000 : 50))));
     const strategy = body.strategy === "add-only" ? "add-only" : "merge";
+    const priceMultiplier = normalizePriceMultiplier(body.priceMultiplier);
 
-    const scan = await scanStoreProductsFromUrl(url, { limit });
-    const importedProducts = scan.products.map(importedDraftToStoreProduct);
+    const scan = await scanStoreProductsFromUrl(url, {
+      limit,
+      fullSite,
+      maxPages: fullSite ? Math.min(1200, limit + 250) : limit + 20,
+    });
+    const importedProducts = scan.products
+      .map((draft) => applyPriceMultiplier(draft, priceMultiplier))
+      .map((draft) => {
+        const product = importedDraftToStoreProduct(draft);
+        if (priceMultiplier !== 1) {
+          product.marketReferenceNote = `${product.marketReferenceNote}؛ اعمال ضریب قیمت ${priceMultiplier.toLocaleString("fa-IR")}`;
+          product.badges = Array.from(
+            new Set([...(product.badges || []), `ضریب ${priceMultiplier.toLocaleString("fa-IR")}`]),
+          ).slice(0, 6);
+        }
+        return product;
+      });
 
     if (action === "preview") {
       const data = await getOptiBidData();
@@ -75,6 +171,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         mode: "preview",
+        scanMode: fullSite ? "full-site" : "page",
+        priceMultiplier,
         sourceUrl: scan.sourceUrl,
         sourceHost: scan.sourceHost,
         scannedUrls: scan.scannedUrls,
@@ -92,28 +190,10 @@ export async function POST(request: Request) {
     for (const product of importedProducts) {
       const matchIndex = findMatchingStoreProductIndex(data.storeProducts, product);
       if (matchIndex >= 0 && strategy === "merge") {
-        const existing = data.storeProducts[matchIndex];
-        data.storeProducts[matchIndex] = {
-          ...existing,
-          title: existing.title || product.title,
-          brand: existing.brand || product.brand,
-          category: existing.category || product.category,
-          summary: product.summary || existing.summary,
-          description:
-            product.description.length > existing.description.length
-              ? product.description
-              : existing.description,
-          price: product.price,
-          originalPrice: product.originalPrice,
-          stock: product.stock,
-          specs: { ...existing.specs, ...product.specs },
-          badges: Array.from(new Set([...(existing.badges || []), "قیمت به‌روز"])).slice(0, 6),
-          shippingNote: product.shippingNote,
-          priceUpdatedAt: product.priceUpdatedAt,
-          marketReferenceNote: product.marketReferenceNote,
-          externalSourceUrl: product.externalSourceUrl,
-          isActive: true,
-        };
+        data.storeProducts[matchIndex] = mergeProducts(
+          data.storeProducts[matchIndex],
+          product,
+        );
         updated += 1;
         changedProducts.push(publicProduct(data.storeProducts[matchIndex], matchIndex));
       } else {
@@ -130,19 +210,24 @@ export async function POST(request: Request) {
       }
     }
 
+    const deduped = dedupeStoreProducts(data.storeProducts);
+    data.storeProducts = deduped.products;
     await writeOptiBidData(data);
 
     return NextResponse.json({
       success: true,
       mode: "import",
+      scanMode: fullSite ? "full-site" : "page",
+      priceMultiplier,
       sourceUrl: scan.sourceUrl,
       sourceHost: scan.sourceHost,
       scannedUrls: scan.scannedUrls,
       products: changedProducts,
       created,
       updated,
+      duplicatesRemoved: deduped.duplicatesRemoved,
       warnings: scan.warnings,
-      message: `${created.toLocaleString("fa-IR")} محصول جدید اضافه شد و ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی شد.`,
+      message: `${created.toLocaleString("fa-IR")} محصول جدید اضافه شد، ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی شد و ${deduped.duplicatesRemoved.toLocaleString("fa-IR")} مورد تکراری هوشمند حذف/ادغام شد.`,
     });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown product import error";
@@ -150,7 +235,7 @@ export async function POST(request: Request) {
       {
         success: false,
         message:
-          "درون‌ریزی محصولات ناموفق بود. لینک را بررسی کنید یا لینک مستقیم صفحه محصول/دسته‌بندی را وارد کنید.",
+          "درون‌ریزی محصولات ناموفق بود. لینک را بررسی کنید یا لینک مستقیم صفحه محصول/دسته‌بندی/sitemap را وارد کنید.",
         detail,
       },
       { status: 500 },

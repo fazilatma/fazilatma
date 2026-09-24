@@ -216,7 +216,9 @@ export default function AdminDashboardClient({
   const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
   const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
-  const [productImportLimit, setProductImportLimit] = useState(20);
+  const [productImportLimit, setProductImportLimit] = useState(1000);
+  const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
+  const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("full-site");
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
   const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
   const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
@@ -682,6 +684,8 @@ export default function AdminDashboardClient({
           limit: productImportLimit,
           action,
           strategy: productImportStrategy,
+          scanMode: productImportScanMode,
+          priceMultiplier: productImportPriceMultiplier,
         }),
       });
       const result = await response.json();
@@ -1573,37 +1577,63 @@ export default function AdminDashboardClient({
                     </p>
                   </div>
 
-                  <div className="grid gap-4 rounded-3xl border border-blue-100 bg-blue-50/50 p-5 lg:grid-cols-[1fr_160px]">
+                  <div className="grid gap-4 rounded-3xl border border-blue-100 bg-blue-50/50 p-5 lg:grid-cols-[1fr_170px_170px]">
                     <label className="block text-sm font-bold text-gray-700">
-                      لینک فروشگاه، دسته‌بندی یا صفحه محصول
+                      لینک فروشگاه، دسته‌بندی، صفحه محصول یا sitemap
                       <input
                         value={productImportUrl}
                         onChange={(e) => setProductImportUrl(e.target.value)}
-                        placeholder="مثلاً https://example.com/product/laptop یا لینک دسته‌بندی لپ‌تاپ"
+                        placeholder="مثلاً https://example.com یا https://example.com/sitemap.xml"
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-left outline-none focus:ring-2 focus:ring-blue-500"
                         dir="ltr"
                       />
                     </label>
                     <label className="block text-sm font-bold text-gray-700">
-                      حداکثر محصول در هر بار
+                      حداکثر محصول
                       <input
                         type="number"
                         min="1"
-                        max="50"
+                        max="1000"
                         value={productImportLimit}
-                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(50, Number(e.target.value || 20))))}
+                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(1000, Number(e.target.value || 1000))))}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      ضریب قیمت
+                      <input
+                        type="number"
+                        min="0.1"
+                        max="10"
+                        step="0.01"
+                        value={productImportPriceMultiplier}
+                        onChange={(e) => setProductImportPriceMultiplier(Math.max(0.1, Math.min(10, Number(e.target.value || 1))))}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="mt-1 block text-[11px] leading-5 text-gray-500">
+                        ۱ بدون تغییر، ۱.۱۵ یعنی ۱۵٪ افزایش، ۰.۹ یعنی ۱۰٪ کاهش.
+                      </span>
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      محدوده اسکن
+                      <select
+                        value={productImportScanMode}
+                        onChange={(e) => setProductImportScanMode(e.target.value === "page" ? "page" : "full-site")}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="full-site">کل سایت/سایت‌مپ و لینک‌های قابل کشف</option>
+                        <option value="page">فقط همین صفحه و لینک‌های محصول داخل آن</option>
+                      </select>
+                    </label>
                     <label className="block text-sm font-bold text-gray-700 lg:col-span-2">
-                      روش برخورد با محصول مشابه
+                      روش برخورد با محصول مشابه و تکراری
                       <select
                         value={productImportStrategy}
                         onChange={(e) => setProductImportStrategy(e.target.value === "add-only" ? "add-only" : "merge")}
-                        className="mt-2 w-full max-w-md rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="merge">اگر محصول مشابه پیدا شد، قیمت و مشخصات همان محصول به‌روزرسانی شود</option>
-                        <option value="add-only">حتی اگر مشابه بود، به عنوان محصول جدید اضافه شود</option>
+                        <option value="merge">هوشمند: محصول مشابه به‌روزرسانی شود و تکراری‌ها حذف/ادغام شوند</option>
+                        <option value="add-only">محصول جدید اضافه شود؛ سپس تکراری‌های قطعی ادغام شوند</option>
                       </select>
                     </label>
                     <div className="flex flex-col gap-3 sm:flex-row lg:col-span-2">
@@ -1627,7 +1657,7 @@ export default function AdminDashboardClient({
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    نکته: بعضی سایت‌ها قیمت را با JavaScript بعد از بارگذاری صفحه نمایش می‌دهند یا دسترسی ربات را محدود می‌کنند؛ در این حالت بهتر است لینک مستقیم صفحه محصول را بدهید. برای سرعت و پایداری، هر بار حداکثر ۵۰ محصول اسکن می‌شود.
+                    نکته: در حالت «کل سایت»، سیستم ابتدا sitemap و robots.txt را بررسی می‌کند و سپس لینک‌های محصول قابل کشف را تا سقف تعیین‌شده وارد می‌کند. اگر فروشگاه مقصد قیمت را فقط با JavaScript نمایش دهد یا دسترسی ربات را ببندد، ممکن است لازم باشد لینک sitemap یا لینک مستقیم دسته‌بندی/محصول را بدهید.
                   </div>
 
                   {productImportMessage && (

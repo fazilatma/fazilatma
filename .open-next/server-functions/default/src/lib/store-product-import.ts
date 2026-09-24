@@ -23,7 +23,13 @@ export type StoreProductImportScanResult = {
   warnings: string[];
 };
 
-const laptopKeywords = [
+export type StoreProductImportScanOptions = {
+  limit?: number;
+  fullSite?: boolean;
+  maxPages?: number;
+};
+
+const productKeywords = [
   "laptop",
   "notebook",
   "macbook",
@@ -32,11 +38,25 @@ const laptopKeywords = [
   "elitebook",
   "tuf",
   "legion",
+  "vivobook",
+  "rog",
+  "ideapad",
+  "zbook",
+  "surface",
+  "pc",
+  "computer",
+  "monitor",
+  "printer",
+  "console",
   "لپ",
   "لپتاپ",
   "لپ‌تاپ",
   "نوت",
   "مک",
+  "کامپیوتر",
+  "مانیتور",
+  "پرینتر",
+  "کنسول",
 ];
 
 const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
@@ -53,7 +73,14 @@ function decodeHtml(value: string) {
 }
 
 function stripTags(value: string) {
-  return decodeHtml(value.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+  return decodeHtml(
+    value
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " "),
+  )
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function toEnglishDigits(value: string) {
@@ -74,9 +101,7 @@ function normalizePriceToToman(rawPrice: unknown, currency?: string) {
   let price = numberFromText(rawPrice);
   const normalizedCurrency = String(currency || "").toUpperCase();
   if (!price) return 0;
-  if (normalizedCurrency === "IRR" || normalizedCurrency === "RIAL") {
-    price = price / 10;
-  }
+  if (normalizedCurrency === "IRR" || normalizedCurrency === "RIAL") price = price / 10;
   // بعضی فروشگاه‌ها حتی بدون currency قیمت را در ریال داخل JSON-LD می‌گذارند.
   if (!normalizedCurrency && price >= 250_000_000) price = price / 10;
   return Math.round(price);
@@ -107,6 +132,8 @@ export function storeProductSlugFromTitle(title: string, sourceHost = "") {
     .replace(/asus/g, " asus ")
     .replace(/dell/g, " dell ")
     .replace(/hp/g, " hp ")
+    .replace(/acer/g, " acer ")
+    .replace(/msi/g, " msi ")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 70);
@@ -128,11 +155,15 @@ function brandFromTitle(title: string, fallback = "OptiBid") {
 
 function categoryFromTitle(title: string) {
   const lower = title.toLowerCase();
-  if (/gaming|گیم|rtx|legion|tuf/.test(lower)) return "لپ‌تاپ گیمینگ";
+  if (/gaming|گیم|rtx|legion|tuf|rog/.test(lower)) return "لپ‌تاپ گیمینگ";
   if (/student|دانشجو|سبک|air|elitebook/.test(lower)) return "لپ‌تاپ دانشجویی و سبک";
-  if (/workstation|مهندس|طراحی|render|رندر/.test(lower)) return "لپ‌تاپ مهندسی";
+  if (/workstation|مهندس|طراحی|render|رندر|zbook/.test(lower)) return "لپ‌تاپ مهندسی";
   if (/business|اداری|thinkpad|latitude/.test(lower)) return "لپ‌تاپ اداری و شرکتی";
-  return "لپ‌تاپ";
+  if (/monitor|مانیتور/.test(lower)) return "مانیتور";
+  if (/printer|پرینتر|چاپگر/.test(lower)) return "ماشین‌های اداری";
+  if (/console|playstation|xbox|کنسول/.test(lower)) return "کنسول بازی";
+  if (/mouse|keyboard|ماوس|کیبورد|هدست|headset/.test(lower)) return "لوازم جانبی کامپیوتر";
+  return "لپ‌تاپ و کامپیوتر";
 }
 
 function asArray<T>(value: T | T[] | undefined | null): T[] {
@@ -206,13 +237,7 @@ function offerFromJsonLd(product: Record<string, unknown>) {
     aggregateOffer?.highPrice,
   );
   const price = normalizePriceToToman(rawPrice, currency);
-  const originalPrice = normalizePriceToToman(
-    firstText(
-      (offer.priceSpecification as Record<string, unknown> | undefined)?.priceType ? undefined : undefined,
-      aggregateOffer?.highPrice,
-    ),
-    currency,
-  );
+  const originalPrice = normalizePriceToToman(firstText(aggregateOffer?.highPrice), currency);
   const availability = firstText(offer.availability, aggregateOffer?.availability).toLowerCase();
   return {
     price,
@@ -237,9 +262,14 @@ function specsFromJsonLd(product: Record<string, unknown>) {
   return specs;
 }
 
+function isProbablyProductTitle(title: string) {
+  const lower = title.toLowerCase();
+  return productKeywords.some((keyword) => lower.includes(keyword.toLowerCase())) || /\d/.test(toEnglishDigits(title));
+}
+
 function draftFromJsonLdProduct(product: Record<string, unknown>, pageUrl: string, sourceHost: string): ImportedStoreProductDraft | null {
   const title = firstText(product.name, product.title).slice(0, 180);
-  if (!title || !laptopKeywords.some((keyword) => title.toLowerCase().includes(keyword.toLowerCase()))) return null;
+  if (!title) return null;
   const offer = offerFromJsonLd(product);
   if (!offer.price) return null;
   const brand = firstText((product.brand as Record<string, unknown> | undefined)?.name, product.brand) || brandFromTitle(title);
@@ -300,7 +330,7 @@ function extractHtmlPriceCandidates(html: string) {
 
 function fallbackDraftFromHtml(html: string, pageUrl: string, sourceHost: string) {
   const title = titleFromHtml(html);
-  if (!title || !laptopKeywords.some((keyword) => title.toLowerCase().includes(keyword.toLowerCase()))) return null;
+  if (!title || !isProbablyProductTitle(title)) return null;
   const candidates = extractHtmlPriceCandidates(html);
   if (!candidates.length) return null;
   const price = candidates[0];
@@ -320,6 +350,23 @@ function fallbackDraftFromHtml(html: string, pageUrl: string, sourceHost: string
   } satisfies ImportedStoreProductDraft;
 }
 
+function isBlockedPath(value: string) {
+  return /cart|checkout|login|account|comment|compare|wishlist|wp-content|tag|author|feed|privacy|terms/i.test(value);
+}
+
+function likelyProductUrl(url: string, sitemapUrl = "") {
+  try {
+    const parsed = new URL(url);
+    const decoded = decodeURIComponent(`${parsed.pathname} ${parsed.search}`.toLowerCase());
+    if (isBlockedPath(decoded)) return false;
+    if (/product|products|\/p\/|\/shop\/|kala|goods|item|prd|product-|prod-|\/pd\//i.test(decoded)) return true;
+    if (/product|products|kala|shop/i.test(sitemapUrl) && !/category|blog|page/i.test(decoded)) return true;
+    return productKeywords.some((keyword) => decoded.includes(keyword.toLowerCase()));
+  } catch {
+    return false;
+  }
+}
+
 function extractProductLinks(html: string, baseUrl: string, limit: number) {
   const base = new URL(baseUrl);
   const links = new Set<string>();
@@ -330,27 +377,40 @@ function extractProductLinks(html: string, baseUrl: string, limit: number) {
     if (url.hostname !== base.hostname) continue;
     const label = stripTags(match[2] || "");
     const haystack = `${decodeURIComponent(url.pathname)} ${label}`.toLowerCase();
-    if (/cart|checkout|login|account|category|tag|blog|comment|compare/i.test(haystack)) continue;
-    if (!laptopKeywords.some((keyword) => haystack.includes(keyword.toLowerCase())) && !/product|\/p\/|\/shop\//i.test(url.pathname)) continue;
+    if (isBlockedPath(haystack)) continue;
+    if (!likelyProductUrl(url.toString()) && !productKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()))) continue;
     links.add(url.toString());
     if (links.size >= limit) break;
   }
   return [...links];
 }
 
-function uniqueDrafts(drafts: ImportedStoreProductDraft[]) {
-  const seen = new Set<string>();
-  const output: ImportedStoreProductDraft[] = [];
-  for (const draft of drafts) {
-    const key = `${draft.externalSourceUrl}|${draft.title}|${draft.price}`.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    output.push(draft);
-  }
-  return output;
+export function importedDraftIdentityKey(draft: Pick<ImportedStoreProductDraft, "title" | "brand" | "specs">) {
+  const tokens = normalizedMatchTokens(`${draft.brand} ${draft.title} ${Object.values(draft.specs || {}).join(" ")}`)
+    .filter((token) => /\d/.test(token) || token.length >= 3)
+    .slice(0, 14);
+  return tokens.join("-") || stableHash(`${draft.brand}:${draft.title}`);
 }
 
-async function fetchHtml(url: string) {
+function chooseBetterDraft(current: ImportedStoreProductDraft, candidate: ImportedStoreProductDraft) {
+  const currentScore = Object.keys(current.specs || {}).length * 3 + current.description.length / 120;
+  const candidateScore = Object.keys(candidate.specs || {}).length * 3 + candidate.description.length / 120;
+  if (candidateScore > currentScore + 1) return candidate;
+  if (candidate.price > 0 && current.price > 0 && candidate.price < current.price) return candidate;
+  return current;
+}
+
+function uniqueDrafts(drafts: ImportedStoreProductDraft[]) {
+  const byIdentity = new Map<string, ImportedStoreProductDraft>();
+  for (const draft of drafts) {
+    const key = importedDraftIdentityKey(draft);
+    const existing = byIdentity.get(key);
+    byIdentity.set(key, existing ? chooseBetterDraft(existing, draft) : draft);
+  }
+  return [...byIdentity.values()];
+}
+
+async function fetchText(url: string) {
   const timeoutSignal =
     typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
       ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
@@ -367,41 +427,130 @@ async function fetchHtml(url: string) {
   return response.text();
 }
 
-export async function scanStoreProductsFromUrl(inputUrl: string, options: { limit?: number } = {}): Promise<StoreProductImportScanResult> {
+const fetchHtml = fetchText;
+
+function parseSitemapLocs(xml: string) {
+  return [...xml.matchAll(/<loc[^>]*>([\s\S]*?)<\/loc>/gi)]
+    .map((match) => decodeHtml(stripTags(match[1] || "")))
+    .filter(Boolean);
+}
+
+async function discoverSitemapUrls(sourceUrl: string, limit: number, warnings: string[]) {
+  const base = new URL(sourceUrl);
+  const sitemapQueue: string[] = [];
+  const sitemapSeen = new Set<string>();
+  const productUrls: string[] = [];
+  const addSitemap = (url: string) => {
+    const absolute = absoluteUrl(url, base.origin);
+    if (absolute && !sitemapSeen.has(absolute)) {
+      sitemapSeen.add(absolute);
+      sitemapQueue.push(absolute);
+    }
+  };
+
+  addSitemap("/sitemap.xml");
+  addSitemap("/sitemap_index.xml");
+  addSitemap("/product-sitemap.xml");
+  addSitemap("/product-sitemap1.xml");
+  addSitemap("/sitemap-products.xml");
+
+  try {
+    const robots = await fetchText(`${base.origin}/robots.txt`);
+    for (const match of robots.matchAll(/^\s*Sitemap:\s*(\S+)\s*$/gim)) addSitemap(match[1]);
+  } catch {
+    // robots.txt اختیاری است.
+  }
+
+  while (sitemapQueue.length > 0 && productUrls.length < limit && sitemapSeen.size < 60) {
+    const sitemapUrl = sitemapQueue.shift()!;
+    try {
+      const xml = await fetchText(sitemapUrl);
+      const locs = parseSitemapLocs(xml);
+      for (const loc of locs) {
+        if (/\.xml(\.gz)?($|\?)/i.test(loc) || /sitemap/i.test(loc)) {
+          addSitemap(loc);
+        } else if (likelyProductUrl(loc, sitemapUrl)) {
+          productUrls.push(loc);
+          if (productUrls.length >= limit) break;
+        }
+      }
+    } catch (error) {
+      warnings.push(`خواندن sitemap ناموفق بود: ${sitemapUrl} (${error instanceof Error ? error.message : "خطا"})`);
+    }
+  }
+
+  return [...new Set(productUrls)].slice(0, limit);
+}
+
+async function scanOnePage(url: string, sourceHost: string) {
+  const html = await fetchHtml(url);
+  const drafts = extractProductDraftsFromJsonLd(html, url, sourceHost);
+  const fallback = drafts.length ? null : fallbackDraftFromHtml(html, url, sourceHost);
+  return {
+    html,
+    drafts: fallback ? [...drafts, fallback] : drafts,
+  };
+}
+
+export async function scanStoreProductsFromUrl(
+  inputUrl: string,
+  options: StoreProductImportScanOptions = {},
+): Promise<StoreProductImportScanResult> {
   const sourceUrl = new URL(inputUrl).toString();
   if (!/^https?:$/i.test(new URL(sourceUrl).protocol)) throw new Error("فقط لینک‌های http/https قابل درون‌ریزی هستند.");
   const sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, "");
-  const limit = Math.max(1, Math.min(50, Number(options.limit || 20)));
+  const limit = Math.max(1, Math.min(1000, Number(options.limit || (options.fullSite ? 1000 : 50))));
+  const maxPages = Math.max(limit, Math.min(1200, Number(options.maxPages || limit + 30)));
   const warnings: string[] = [];
   const scannedUrls: string[] = [];
   const allDrafts: ImportedStoreProductDraft[] = [];
+  const queue: string[] = [sourceUrl];
+  const queued = new Set(queue);
 
-  const firstHtml = await fetchHtml(sourceUrl);
-  scannedUrls.push(sourceUrl);
-  allDrafts.push(...extractProductDraftsFromJsonLd(firstHtml, sourceUrl, sourceHost));
-  const fallback = fallbackDraftFromHtml(firstHtml, sourceUrl, sourceHost);
-  if (fallback) allDrafts.push(fallback);
-
-  const links = extractProductLinks(firstHtml, sourceUrl, limit);
-  for (const link of links.slice(0, limit)) {
-    if (scannedUrls.includes(link)) continue;
-    try {
-      const html = await fetchHtml(link);
-      scannedUrls.push(link);
-      const drafts = extractProductDraftsFromJsonLd(html, link, sourceHost);
-      if (drafts.length) allDrafts.push(...drafts);
-      else {
-        const fallbackDraft = fallbackDraftFromHtml(html, link, sourceHost);
-        if (fallbackDraft) allDrafts.push(fallbackDraft);
+  if (options.fullSite) {
+    const sitemapUrls = await discoverSitemapUrls(sourceUrl, Math.min(maxPages, limit * 2), warnings);
+    for (const url of sitemapUrls) {
+      if (!queued.has(url)) {
+        queued.add(url);
+        queue.push(url);
       }
-    } catch (error) {
-      warnings.push(`خواندن ${link} ناموفق بود: ${error instanceof Error ? error.message : "خطای نامشخص"}`);
+    }
+  }
+
+  let cursor = 0;
+  while (cursor < queue.length && scannedUrls.length < maxPages && uniqueDrafts(allDrafts).length < limit) {
+    const batch = queue.slice(cursor, cursor + (options.fullSite ? 6 : 3));
+    cursor += batch.length;
+    const results = await Promise.allSettled(batch.map((url) => scanOnePage(url, sourceHost)));
+
+    for (let index = 0; index < results.length; index += 1) {
+      const url = batch[index];
+      const result = results[index];
+      if (result.status === "rejected") {
+        warnings.push(`خواندن ${url} ناموفق بود: ${result.reason instanceof Error ? result.reason.message : "خطای نامشخص"}`);
+        continue;
+      }
+      scannedUrls.push(url);
+      allDrafts.push(...result.value.drafts);
+
+      if (!options.fullSite || scannedUrls.length >= maxPages || queue.length >= maxPages) continue;
+      const links = extractProductLinks(result.value.html, url, Math.min(80, maxPages - queue.length));
+      for (const link of links) {
+        if (!queued.has(link)) {
+          queued.add(link);
+          queue.push(link);
+        }
+        if (queue.length >= maxPages) break;
+      }
     }
   }
 
   const products = uniqueDrafts(allDrafts).slice(0, limit);
   if (!products.length) {
-    warnings.push("محصول قابل تشخیص پیدا نشد. اگر سایت با JavaScript قیمت‌ها را بعداً بارگذاری کند، ممکن است نیاز به لینک مستقیم صفحه محصول داشته باشد.");
+    warnings.push("محصول قابل تشخیص پیدا نشد. اگر سایت با JavaScript قیمت‌ها را بعداً بارگذاری کند، ممکن است نیاز به لینک مستقیم صفحه محصول یا sitemap محصولات داشته باشد.");
+  }
+  if (options.fullSite && products.length >= limit) {
+    warnings.push(`به سقف ${limit.toLocaleString("fa-IR")} محصول در این مرحله رسیدیم. برای ادامه، دوباره لینک سایت یا sitemap را با سقف بالاتر اسکن کنید.`);
   }
 
   return { sourceUrl, sourceHost, scannedUrls, products, warnings };
@@ -412,7 +561,7 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
   const specs = { ...draft.specs };
   if (!specs.منبع) specs.منبع = draft.sourceHost;
   return {
-    id: `imp-${stableHash(`${draft.sourceHost}:${draft.title}:${draft.externalSourceUrl}`)}`,
+    id: `imp-${stableHash(`${draft.sourceHost}:${importedDraftIdentityKey(draft)}`)}`,
     slug: storeProductSlugFromTitle(draft.title, draft.sourceHost),
     title: draft.title,
     brand: draft.brand || brandFromTitle(draft.title),
@@ -443,10 +592,37 @@ function normalizedMatchTokens(value: string) {
     .replace(/[\u200c\s]+/g, " ")
     .replace(/[^a-z0-9آ-ی ]+/g, " ")
     .split(/\s+/)
-    .filter((token) => token.length >= 2 && !["laptop", "notebook", "core", "gb", "ssd", "ram", "inch", "لپ", "تاپ"].includes(token));
+    .filter(
+      (token) =>
+        token.length >= 2 &&
+        ![
+          "laptop",
+          "notebook",
+          "core",
+          "gb",
+          "ssd",
+          "ram",
+          "inch",
+          "اینچ",
+          "لپ",
+          "تاپ",
+          "مدل",
+          "خرید",
+          "قیمت",
+        ].includes(token),
+    );
+}
+
+export function storeProductIdentityKey(product: Pick<JsonStoreProduct, "title" | "brand" | "specs">) {
+  return importedDraftIdentityKey({
+    title: product.title,
+    brand: product.brand,
+    specs: product.specs || {},
+  });
 }
 
 export function findMatchingStoreProductIndex(products: JsonStoreProduct[], imported: JsonStoreProduct) {
+  const importedIdentity = storeProductIdentityKey(imported);
   const importedTokens = new Set(normalizedMatchTokens(imported.title));
   let bestIndex = -1;
   let bestScore = 0;
@@ -454,6 +630,11 @@ export function findMatchingStoreProductIndex(products: JsonStoreProduct[], impo
     if (product.externalSourceUrl && product.externalSourceUrl === imported.externalSourceUrl) {
       bestIndex = index;
       bestScore = 999;
+      return;
+    }
+    if (storeProductIdentityKey(product) === importedIdentity) {
+      bestIndex = index;
+      bestScore = 998;
       return;
     }
     const productTokens = normalizedMatchTokens(product.title);
