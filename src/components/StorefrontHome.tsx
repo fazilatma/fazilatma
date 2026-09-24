@@ -206,12 +206,48 @@ export default function StorefrontHome({
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <TrustCard icon="🧪" title="مهلت تست و بررسی سلامت" text="قبل از نهایی‌کردن خرید، سلامت باتری، نمایشگر، پورت‌ها و قطعات را بررسی کنید." />
-            <TrustCard icon="⚙️" title="مقایسه کانفیگ واقعی" text="CPU، RAM، SSD، گرافیک و نسل پردازنده را با نیاز خودتان تطبیق دهید." />
-            <TrustCard icon="🔋" title="باتری و شارژدهی" text="برای مدل‌های کارکرده، سلامت باتری و شارژدهی روزانه اهمیت زیادی دارد." />
-            <TrustCard icon="🚚" title="ارسال قابل پیگیری" text="پس از ثبت سفارش، اطلاعات ارسال و هماهنگی تحویل از مسیر پشتیبانی قابل پیگیری است." />
-            <TrustCard icon="💳" title="پرداخت امن" text="در فاز فروشگاهی، سفارش از مسیر پرداخت آنلاین یا روش‌های فعال سایت ثبت می‌شود." />
-            <TrustCard icon="🎧" title="مشاوره انتخاب مدل" text="اگر بین چند مدل مردد هستید، از بخش پشتیبانی آنلاین برای انتخاب بهتر کمک بگیرید." />
+            <TrustCard
+              icon="🧪"
+              title="مهلت تست و بررسی سلامت"
+              text="مدل‌های استوک و کارکرده را با تمرکز روی سلامت باتری، نمایشگر، پورت‌ها و قطعات بررسی کنید."
+              href="/shop?condition=stock&ref=checklist-health"
+              cta="مشاهده لپ‌تاپ‌های استوک"
+            />
+            <TrustCard
+              icon="⚙️"
+              title="مقایسه کانفیگ واقعی"
+              text="برای تطبیق CPU، RAM، SSD، گرافیک و نسل پردازنده، مدل‌های مناسب کانفیگ بالاتر را ببینید."
+              href="/shop?ram=16GB&ssd=512GB&ref=checklist-specs"
+              cta="مقایسه کانفیگ‌ها"
+            />
+            <TrustCard
+              icon="🔋"
+              title="باتری و شارژدهی"
+              text="برای حمل روزانه و کلاس، مدل‌های سبک با باتری مناسب و نمایشگر ۱۴ اینچ انتخاب مطمئن‌تری هستند."
+              href="/shop?use=student&display=14&battery=long&ref=checklist-battery"
+              cta="مشاهده مدل‌های سبک"
+            />
+            <TrustCard
+              icon="🚚"
+              title="ارسال قابل پیگیری"
+              text="برای هماهنگی ارسال، پیگیری تحویل و پرسش درباره سفارش، صفحه پشتیبانی فروشگاه را ببینید."
+              href="/support?ref=checklist-shipping#online-support"
+              cta="پیگیری ارسال"
+            />
+            <TrustCard
+              icon="💳"
+              title="پرداخت امن"
+              text="برای ثبت سفارش و بررسی مسیر پرداخت، ابتدا مدل مناسب را انتخاب کنید و سپس وارد سبد خرید شوید."
+              href="/cart?ref=checklist-payment"
+              cta="رفتن به سبد خرید"
+            />
+            <TrustCard
+              icon="🎧"
+              title="مشاوره انتخاب مدل"
+              text="اگر بین چند مدل مردد هستید، از راهنمای خرید یا پشتیبانی آنلاین برای انتخاب بهتر کمک بگیرید."
+              href="/support?ref=checklist-advice#online-support"
+              cta="دریافت مشاوره"
+            />
           </div>
         </div>
       </section>
@@ -400,17 +436,27 @@ function TrustCard({
   icon,
   title,
   text,
+  href,
+  cta,
 }: {
   icon: string;
   title: string;
   text: string;
+  href: string;
+  cta: string;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-100 bg-slate-50 p-5 transition hover:-translate-y-1 hover:border-blue-100 hover:bg-blue-50/60 hover:shadow-md">
+    <Link
+      href={href}
+      className="group rounded-3xl border border-slate-100 bg-slate-50 p-5 transition hover:-translate-y-1 hover:border-blue-100 hover:bg-blue-50/60 hover:shadow-md"
+    >
       <div className="text-3xl">{icon}</div>
-      <div className="mt-3 font-black text-slate-900">{title}</div>
+      <div className="mt-3 font-black text-slate-900 group-hover:text-[#003b5c]">{title}</div>
       <div className="mt-2 text-xs leading-6 text-slate-500">{text}</div>
-    </div>
+      <span className="mt-4 inline-flex rounded-full bg-white px-3 py-1 text-xs font-black text-rose-600 shadow-sm transition group-hover:bg-rose-50">
+        {cta} ←
+      </span>
+    </Link>
   );
 }
 
