@@ -7,6 +7,9 @@ import {
 import {
   findMatchingStoreProductIndex,
   importedDraftToStoreProduct,
+  normalizeProductImportCategories,
+  productImportCategoryKey,
+  productMatchesImportCategories,
   scanStoreProductsFromUrl,
   storeProductIdentityKey,
   type ImportedStoreProductDraft,
@@ -24,6 +27,7 @@ type ImportBody = {
   scanMode?: "page" | "full-site";
   fullSite?: boolean;
   priceMultiplier?: number;
+  categoryFilters?: string[];
 };
 
 function publicProduct(product: JsonStoreProduct, index: number) {
@@ -39,6 +43,12 @@ function publicProduct(product: JsonStoreProduct, index: number) {
     stock: product.stock,
     externalSourceUrl: product.externalSourceUrl,
     marketReferenceNote: product.marketReferenceNote,
+    importCategory: productImportCategoryKey({
+      title: product.title,
+      brand: product.brand,
+      category: product.category,
+      specs: product.specs || {},
+    }),
   };
 }
 
@@ -131,13 +141,23 @@ export async function POST(request: Request) {
     const limit = Math.max(1, Math.min(1000, Number(body.limit || (fullSite ? 1000 : 50))));
     const strategy = body.strategy === "add-only" ? "add-only" : "merge";
     const priceMultiplier = normalizePriceMultiplier(body.priceMultiplier);
+    const categoryFilters = normalizeProductImportCategories(body.categoryFilters);
 
     const scan = await scanStoreProductsFromUrl(url, {
       limit,
       fullSite,
       maxPages: fullSite ? Math.min(1200, limit + 250) : limit + 20,
     });
-    const importedProducts = scan.products
+    const filteredDrafts = scan.products.filter((draft) =>
+      productMatchesImportCategories(draft, categoryFilters),
+    );
+    if (categoryFilters.length > 0 && filteredDrafts.length < scan.products.length) {
+      scan.warnings.push(
+        `${(scan.products.length - filteredDrafts.length).toLocaleString("fa-IR")} محصول به دلیل عدم تطابق با دسته‌های انتخابی نادیده گرفته شد.`,
+      );
+    }
+
+    const importedProducts = filteredDrafts
       .map((draft) => applyPriceMultiplier(draft, priceMultiplier))
       .map((draft) => {
         const product = importedDraftToStoreProduct(draft);
@@ -173,6 +193,7 @@ export async function POST(request: Request) {
         mode: "preview",
         scanMode: fullSite ? "full-site" : "page",
         priceMultiplier,
+        categoryFilters,
         sourceUrl: scan.sourceUrl,
         sourceHost: scan.sourceHost,
         scannedUrls: scan.scannedUrls,
@@ -219,6 +240,7 @@ export async function POST(request: Request) {
       mode: "import",
       scanMode: fullSite ? "full-site" : "page",
       priceMultiplier,
+      categoryFilters,
       sourceUrl: scan.sourceUrl,
       sourceHost: scan.sourceHost,
       scannedUrls: scan.scannedUrls,

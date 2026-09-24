@@ -48,6 +48,28 @@ const defaultIndicators: Record<IndicatorId, boolean> = {
   demand: true,
 };
 
+const productImportCategoryOptions = [
+  { id: "laptop", label: "لپ‌تاپ و نوت‌بوک", hint: "Lenovo، Dell، HP، Asus، MacBook" },
+  { id: "mobile", label: "موبایل و گوشی", hint: "آیفون، سامسونگ، شیائومی و..." },
+  { id: "tablet", label: "تبلت و آیپد", hint: "iPad، Galaxy Tab و تبلت‌ها" },
+  { id: "desktop", label: "کامپیوتر آماده و آل‌این‌وان", hint: "کیس آماده، Mini PC، All-in-One" },
+  { id: "components", label: "قطعات کامپیوتر", hint: "CPU، GPU، RAM، مادربرد، پاور" },
+  { id: "storage", label: "حافظه و ذخیره‌سازی", hint: "SSD، HDD، فلش و کارت حافظه" },
+  { id: "accessories", label: "لوازم جانبی", hint: "ماوس، کیبورد، هدست، اسپیکر" },
+  { id: "monitor", label: "مانیتور و نمایشگر", hint: "مانیتور اداری و گیمینگ" },
+  { id: "gaming", label: "وسایل گیمینگ", hint: "لپ‌تاپ/تجهیزات گیمینگ و RTX" },
+  { id: "console", label: "کنسول بازی", hint: "PlayStation، Xbox، Nintendo" },
+  { id: "network", label: "تجهیزات شبکه", hint: "مودم، روتر، سوییچ، کابل" },
+  { id: "office-machines", label: "ماشین‌های اداری", hint: "اسکنر، لیبل پرینتر و تجهیزات اداری" },
+  { id: "printer", label: "پرینتر و مواد مصرفی", hint: "پرینتر، تونر، کارتریج" },
+  { id: "camera", label: "دوربین و وب‌کم", hint: "دوربین، وب‌کم و تجهیزات تصویر" },
+  { id: "audio", label: "صوتی و تصویری", hint: "هدفون، اسپیکر، میکروفون" },
+  { id: "smart-watch", label: "ساعت هوشمند", hint: "Smart Watch و مچ‌بند" },
+  { id: "server", label: "سرور و سازمانی", hint: "سرور، ورک‌استیشن و تجهیزات سازمانی" },
+] as const;
+
+const allProductImportCategoryIds = productImportCategoryOptions.map((option) => option.id);
+
 export default function AdminDashboardClient({
   realStats,
   sellerRankings,
@@ -220,6 +242,7 @@ export default function AdminDashboardClient({
   const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
   const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("full-site");
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
+  const [productImportCategories, setProductImportCategories] = useState<string[]>(allProductImportCategoryIds);
   const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
   const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
   const [productImportMessage, setProductImportMessage] = useState("");
@@ -667,9 +690,21 @@ export default function AdminDashboardClient({
     }
   };
 
+  const toggleProductImportCategory = (categoryId: string) => {
+    setProductImportCategories((current) =>
+      current.includes(categoryId)
+        ? current.filter((item) => item !== categoryId)
+        : [...current, categoryId],
+    );
+  };
+
   const runProductImport = async (action: "preview" | "import") => {
     if (!productImportUrl.trim()) {
       alert("لینک فروشگاه یا صفحه محصول را وارد کنید.");
+      return;
+    }
+    if (productImportCategories.length === 0) {
+      alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
       return;
     }
     if (action === "preview") setScanningProductImport(true);
@@ -686,6 +721,7 @@ export default function AdminDashboardClient({
           strategy: productImportStrategy,
           scanMode: productImportScanMode,
           priceMultiplier: productImportPriceMultiplier,
+          categoryFilters: productImportCategories,
         }),
       });
       const result = await response.json();
@@ -1636,7 +1672,70 @@ export default function AdminDashboardClient({
                         <option value="add-only">محصول جدید اضافه شود؛ سپس تکراری‌های قطعی ادغام شوند</option>
                       </select>
                     </label>
-                    <div className="flex flex-col gap-3 sm:flex-row lg:col-span-2">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-4 lg:col-span-3">
+                      <div className="mb-3 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                        <div>
+                          <b className="text-sm text-gray-900">انتخاب دسته کالا برای درون‌ریزی</b>
+                          <p className="mt-1 text-xs leading-6 text-gray-500">
+                            فقط دسته‌هایی که تیک خورده‌اند وارد سایت می‌شوند؛ مثلاً فقط موبایل، فقط لپ‌تاپ یا ترکیبی از چند گروه.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs font-black">
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategories(allProductImportCategoryIds)}
+                            className="rounded-full bg-blue-50 px-3 py-2 text-blue-700"
+                          >
+                            انتخاب همه
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategories(["laptop", "desktop", "components", "accessories", "monitor", "storage", "gaming"])}
+                            className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
+                          >
+                            فقط کامپیوتر و لپ‌تاپ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategories(["mobile", "tablet", "smart-watch"])}
+                            className="rounded-full bg-rose-50 px-3 py-2 text-rose-700"
+                          >
+                            فقط موبایل و تبلت
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategories([])}
+                            className="rounded-full bg-slate-100 px-3 py-2 text-slate-600"
+                          >
+                            پاک کردن انتخاب‌ها
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {productImportCategoryOptions.map((option) => {
+                          const checked = productImportCategories.includes(option.id);
+                          return (
+                            <label
+                              key={option.id}
+                              className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-blue-200 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-gray-700 hover:border-blue-100"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleProductImportCategory(option.id)}
+                                className="mt-1"
+                              />
+                              <span>
+                                <span className="block text-sm font-black">{option.label}</span>
+                                <span className="mt-1 block text-[11px] leading-5 text-gray-500">{option.hint}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row lg:col-span-3">
                       <button
                         type="button"
                         disabled={scanningProductImport || applyingProductImport}
@@ -1702,6 +1801,7 @@ export default function AdminDashboardClient({
                               <th className="px-4 py-3">عملیات</th>
                               <th className="px-4 py-3">محصول</th>
                               <th className="px-4 py-3">برند</th>
+                              <th className="px-4 py-3">دسته تشخیص‌داده‌شده</th>
                               <th className="px-4 py-3">قیمت جدید</th>
                               <th className="px-4 py-3">قیمت قبلی/اصلی</th>
                               <th className="px-4 py-3">منبع</th>
@@ -1724,6 +1824,7 @@ export default function AdminDashboardClient({
                                   )}
                                 </td>
                                 <td className="px-4 py-3 text-gray-600">{product.brand}</td>
+                                <td className="px-4 py-3 text-xs font-bold text-blue-700">{product.importCategory || product.category}</td>
                                 <td className="px-4 py-3 font-black text-rose-600">
                                   {Number(product.price || 0).toLocaleString("fa-IR")} تومان
                                 </td>

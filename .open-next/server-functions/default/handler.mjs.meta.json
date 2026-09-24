@@ -5017,7 +5017,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_app_admin_dashboard_AdminDashboardClient_tsx_0nrixfn._.js": {
-      "bytes": 146115,
+      "bytes": 150469,
       "imports": [],
       "format": "cjs"
     },
@@ -5622,7 +5622,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/node_modules_next_dist_esm_build_templates_app-route_1u8k_ao.js": {
-      "bytes": 21885,
+      "bytes": 25188,
       "imports": [],
       "format": "cjs"
     },
@@ -6341,7 +6341,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 1814853,
+      "bytes": 1828441,
       "imports": [],
       "format": "cjs"
     },
@@ -18020,7 +18020,7 @@
           "bytesInOutput": 3830
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_app_admin_dashboard_AdminDashboardClient_tsx_0nrixfn._.js": {
-          "bytesInOutput": 194675
+          "bytesInOutput": 202034
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_lib_0f8rm-3._.js": {
           "bytesInOutput": 128294
@@ -18089,7 +18089,7 @@
           "bytesInOutput": 311
         },
         ".open-next/server-functions/default/.next/server/chunks/node_modules_next_dist_esm_build_templates_app-route_1u8k_ao.js": {
-          "bytesInOutput": 26128
+          "bytesInOutput": 30418
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__1nz3n8u._.js": {
           "bytesInOutput": 12518
@@ -18176,7 +18176,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2215792
+          "bytesInOutput": 2234394
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -19238,7 +19238,7 @@
           "bytesInOutput": 73016
         }
       },
-      "bytes": 9549344
+      "bytes": 9579595
     }
   }
 }

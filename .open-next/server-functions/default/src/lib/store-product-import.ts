@@ -29,6 +29,45 @@ export type StoreProductImportScanOptions = {
   maxPages?: number;
 };
 
+export type ProductImportCategoryKey =
+  | "laptop"
+  | "mobile"
+  | "tablet"
+  | "desktop"
+  | "components"
+  | "accessories"
+  | "monitor"
+  | "storage"
+  | "gaming"
+  | "console"
+  | "network"
+  | "office-machines"
+  | "printer"
+  | "camera"
+  | "audio"
+  | "smart-watch"
+  | "server";
+
+const knownProductImportCategories = new Set<ProductImportCategoryKey>([
+  "laptop",
+  "mobile",
+  "tablet",
+  "desktop",
+  "components",
+  "accessories",
+  "monitor",
+  "storage",
+  "gaming",
+  "console",
+  "network",
+  "office-machines",
+  "printer",
+  "camera",
+  "audio",
+  "smart-watch",
+  "server",
+]);
+
 const productKeywords = [
   "laptop",
   "notebook",
@@ -48,6 +87,18 @@ const productKeywords = [
   "monitor",
   "printer",
   "console",
+  "mobile",
+  "phone",
+  "iphone",
+  "samsung",
+  "xiaomi",
+  "tablet",
+  "ipad",
+  "watch",
+  "camera",
+  "router",
+  "server",
+  "storage",
   "لپ",
   "لپتاپ",
   "لپ‌تاپ",
@@ -57,6 +108,19 @@ const productKeywords = [
   "مانیتور",
   "پرینتر",
   "کنسول",
+  "موبایل",
+  "گوشی",
+  "آیفون",
+  "سامسونگ",
+  "شیائومی",
+  "تبلت",
+  "آیپد",
+  "ساعت",
+  "دوربین",
+  "مودم",
+  "روتر",
+  "سرور",
+  "هارد",
 ];
 
 const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
@@ -153,16 +217,49 @@ function brandFromTitle(title: string, fallback = "OptiBid") {
   return fallback;
 }
 
+function productCategoryKeyFromText(value: string): ProductImportCategoryKey {
+  const lower = value.toLowerCase();
+  if (/iphone|mobile|phone|smartphone|گوشی|موبایل|آیفون|سامسونگ|شیائومی|هواوی|نوکیا/.test(lower)) return "mobile";
+  if (/tablet|ipad|tab |تبلت|آیپد/.test(lower)) return "tablet";
+  if (/watch|ساعت هوشمند|اسمارت واچ/.test(lower)) return "smart-watch";
+  const isLaptop = /laptop|notebook|macbook|thinkpad|latitude|elitebook|vivobook|ideapad|لپ\s?تاپ|لپ‌تاپ|لپتاپ|نوت\s?بوک|مک\s?بوک/.test(lower);
+  if (isLaptop && /gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
+  if (isLaptop) return "laptop";
+  if (/server|سرور/.test(lower)) return "server";
+  if (/monitor|مانیتور|display/.test(lower)) return "monitor";
+  if (/printer|پرینتر|چاپگر|scanner|اسکنر|کارتریج|تونر/.test(lower)) return "printer";
+  if (/camera|دوربین|cctv|وب.?کم/.test(lower)) return "camera";
+  if (/router|modem|network|switch|مودم|روتر|شبکه|سوییچ|کابل شبکه/.test(lower)) return "network";
+  if (/console|playstation|xbox|nintendo|ps5|ps4|کنسول|پلی.?استیشن|ایکس.?باکس/.test(lower)) return "console";
+  if (/ssd|hdd|hard|storage|flash|memory card|هارد|حافظه|فلش|مموری/.test(lower)) return "storage";
+  if (/cpu|processor|gpu|graphics|motherboard|ram|power|case|cooler|پردازنده|کارت گرافیک|مادربرد|رم کامپیوتر|پاور|کیس|خنک/.test(lower)) return "components";
+  if (/mouse|keyboard|headset|headphone|speaker|microphone|ماوس|کیبورد|هدست|هدفون|اسپیکر|میکروفون|پد ماوس/.test(lower)) return "accessories";
+  if (/gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
+  if (/desktop|all.?in.?one|mini.?pc|pc |computer|کیس آماده|کامپیوتر|مینی.?پی.?سی|آل.?این.?وان/.test(lower)) return "desktop";
+  return "laptop";
+}
+
 function categoryFromTitle(title: string) {
+  const key = productCategoryKeyFromText(title);
+  if (key === "mobile") return "موبایل و گوشی";
+  if (key === "tablet") return "تبلت و آیپد";
+  if (key === "smart-watch") return "ساعت هوشمند";
+  if (key === "server") return "سرور و تجهیزات ذخیره‌سازی";
+  if (key === "monitor") return "مانیتور";
+  if (key === "printer") return "ماشین‌های اداری";
+  if (key === "camera") return "دوربین و وب‌کم";
+  if (key === "network") return "تجهیزات شبکه";
+  if (key === "console") return "کنسول بازی";
+  if (key === "storage") return "حافظه و ذخیره‌سازی";
+  if (key === "components") return "قطعات کامپیوتر";
+  if (key === "accessories") return "لوازم جانبی کامپیوتر";
+  if (key === "gaming") return "وسایل گیمینگ";
+  if (key === "desktop") return "کامپیوتر آماده";
+
   const lower = title.toLowerCase();
-  if (/gaming|گیم|rtx|legion|tuf|rog/.test(lower)) return "لپ‌تاپ گیمینگ";
   if (/student|دانشجو|سبک|air|elitebook/.test(lower)) return "لپ‌تاپ دانشجویی و سبک";
   if (/workstation|مهندس|طراحی|render|رندر|zbook/.test(lower)) return "لپ‌تاپ مهندسی";
   if (/business|اداری|thinkpad|latitude/.test(lower)) return "لپ‌تاپ اداری و شرکتی";
-  if (/monitor|مانیتور/.test(lower)) return "مانیتور";
-  if (/printer|پرینتر|چاپگر/.test(lower)) return "ماشین‌های اداری";
-  if (/console|playstation|xbox|کنسول/.test(lower)) return "کنسول بازی";
-  if (/mouse|keyboard|ماوس|کیبورد|هدست|headset/.test(lower)) return "لوازم جانبی کامپیوتر";
   return "لپ‌تاپ و کامپیوتر";
 }
 
@@ -490,6 +587,34 @@ async function scanOnePage(url: string, sourceHost: string) {
     html,
     drafts: fallback ? [...drafts, fallback] : drafts,
   };
+}
+
+export function normalizeProductImportCategories(value: unknown): ProductImportCategoryKey[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item || "").trim())
+    .filter((item): item is ProductImportCategoryKey =>
+      knownProductImportCategories.has(item as ProductImportCategoryKey),
+    );
+}
+
+export function productImportCategoryKey(draft: Pick<ImportedStoreProductDraft, "title" | "brand" | "category" | "specs">) {
+  return productCategoryKeyFromText(
+    `${draft.title} ${draft.brand} ${draft.category} ${Object.values(draft.specs || {}).join(" ")}`,
+  );
+}
+
+export function productMatchesImportCategories(
+  draft: ImportedStoreProductDraft,
+  selectedCategories: ProductImportCategoryKey[],
+) {
+  if (selectedCategories.length === 0) return true;
+  const key = productImportCategoryKey(draft);
+  if (selectedCategories.includes(key)) return true;
+  if (key === "gaming" && selectedCategories.includes("laptop")) return true;
+  if (key === "printer" && selectedCategories.includes("office-machines")) return true;
+  if (key === "storage" && selectedCategories.includes("components")) return true;
+  return false;
 }
 
 export async function scanStoreProductsFromUrl(
