@@ -710,12 +710,24 @@ export default function AdminDashboardClient({
     }
   };
 
+  const clearProductImportPreviewState = () => {
+    setProductImportPreview([]);
+    setProductImportPreviewSource("");
+    setProductImportSelectedKeys([]);
+  };
+
+  const setProductImportCategoriesAndReset = (categories: string[]) => {
+    setProductImportCategories(categories);
+    clearProductImportPreviewState();
+  };
+
   const toggleProductImportCategory = (categoryId: string) => {
     setProductImportCategories((current) =>
       current.includes(categoryId)
         ? current.filter((item) => item !== categoryId)
         : [...current, categoryId],
     );
+    clearProductImportPreviewState();
   };
 
   const togglePriceRefreshReference = (referenceId: string) => {
@@ -1772,9 +1784,9 @@ export default function AdminDashboardClient({
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                   <div className="mb-6 border-b pb-4">
-                    <h2 className="text-xl font-bold">📦 درون‌ریزی محصولات و قیمت از لینک فروشگاه</h2>
+                    <h2 className="text-xl font-bold">📦 درون‌ریزی محصولات و قیمت از CSV یا لینک فروشگاه</h2>
                     <p className="mt-2 text-sm leading-7 text-gray-500">
-                      لینک صفحه محصول یا صفحه دسته‌بندی یک فروشگاه را وارد کنید؛ سیستم تلاش می‌کند نام محصول، برند، قیمت، موجودی و مشخصات را از داده‌های ساختاریافته یا متن صفحه استخراج کند و در فروشگاه OptiBid اضافه/به‌روزرسانی کند.
+                      از CSV خروجی Easy Scraper یا لینک صفحه محصول/دسته‌بندی استفاده کنید؛ فیلتر دسته کالا برای هر دو روش اعمال می‌شود تا فقط همان گروه‌های انتخاب‌شده وارد فروشگاه شوند.
                     </p>
                   </div>
 
@@ -1802,7 +1814,7 @@ export default function AdminDashboardClient({
                       <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
                       <p className="mt-1 text-xs leading-6 text-violet-700">
                         از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
-                        بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
+                        اول دسته کالا را از بخش زیر انتخاب کنید؛ مثلاً فقط «موبایل و گوشی». بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
                       </p>
                     </div>
                     <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
@@ -1811,9 +1823,7 @@ export default function AdminDashboardClient({
                         accept=".csv,text/csv"
                         onChange={(event) => {
                           setProductCsvFile(event.target.files?.[0] || null);
-                          setProductImportPreview([]);
-                          setProductImportPreviewSource("");
-                          setProductImportSelectedKeys([]);
+                          clearProductImportPreviewState();
                         }}
                         className="rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
                       />
@@ -1835,6 +1845,69 @@ export default function AdminDashboardClient({
                       </button>
                     </div>
                   </div>
+
+                  <div className="mb-5 rounded-3xl border border-cyan-100 bg-cyan-50/60 p-4">
+                      <div className="mb-3 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                        <div>
+                          <b className="text-sm text-cyan-950">انتخاب دسته کالا برای CSV و لینک فروشگاه</b>
+                          <p className="mt-1 text-xs leading-6 text-gray-500">
+                            این فیلتر قبل از پیش‌نمایش CSV هم اعمال می‌شود؛ یعنی اگر فقط «موبایل و گوشی» تیک داشته باشد، از فایل CSV فقط ردیف‌های موبایل نمایش داده و وارد سایت می‌شوند.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs font-black">
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(allProductImportCategoryIds)}
+                            className="rounded-full bg-blue-50 px-3 py-2 text-blue-700"
+                          >
+                            انتخاب همه
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop", "components", "accessories", "monitor", "storage", "gaming"])}
+                            className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
+                          >
+                            فقط کامپیوتر و لپ‌تاپ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["mobile"])}
+                            className="rounded-full bg-rose-50 px-3 py-2 text-rose-700"
+                          >
+                            فقط موبایل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset([])}
+                            className="rounded-full bg-slate-100 px-3 py-2 text-slate-600"
+                          >
+                            پاک کردن انتخاب‌ها
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {productImportCategoryOptions.map((option) => {
+                          const checked = productImportCategories.includes(option.id);
+                          return (
+                            <label
+                              key={option.id}
+                              className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-blue-200 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-gray-700 hover:border-blue-100"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleProductImportCategory(option.id)}
+                                className="mt-1"
+                              />
+                              <span>
+                                <span className="block text-sm font-black">{option.label}</span>
+                                <span className="mt-1 block text-[11px] leading-5 text-gray-500">{option.hint}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
 
                   <div className="grid gap-4 rounded-3xl border border-blue-100 bg-blue-50/50 p-5 lg:grid-cols-[1fr_170px_170px]">
                     <label className="block text-sm font-bold text-gray-700">
@@ -1895,68 +1968,7 @@ export default function AdminDashboardClient({
                         <option value="add-only">محصول جدید اضافه شود؛ سپس تکراری‌های قطعی ادغام شوند</option>
                       </select>
                     </label>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-4 lg:col-span-3">
-                      <div className="mb-3 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                        <div>
-                          <b className="text-sm text-gray-900">انتخاب دسته کالا برای درون‌ریزی</b>
-                          <p className="mt-1 text-xs leading-6 text-gray-500">
-                            فقط دسته‌هایی که تیک خورده‌اند وارد سایت می‌شوند؛ مثلاً فقط موبایل، فقط لپ‌تاپ یا ترکیبی از چند گروه.
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs font-black">
-                          <button
-                            type="button"
-                            onClick={() => setProductImportCategories(allProductImportCategoryIds)}
-                            className="rounded-full bg-blue-50 px-3 py-2 text-blue-700"
-                          >
-                            انتخاب همه
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setProductImportCategories(["laptop", "desktop", "components", "accessories", "monitor", "storage", "gaming"])}
-                            className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
-                          >
-                            فقط کامپیوتر و لپ‌تاپ
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setProductImportCategories(["mobile", "tablet", "smart-watch"])}
-                            className="rounded-full bg-rose-50 px-3 py-2 text-rose-700"
-                          >
-                            فقط موبایل و تبلت
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setProductImportCategories([])}
-                            className="rounded-full bg-slate-100 px-3 py-2 text-slate-600"
-                          >
-                            پاک کردن انتخاب‌ها
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                        {productImportCategoryOptions.map((option) => {
-                          const checked = productImportCategories.includes(option.id);
-                          return (
-                            <label
-                              key={option.id}
-                              className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-blue-200 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-gray-700 hover:border-blue-100"}`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleProductImportCategory(option.id)}
-                                className="mt-1"
-                              />
-                              <span>
-                                <span className="block text-sm font-black">{option.label}</span>
-                                <span className="mt-1 block text-[11px] leading-5 text-gray-500">{option.hint}</span>
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
+
 
                     <div className="flex flex-col gap-3 sm:flex-row lg:col-span-3">
                       <button
