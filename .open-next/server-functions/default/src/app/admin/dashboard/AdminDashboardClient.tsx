@@ -255,6 +255,8 @@ export default function AdminDashboardClient({
   const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
   const [productImportMessage, setProductImportMessage] = useState("");
   const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
+  const [productCsvFile, setProductCsvFile] = useState<File | null>(null);
+  const [processingProductCsv, setProcessingProductCsv] = useState(false);
   const [scanningProductImport, setScanningProductImport] = useState(false);
   const [applyingProductImport, setApplyingProductImport] = useState(false);
   const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
@@ -774,6 +776,45 @@ export default function AdminDashboardClient({
       alert(message);
     } finally {
       setRefreshingStorePrices(false);
+    }
+  };
+
+  const runProductCsvImport = async (action: "preview" | "import") => {
+    if (!productCsvFile) {
+      alert("فایل CSV خروجی Easy Scraper را انتخاب کنید.");
+      return;
+    }
+    if (productImportCategories.length === 0) {
+      alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
+      return;
+    }
+    setProcessingProductCsv(true);
+    setProductImportMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("file", productCsvFile);
+      formData.append("action", action);
+      formData.append("strategy", productImportStrategy);
+      formData.append("priceMultiplier", String(productImportPriceMultiplier));
+      formData.append("categoryFilters", JSON.stringify(productImportCategories));
+      formData.append("sourceLabel", "digikala-easy-scraper");
+      const response = await fetch("/api/admin/store-products/import-csv", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "درون‌ریزی CSV ناموفق بود.");
+      setProductImportPreview(result.products || []);
+      setProductImportWarnings(result.warnings || []);
+      setProductImportScannedUrls([]);
+      setProductImportMessage(result.message || "فایل CSV پردازش شد.");
+      if (action === "import") alert(result.message || "محصولات CSV وارد شدند.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "درون‌ریزی CSV ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setProcessingProductCsv(false);
     }
   };
 
@@ -1707,6 +1748,39 @@ export default function AdminDashboardClient({
                         className="rounded-xl bg-red-600 px-5 py-3 text-xs font-black text-white transition hover:bg-red-700 disabled:bg-gray-300"
                       >
                         {clearingStoreProducts ? "در حال پاک‌سازی..." : "پاک کردن همه محصولات فعلی"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-5 rounded-3xl border border-violet-100 bg-violet-50/60 p-4">
+                    <div className="mb-3">
+                      <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
+                      <p className="mt-1 text-xs leading-6 text-violet-700">
+                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
+                      <input
+                        type="file"
+                        accept=".csv,text/csv"
+                        onChange={(event) => setProductCsvFile(event.target.files?.[0] || null)}
+                        className="rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                      />
+                      <button
+                        type="button"
+                        disabled={processingProductCsv}
+                        onClick={() => runProductCsvImport("preview")}
+                        className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition hover:bg-violet-700 disabled:bg-gray-300"
+                      >
+                        {processingProductCsv ? "در حال پردازش..." : "پیش‌نمایش CSV"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={processingProductCsv}
+                        onClick={() => runProductCsvImport("import")}
+                        className="rounded-xl bg-fuchsia-600 px-5 py-3 text-sm font-black text-white transition hover:bg-fuchsia-700 disabled:bg-gray-300"
+                      >
+                        درون‌ریزی CSV
                       </button>
                     </div>
                   </div>
