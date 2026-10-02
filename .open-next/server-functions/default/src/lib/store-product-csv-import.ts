@@ -140,15 +140,17 @@ function brandFromTitle(title: string, fallback = "Digikala") {
 
 function categoryFromTitle(title: string) {
   const lower = title.toLowerCase();
-  if (/iphone|mobile|phone|smartphone|گوشی|موبایل|آیفون|سامسونگ|شیائومی/.test(lower)) return "موبایل و گوشی";
-  if (/tablet|ipad|تبلت|آیپد/.test(lower)) return "تبلت و آیپد";
-  if (/watch|ساعت/.test(lower)) return "ساعت هوشمند";
+  if (/tablet|ipad|galaxy\s*tab|redmi\s*pad|poco\s*pad|\bpad\b|تبلت|آیپد|گلکسی\s*تب/.test(lower)) return "تبلت و آیپد";
+  if (/watch|wearable|ساعت هوشمند|اسمارت واچ|مچ.?بند/.test(lower)) return "ساعت هوشمند";
+  if (/headset|headphone|earbud|airpods|speaker|microphone|هندزفری|هدفون|هدست|ایرباد|اسپیکر|میکروفون/.test(lower)) return "صوتی و تصویری";
+  if (/power\s*bank|powerbank|پاوربانک|پاور\s*بانک|شارژر همراه|charger|شارژر|adapter|آداپتور|کابل|cable|قاب|کاور|گلس|محافظ صفحه|هولدر|پایه نگهدارنده/.test(lower)) return "لوازم جانبی کامپیوتر";
+  if (/iphone|smartphone|mobile\s*phone|cell\s*phone|گوشی|موبایل|آیفون|galaxy\s*(s|a|m|z)\d|redmi\s*note|poco\s*(x|f|m|c)\d|honor\s*\d|nova\s*\d/.test(lower)) return "موبایل و گوشی";
   if (/monitor|مانیتور/.test(lower)) return "مانیتور";
   if (/printer|پرینتر|چاپگر/.test(lower)) return "پرینتر و ماشین اداری";
   if (/console|playstation|xbox|کنسول|پلی/.test(lower)) return "کنسول بازی";
   if (/ssd|hdd|hard|هارد|حافظه/.test(lower) && !/laptop|لپ/.test(lower)) return "حافظه و ذخیره‌سازی";
-  if (/cpu|gpu|motherboard|ram|پردازنده|کارت گرافیک|مادربرد/.test(lower)) return "قطعات کامپیوتر";
-  if (/mouse|keyboard|headset|ماوس|کیبورد|هدست|هدفون/.test(lower)) return "لوازم جانبی کامپیوتر";
+  if (/cpu|gpu|motherboard|ram|power\s*supply|پردازنده|کارت گرافیک|مادربرد|پاور کامپیوتر|منبع تغذیه/.test(lower)) return "قطعات کامپیوتر";
+  if (/mouse|keyboard|ماوس|کیبورد|پد ماوس/.test(lower)) return "لوازم جانبی کامپیوتر";
   if (/gaming|گیم|rtx|tuf|rog|legion/.test(lower)) return "لپ‌تاپ گیمینگ";
   return "لپ‌تاپ و کامپیوتر";
 }

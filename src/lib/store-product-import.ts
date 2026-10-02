@@ -220,9 +220,17 @@ function brandFromTitle(title: string, fallback = "OptiBid") {
 
 function productCategoryKeyFromText(value: string): ProductImportCategoryKey {
   const lower = value.toLowerCase();
-  if (/iphone|mobile|phone|smartphone|گوشی|موبایل|آیفون|سامسونگ|شیائومی|هواوی|نوکیا/.test(lower)) return "mobile";
-  if (/tablet|ipad|tab |تبلت|آیپد/.test(lower)) return "tablet";
-  if (/watch|ساعت هوشمند|اسمارت واچ/.test(lower)) return "smart-watch";
+
+  // اول گروه‌های دقیق‌تر را تشخیص می‌دهیم تا برندهایی مثل Xiaomi/Samsung
+  // باعث نشوند تبلت، پاوربانک یا لوازم جانبی اشتباهاً «موبایل» حساب شوند.
+  if (/tablet|ipad|galaxy\s*tab|redmi\s*pad|poco\s*pad|\bpad\b|تبلت|آیپد|گلکسی\s*تب/.test(lower)) return "tablet";
+  if (/watch|wearable|ساعت هوشمند|اسمارت واچ|مچ.?بند/.test(lower)) return "smart-watch";
+  if (/headset|headphone|earbud|airpods|speaker|microphone|هندزفری|هدفون|هدست|ایرباد|اسپیکر|میکروفون/.test(lower)) return "audio";
+  if (/power\s*bank|powerbank|پاوربانک|پاور\s*بانک|شارژر همراه|charger|شارژر|adapter|آداپتور|کابل|cable|قاب|کاور|گلس|محافظ صفحه|هولدر|پایه نگهدارنده|لوازم جانبی/.test(lower)) return "accessories";
+
+  const isPhone = /iphone|smartphone|mobile\s*phone|cell\s*phone|گوشی|موبایل|آیفون|galaxy\s*(s|a|m|z)\d|redmi\s*note|poco\s*(x|f|m|c)\d|honor\s*\d|nova\s*\d/.test(lower);
+  if (isPhone) return "mobile";
+
   const isLaptop = /laptop|notebook|macbook|thinkpad|latitude|elitebook|vivobook|ideapad|لپ\s?تاپ|لپ‌تاپ|لپتاپ|نوت\s?بوک|مک\s?بوک/.test(lower);
   if (isLaptop && /gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (isLaptop) return "laptop";
@@ -233,8 +241,8 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey {
   if (/router|modem|network|switch|مودم|روتر|شبکه|سوییچ|کابل شبکه/.test(lower)) return "network";
   if (/console|playstation|xbox|nintendo|ps5|ps4|کنسول|پلی.?استیشن|ایکس.?باکس/.test(lower)) return "console";
   if (/ssd|hdd|hard|storage|flash|memory card|هارد|حافظه|فلش|مموری/.test(lower)) return "storage";
-  if (/cpu|processor|gpu|graphics|motherboard|ram|power|case|cooler|پردازنده|کارت گرافیک|مادربرد|رم کامپیوتر|پاور|کیس|خنک/.test(lower)) return "components";
-  if (/mouse|keyboard|headset|headphone|speaker|microphone|ماوس|کیبورد|هدست|هدفون|اسپیکر|میکروفون|پد ماوس/.test(lower)) return "accessories";
+  if (/cpu|processor|gpu|graphics|motherboard|ram|power\s*supply|case|cooler|پردازنده|کارت گرافیک|مادربرد|رم کامپیوتر|پاور کامپیوتر|منبع تغذیه|کیس|خنک/.test(lower)) return "components";
+  if (/mouse|keyboard|ماوس|کیبورد|پد ماوس/.test(lower)) return "accessories";
   if (/gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (/desktop|all.?in.?one|mini.?pc|pc |computer|کیس آماده|کامپیوتر|مینی.?پی.?سی|آل.?این.?وان/.test(lower)) return "desktop";
   return "laptop";
