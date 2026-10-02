@@ -27,6 +27,7 @@ export type StoreProductImportScanOptions = {
   limit?: number;
   fullSite?: boolean;
   maxPages?: number;
+  categoryFilters?: ProductImportCategoryKey[];
 };
 
 export type ProductImportCategoryKey =
@@ -617,6 +618,174 @@ export function productMatchesImportCategories(
   return false;
 }
 
+const digikalaCategorySources: Record<ProductImportCategoryKey, { query: string; slugs: string[] }> = {
+  laptop: { query: "لپ تاپ", slugs: ["notebook-netbook-ultrabook"] },
+  mobile: { query: "گوشی موبایل", slugs: ["mobile-phone"] },
+  tablet: { query: "تبلت", slugs: ["tablet"] },
+  desktop: { query: "کامپیوتر آماده", slugs: ["desktop-computer", "all-in-one"] },
+  components: { query: "قطعات کامپیوتر", slugs: ["computer-parts"] },
+  accessories: { query: "لوازم جانبی کامپیوتر", slugs: ["computer-accessories"] },
+  monitor: { query: "مانیتور", slugs: ["monitor"] },
+  storage: { query: "SSD هارد", slugs: ["ssd", "internal-hard-drive", "external-hard-drive"] },
+  gaming: { query: "لپ تاپ گیمینگ RTX", slugs: ["gaming-laptop", "gaming-accessories"] },
+  console: { query: "کنسول بازی", slugs: ["game-console"] },
+  network: { query: "مودم روتر شبکه", slugs: ["network-products"] },
+  "office-machines": { query: "ماشین اداری", slugs: ["office-machines"] },
+  printer: { query: "پرینتر", slugs: ["printer"] },
+  camera: { query: "دوربین وب کم", slugs: ["camera", "webcam"] },
+  audio: { query: "هدفون اسپیکر میکروفون", slugs: ["headphone-headset-microphone", "speaker"] },
+  "smart-watch": { query: "ساعت هوشمند", slugs: ["wearable-gadget"] },
+  server: { query: "سرور ورک استیشن", slugs: ["server", "workstation"] },
+};
+
+function digikalaUrlFromProduct(record: Record<string, unknown>) {
+  const data = record as any;
+  const id = firstText(data.id, data.product_id, data.data_layer?.dimension9);
+  const uri = firstText(data.url, data.url?.uri, data.web_url);
+  if (uri) return absoluteUrl(uri, "https://www.digikala.com/");
+  if (id) return `https://www.digikala.com/product/dkp-${id}/`;
+  return "https://www.digikala.com/";
+}
+
+function draftFromDigikalaRecord(
+  record: Record<string, unknown>,
+  sourceHost: string,
+  fallbackCategory?: ProductImportCategoryKey,
+): ImportedStoreProductDraft | null {
+  const data = record as any;
+  const title = firstText(
+    data.title_fa,
+    data.title_en,
+    data.title,
+    data.name,
+    data.data_layer?.dimension2,
+  ).slice(0, 180);
+  if (!title) return null;
+
+  const priceRaw = firstText(
+    data.default_variant?.price?.selling_price,
+    data.default_variant?.price?.rrp_price,
+    data.price?.selling_price,
+    data.price?.rrp_price,
+    data.price,
+  );
+  const price = normalizePriceToToman(priceRaw, "IRR");
+  if (!price) return null;
+
+  const originalPrice = normalizePriceToToman(
+    firstText(data.default_variant?.price?.rrp_price),
+    "IRR",
+  );
+  const brand = firstText(data.brand?.title_fa, data.brand?.title_en, data.brand);
+  const categoryText = firstText(data.category?.title_fa, data.category);
+  const url = digikalaUrlFromProduct(record);
+  const specs: Record<string, string> = {};
+  const properties = asArray(record.properties as unknown[] | undefined);
+  for (const item of properties) {
+    if (!item || typeof item !== "object") continue;
+    const prop = item as Record<string, unknown>;
+    const name = firstText(prop.title, prop.name);
+    const value = firstText(prop.values, prop.value);
+    if (name && value) specs[name.slice(0, 40)] = value.slice(0, 90);
+  }
+  if (fallbackCategory) specs["گروه واردات"] = fallbackCategory;
+  specs["منبع"] = "Digikala";
+
+  return {
+    title,
+    brand: brandFromTitle(title, brand || "Digikala"),
+    category: categoryText || categoryFromTitle(`${title} ${fallbackCategory || ""}`),
+    summary: title,
+    description: firstText(data.description, data.review?.description, title).slice(0, 900) || title,
+    price,
+    originalPrice: originalPrice > price ? originalPrice : undefined,
+    stock: firstText(data.default_variant?.status, data.status).toLowerCase().includes("out") ? 0 : 5,
+    specs,
+    externalSourceUrl: url,
+    sourceHost,
+    currency: "IRR",
+  };
+}
+
+function digikalaRecordsFromJson(json: unknown): Record<string, unknown>[] {
+  const records = flattenJsonLd(json).filter((item: any) => {
+    if (!item || typeof item !== "object") return false;
+    const record = item as any;
+    return Boolean(
+      firstText(record.title_fa, record.title_en, record.title, record.name) &&
+        firstText(
+          record.default_variant?.price?.selling_price,
+          record.price?.selling_price,
+          record.price,
+        ),
+    );
+  });
+  const seen = new Set<string>();
+  const output: Record<string, unknown>[] = [];
+  for (const record of records as Record<string, unknown>[]) {
+    const key = firstText(record.id, record.product_id, record.title_fa, record.title);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    output.push(record);
+  }
+  return output;
+}
+
+async function fetchDigikalaApi(url: string) {
+  const text = await fetchText(url);
+  return parseJsonLoose(text);
+}
+
+async function scanDigikalaRobot(
+  sourceUrl: string,
+  selectedCategories: ProductImportCategoryKey[],
+  limit: number,
+  warnings: string[],
+) {
+  const sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, "");
+  const categories = selectedCategories.length
+    ? selectedCategories
+    : (["laptop", "mobile", "tablet", "components", "accessories", "monitor", "gaming", "console"] as ProductImportCategoryKey[]);
+  const urls: Array<{ url: string; category: ProductImportCategoryKey }> = [];
+
+  for (const category of categories) {
+    const source = digikalaCategorySources[category];
+    if (!source) continue;
+    for (const slug of source.slugs.slice(0, 3)) {
+      for (let page = 1; page <= 3; page += 1) {
+        urls.push({ url: `https://api.digikala.com/v1/categories/${slug}/search/?page=${page}`, category });
+      }
+    }
+    for (let page = 1; page <= 3; page += 1) {
+      urls.push({ url: `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=${page}`, category });
+    }
+  }
+
+  const drafts: ImportedStoreProductDraft[] = [];
+  const scannedUrls: string[] = [];
+  for (let cursor = 0; cursor < urls.length && drafts.length < limit; cursor += 4) {
+    const batch = urls.slice(cursor, cursor + 4);
+    const results = await Promise.allSettled(batch.map((item) => fetchDigikalaApi(item.url)));
+    for (let index = 0; index < results.length; index += 1) {
+      const item = batch[index];
+      const result = results[index];
+      scannedUrls.push(item.url);
+      if (result.status === "rejected") {
+        warnings.push(`ربات دیجی‌کالا نتوانست ${item.url} را بخواند: ${result.reason instanceof Error ? result.reason.message : "خطا"}`);
+        continue;
+      }
+      const records = digikalaRecordsFromJson(result.value);
+      for (const record of records) {
+        const draft = draftFromDigikalaRecord(record, sourceHost, item.category);
+        if (draft) drafts.push(draft);
+        if (drafts.length >= limit) break;
+      }
+    }
+  }
+
+  return { drafts: uniqueDrafts(drafts).slice(0, limit), scannedUrls };
+}
+
 export async function scanStoreProductsFromUrl(
   inputUrl: string,
   options: StoreProductImportScanOptions = {},
@@ -629,6 +798,29 @@ export async function scanStoreProductsFromUrl(
   const warnings: string[] = [];
   const scannedUrls: string[] = [];
   const allDrafts: ImportedStoreProductDraft[] = [];
+  const selectedCategories = options.categoryFilters || [];
+  const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
+
+  if (isDigikalaSource && options.fullSite) {
+    try {
+      const robot = await scanDigikalaRobot(sourceUrl, selectedCategories, limit, warnings);
+      scannedUrls.push(...robot.scannedUrls);
+      allDrafts.push(...robot.drafts);
+      if (robot.drafts.length > 0) {
+        return {
+          sourceUrl,
+          sourceHost,
+          scannedUrls,
+          products: uniqueDrafts(allDrafts).slice(0, limit),
+          warnings,
+        };
+      }
+      warnings.push("ربات دیجی‌کالا محصولی پیدا نکرد؛ روش عمومی اسکن صفحه ادامه پیدا کرد.");
+    } catch (error) {
+      warnings.push(`ربات دیجی‌کالا اجرا نشد: ${error instanceof Error ? error.message : "خطا"}`);
+    }
+  }
+
   const queue: string[] = [sourceUrl];
   const queued = new Set(queue);
 

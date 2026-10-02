@@ -147,6 +147,7 @@ export async function POST(request: Request) {
       limit,
       fullSite,
       maxPages: fullSite ? Math.min(1200, limit + 250) : limit + 20,
+      categoryFilters,
     });
     const filteredDrafts = scan.products.filter((draft) =>
       productMatchesImportCategories(draft, categoryFilters),
