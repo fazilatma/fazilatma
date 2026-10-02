@@ -257,6 +257,7 @@ export default function AdminDashboardClient({
   const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
   const [scanningProductImport, setScanningProductImport] = useState(false);
   const [applyingProductImport, setApplyingProductImport] = useState(false);
+  const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
   const [priceRefreshReferences, setPriceRefreshReferences] = useState<string[]>(["torob", "digikala"]);
   const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
   const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(1000);
@@ -719,6 +720,27 @@ export default function AdminDashboardClient({
         ? current.filter((item) => item !== referenceId)
         : [...current, referenceId],
     );
+  };
+
+  const clearStoreProducts = async () => {
+    if (!confirm("همه محصولات فعلی فروشگاه پاک شوند؟ این کار برای تست درون‌ریزی محصولات جدید است.")) return;
+    setClearingStoreProducts(true);
+    try {
+      const response = await fetch("/api/admin/store-products/clear", {
+        method: "POST",
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "پاک‌سازی محصولات ناموفق بود.");
+      setProductImportPreview([]);
+      setProductImportMessage(result.message || "محصولات فروشگاه پاک شدند.");
+      alert(result.message || "محصولات فروشگاه پاک شدند.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "پاک‌سازی محصولات ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setClearingStoreProducts(false);
+    }
   };
 
   const refreshStorePrices = async () => {
@@ -1668,6 +1690,25 @@ export default function AdminDashboardClient({
                     <p className="mt-2 text-sm leading-7 text-gray-500">
                       لینک صفحه محصول یا صفحه دسته‌بندی یک فروشگاه را وارد کنید؛ سیستم تلاش می‌کند نام محصول، برند، قیمت، موجودی و مشخصات را از داده‌های ساختاریافته یا متن صفحه استخراج کند و در فروشگاه OptiBid اضافه/به‌روزرسانی کند.
                     </p>
+                  </div>
+
+                  <div className="mb-5 rounded-3xl border border-red-100 bg-red-50/60 p-4">
+                    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <b className="text-sm text-red-900">پاک‌سازی محصولات پیش‌فرض/فعلی فروشگاه</b>
+                        <p className="mt-1 text-xs leading-6 text-red-700">
+                          برای تست درون‌ریزی از دیجی‌کالا یا فروشگاه دیگر، می‌توانید همه محصولات فعلی را پاک کنید و سپس محصولات جدید را وارد کنید.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={clearingStoreProducts}
+                        onClick={clearStoreProducts}
+                        className="rounded-xl bg-red-600 px-5 py-3 text-xs font-black text-white transition hover:bg-red-700 disabled:bg-gray-300"
+                      >
+                        {clearingStoreProducts ? "در حال پاک‌سازی..." : "پاک کردن همه محصولات فعلی"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid gap-4 rounded-3xl border border-blue-100 bg-blue-50/50 p-5 lg:grid-cols-[1fr_170px_170px]">

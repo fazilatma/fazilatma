@@ -671,6 +671,19 @@ const defaultStoreProducts: JsonStoreProduct[] = [
   },
 ];
 
+const defaultStoreProductIds = new Set([
+  "lp-thinkpad-t14-g3",
+  "lp-dell-latitude-7420",
+  "lp-hp-elitebook-840-g8",
+  "lp-asus-tuf-f15-rtx3050",
+  "lp-macbook-air-m1",
+  "lp-lenovo-legion-5",
+]);
+
+const isDefaultStoreSeedProduct = (product: Partial<JsonStoreProduct>) =>
+  defaultStoreProductIds.has(String(product.id || "")) &&
+  !String(product.externalSourceUrl || "").trim();
+
 const STORE_MARKET_PRICE_REFRESH_DATE = "2026-09-22";
 
 const latestStoreMarketPrices: Record<
@@ -916,7 +929,7 @@ const emptyData = (): OptiBidJsonData => ({
   reviews: [],
   passwordResets: [],
   catalogCategories: defaultCatalogCategories,
-  storeProducts: defaultStoreProducts,
+  storeProducts: [],
   storeOrders: [],
   supportChatMessages: [],
   settings: {
@@ -1130,10 +1143,11 @@ function isPublicRequest(request: JsonRequest) {
 }
 
 function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
-  if (!Array.isArray(value)) return defaultStoreProducts;
+  if (!Array.isArray(value)) return [];
   const products: JsonStoreProduct[] = [];
   for (const item of value) {
     const product = item as Partial<JsonStoreProduct>;
+    if (isDefaultStoreSeedProduct(product)) continue;
     const title = String(product.title || "").trim();
     const slug = String(product.slug || product.id || "")
       .trim()
@@ -1186,7 +1200,7 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
     };
     products.push(applyLatestStoreMarketPrice(normalizedProduct));
   }
-  return products.length ? products : defaultStoreProducts;
+  return products;
 }
 
 function normalizeStoreOrders(value: unknown): JsonStoreOrder[] {
