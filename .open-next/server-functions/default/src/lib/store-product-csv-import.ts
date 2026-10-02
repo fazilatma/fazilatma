@@ -159,7 +159,7 @@ function categoryFromTitle(title: string) {
   if (/cpu|gpu|motherboard|ram|power\s*supply|پردازنده|کارت گرافیک|مادربرد|پاور کامپیوتر|منبع تغذیه/.test(lower)) return "قطعات کامپیوتر";
   if (/mouse|keyboard|ماوس|کیبورد|پد ماوس/.test(lower)) return "لوازم جانبی کامپیوتر";
   if (/gaming|گیم|rtx|tuf|rog|legion/.test(lower)) return "لپ‌تاپ گیمینگ";
-  return "لپ‌تاپ و کامپیوتر";
+  return "نامشخص";
 }
 
 function looksLikeStandalonePrice(value: string) {

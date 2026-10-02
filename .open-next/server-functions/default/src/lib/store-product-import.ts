@@ -218,7 +218,7 @@ function brandFromTitle(title: string, fallback = "OptiBid") {
   return fallback;
 }
 
-function productCategoryKeyFromText(value: string): ProductImportCategoryKey {
+function productCategoryKeyFromText(value: string): ProductImportCategoryKey | "unknown" {
   const lower = value.toLowerCase();
 
   // اول گروه‌های دقیق‌تر را تشخیص می‌دهیم تا برندهایی مثل Xiaomi/Samsung
@@ -249,7 +249,7 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey {
   if (/mouse|keyboard|ماوس|کیبورد|پد ماوس/.test(lower)) return "accessories";
   if (/gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (/desktop|all.?in.?one|mini.?pc|pc |computer|کیس آماده|کامپیوتر|مینی.?پی.?سی|آل.?این.?وان/.test(lower)) return "desktop";
-  return "laptop";
+  return "unknown";
 }
 
 function categoryFromTitle(title: string) {
@@ -268,12 +268,7 @@ function categoryFromTitle(title: string) {
   if (key === "accessories") return "لوازم جانبی کامپیوتر";
   if (key === "gaming") return "وسایل گیمینگ";
   if (key === "desktop") return "کامپیوتر آماده";
-
-  const lower = title.toLowerCase();
-  if (/student|دانشجو|سبک|air|elitebook/.test(lower)) return "لپ‌تاپ دانشجویی و سبک";
-  if (/workstation|مهندس|طراحی|render|رندر|zbook/.test(lower)) return "لپ‌تاپ مهندسی";
-  if (/business|اداری|thinkpad|latitude/.test(lower)) return "لپ‌تاپ اداری و شرکتی";
-  return "لپ‌تاپ و کامپیوتر";
+  return "نامشخص";
 }
 
 function asArray<T>(value: T | T[] | undefined | null): T[] {
@@ -623,6 +618,7 @@ export function productMatchesImportCategories(
 ) {
   if (selectedCategories.length === 0) return true;
   const key = productImportCategoryKey(draft);
+  if (key === "unknown") return false;
   if (selectedCategories.includes(key)) return true;
   if (key === "gaming" && selectedCategories.includes("laptop")) return true;
   if (key === "printer" && selectedCategories.includes("office-machines")) return true;
