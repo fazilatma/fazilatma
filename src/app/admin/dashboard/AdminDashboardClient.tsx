@@ -246,7 +246,7 @@ export default function AdminDashboardClient({
   const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
   const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
-  const [productImportLimit, setProductImportLimit] = useState(1000);
+  const [productImportLimit, setProductImportLimit] = useState(50);
   const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
   const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("full-site");
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
@@ -260,7 +260,7 @@ export default function AdminDashboardClient({
   const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
   const [priceRefreshReferences, setPriceRefreshReferences] = useState<string[]>(["torob", "digikala"]);
   const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
-  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(1000);
+  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(20);
   const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
   const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
   const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
@@ -1727,9 +1727,9 @@ export default function AdminDashboardClient({
                       <input
                         type="number"
                         min="1"
-                        max="1000"
+                        max="50"
                         value={productImportLimit}
-                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(1000, Number(e.target.value || 1000))))}
+                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(50, Number(e.target.value || 50))))}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </label>
@@ -1854,7 +1854,7 @@ export default function AdminDashboardClient({
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    نکته: در حالت «کل سایت»، سیستم ابتدا sitemap و robots.txt را بررسی می‌کند و سپس لینک‌های محصول قابل کشف را تا سقف تعیین‌شده وارد می‌کند. اگر فروشگاه مقصد قیمت را فقط با JavaScript نمایش دهد یا دسترسی ربات را ببندد، ممکن است لازم باشد لینک sitemap یا لینک مستقیم دسته‌بندی/محصول را بدهید.
+                    نکته: این نسخه روی Cloudflare Worker اجرا می‌شود و برای جلوگیری از خطای محدودیت منابع، در هر بار تا ۵۰ محصول را امن اسکن می‌کند. برای واردسازی هزاران محصول، باید همین ربات را روی سرور اختصاصی/Python Worker مرحله‌ای اجرا کنیم.
                   </div>
 
                   <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">
@@ -1939,9 +1939,9 @@ export default function AdminDashboardClient({
                           <input
                             type="number"
                             min="1"
-                            max="1000"
+                            max="20"
                             value={priceRefreshMaxProducts}
-                            onChange={(e) => setPriceRefreshMaxProducts(Math.max(1, Math.min(1000, Number(e.target.value || 1000))))}
+                            onChange={(e) => setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))))}
                             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </label>

@@ -138,7 +138,8 @@ export async function POST(request: Request) {
     }
     const action: ImportAction = body.action === "import" ? "import" : "preview";
     const fullSite = body.fullSite === true || body.scanMode === "full-site";
-    const limit = Math.max(1, Math.min(1000, Number(body.limit || (fullSite ? 1000 : 50))));
+    const requestedLimit = Math.max(1, Number(body.limit || (fullSite ? 50 : 20)));
+    const limit = Math.max(1, Math.min(50, requestedLimit));
     const strategy = body.strategy === "add-only" ? "add-only" : "merge";
     const priceMultiplier = normalizePriceMultiplier(body.priceMultiplier);
     const categoryFilters = normalizeProductImportCategories(body.categoryFilters);
@@ -146,9 +147,14 @@ export async function POST(request: Request) {
     const scan = await scanStoreProductsFromUrl(url, {
       limit,
       fullSite,
-      maxPages: fullSite ? Math.min(1200, limit + 250) : limit + 20,
+      maxPages: fullSite ? Math.min(90, limit + 40) : Math.min(35, limit + 10),
       categoryFilters,
     });
+    if (requestedLimit > limit) {
+      scan.warnings.push(
+        `برای جلوگیری از خطای محدودیت منابع Cloudflare، این درخواست به ${limit.toLocaleString("fa-IR")} محصول محدود شد. برای واردسازی کامل، مرحله‌ای یا روی سرور اختصاصی اجرا کنید.`,
+      );
+    }
     const filteredDrafts = scan.products.filter((draft) =>
       productMatchesImportCategories(draft, categoryFilters),
     );

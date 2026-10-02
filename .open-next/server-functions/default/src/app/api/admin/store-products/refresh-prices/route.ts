@@ -52,7 +52,8 @@ export async function POST(request: Request) {
     }
 
     const multiplier = normalizeMultiplier(body.priceMultiplier);
-    const maxProducts = Math.max(1, Math.min(1000, Number(body.maxProducts || 1000)));
+    const requestedMaxProducts = Math.max(1, Number(body.maxProducts || 20));
+    const maxProducts = Math.max(1, Math.min(20, requestedMaxProducts));
     const onlyActive = body.onlyActive !== false;
     const data = await getOptiBidData();
     const targetProducts = data.storeProducts
@@ -66,6 +67,11 @@ export async function POST(request: Request) {
     let failed = 0;
     const results: Array<Record<string, unknown>> = [];
     const warnings: string[] = [];
+    if (requestedMaxProducts > maxProducts) {
+      warnings.push(
+        `برای جلوگیری از خطای محدودیت منابع Cloudflare، به‌روزرسانی قیمت در هر بار به ${maxProducts.toLocaleString("fa-IR")} محصول محدود شد.`,
+      );
+    }
 
     for (const { product, index } of targetProducts) {
       try {

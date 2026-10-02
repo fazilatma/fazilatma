@@ -793,8 +793,8 @@ export async function scanStoreProductsFromUrl(
   const sourceUrl = new URL(inputUrl).toString();
   if (!/^https?:$/i.test(new URL(sourceUrl).protocol)) throw new Error("فقط لینک‌های http/https قابل درون‌ریزی هستند.");
   const sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, "");
-  const limit = Math.max(1, Math.min(1000, Number(options.limit || (options.fullSite ? 1000 : 50))));
-  const maxPages = Math.max(limit, Math.min(1200, Number(options.maxPages || limit + 30)));
+  const limit = Math.max(1, Math.min(50, Number(options.limit || (options.fullSite ? 50 : 20))));
+  const maxPages = Math.max(limit, Math.min(100, Number(options.maxPages || limit + 30)));
   const warnings: string[] = [];
   const scannedUrls: string[] = [];
   const allDrafts: ImportedStoreProductDraft[] = [];
