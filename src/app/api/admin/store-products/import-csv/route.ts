@@ -34,9 +34,23 @@ function applyPriceMultiplier(draft: ImportedStoreProductDraft, multiplier: numb
   };
 }
 
+function productSelectionKey(product: JsonStoreProduct) {
+  return `${product.id}|${product.externalSourceUrl || product.slug}|${product.title}`;
+}
+
+function parseJsonStringArray(value: FormDataEntryValue | null) {
+  try {
+    const parsed = JSON.parse(String(value || "[]"));
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
 function publicProduct(product: JsonStoreProduct, index: number) {
   return {
     index,
+    selectionKey: productSelectionKey(product),
     id: product.id,
     slug: product.slug,
     title: product.title,
@@ -114,7 +128,7 @@ export async function POST(request: Request) {
     const action: ImportAction = formData.get("action") === "import" ? "import" : "preview";
     const strategy = formData.get("strategy") === "add-only" ? "add-only" : "merge";
     const multiplier = normalizePriceMultiplier(formData.get("priceMultiplier"));
-    const categoryFilters = normalizeProductImportCategories(JSON.parse(String(formData.get("categoryFilters") || "[]")));
+    const categoryFilters = normalizeProductImportCategories(parseJsonStringArray(formData.get("categoryFilters")));
     const sourceLabel = String(formData.get("sourceLabel") || (file instanceof File ? file.name : "easy-scraper"));
 
     const parsed = parseEasyScraperCsv(csvText, { sourceLabel });
@@ -132,6 +146,18 @@ export async function POST(request: Request) {
       }
       return product;
     });
+    const selectedProductKeys = new Set(parseJsonStringArray(formData.get("selectedProductKeys")));
+    const shouldFilterBySelection = action === "import" && formData.has("selectedProductKeys");
+    const selectedProducts = shouldFilterBySelection
+      ? importedProducts.filter((product) => selectedProductKeys.has(productSelectionKey(product)))
+      : importedProducts;
+
+    if (action === "import" && shouldFilterBySelection && selectedProducts.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "هیچ محصولی از پیش‌نمایش CSV انتخاب نشده یا انتخاب‌ها با فایل فعلی تطابق ندارند." },
+        { status: 400 },
+      );
+    }
 
     if (action === "preview") {
       const data = await getOptiBidData();
@@ -163,7 +189,7 @@ export async function POST(request: Request) {
     let created = 0;
     let updated = 0;
     const changedProducts: ReturnType<typeof publicProduct>[] = [];
-    for (const product of importedProducts) {
+    for (const product of selectedProducts) {
       const matchIndex = findMatchingStoreProductIndex(data.storeProducts, product);
       if (matchIndex >= 0 && strategy === "merge") {
         data.storeProducts[matchIndex] = mergeProducts(data.storeProducts[matchIndex], product);
@@ -191,6 +217,7 @@ export async function POST(request: Request) {
       mode: "import",
       sourceHost: sourceLabel,
       products: changedProducts,
+      selectedCount: selectedProducts.length,
       created,
       updated,
       duplicatesRemoved: deduped.duplicatesRemoved,

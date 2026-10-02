@@ -252,6 +252,8 @@ export default function AdminDashboardClient({
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
   const [productImportCategories, setProductImportCategories] = useState<string[]>(allProductImportCategoryIds);
   const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
+  const [productImportPreviewSource, setProductImportPreviewSource] = useState<"csv" | "link" | "">("");
+  const [productImportSelectedKeys, setProductImportSelectedKeys] = useState<string[]>([]);
   const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
   const [productImportMessage, setProductImportMessage] = useState("");
   const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
@@ -734,6 +736,8 @@ export default function AdminDashboardClient({
       const result = await response.json();
       if (!result.success) throw new Error(result.message || "پاک‌سازی محصولات ناموفق بود.");
       setProductImportPreview([]);
+      setProductImportPreviewSource("");
+      setProductImportSelectedKeys([]);
       setProductImportMessage(result.message || "محصولات فروشگاه پاک شدند.");
       alert(result.message || "محصولات فروشگاه پاک شدند.");
     } catch (error) {
@@ -779,6 +783,22 @@ export default function AdminDashboardClient({
     }
   };
 
+  const productPreviewKey = (product: any) =>
+    String(product.selectionKey || `${product.id || ""}|${product.externalSourceUrl || ""}|${product.title || ""}`);
+
+  const toggleProductImportSelection = (selectionKey: string) => {
+    setProductImportSelectedKeys((current) =>
+      current.includes(selectionKey)
+        ? current.filter((item) => item !== selectionKey)
+        : [...current, selectionKey],
+    );
+  };
+
+  const selectAllProductImportPreview = () =>
+    setProductImportSelectedKeys(productImportPreview.map(productPreviewKey));
+
+  const clearProductImportSelection = () => setProductImportSelectedKeys([]);
+
   const runProductCsvImport = async (action: "preview" | "import") => {
     if (!productCsvFile) {
       alert("فایل CSV خروجی Easy Scraper را انتخاب کنید.");
@@ -786,6 +806,11 @@ export default function AdminDashboardClient({
     }
     if (productImportCategories.length === 0) {
       alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
+      return;
+    }
+    const hasCsvPreviewSelection = productImportPreviewSource === "csv" && productImportPreview.length > 0;
+    if (action === "import" && hasCsvPreviewSelection && productImportSelectedKeys.length === 0) {
+      alert("حداقل یک محصول از پیش‌نمایش CSV را برای ورود به سایت انتخاب کنید.");
       return;
     }
     setProcessingProductCsv(true);
@@ -798,13 +823,20 @@ export default function AdminDashboardClient({
       formData.append("priceMultiplier", String(productImportPriceMultiplier));
       formData.append("categoryFilters", JSON.stringify(productImportCategories));
       formData.append("sourceLabel", "digikala-easy-scraper");
+      if (action === "import" && hasCsvPreviewSelection) {
+        formData.append("selectedProductKeys", JSON.stringify(productImportSelectedKeys));
+      }
       const response = await fetch("/api/admin/store-products/import-csv", {
         method: "POST",
         body: formData,
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.message || "درون‌ریزی CSV ناموفق بود.");
-      setProductImportPreview(result.products || []);
+      const nextPreview = result.products || [];
+      setProductImportPreview(nextPreview);
+      setProductImportPreviewSource("csv");
+      if (action === "preview") setProductImportSelectedKeys(nextPreview.map(productPreviewKey));
+      else setProductImportSelectedKeys([]);
       setProductImportWarnings(result.warnings || []);
       setProductImportScannedUrls([]);
       setProductImportMessage(result.message || "فایل CSV پردازش شد.");
@@ -827,6 +859,11 @@ export default function AdminDashboardClient({
       alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
       return;
     }
+    const hasLinkPreviewSelection = productImportPreviewSource === "link" && productImportPreview.length > 0;
+    if (action === "import" && hasLinkPreviewSelection && productImportSelectedKeys.length === 0) {
+      alert("حداقل یک محصول از پیش‌نمایش را برای ورود به سایت انتخاب کنید.");
+      return;
+    }
     if (action === "preview") setScanningProductImport(true);
     else setApplyingProductImport(true);
     setProductImportMessage("");
@@ -842,11 +879,19 @@ export default function AdminDashboardClient({
           scanMode: productImportScanMode,
           priceMultiplier: productImportPriceMultiplier,
           categoryFilters: productImportCategories,
+          selectedProductKeys:
+            action === "import" && hasLinkPreviewSelection
+              ? productImportSelectedKeys
+              : undefined,
         }),
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.message || "درون‌ریزی ناموفق بود.");
-      setProductImportPreview(result.products || []);
+      const nextPreview = result.products || [];
+      setProductImportPreview(nextPreview);
+      setProductImportPreviewSource("link");
+      if (action === "preview") setProductImportSelectedKeys(nextPreview.map(productPreviewKey));
+      else setProductImportSelectedKeys([]);
       setProductImportWarnings(result.warnings || []);
       setProductImportScannedUrls(result.scannedUrls || []);
       setProductImportMessage(result.message || "عملیات انجام شد.");
@@ -1757,13 +1802,19 @@ export default function AdminDashboardClient({
                       <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
                       <p className="mt-1 text-xs leading-6 text-violet-700">
                         از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
+                        بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
                       </p>
                     </div>
                     <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
                       <input
                         type="file"
                         accept=".csv,text/csv"
-                        onChange={(event) => setProductCsvFile(event.target.files?.[0] || null)}
+                        onChange={(event) => {
+                          setProductCsvFile(event.target.files?.[0] || null);
+                          setProductImportPreview([]);
+                          setProductImportPreviewSource("");
+                          setProductImportSelectedKeys([]);
+                        }}
                         className="rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
                       />
                       <button
@@ -2083,13 +2134,27 @@ export default function AdminDashboardClient({
 
                   {productImportPreview.length > 0 && (
                     <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
-                      <div className="bg-gray-50 px-4 py-3 text-sm font-black text-gray-700">
-                        پیش‌نمایش محصولات پیدا شده
+                      <div className="flex flex-col justify-between gap-3 bg-gray-50 px-4 py-3 text-sm font-black text-gray-700 md:flex-row md:items-center">
+                        <div>
+                          پیش‌نمایش محصولات پیدا شده
+                          <span className="mr-2 rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700">
+                            {productImportSelectedKeys.length.toLocaleString("fa-IR")} انتخاب‌شده از {productImportPreview.length.toLocaleString("fa-IR")}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <button type="button" onClick={selectAllProductImportPreview} className="rounded-full bg-blue-600 px-3 py-2 text-white">
+                            انتخاب همه محصولات
+                          </button>
+                          <button type="button" onClick={clearProductImportSelection} className="rounded-full bg-slate-200 px-3 py-2 text-slate-700">
+                            لغو همه انتخاب‌ها
+                          </button>
+                        </div>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="w-full min-w-[820px] text-right text-sm">
+                        <table className="w-full min-w-[900px] text-right text-sm">
                           <thead className="bg-gray-50 text-xs text-gray-500">
                             <tr>
+                              <th className="px-4 py-3">انتخاب</th>
                               <th className="px-4 py-3">عملیات</th>
                               <th className="px-4 py-3">محصول</th>
                               <th className="px-4 py-3">برند</th>
@@ -2100,8 +2165,18 @@ export default function AdminDashboardClient({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 bg-white">
-                            {productImportPreview.map((product) => (
-                              <tr key={`${product.externalSourceUrl}-${product.title}`}>
+                            {productImportPreview.map((product) => {
+                              const selectionKey = productPreviewKey(product);
+                              const selected = productImportSelectedKeys.includes(selectionKey);
+                              return (
+                              <tr key={`${product.externalSourceUrl}-${product.title}`} className={selected ? "bg-blue-50/40" : ""}>
+                                <td className="px-4 py-3 align-top">
+                                  <input
+                                    type="checkbox"
+                                    checked={selected}
+                                    onChange={() => toggleProductImportSelection(selectionKey)}
+                                  />
+                                </td>
                                 <td className="px-4 py-3">
                                   <span className={`rounded-full px-3 py-1 text-xs font-black ${product.action === "update" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                                     {product.action === "update" ? "به‌روزرسانی" : "محصول جدید"}
@@ -2131,7 +2206,8 @@ export default function AdminDashboardClient({
                                   {product.externalSourceUrl}
                                 </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

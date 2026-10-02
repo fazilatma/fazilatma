@@ -28,11 +28,17 @@ type ImportBody = {
   fullSite?: boolean;
   priceMultiplier?: number;
   categoryFilters?: string[];
+  selectedProductKeys?: string[];
 };
+
+function productSelectionKey(product: JsonStoreProduct) {
+  return `${product.id}|${product.externalSourceUrl || product.slug}|${product.title}`;
+}
 
 function publicProduct(product: JsonStoreProduct, index: number) {
   return {
     index,
+    selectionKey: productSelectionKey(product),
     id: product.id,
     slug: product.slug,
     title: product.title,
@@ -176,6 +182,22 @@ export async function POST(request: Request) {
         }
         return product;
       });
+    const selectedKeySet = new Set(
+      Array.isArray(body.selectedProductKeys)
+        ? body.selectedProductKeys.map(String)
+        : [],
+    );
+    const shouldFilterBySelection = action === "import" && Array.isArray(body.selectedProductKeys);
+    const selectedProducts = shouldFilterBySelection
+      ? importedProducts.filter((product) => selectedKeySet.has(productSelectionKey(product)))
+      : importedProducts;
+
+    if (action === "import" && shouldFilterBySelection && selectedProducts.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "هیچ محصولی از پیش‌نمایش انتخاب نشده یا انتخاب‌ها با اسکن فعلی تطابق ندارند." },
+        { status: 400 },
+      );
+    }
 
     if (action === "preview") {
       const data = await getOptiBidData();
@@ -215,7 +237,7 @@ export async function POST(request: Request) {
     let updated = 0;
     const changedProducts: ReturnType<typeof publicProduct>[] = [];
 
-    for (const product of importedProducts) {
+    for (const product of selectedProducts) {
       const matchIndex = findMatchingStoreProductIndex(data.storeProducts, product);
       if (matchIndex >= 0 && strategy === "merge") {
         data.storeProducts[matchIndex] = mergeProducts(
@@ -252,6 +274,7 @@ export async function POST(request: Request) {
       sourceHost: scan.sourceHost,
       scannedUrls: scan.scannedUrls,
       products: changedProducts,
+      selectedCount: selectedProducts.length,
       created,
       updated,
       duplicatesRemoved: deduped.duplicatesRemoved,

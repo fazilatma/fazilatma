@@ -31,18 +31,36 @@ function cleanCell(value: unknown) {
   return decodeHtml(String(value || "").replace(/\s+/g, " ").trim());
 }
 
-function numberFromText(value: unknown) {
-  const normalized = toEnglishDigits(String(value || ""));
-  const cleaned = normalized.replace(/[^0-9.]/g, "");
-  const number = Number(cleaned);
+function parseNumberToken(token: string) {
+  const normalized = toEnglishDigits(token)
+    .replace(/[٬،,]/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+  if (!normalized) return 0;
+  const dotCount = (normalized.match(/\./g) || []).length;
+  const cleaned = dotCount > 1 ? normalized.replace(/\./g, "") : normalized;
+  const normalizedThousandsDot = /^\d{1,3}\.\d{3}(?:\D|$)/.test(`${cleaned} `)
+    ? cleaned.replace(/\./g, "")
+    : cleaned;
+  const number = Number(normalizedThousandsDot.replace(/[^0-9.]/g, ""));
   return Number.isFinite(number) ? number : 0;
 }
 
-function priceToToman(value: unknown) {
+function numberFromText(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const normalized = toEnglishDigits(String(value || ""));
+  const candidates = normalized.match(/\d[\d\s.,٬،]*/g) || [];
+  const numbers = candidates.map(parseNumberToken).filter((number) => number > 0);
+  return numbers.length ? Math.max(...numbers) : 0;
+}
+
+function priceToToman(value: unknown, context = "") {
   let price = numberFromText(value);
   if (!price) return 0;
-  const text = String(value || "").toLowerCase();
-  if (text.includes("ریال") || text.includes("irr") || price >= 250_000_000) {
+  const text = `${value || ""} ${context}`.toLowerCase();
+  const explicitlyRial = /ریال|rial|\birr\b/.test(text);
+  const explicitlyToman = /تومان|تومن|toman|\birt\b/.test(text);
+  if (explicitlyRial && !explicitlyToman) {
     price = price / 10;
   }
   return Math.round(price);
@@ -135,18 +153,29 @@ function categoryFromTitle(title: string) {
   return "لپ‌تاپ و کامپیوتر";
 }
 
+function looksLikeStandalonePrice(value: string) {
+  const text = cleanCell(value);
+  const price = priceToToman(text);
+  if (!price) return false;
+  if (/تومان|تومن|ریال|rial|irr|irt|price|amount|cost/i.test(text)) return true;
+  return price >= 1_000 && /^[0-9۰-۹٠-٩\s.,٬،]+$/.test(text);
+}
+
 function pickTitle(row: string[], columns: { title: number; price: number; url: number }) {
   if (columns.title >= 0) return cleanCell(row[columns.title]).slice(0, 180);
   const candidates = row
     .map(cleanCell)
     .filter((cell, index) => index !== columns.price && index !== columns.url)
-    .filter((cell) => cell.length >= 5 && !priceToToman(cell) && !safeUrl(cell));
+    .filter((cell) => cell.length >= 5 && !looksLikeStandalonePrice(cell) && !safeUrl(cell));
   return (candidates.sort((a, b) => b.length - a.length)[0] || "").slice(0, 180);
 }
 
-function pickPrice(row: string[], priceIndex: number) {
-  if (priceIndex >= 0) return priceToToman(row[priceIndex]);
-  return row.map(priceToToman).filter(Boolean).sort((a, b) => a - b)[0] || 0;
+function pickPrice(row: string[], priceIndex: number, priceHeader = "") {
+  if (priceIndex >= 0) return priceToToman(row[priceIndex], priceHeader);
+  return row
+    .map((cell) => priceToToman(cell))
+    .filter((candidate) => candidate >= 1_000)
+    .sort((a, b) => b - a)[0] || 0;
 }
 
 export function parseEasyScraperCsv(
@@ -156,7 +185,8 @@ export function parseEasyScraperCsv(
   const rows = parseCsv(csvText);
   if (rows.length < 2) return { products: [] as ImportedStoreProductDraft[], warnings: ["فایل CSV خالی است یا فقط یک ردیف دارد."] };
 
-  const headers = rows[0].map((header) => normalizeHeader(header));
+  const rawHeaders = rows[0].map(cleanCell);
+  const headers = rawHeaders.map((header) => normalizeHeader(header));
   const title = findColumn(headers, [/title/, /name/, /product/, /item/, /عنوان/, /نام/, /کالا/, /محصول/]);
   const price = findColumn(headers, [/price/, /amount/, /cost/, /قیمت/, /مبلغ/, /تومان/, /ریال/]);
   const originalPrice = findColumn(headers, [/oldprice/, /original/, /before/, /rrp/, /listprice/, /قیمتاصلی/, /قبل/, /خطخورده/]);
@@ -169,20 +199,26 @@ export function parseEasyScraperCsv(
   const warnings: string[] = [];
   const products: ImportedStoreProductDraft[] = [];
   const sourceLabel = options.sourceLabel || "easy-scraper";
+  const priceHeader = price >= 0 ? rawHeaders[price] : "";
+  const originalPriceHeader = originalPrice >= 0 ? rawHeaders[originalPrice] : "";
+  if (price < 0) {
+    warnings.push("ستون قیمت در CSV پیدا نشد؛ سیستم برای هر ردیف بزرگ‌ترین عدد معتبر را به‌عنوان قیمت در نظر گرفت. برای دقت کامل، نام ستون قیمت را Price، قیمت، تومان یا Rial بگذارید.");
+  }
 
   rows.slice(1).forEach((row, index) => {
     const productUrl = url >= 0 ? safeUrl(cleanCell(row[url])) : "";
     const productTitle = pickTitle(row, { title, price, url });
-    const productPrice = pickPrice(row, price);
+    const productPrice = pickPrice(row, price, priceHeader);
     if (!productTitle || !productPrice) {
       warnings.push(`ردیف ${index + 2} به دلیل نداشتن عنوان یا قیمت معتبر نادیده گرفته شد.`);
       return;
     }
-    const productOriginalPrice = originalPrice >= 0 ? priceToToman(row[originalPrice]) : 0;
+    const productOriginalPrice = originalPrice >= 0 ? priceToToman(row[originalPrice], originalPriceHeader) : 0;
     const sourceHost = hostFromUrl(productUrl, sourceLabel);
     const stockText = stock >= 0 ? cleanCell(row[stock]).toLowerCase() : "";
     const isOut = /ناموجود|out|unavailable|اتمام/.test(stockText);
     const specs: Record<string, string> = { منبع: sourceHost };
+    if (price >= 0) specs["قیمت خام CSV"] = cleanCell(row[price]).slice(0, 80);
     if (productUrl) specs["لینک منبع"] = productUrl;
 
     products.push({
