@@ -1970,6 +1970,70 @@ export default function AdminDashboardClient({
                     </label>
 
 
+                    <div className="rounded-3xl border border-slate-200 bg-white p-4 lg:col-span-3">
+                      <div className="mb-3 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                        <div>
+                          <b className="text-sm text-gray-900">انتخاب دسته کالا برای لینک فروشگاه، دسته‌بندی یا sitemap</b>
+                          <p className="mt-1 text-xs leading-6 text-gray-500">
+                            این تیک‌ها مخصوص اسکن لینک/سایت‌مپ هم همین‌جا در دسترس هستند؛ اگر فقط «موبایل و گوشی» تیک داشته باشد، از لینک فروشگاه فقط محصولات موبایل وارد پیش‌نمایش و سایت می‌شوند.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs font-black">
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(allProductImportCategoryIds)}
+                            className="rounded-full bg-blue-50 px-3 py-2 text-blue-700"
+                          >
+                            انتخاب همه
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop", "components", "accessories", "monitor", "storage", "gaming"])}
+                            className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
+                          >
+                            فقط کامپیوتر و لپ‌تاپ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["mobile"])}
+                            className="rounded-full bg-rose-50 px-3 py-2 text-rose-700"
+                          >
+                            فقط موبایل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset([])}
+                            className="rounded-full bg-slate-100 px-3 py-2 text-slate-600"
+                          >
+                            پاک کردن انتخاب‌ها
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {productImportCategoryOptions.map((option) => {
+                          const checked = productImportCategories.includes(option.id);
+                          return (
+                            <label
+                              key={`link-${option.id}`}
+                              className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-blue-200 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-gray-700 hover:border-blue-100"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleProductImportCategory(option.id)}
+                                className="mt-1"
+                              />
+                              <span>
+                                <span className="block text-sm font-black">{option.label}</span>
+                                <span className="mt-1 block text-[11px] leading-5 text-gray-500">{option.hint}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+
                     <div className="flex flex-col gap-3 sm:flex-row lg:col-span-3">
                       <button
                         type="button"
