@@ -223,13 +223,17 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey {
 
   // اول گروه‌های دقیق‌تر را تشخیص می‌دهیم تا برندهایی مثل Xiaomi/Samsung
   // باعث نشوند تبلت، پاوربانک یا لوازم جانبی اشتباهاً «موبایل» حساب شوند.
-  if (/tablet|ipad|galaxy\s*tab|redmi\s*pad|poco\s*pad|\bpad\b|تبلت|آیپد|گلکسی\s*تب/.test(lower)) return "tablet";
+  if (/tablet|ipad|galaxy\s*tab|redmi\s*pad|poco\s*pad|(^|\s)pad(\s|$)|تبلت|آیپد|گلکسی\s*تب/.test(lower)) return "tablet";
   if (/watch|wearable|ساعت هوشمند|اسمارت واچ|مچ.?بند/.test(lower)) return "smart-watch";
-  if (/headset|headphone|earbud|airpods|speaker|microphone|هندزفری|هدفون|هدست|ایرباد|اسپیکر|میکروفون/.test(lower)) return "audio";
+  if (/headset|headphone|earbud|earphone|airpods|speaker|microphone|هندزفری|هدفون|هدست|ایرباد|ایرپاد|اسپیکر|میکروفون/.test(lower)) return "audio";
   if (/power\s*bank|powerbank|پاوربانک|پاور\s*بانک|شارژر همراه|charger|شارژر|adapter|آداپتور|کابل|cable|قاب|کاور|گلس|محافظ صفحه|هولدر|پایه نگهدارنده|لوازم جانبی/.test(lower)) return "accessories";
 
-  const isPhone = /iphone|smartphone|mobile\s*phone|cell\s*phone|گوشی|موبایل|آیفون|galaxy\s*(s|a|m|z)\d|redmi\s*note|poco\s*(x|f|m|c)\d|honor\s*\d|nova\s*\d/.test(lower);
-  if (isPhone) return "mobile";
+  const explicitPhoneWords = /iphone|آیفون|smartphone|mobile\s*phone|cell\s*phone|گوشی|موبایل/.test(lower);
+  const samsungGalaxyPhone = /galaxy\s*(s|a|m|z)\s*\d|گلکسی\s*(s|a|m|z)?\s*\d|سامسونگ.*(s|a|m|z)\s*\d{2}/.test(lower);
+  const xiaomiPhone = /redmi\s*(note\s*)?\d|ردمی\s*(نوت\s*)?\d|redmi\s*a\s*\d|poco\s*(x|f|m|c)\s*\d|پوکو\s*(x|f|m|c)?\s*\d|xiaomi\s*(mi\s*)?\d{2}|شیائومی.*(redmi|ردمی|poco|پوکو|\d{2})/.test(lower);
+  const honorHuaweiPhone = /honor\s*(x|magic|play)?\s*\d|آنر\s*(x|ایکس|magic|مجیک|play|پلی)?\s*\d|huawei\s*(nova|y|p|mate)\s*\d|هواوی\s*(نوا|y|p|mate|میت)\s*\d/.test(lower);
+  const otherPhoneSeries = /nokia\s*\d|نوکیا\s*\d|moto\s*g\s*\d|motorola\s*(edge|g)\s*\d|موتورولا|realme\s*(c|gt|note|narzo)?\s*\d|ریلمی|oneplus|وان\s*پلاس|nothing\s*phone|infinix|اینفینیکس|tecno|تکنو/.test(lower);
+  if (explicitPhoneWords || samsungGalaxyPhone || xiaomiPhone || honorHuaweiPhone || otherPhoneSeries) return "mobile";
 
   const isLaptop = /laptop|notebook|macbook|thinkpad|latitude|elitebook|vivobook|ideapad|لپ\s?تاپ|لپ‌تاپ|لپتاپ|نوت\s?بوک|مک\s?بوک/.test(lower);
   if (isLaptop && /gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
