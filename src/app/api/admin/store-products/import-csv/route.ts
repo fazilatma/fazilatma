@@ -47,6 +47,58 @@ function parseJsonStringArray(value: FormDataEntryValue | null) {
   }
 }
 
+function stripTextBom(value: string) {
+  return value.replace(/^\uFEFF/, "");
+}
+
+function countMatches(value: string, pattern: RegExp) {
+  return value.match(pattern)?.length || 0;
+}
+
+function csvDecodeScore(value: string) {
+  const sample = value.slice(0, 120_000);
+  const persian = countMatches(sample, /[\u0600-\u06FF]/g);
+  const replacement = countMatches(sample, /\uFFFD/g);
+  const nulls = countMatches(sample, /\u0000/g);
+  const separators = countMatches(sample, /[,;\t\n]/g);
+  const mojibake = countMatches(sample, /[ØÙÛÃÂ]/g);
+  const controls = countMatches(sample, /[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g);
+  const readableAscii = countMatches(sample, /[A-Za-z0-9]/g);
+  return persian * 12 + separators * 0.4 + readableAscii * 0.03 - replacement * 180 - nulls * 140 - controls * 60 - mojibake * 12;
+}
+
+function decodeBytes(bytes: Uint8Array, encoding: string) {
+  try {
+    return stripTextBom(new TextDecoder(encoding).decode(bytes));
+  } catch {
+    return "";
+  }
+}
+
+async function decodeCsvUpload(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const candidates: { encoding: string; text: string; score: number }[] = [];
+
+  const labels = ["utf-8", "utf-16le", "utf-16be", "windows-1256"];
+  for (const encoding of labels) {
+    const text = decodeBytes(bytes, encoding);
+    if (text) candidates.push({ encoding, text, score: csvDecodeScore(text) });
+  }
+
+  const best = candidates.sort((a, b) => b.score - a.score)[0] || {
+    encoding: "utf-8",
+    text: stripTextBom(await file.text()),
+    score: 0,
+  };
+
+  const warning =
+    best.encoding !== "utf-8"
+      ? `کدگذاری فایل CSV به‌صورت خودکار ${best.encoding} تشخیص داده شد و متن برای درون‌ریزی به UTF-8 تبدیل شد.`
+      : "";
+
+  return { text: best.text, encoding: best.encoding, warning };
+}
+
 function publicProduct(product: JsonStoreProduct, index: number) {
   return {
     index,
@@ -112,15 +164,16 @@ function dedupeStoreProducts(products: JsonStoreProduct[]) {
 
 async function formDataText(formData: FormData, key: string, fallback = "") {
   const value = formData.get(key);
-  if (value instanceof File) return value.text();
-  return String(value || fallback);
+  if (value instanceof File) return decodeCsvUpload(value);
+  return { text: stripTextBom(String(value || fallback)), encoding: "text", warning: "" };
 }
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file");
-    const csvText = file instanceof File ? await file.text() : await formDataText(formData, "csvText");
+    const csvInput = file instanceof File ? await decodeCsvUpload(file) : await formDataText(formData, "csvText");
+    const csvText = csvInput.text;
     if (!csvText.trim()) {
       return NextResponse.json({ success: false, message: "فایل CSV یا متن CSV را ارسال کنید." }, { status: 400 });
     }
@@ -133,7 +186,10 @@ export async function POST(request: Request) {
 
     const parsed = parseEasyScraperCsv(csvText, { sourceLabel });
     const filteredDrafts = parsed.products.filter((draft) => productMatchesImportCategories(draft, categoryFilters));
-    const warnings = [...parsed.warnings];
+    const warnings = [
+      ...(csvInput.warning ? [csvInput.warning] : []),
+      ...parsed.warnings,
+    ];
     if (categoryFilters.length > 0 && filteredDrafts.length < parsed.products.length) {
       warnings.push(`${(parsed.products.length - filteredDrafts.length).toLocaleString("fa-IR")} محصول CSV به دلیل عدم تطابق با دسته‌های انتخابی نادیده گرفته شد.`);
     }
@@ -178,6 +234,7 @@ export async function POST(request: Request) {
         success: true,
         mode: "preview",
         sourceHost: sourceLabel,
+        csvEncoding: csvInput.encoding,
         products,
         warnings,
         priceMultiplier: multiplier,
@@ -216,6 +273,7 @@ export async function POST(request: Request) {
       success: true,
       mode: "import",
       sourceHost: sourceLabel,
+      csvEncoding: csvInput.encoding,
       products: changedProducts,
       selectedCount: selectedProducts.length,
       created,
