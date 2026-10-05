@@ -112,6 +112,10 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
   } satisfies JsonStoreProduct;
 }
 
+function activeStoreProductCount(products: JsonStoreProduct[]) {
+  return products.filter((product) => product.isActive !== false && product.stock > 0).length;
+}
+
 function dedupeStoreProducts(products: JsonStoreProduct[]) {
   const output: JsonStoreProduct[] = [];
   const indexByIdentity = new Map<string, number>();
@@ -262,6 +266,7 @@ export async function POST(request: Request) {
 
     const deduped = dedupeStoreProducts(data.storeProducts);
     data.storeProducts = deduped.products;
+    const activeCount = activeStoreProductCount(data.storeProducts);
     await writeOptiBidData(data);
 
     return NextResponse.json({
@@ -275,6 +280,7 @@ export async function POST(request: Request) {
       scannedUrls: scan.scannedUrls,
       products: changedProducts,
       selectedCount: selectedProducts.length,
+      activeStoreProducts: activeCount,
       created,
       updated,
       duplicatesRemoved: deduped.duplicatesRemoved,

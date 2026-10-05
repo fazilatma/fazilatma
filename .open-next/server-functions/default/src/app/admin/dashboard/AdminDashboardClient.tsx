@@ -870,7 +870,7 @@ export default function AdminDashboardClient({
       URL.revokeObjectURL(downloadUrl);
       const count = response.headers.get("x-optibid-product-count");
       const encoding = response.headers.get("x-optibid-csv-encoding");
-      setProductImportMessage(`${count || ""} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${encoding ? `؛ کدگذاری خوانده‌شده: ${encoding}` : ""}.`);
+      setProductImportMessage(`${count || ""} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${encoding ? `؛ کدگذاری خوانده‌شده: ${encoding}` : ""}. توجه: این مرحله فقط فایل را اصلاح و دانلود می‌کند؛ برای نمایش در فروشگاه باید فایل دانلودشده را دوباره انتخاب کنید و دکمه «درون‌ریزی CSV» را بزنید.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "ساخت CSV اصلاح‌شده ناموفق بود.";
       setProductImportMessage(message);
@@ -920,8 +920,12 @@ export default function AdminDashboardClient({
       else setProductImportSelectedKeys([]);
       setProductImportWarnings(result.warnings || []);
       setProductImportScannedUrls([]);
-      setProductImportMessage(result.message || "فایل CSV پردازش شد.");
-      if (action === "import") alert(result.message || "محصولات CSV وارد شدند.");
+      const activeStoreText = action === "import" && typeof result.activeStoreProducts === "number"
+        ? ` اکنون ${Number(result.activeStoreProducts).toLocaleString("fa-IR")} محصول فعال در فروشگاه ذخیره شده است.`
+        : "";
+      const finalMessage = `${result.message || "فایل CSV پردازش شد."}${activeStoreText}`;
+      setProductImportMessage(finalMessage);
+      if (action === "import") alert(finalMessage);
     } catch (error) {
       const message = error instanceof Error ? error.message : "درون‌ریزی CSV ناموفق بود.";
       setProductImportMessage(message);
@@ -975,9 +979,13 @@ export default function AdminDashboardClient({
       else setProductImportSelectedKeys([]);
       setProductImportWarnings(result.warnings || []);
       setProductImportScannedUrls(result.scannedUrls || []);
-      setProductImportMessage(result.message || "عملیات انجام شد.");
+      const activeStoreText = action === "import" && typeof result.activeStoreProducts === "number"
+        ? ` اکنون ${Number(result.activeStoreProducts).toLocaleString("fa-IR")} محصول فعال در فروشگاه ذخیره شده است.`
+        : "";
+      const finalMessage = `${result.message || "عملیات انجام شد."}${activeStoreText}`;
+      setProductImportMessage(finalMessage);
       if (action === "import") {
-        alert(result.message || "محصولات وارد شدند.");
+        alert(finalMessage);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "درون‌ریزی ناموفق بود.";
