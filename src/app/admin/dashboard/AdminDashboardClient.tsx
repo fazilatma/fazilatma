@@ -70,6 +70,32 @@ const productImportCategoryOptions = [
 
 const allProductImportCategoryIds = productImportCategoryOptions.map((option) => option.id);
 
+async function readJsonResponse(response: Response, fallbackMessage: string) {
+  const text = await response.text();
+  if (!text.trim()) {
+    if (response.ok) return {};
+    throw new Error(fallbackMessage);
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    const plainText = text
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 260);
+    if (response.status === 413) {
+      throw new Error("حجم فایل CSV برای این درخواست زیاد است. فایل اصلاح‌شده را دانلود کنید یا با دسته‌بندی محدودتر/بخش‌بخش وارد کنید.");
+    }
+    if (response.status === 1102 || /exceeded resource|worker exceeded|1102/i.test(text)) {
+      throw new Error("پردازش فایل CSV روی سرور بیش از حد سنگین شد. لطفاً ابتدا CSV اصلاح‌شده را دانلود کنید و سپس محصولات را دسته‌به‌دسته وارد کنید.");
+    }
+    throw new Error(`${fallbackMessage} پاسخ سرور JSON نبود${plainText ? `: ${plainText}` : "."}`);
+  }
+}
+
 const priceRefreshReferenceOptions = [
   { id: "torob", label: "ترب", hint: "جستجو در بازار ترب و قیمت‌های فروشنده‌ها" },
   { id: "digikala", label: "دیجی‌کالا", hint: "جستجو در داده‌های قابل خواندن دیجی‌کالا" },
@@ -828,7 +854,7 @@ export default function AdminDashboardClient({
         body: formData,
       });
       if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
+        const result = await readJsonResponse(response, "ساخت CSV اصلاح‌شده ناموفق بود.").catch(() => ({}));
         throw new Error(result.message || "ساخت CSV اصلاح‌شده ناموفق بود.");
       }
       const blob = await response.blob();
@@ -885,7 +911,7 @@ export default function AdminDashboardClient({
         method: "POST",
         body: formData,
       });
-      const result = await response.json();
+      const result = await readJsonResponse(response, "درون‌ریزی CSV ناموفق بود.");
       if (!result.success) throw new Error(result.message || "درون‌ریزی CSV ناموفق بود.");
       const nextPreview = result.products || [];
       setProductImportPreview(nextPreview);
@@ -940,7 +966,7 @@ export default function AdminDashboardClient({
               : undefined,
         }),
       });
-      const result = await response.json();
+      const result = await readJsonResponse(response, "درون‌ریزی ناموفق بود.");
       if (!result.success) throw new Error(result.message || "درون‌ریزی ناموفق بود.");
       const nextPreview = result.products || [];
       setProductImportPreview(nextPreview);
