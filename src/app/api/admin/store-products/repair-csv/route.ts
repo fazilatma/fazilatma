@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     }
 
     const rows = [
-      ["title", "price", "url", "brand", "category", "description", "stock", "sourceHost"],
+      ["title", "price_toman", "url", "brand", "category", "description", "stock", "sourceHost"],
       ...parsed.products.map((product) => [
         product.title,
         product.price,

@@ -5733,7 +5733,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__1njr1e_._.js": {
-      "bytes": 12099,
+      "bytes": 14637,
       "imports": [
         {
           "path": "node:fs",
@@ -5855,7 +5855,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__05hc2sy._.js": {
-      "bytes": 20308,
+      "bytes": 22852,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
@@ -6605,7 +6605,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 1934424,
+      "bytes": 1940710,
       "imports": [],
       "format": "cjs"
     },
@@ -18599,7 +18599,7 @@
           "bytesInOutput": 299
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__1njr1e_._.js": {
-          "bytesInOutput": 14051
+          "bytesInOutput": 17157
         },
         ".open-next/server-functions/default/.next/server/chunks/node_modules_next_dist_esm_build_templates_app-route_1uiy_uo.js": {
           "bytesInOutput": 15348
@@ -18617,7 +18617,7 @@
           "bytesInOutput": 299
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__05hc2sy._.js": {
-          "bytesInOutput": 22857
+          "bytesInOutput": 25969
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__1lugt7r._.js": {
           "bytesInOutput": 12518
@@ -18704,7 +18704,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2360416
+          "bytesInOutput": 2367602
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -19778,7 +19778,7 @@
           "bytesInOutput": 74055
         }
       },
-      "bytes": 9745603
+      "bytes": 9759007
     }
   }
 }
