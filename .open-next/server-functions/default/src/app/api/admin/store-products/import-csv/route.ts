@@ -48,23 +48,38 @@ function parseJsonStringArray(value: FormDataEntryValue | null) {
 }
 
 function stripTextBom(value: string) {
-  return value.replace(/^\uFEFF/, "");
+  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 }
 
 function countMatches(value: string, pattern: RegExp) {
   return value.match(pattern)?.length || 0;
 }
 
+function mojibakeSignal(value: string) {
+  const cp1256Sequences = countMatches(value, /(?:ط§|ط¨|طھ|ط±|ط¯|ط³|ط¹|ط¬|ط²|ط©|طŒ|ط،|ط؛|ظ„|ظ…|ظ†|ظ‡|ظ¾|ظƒ|ظک|غŒ|ع†|ع©|آ«|آ»)/g);
+  const westernSequences = countMatches(value, /[ØÙÛÃÂ]/g);
+  const denseArabic = countMatches(value, /[طظغع][؀-ۿ]/g);
+  return cp1256Sequences * 5 + westernSequences * 4 + denseArabic;
+}
+
 function csvDecodeScore(value: string) {
   const sample = value.slice(0, 120_000);
-  const persian = countMatches(sample, /[\u0600-\u06FF]/g);
-  const replacement = countMatches(sample, /\uFFFD/g);
-  const nulls = countMatches(sample, /\u0000/g);
-  const separators = countMatches(sample, /[,;\t\n]/g);
-  const mojibake = countMatches(sample, /[ØÙÛÃÂ]/g);
-  const controls = countMatches(sample, /[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g);
-  const readableAscii = countMatches(sample, /[A-Za-z0-9]/g);
-  return persian * 12 + separators * 0.4 + readableAscii * 0.03 - replacement * 180 - nulls * 140 - controls * 60 - mojibake * 12;
+  let persian = 0;
+  let replacement = 0;
+  let nulls = 0;
+  let controls = 0;
+  let readableAscii = 0;
+  for (const char of sample) {
+    const code = char.codePointAt(0) || 0;
+    if (code >= 0x0600 && code <= 0x06ff) persian += 1;
+    if (code === 0xfffd) replacement += 1;
+    if (code === 0) nulls += 1;
+    if ((code >= 1 && code <= 8) || code === 0x0b || code === 0x0c || (code >= 0x0e && code <= 0x1f)) controls += 1;
+    if ((code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122)) readableAscii += 1;
+  }
+  const separators = [...sample].filter((char) => char === "," || char === ";" || char === "\t" || char === "\n").length;
+  const mojibake = mojibakeSignal(sample);
+  return persian * 12 + separators * 0.4 + readableAscii * 0.03 - replacement * 180 - nulls * 140 - controls * 60 - mojibake * 95;
 }
 
 function decodeBytes(bytes: Uint8Array, encoding: string) {
@@ -79,17 +94,31 @@ async function decodeCsvUpload(file: File) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const candidates: { encoding: string; text: string; score: number }[] = [];
 
-  const labels = ["utf-8", "utf-16le", "utf-16be", "windows-1256"];
+  const hasUtf16LeBom = bytes[0] === 0xff && bytes[1] === 0xfe;
+  const hasUtf16BeBom = bytes[0] === 0xfe && bytes[1] === 0xff;
+  const nullByteRatio = bytes.length > 0 ? bytes.filter((byte) => byte === 0).length / bytes.length : 0;
+  const labels = ["utf-8", "windows-1256"];
+  if (hasUtf16LeBom || hasUtf16BeBom || nullByteRatio > 0.05) {
+    labels.push("utf-16le", "utf-16be");
+  }
   for (const encoding of labels) {
     const text = decodeBytes(bytes, encoding);
     if (text) candidates.push({ encoding, text, score: csvDecodeScore(text) });
   }
 
-  const best = candidates.sort((a, b) => b.score - a.score)[0] || {
-    encoding: "utf-8",
-    text: stripTextBom(await file.text()),
-    score: 0,
-  };
+  const utf8Candidate = candidates.find((candidate) => candidate.encoding === "utf-8");
+  const best =
+    !hasUtf16LeBom &&
+    !hasUtf16BeBom &&
+    nullByteRatio <= 0.05 &&
+    utf8Candidate &&
+    !utf8Candidate.text.includes("�")
+      ? utf8Candidate
+      : candidates.sort((a, b) => b.score - a.score)[0] || {
+          encoding: "utf-8",
+          text: stripTextBom(await file.text()),
+          score: 0,
+        };
 
   const warning =
     best.encoding !== "utf-8"

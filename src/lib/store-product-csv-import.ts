@@ -27,8 +27,89 @@ function decodeHtml(value: string) {
     .replace(/&nbsp;/g, " ");
 }
 
+const windows1256Decoder = new TextDecoder("windows-1256");
+let windows1256EncodeMap: Map<string, number> | null = null;
+
+function getWindows1256EncodeMap() {
+  if (windows1256EncodeMap) return windows1256EncodeMap;
+  const map = new Map<string, number>();
+  for (let byte = 0; byte <= 255; byte += 1) {
+    const char = windows1256Decoder.decode(new Uint8Array([byte]));
+    if (char && char !== "�" && !map.has(char)) map.set(char, byte);
+  }
+  windows1256EncodeMap = map;
+  return map;
+}
+
+function persianLetterCount(value: string) {
+  let count = 0;
+  for (const char of value) {
+    const code = char.codePointAt(0) || 0;
+    if (code >= 0x0600 && code <= 0x06ff) count += 1;
+  }
+  return count;
+}
+
+function mojibakeSignal(value: string) {
+  const sequenceCount = value.match(/(?:ط§|ط¨|طھ|ط±|ط¯|ط³|ط¹|ط¬|ط²|ط©|طŒ|ط،|ط؛|ظ„|ظ…|ظ†|ظ‡|ظ¾|ظƒ|ظک|غŒ|ع†|ع©|آ«|آ»)/g)?.length || 0;
+  const westernCount = value.match(/[ØÙÛÃÂ]/g)?.length || 0;
+  const denseArabicCount = value.match(/[طظغع][؀-ۿ]/g)?.length || 0;
+  return sequenceCount * 5 + westernCount * 4 + denseArabicCount;
+}
+
+function decodeUtf8Bytes(bytes: Uint8Array) {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return "";
+  }
+}
+
+function repairLatin1Mojibake(value: string) {
+  const bytes: number[] = [];
+  for (const char of value) {
+    const code = char.codePointAt(0) || 0;
+    if (code > 255) return "";
+    bytes.push(code);
+  }
+  return decodeUtf8Bytes(new Uint8Array(bytes));
+}
+
+function repairWindows1256Mojibake(value: string) {
+  const map = getWindows1256EncodeMap();
+  const bytes: number[] = [];
+  for (const char of value) {
+    const code = char.codePointAt(0) || 0;
+    if (code <= 0x7f) {
+      bytes.push(code);
+      continue;
+    }
+    const byte = map.get(char);
+    if (byte === undefined) return "";
+    bytes.push(byte);
+  }
+  return decodeUtf8Bytes(new Uint8Array(bytes));
+}
+
+function chooseMojibakeRepair(original: string, repaired: string) {
+  if (!repaired || repaired === original || repaired.includes("�")) return original;
+  const originalSignal = mojibakeSignal(original);
+  if (originalSignal < 2) return original;
+  const repairedSignal = mojibakeSignal(repaired);
+  if (repairedSignal >= originalSignal) return original;
+  if (persianLetterCount(repaired) < Math.max(1, Math.floor(persianLetterCount(original) / 4))) return original;
+  return repaired;
+}
+
+function repairMojibake(value: string) {
+  const latin1Fixed = chooseMojibakeRepair(value, repairLatin1Mojibake(value));
+  if (latin1Fixed !== value) return latin1Fixed;
+  return chooseMojibakeRepair(value, repairWindows1256Mojibake(value));
+}
+
 function cleanCell(value: unknown) {
-  return decodeHtml(String(value || "").replace(/\s+/g, " ").trim());
+  const cleaned = decodeHtml(String(value || "").replace(/\s+/g, " ").trim());
+  return repairMojibake(cleaned);
 }
 
 function parseNumberToken(token: string) {
