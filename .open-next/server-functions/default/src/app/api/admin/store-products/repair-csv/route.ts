@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { decodeWindows1256 } from "@/lib/windows-1256";
 import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ function csvDecodeScore(value: string) {
 }
 
 function decodeBytes(bytes: Uint8Array, encoding: string) {
+  if (encoding === "windows-1256") return stripTextBom(decodeWindows1256(bytes));
   try {
     return stripTextBom(new TextDecoder(encoding).decode(bytes));
   } catch {

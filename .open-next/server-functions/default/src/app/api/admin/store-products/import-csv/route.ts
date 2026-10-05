@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { decodeWindows1256 } from "@/lib/windows-1256";
 import { getOptiBidData, writeOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
 import {
@@ -83,6 +84,7 @@ function csvDecodeScore(value: string) {
 }
 
 function decodeBytes(bytes: Uint8Array, encoding: string) {
+  if (encoding === "windows-1256") return stripTextBom(decodeWindows1256(bytes));
   try {
     return stripTextBom(new TextDecoder(encoding).decode(bytes));
   } catch {

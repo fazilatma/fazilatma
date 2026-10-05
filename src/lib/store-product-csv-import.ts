@@ -1,3 +1,4 @@
+import { getWindows1256ByteForChar } from "@/lib/windows-1256";
 import type { ImportedStoreProductDraft } from "@/lib/store-product-import";
 
 const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
@@ -25,20 +26,6 @@ function decodeHtml(value: string) {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&nbsp;/g, " ");
-}
-
-const windows1256Decoder = new TextDecoder("windows-1256");
-let windows1256EncodeMap: Map<string, number> | null = null;
-
-function getWindows1256EncodeMap() {
-  if (windows1256EncodeMap) return windows1256EncodeMap;
-  const map = new Map<string, number>();
-  for (let byte = 0; byte <= 255; byte += 1) {
-    const char = windows1256Decoder.decode(new Uint8Array([byte]));
-    if (char && char !== "�" && !map.has(char)) map.set(char, byte);
-  }
-  windows1256EncodeMap = map;
-  return map;
 }
 
 function persianLetterCount(value: string) {
@@ -76,15 +63,9 @@ function repairLatin1Mojibake(value: string) {
 }
 
 function repairWindows1256Mojibake(value: string) {
-  const map = getWindows1256EncodeMap();
   const bytes: number[] = [];
   for (const char of value) {
-    const code = char.codePointAt(0) || 0;
-    if (code <= 0x7f) {
-      bytes.push(code);
-      continue;
-    }
-    const byte = map.get(char);
+    const byte = getWindows1256ByteForChar(char);
     if (byte === undefined) return "";
     bytes.push(byte);
   }
