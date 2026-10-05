@@ -259,6 +259,7 @@ export default function AdminDashboardClient({
   const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
   const [productCsvFile, setProductCsvFile] = useState<File | null>(null);
   const [processingProductCsv, setProcessingProductCsv] = useState(false);
+  const [repairingProductCsv, setRepairingProductCsv] = useState(false);
   const [scanningProductImport, setScanningProductImport] = useState(false);
   const [applyingProductImport, setApplyingProductImport] = useState(false);
   const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
@@ -810,6 +811,48 @@ export default function AdminDashboardClient({
     setProductImportSelectedKeys(productImportPreview.map(productPreviewKey));
 
   const clearProductImportSelection = () => setProductImportSelectedKeys([]);
+
+  const repairProductCsvFile = async () => {
+    if (!productCsvFile) {
+      alert("فایل CSV خروجی Easy Scraper را انتخاب کنید.");
+      return;
+    }
+    setRepairingProductCsv(true);
+    setProductImportMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("file", productCsvFile);
+      formData.append("sourceLabel", "digikala-easy-scraper");
+      const response = await fetch("/api/admin/store-products/repair-csv", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.message || "ساخت CSV اصلاح‌شده ناموفق بود.");
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const fileName = disposition.match(/filename=\"?([^\";]+)\"?/i)?.[1] || "digikala-fixed-utf8.csv";
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+      const count = response.headers.get("x-optibid-product-count");
+      const encoding = response.headers.get("x-optibid-csv-encoding");
+      setProductImportMessage(`${count || ""} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${encoding ? `؛ کدگذاری خوانده‌شده: ${encoding}` : ""}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ساخت CSV اصلاح‌شده ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setRepairingProductCsv(false);
+    }
+  };
 
   const runProductCsvImport = async (action: "preview" | "import") => {
     if (!productCsvFile) {
@@ -1817,7 +1860,7 @@ export default function AdminDashboardClient({
                         اول دسته کالا را از بخش زیر انتخاب کنید؛ مثلاً فقط «موبایل و گوشی». بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
                       </p>
                     </div>
-                    <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
+                    <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto] lg:items-center">
                       <input
                         type="file"
                         accept=".csv,text/csv"
@@ -1829,7 +1872,7 @@ export default function AdminDashboardClient({
                       />
                       <button
                         type="button"
-                        disabled={processingProductCsv}
+                        disabled={processingProductCsv || repairingProductCsv}
                         onClick={() => runProductCsvImport("preview")}
                         className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition hover:bg-violet-700 disabled:bg-gray-300"
                       >
@@ -1837,7 +1880,15 @@ export default function AdminDashboardClient({
                       </button>
                       <button
                         type="button"
-                        disabled={processingProductCsv}
+                        disabled={processingProductCsv || repairingProductCsv}
+                        onClick={repairProductCsvFile}
+                        className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                      >
+                        {repairingProductCsv ? "در حال اصلاح..." : "دانلود CSV اصلاح‌شده"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={processingProductCsv || repairingProductCsv}
                         onClick={() => runProductCsvImport("import")}
                         className="rounded-xl bg-fuchsia-600 px-5 py-3 text-sm font-black text-white transition hover:bg-fuchsia-700 disabled:bg-gray-300"
                       >

@@ -230,6 +230,12 @@
       "namedRegex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/repair-csv",
+      "regex": "^/api/admin/store\\-products/repair\\-csv(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/repair\\-csv(?:/)?$"
+    },
+    {
       "page": "/api/admin/storefront-slider",
       "regex": "^/api/admin/storefront\\-slider(?:/)?$",
       "routeKeys": {},

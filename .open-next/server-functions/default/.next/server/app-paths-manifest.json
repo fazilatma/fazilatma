@@ -14,6 +14,7 @@
   "/api/admin/store-products/import-csv/route": "app/api/admin/store-products/import-csv/route.js",
   "/api/admin/store-products/import/route": "app/api/admin/store-products/import/route.js",
   "/api/admin/store-products/refresh-prices/route": "app/api/admin/store-products/refresh-prices/route.js",
+  "/api/admin/store-products/repair-csv/route": "app/api/admin/store-products/repair-csv/route.js",
   "/api/admin/storefront-slider/route": "app/api/admin/storefront-slider/route.js",
   "/api/admin/users/route": "app/api/admin/users/route.js",
   "/api/admin/withdrawals/route": "app/api/admin/withdrawals/route.js",

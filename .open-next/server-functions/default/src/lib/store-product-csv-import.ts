@@ -208,7 +208,7 @@ function hostFromUrl(url: string, fallback: string) {
 function brandFromTitle(title: string, fallback = "Digikala") {
   const lower = title.toLowerCase();
   if (/lenovo|لنوو/.test(lower)) return "Lenovo";
-  if (/dell|دل/.test(lower)) return "Dell";
+  if (/dell|(^|[\s،,\-])دل($|[\s،,\-])/.test(lower)) return "Dell";
   if (/asus|ایسوس/.test(lower)) return "Asus";
   if (/apple|macbook|مک|اپل|iphone|آیفون/.test(lower)) return "Apple";
   if (/hp|اچ ?پی|اچ‌پی/.test(lower)) return "HP";
