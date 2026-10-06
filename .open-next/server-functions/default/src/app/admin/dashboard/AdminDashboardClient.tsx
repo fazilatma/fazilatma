@@ -2010,7 +2010,7 @@ export default function AdminDashboardClient({
                     <div className="mb-3">
                       <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
                       <p className="mt-1 text-xs leading-6 text-violet-700">
-                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اصلاح و پیش‌نمایش در مرورگر خودتان انجام می‌شود؛ برای ثبت، فقط فهرست استانداردشدهٔ محصولات به سرور می‌رود، نه فایل خام و حجیم CSV. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
+                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اصلاح و پیش‌نمایش در مرورگر خودتان انجام می‌شود؛ برای ثبت، فقط فهرست استانداردشدهٔ محصولات به سرور می‌رود، نه فایل خام و حجیم CSV. عدد بالای فروشگاه مجموع محصولات فعالِ قبلی و جدید است؛ تعداد همین فایل را در پیام پیش‌نمایش ببینید. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
                         اول دسته کالا را از بخش زیر انتخاب کنید؛ مثلاً فقط «موبایل و گوشی». بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
                       </p>
                     </div>
@@ -2069,10 +2069,10 @@ export default function AdminDashboardClient({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop", "components", "accessories", "monitor", "storage", "gaming"])}
+                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop"])}
                             className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
                           >
-                            فقط کامپیوتر و لپ‌تاپ
+                            فقط لپ‌تاپ و کامپیوتر آماده
                           </button>
                           <button
                             type="button"
@@ -2193,10 +2193,10 @@ export default function AdminDashboardClient({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop", "components", "accessories", "monitor", "storage", "gaming"])}
+                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop"])}
                             className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
                           >
-                            فقط کامپیوتر و لپ‌تاپ
+                            فقط لپ‌تاپ و کامپیوتر آماده
                           </button>
                           <button
                             type="button"
