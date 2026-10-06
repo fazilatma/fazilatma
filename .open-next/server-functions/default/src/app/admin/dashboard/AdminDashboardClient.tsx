@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import SellerStars from "@/components/SellerStars";
 import type { HomepageImageSliderSlide } from "@/components/HomepageImageSlider";
 import { productImageUrl } from "@/lib/product-image-shared";
+import { repairStoreProductCsvBytes, repairedCsvFileName } from "@/lib/store-product-csv-repair";
 import { useLiveContent } from "@/hooks/useLiveContent";
 import type { CatalogCategory } from "@/lib/catalog-categories";
 
@@ -845,32 +846,33 @@ export default function AdminDashboardClient({
     }
     setRepairingProductCsv(true);
     setProductImportMessage("");
+    setProductImportWarnings([]);
     try {
-      const formData = new FormData();
-      formData.append("file", productCsvFile);
-      formData.append("sourceLabel", "digikala-easy-scraper");
-      const response = await fetch("/api/admin/store-products/repair-csv", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        const result = await readJsonResponse(response, "ساخت CSV اصلاح‌شده ناموفق بود.").catch(() => ({}));
-        throw new Error(result.message || "ساخت CSV اصلاح‌شده ناموفق بود.");
+      // Let React paint the progress state before processing a larger file locally.
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      const repaired = repairStoreProductCsvBytes(
+        new Uint8Array(await productCsvFile.arrayBuffer()),
+        "digikala-easy-scraper",
+      );
+      setProductImportWarnings(repaired.warnings);
+      if (!repaired.productCount || !repaired.csv) {
+        const details = repaired.warnings.slice(0, 2).join("؛ ");
+        throw new Error(`محصول معتبری برای ساخت CSV اصلاح‌شده پیدا نشد.${details ? ` ${details}` : ""}`);
       }
-      const blob = await response.blob();
-      const disposition = response.headers.get("content-disposition") || "";
-      const fileName = disposition.match(/filename=\"?([^\";]+)\"?/i)?.[1] || "digikala-fixed-utf8.csv";
+
+      const blob = new Blob([repaired.csv], { type: "text/csv;charset=utf-8" });
       const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = fileName;
+      link.download = repairedCsvFileName(productCsvFile.name);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(downloadUrl);
-      const count = response.headers.get("x-optibid-product-count");
-      const encoding = response.headers.get("x-optibid-csv-encoding");
-      setProductImportMessage(`${count || ""} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${encoding ? `؛ کدگذاری خوانده‌شده: ${encoding}` : ""}. توجه: این مرحله فقط فایل را اصلاح و دانلود می‌کند؛ برای نمایش در فروشگاه باید فایل دانلودشده را دوباره انتخاب کنید و دکمه «درون‌ریزی CSV» را بزنید.`);
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
+      setProductImportMessage(
+        `${repaired.productCount.toLocaleString("fa-IR")} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${repaired.encoding !== "utf-8" ? `؛ کدگذاری تشخیص‌داده‌شده: ${repaired.encoding}` : ""}. پردازش روی همین دستگاه انجام شد و فایل به سرور ارسال نشد. برای نمایش محصولات، فایل دانلودشده را دوباره انتخاب و «درون‌ریزی CSV» را بزنید.`,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "ساخت CSV اصلاح‌شده ناموفق بود.";
       setProductImportMessage(message);
@@ -1890,7 +1892,7 @@ export default function AdminDashboardClient({
                     <div className="mb-3">
                       <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
                       <p className="mt-1 text-xs leading-6 text-violet-700">
-                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
+                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اصلاح CSV در مرورگر خودتان انجام می‌شود و فایل برای این مرحله به سرور ارسال نمی‌شود. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
                         اول دسته کالا را از بخش زیر انتخاب کنید؛ مثلاً فقط «موبایل و گوشی». بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
                       </p>
                     </div>
