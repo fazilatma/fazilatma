@@ -5,7 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import SellerStars from "@/components/SellerStars";
 import type { HomepageImageSliderSlide } from "@/components/HomepageImageSlider";
 import { productImageUrl } from "@/lib/product-image-shared";
+import { decodeCsvBytes } from "@/lib/store-product-csv-encoding";
+import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
 import { repairStoreProductCsvBytes, repairedCsvFileName } from "@/lib/store-product-csv-repair";
+import {
+  normalizeProductImportCategories,
+  productImportCategoryKey,
+  productMatchesImportCategories,
+  type ImportedStoreProductDraft,
+} from "@/lib/store-product-import";
 import { useLiveContent } from "@/hooks/useLiveContent";
 import type { CatalogCategory } from "@/lib/catalog-categories";
 
@@ -71,6 +79,27 @@ const productImportCategoryOptions = [
 
 const allProductImportCategoryIds = productImportCategoryOptions.map((option) => option.id);
 
+type PreparedCsvImportDraft = {
+  selectionKey: string;
+  draft: ImportedStoreProductDraft;
+};
+
+function normalizedImportPriceMultiplier(value: unknown) {
+  const number = Number(value || 1);
+  if (!Number.isFinite(number) || number <= 0) return 1;
+  return Math.max(0.1, Math.min(10, number));
+}
+
+function applyImportPriceMultiplierForPreview(draft: ImportedStoreProductDraft, multiplier: number) {
+  if (multiplier === 1) return draft;
+  const roundToman = (value: number) => Math.max(0, Math.round(Number(value || 0) / 10_000) * 10_000);
+  return {
+    ...draft,
+    price: roundToman(draft.price * multiplier),
+    originalPrice: draft.originalPrice ? roundToman(draft.originalPrice * multiplier) : undefined,
+  };
+}
+
 async function readJsonResponse(response: Response, fallbackMessage: string) {
   const text = await response.text();
   if (!text.trim()) {
@@ -91,7 +120,7 @@ async function readJsonResponse(response: Response, fallbackMessage: string) {
       throw new Error("حجم فایل CSV برای این درخواست زیاد است. فایل اصلاح‌شده را دانلود کنید یا با دسته‌بندی محدودتر/بخش‌بخش وارد کنید.");
     }
     if (response.status === 1102 || /exceeded resource|worker exceeded|1102/i.test(text)) {
-      throw new Error("پردازش فایل CSV روی سرور بیش از حد سنگین شد. لطفاً ابتدا CSV اصلاح‌شده را دانلود کنید و سپس محصولات را دسته‌به‌دسته وارد کنید.");
+      throw new Error("سرور هنگام ثبت فهرست محصولات CSV به سقف منابع رسید. نتیجه ممکن است نامشخص باشد؛ اجرای دوباره با روش ادغام یا افزودنِ بدون تکرار امن است.");
     }
     throw new Error(`${fallbackMessage} پاسخ سرور JSON نبود${plainText ? `: ${plainText}` : "."}`);
   }
@@ -279,6 +308,7 @@ export default function AdminDashboardClient({
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
   const [productImportCategories, setProductImportCategories] = useState<string[]>(allProductImportCategoryIds);
   const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
+  const [productImportCsvDrafts, setProductImportCsvDrafts] = useState<PreparedCsvImportDraft[]>([]);
   const [productImportPreviewSource, setProductImportPreviewSource] = useState<"csv" | "link" | "">("");
   const [productImportSelectedKeys, setProductImportSelectedKeys] = useState<string[]>([]);
   const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
@@ -740,6 +770,7 @@ export default function AdminDashboardClient({
 
   const clearProductImportPreviewState = () => {
     setProductImportPreview([]);
+    setProductImportCsvDrafts([]);
     setProductImportPreviewSource("");
     setProductImportSelectedKeys([]);
   };
@@ -882,6 +913,40 @@ export default function AdminDashboardClient({
     }
   };
 
+  const prepareProductCsvPreview = async (file: File) => {
+    // Parsing 3 MB Easy Scraper exports in the browser avoids Cloudflare Worker CPU limits.
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    const decoded = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()));
+    if (!decoded.text.trim()) throw new Error("فایل CSV خالی است یا قابل‌خواندن نیست.");
+
+    const parsed = parseEasyScraperCsv(decoded.text, { sourceLabel: "digikala-easy-scraper" });
+    const categories = normalizeProductImportCategories(productImportCategories);
+    const filteredDrafts = parsed.products.filter((draft) => productMatchesImportCategories(draft, categories));
+    const warnings = [
+      ...(decoded.warning ? [decoded.warning] : []),
+      ...parsed.warnings,
+    ];
+    if (filteredDrafts.length < parsed.products.length) {
+      warnings.push(`${(parsed.products.length - filteredDrafts.length).toLocaleString("fa-IR")} محصول از ${parsed.products.length.toLocaleString("fa-IR")} محصول تشخیص‌داده‌شده با دسته‌های انتخابی تطابق نداشت و فیلتر شد.`);
+    }
+
+    const entries: PreparedCsvImportDraft[] = filteredDrafts.map((draft, index) => ({
+      selectionKey: `csv-${index}|${draft.externalSourceUrl || ""}|${draft.title}`,
+      draft,
+    }));
+    const multiplier = normalizedImportPriceMultiplier(productImportPriceMultiplier);
+    const preview = entries.map((entry, index) => ({
+      ...applyImportPriceMultiplierForPreview(entry.draft, multiplier),
+      id: `csv-${index}`,
+      selectionKey: entry.selectionKey,
+      action: "pending",
+      matchedProduct: null,
+      importCategory: productImportCategoryKey(entry.draft),
+    }));
+
+    return { entries, preview, warnings, parsedCount: parsed.products.length, encoding: decoded.encoding };
+  };
+
   const runProductCsvImport = async (action: "preview" | "import") => {
     if (!productCsvFile) {
       alert("فایل CSV خروجی Easy Scraper را انتخاب کنید.");
@@ -891,45 +956,98 @@ export default function AdminDashboardClient({
       alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
       return;
     }
-    const hasCsvPreviewSelection = productImportPreviewSource === "csv" && productImportPreview.length > 0;
-    if (action === "import" && hasCsvPreviewSelection && productImportSelectedKeys.length === 0) {
+    const hasCsvPreview = productImportPreviewSource === "csv" && productImportCsvDrafts.length > 0;
+    if (action === "import" && hasCsvPreview && productImportSelectedKeys.length === 0) {
       alert("حداقل یک محصول از پیش‌نمایش CSV را برای ورود به سایت انتخاب کنید.");
       return;
     }
+
     setProcessingProductCsv(true);
     setProductImportMessage("");
+    let completedProducts = 0;
+    let totalSelectedProducts = 0;
     try {
-      const formData = new FormData();
-      formData.append("file", productCsvFile);
-      formData.append("action", action);
-      formData.append("strategy", productImportStrategy);
-      formData.append("priceMultiplier", String(productImportPriceMultiplier));
-      formData.append("categoryFilters", JSON.stringify(productImportCategories));
-      formData.append("sourceLabel", "digikala-easy-scraper");
-      if (action === "import" && hasCsvPreviewSelection) {
-        formData.append("selectedProductKeys", JSON.stringify(productImportSelectedKeys));
+      let entries = productImportCsvDrafts;
+      let preview = productImportPreview;
+      let warnings = productImportWarnings;
+      let parsedCount = productImportPreview.length;
+      let encoding = "utf-8";
+      let selectedKeys = productImportSelectedKeys;
+
+      if (action === "preview" || !hasCsvPreview) {
+        const prepared = await prepareProductCsvPreview(productCsvFile);
+        entries = prepared.entries;
+        preview = prepared.preview;
+        warnings = prepared.warnings;
+        parsedCount = prepared.parsedCount;
+        encoding = prepared.encoding;
+        selectedKeys = entries.map((entry) => entry.selectionKey);
+        setProductImportCsvDrafts(entries);
+        setProductImportPreview(preview);
+        setProductImportPreviewSource("csv");
+        setProductImportSelectedKeys(selectedKeys);
+        setProductImportWarnings(warnings);
+        setProductImportScannedUrls([]);
       }
+
+      if (!entries.length) {
+        const message = parsedCount === 0
+          ? "از فایل CSV محصولی با عنوان و قیمت معتبر تشخیص داده نشد. فایل اصلی را نگه دارید تا ساختار ستون‌ها بررسی شود."
+          : "هیچ محصولی با دسته‌های انتخاب‌شده تطابق ندارد. دسته‌ها را تغییر دهید و دوباره پیش‌نمایش بگیرید.";
+        setProductImportMessage(message);
+        if (action === "import") alert(message);
+        return;
+      }
+
+      const selectionSet = new Set(selectedKeys);
+      const selectedDrafts = entries.filter((entry) => selectionSet.has(entry.selectionKey));
+      if (action === "import" && selectedDrafts.length === 0) {
+        alert("حداقل یک محصول از پیش‌نمایش CSV را برای ورود به سایت انتخاب کنید.");
+        return;
+      }
+
+      if (action === "preview") {
+        const finalMessage = `${parsedCount.toLocaleString("fa-IR")} محصول از CSV تشخیص داده شد؛ ${entries.length.toLocaleString("fa-IR")} محصول با دسته‌های انتخابی برای پیش‌نمایش آماده است${encoding !== "utf-8" ? ` (کدگذاری ${encoding})` : ""}. پردازش فایل روی همین دستگاه انجام شد.`;
+        setProductImportMessage(finalMessage);
+        return;
+      }
+
+      totalSelectedProducts = selectedDrafts.length;
+      const multiplier = normalizedImportPriceMultiplier(productImportPriceMultiplier);
+      setProductImportMessage(
+        `${selectedDrafts.length.toLocaleString("fa-IR")} محصول آماده است؛ در حال ثبت فهرست پردازش‌شده (بدون ارسال فایل خام CSV) ...`,
+      );
       const response = await fetch("/api/admin/store-products/import-csv", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          products: selectedDrafts.map((entry) => entry.draft),
+          strategy: productImportStrategy,
+          priceMultiplier: multiplier,
+          categoryFilters: productImportCategories,
+          sourceLabel: "digikala-easy-scraper",
+        }),
       });
       const result = await readJsonResponse(response, "درون‌ریزی CSV ناموفق بود.");
       if (!result.success) throw new Error(result.message || "درون‌ریزی CSV ناموفق بود.");
-      const nextPreview = result.products || [];
-      setProductImportPreview(nextPreview);
-      setProductImportPreviewSource("csv");
-      if (action === "preview") setProductImportSelectedKeys(nextPreview.map(productPreviewKey));
-      else setProductImportSelectedKeys([]);
-      setProductImportWarnings(result.warnings || []);
-      setProductImportScannedUrls([]);
-      const activeStoreText = action === "import" && typeof result.activeStoreProducts === "number"
+      completedProducts = Number(result.selectedCount || selectedDrafts.length);
+      setProductImportSelectedKeys([]);
+      setProductImportWarnings([...new Set([...warnings, ...(Array.isArray(result.warnings) ? result.warnings : [])])]);
+      const activeStoreText = typeof result.activeStoreProducts === "number"
         ? ` اکنون ${Number(result.activeStoreProducts).toLocaleString("fa-IR")} محصول فعال در فروشگاه ذخیره شده است.`
         : "";
-      const finalMessage = `${result.message || "فایل CSV پردازش شد."}${activeStoreText}`;
+      const finalMessage = `${Number(result.created || 0).toLocaleString("fa-IR")} محصول اضافه شد، ${Number(result.updated || 0).toLocaleString("fa-IR")} مورد به‌روزرسانی شد و ${Number(result.skipped || 0).toLocaleString("fa-IR")} مورد تکراری/نامعتبر نادیده گرفته شد.${activeStoreText}`;
       setProductImportMessage(finalMessage);
-      if (action === "import") alert(finalMessage);
+      alert(finalMessage);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "درون‌ریزی CSV ناموفق بود.";
+      const baseMessage = error instanceof Error ? error.message : "درون‌ریزی CSV ناموفق بود.";
+      const partialProgress = completedProducts > 0
+        ? ` تا اینجا ${completedProducts.toLocaleString("fa-IR")} از ${totalSelectedProducts.toLocaleString("fa-IR")} محصول بررسی و ثبت شده است. انتخاب‌ها حفظ شده‌اند؛ با اجرای دوبارهٔ درون‌ریزی، موارد قبلی تکراری نمی‌شوند.`
+        : "";
+      const retryHint = /سقف منابع|بیش از حد سنگین/i.test(baseMessage)
+        ? " اگر پاسخ به دلیل محدودیت منابع نرسیده باشد، تکرار درون‌ریزی با لینک منبع، محصول تکراری ایجاد نمی‌کند."
+        : "";
+      const message = `${baseMessage}${partialProgress}${retryHint}`;
       setProductImportMessage(message);
       alert(message);
     } finally {
@@ -1892,7 +2010,7 @@ export default function AdminDashboardClient({
                     <div className="mb-3">
                       <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
                       <p className="mt-1 text-xs leading-6 text-violet-700">
-                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اصلاح CSV در مرورگر خودتان انجام می‌شود و فایل برای این مرحله به سرور ارسال نمی‌شود. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
+                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اصلاح و پیش‌نمایش در مرورگر خودتان انجام می‌شود؛ برای ثبت، فقط فهرست استانداردشدهٔ محصولات به سرور می‌رود، نه فایل خام و حجیم CSV. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
                         اول دسته کالا را از بخش زیر انتخاب کنید؛ مثلاً فقط «موبایل و گوشی». بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
                       </p>
                     </div>
@@ -2341,8 +2459,8 @@ export default function AdminDashboardClient({
                                   />
                                 </td>
                                 <td className="px-4 py-3">
-                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${product.action === "update" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
-                                    {product.action === "update" ? "به‌روزرسانی" : "محصول جدید"}
+                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${product.action === "update" ? "bg-amber-50 text-amber-700" : product.action === "pending" ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-700"}`}>
+                                    {product.action === "update" ? "به‌روزرسانی" : product.action === "pending" ? "بررسی هنگام ثبت" : "محصول جدید"}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3">
