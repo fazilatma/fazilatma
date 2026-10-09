@@ -17,13 +17,11 @@ export default function StorePriceHistoryChart({
   history?: StorePriceHistoryPoint[];
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const points = useMemo(() =>
-    (history || [])
-      .filter((point) => Number.isFinite(Date.parse(point.recordedAt)) && Number(point.price) > 0)
-      .slice()
-      .sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt))
-      .slice(-30),
-  [history]);
+  const points = useMemo(() => (history || [])
+    .filter((point) => Number.isFinite(Date.parse(point.recordedAt)) && Number(point.price) > 0)
+    .slice()
+    .sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt))
+    .slice(-30), [history]);
 
   const width = 320;
   const height = 140;
@@ -48,12 +46,12 @@ export default function StorePriceHistoryChart({
     <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-base font-black text-slate-900">سابقهٔ واقعی قیمت</h2>
-        <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-black text-rose-600">۳۰ ثبت اخیر</span>
+        <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-black text-rose-600">آخرین ۳۰ ثبت واقعی</span>
       </div>
 
       {points.length === 0 ? (
         <div className="grid min-h-36 place-items-center rounded-2xl bg-slate-50 px-4 text-center text-xs leading-6 text-slate-500">
-          هنوز تاریخچهٔ قیمت ثبت‌شده‌ای وجود ندارد. پس از واردکردن یک قیمت یا به‌روزرسانی از مرجع معتبر، نخستین نقطه از همان زمان ثبت می‌شود.
+          هنوز تاریخچهٔ قیمت واقعی ثبت نشده است. پس از ثبت قیمت CSV یا به‌روزرسانی از مرجع معتبر، نخستین نقطه ثبت می‌شود.
         </div>
       ) : (
         <div className="relative" onMouseLeave={() => setHoveredIndex(null)}>
