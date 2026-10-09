@@ -227,6 +227,12 @@ function textMatchesLaptop(lower: string) {
   return explicitLaptopWords || laptopSeries || (laptopScreenSize && laptopSpecs);
 }
 
+function minimumReasonablePriceForTitle(title: string) {
+  const lower = title.toLowerCase();
+  const isComputer = textMatchesLaptop(lower) || /desktop|all.?in.?one|mini.?pc|computer|کامپیوتر|کیس آماده|آل.?این.?وان|مینی.?پی.?سی/.test(lower);
+  return isComputer ? 5_000_000 : minimumReasonablePrice;
+}
+
 function categoryFromTitle(title: string) {
   const lower = title.toLowerCase();
   if (/tablet|ipad|galaxy\s*tab|redmi\s*pad|poco\s*pad|(^|\s)pad(\s|$)|تبلت|آیپد|گلکسی\s*تب/.test(lower)) return "تبلت و آیپد";
@@ -269,11 +275,14 @@ function pickTitle(row: string[], columns: { title: number; price: number; url: 
   return (candidates.sort((a, b) => b.length - a.length)[0] || "").slice(0, 180);
 }
 
-function pickPrice(row: string[], priceIndex: number, priceHeader = "", context = "") {
-  if (priceIndex >= 0) return plausiblePriceToToman(row[priceIndex], `${priceHeader} ${context}`);
+function pickPrice(row: string[], priceIndex: number, priceHeader = "", context = "", minimumPrice = minimumReasonablePrice) {
+  if (priceIndex >= 0) {
+    const columnPrice = plausiblePriceToToman(row[priceIndex], `${priceHeader} ${context}`);
+    if (columnPrice >= minimumPrice) return columnPrice;
+  }
   const candidates = row
     .map((cell) => plausiblePriceToToman(cell, context))
-    .filter(Boolean)
+    .filter((price) => price >= minimumPrice)
     .sort((a, b) => a - b);
   return candidates[0] || 0;
 }
@@ -337,7 +346,7 @@ function priceCandidates(cells: string[], context: string) {
     .sort((a, b) => a.price - b.price);
 }
 
-function parseWideProductRows(rows: string[][], sourceLabel: string, imageIndex = -1) {
+function parseWideProductRows(rows: string[][], sourceLabel: string, imageIndex = -1, priceIndex = -1) {
   const products: ImportedStoreProductDraft[] = [];
   const seen = new Set<string>();
 
@@ -358,14 +367,27 @@ function parseWideProductRows(rows: string[][], sourceLabel: string, imageIndex 
         imageIndex >= item.index && imageIndex < nextIndex ? imageIndex - item.index : -1,
       );
       const productTitle = pickWideTitle(groupCells);
-      const prices = priceCandidates(groupCells, context);
-      const productPrice = prices[0]?.price || 0;
-      if (!productTitle || !productPrice) return;
+      if (!productTitle) return;
+      const minimumProductPrice = minimumReasonablePriceForTitle(productTitle);
+      const candidates = priceCandidates(groupCells, context)
+        .filter((candidate) => candidate.price >= minimumProductPrice);
+      const localPriceIndex = priceIndex >= item.index && priceIndex < nextIndex
+        ? priceIndex - item.index
+        : -1;
+      const preferredRawPrice = localPriceIndex >= 0 ? cleanCell(groupCells[localPriceIndex]) : "";
+      const preferredPrice = preferredRawPrice
+        ? plausiblePriceToToman(preferredRawPrice, context)
+        : 0;
+      const chosenPrice = preferredPrice >= minimumProductPrice
+        ? { raw: preferredRawPrice, price: preferredPrice }
+        : candidates[0];
+      const productPrice = chosenPrice?.price || 0;
+      if (!productPrice) return;
       const dedupeKey = `${productUrl}|${productTitle}`;
       if (seen.has(dedupeKey)) return;
       seen.add(dedupeKey);
-      const originalPrice = prices.length > 1 ? prices[prices.length - 1].price : 0;
-      const rawPrice = prices[0]?.raw || "";
+      const originalPrice = candidates.filter((candidate) => candidate.price > productPrice).at(-1)?.price || 0;
+      const rawPrice = chosenPrice?.raw || "";
       const specs: Record<string, string> = { منبع: sourceHost };
       if (rawPrice) specs["قیمت خام CSV"] = rawPrice.slice(0, 80);
       specs["لینک منبع"] = productUrl;
@@ -409,6 +431,7 @@ export function parseEasyScraperCsv(
   const headers = rawHeaders.map((header) => normalizeHeader(header));
   const title = findColumn(headers, [/title/, /name/, /product/, /item/, /عنوان/, /نام/, /کالا/, /محصول/]);
   const price = findColumn(headers, [/price/, /amount/, /cost/, /قیمت/, /مبلغ/, /تومان/, /ریال/]);
+  const widePrice = price >= 0 ? price : findColumn(headers, [/textbody/]);
   const originalPrice = findColumn(headers, [/oldprice/, /original/, /before/, /rrp/, /listprice/, /قیمتاصلی/, /قبل/, /خطخورده/]);
   const url = findColumn(headers, [/url/, /link/, /href/, /آدرس/, /لینک/]);
   const image = findColumn(headers, [/image/, /img/, /photo/, /picture/, /thumbnail/, /src/, /عکس/, /تصویر/]);
@@ -422,7 +445,7 @@ export function parseEasyScraperCsv(
   const sourceLabel = options.sourceLabel || "easy-scraper";
 
   if (shouldUseWideEasyScraperParser(rows, headers, title, price, url)) {
-    const wideProducts = parseWideProductRows(rows, sourceLabel, image);
+    const wideProducts = parseWideProductRows(rows, sourceLabel, image, widePrice);
     if (wideProducts.length > 0) {
       return { products: wideProducts, warnings };
     }
@@ -441,7 +464,7 @@ export function parseEasyScraperCsv(
     const sourceHost = hostFromUrl(productUrl, sourceLabel);
     const rowContext = `${sourceLabel} ${sourceHost} ${productUrl}`;
     const productTitle = pickTitle(row, { title, price, url });
-    const productPrice = pickPrice(row, price, priceHeader, rowContext);
+    const productPrice = pickPrice(row, price, priceHeader, rowContext, minimumReasonablePriceForTitle(productTitle));
     if (!productTitle || !productPrice) {
       warnings.push(`ردیف ${index + 2} به دلیل نداشتن عنوان یا قیمت معتبر نادیده گرفته شد.`);
       return;
