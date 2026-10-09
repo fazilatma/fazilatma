@@ -46,6 +46,7 @@ export async function POST(request: Request) {
         "Cache-Control": "no-store",
         "X-Optibid-CSV-Encoding": repaired.encoding,
         "X-Optibid-Product-Count": String(repaired.productCount),
+        "X-Optibid-Image-Count": String(repaired.imageCount),
       },
     });
   } catch (error) {

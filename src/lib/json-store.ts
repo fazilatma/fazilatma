@@ -389,6 +389,7 @@ export type JsonStoreProduct = {
   description: string;
   price: number;
   originalPrice?: number;
+  imageUrl?: string;
   stock: number;
   rating: number;
   reviewsCount: number;
@@ -1142,6 +1143,16 @@ function isPublicRequest(request: JsonRequest) {
   return request.status === "open";
 }
 
+function normalizeRemoteProductImageUrl(value: unknown) {
+  try {
+    const url = new URL(String(value || "").trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
   if (!Array.isArray(value)) return [];
   const products: JsonStoreProduct[] = [];
@@ -1194,6 +1205,7 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       externalSourceUrl: product.externalSourceUrl
         ? String(product.externalSourceUrl).trim()
         : undefined,
+      imageUrl: normalizeRemoteProductImageUrl(product.imageUrl),
       isActive: product.isActive !== false,
       isFeatured: Boolean(product.isFeatured),
       createdAt: String(product.createdAt || new Date().toISOString()),

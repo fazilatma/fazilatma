@@ -283,6 +283,21 @@ function isProductUrl(value: string) {
   return Boolean(url && /\/product\/|\/dkp-|digikala\.com\/product/i.test(url));
 }
 
+function pickImageUrl(cells: string[], preferredIndex = -1) {
+  const ordered = preferredIndex >= 0 && preferredIndex < cells.length
+    ? [cells[preferredIndex], ...cells.filter((_, index) => index !== preferredIndex)]
+    : cells;
+  for (const cell of ordered) {
+    const url = safeUrl(cleanCell(cell));
+    if (!url || !/^https?:\/\//i.test(url) || isProductUrl(url)) continue;
+    if (
+      (preferredIndex >= 0 && cell === cells[preferredIndex]) ||
+      /\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)|dkstatics|images?|image|photo|picture|media|cdn/i.test(url)
+    ) return url;
+  }
+  return "";
+}
+
 function isIgnoredWideCell(value: string) {
   const lower = value.toLowerCase();
   if (!value || safeUrl(value)) return true;
@@ -322,7 +337,7 @@ function priceCandidates(cells: string[], context: string) {
     .sort((a, b) => a.price - b.price);
 }
 
-function parseWideProductRows(rows: string[][], sourceLabel: string) {
+function parseWideProductRows(rows: string[][], sourceLabel: string, imageIndex = -1) {
   const products: ImportedStoreProductDraft[] = [];
   const seen = new Set<string>();
 
@@ -338,6 +353,10 @@ function parseWideProductRows(rows: string[][], sourceLabel: string) {
       const productUrl = item.url;
       const sourceHost = hostFromUrl(productUrl, sourceLabel);
       const context = `${sourceLabel} ${sourceHost} ${productUrl}`;
+      const imageUrl = pickImageUrl(
+        groupCells,
+        imageIndex >= item.index && imageIndex < nextIndex ? imageIndex - item.index : -1,
+      );
       const productTitle = pickWideTitle(groupCells);
       const prices = priceCandidates(groupCells, context);
       const productPrice = prices[0]?.price || 0;
@@ -360,6 +379,7 @@ function parseWideProductRows(rows: string[][], sourceLabel: string) {
         description: productTitle,
         price: productPrice,
         originalPrice: originalPrice > productPrice ? originalPrice : undefined,
+        imageUrl: imageUrl || undefined,
         stock: 5,
         specs,
         externalSourceUrl: productUrl,
@@ -391,6 +411,7 @@ export function parseEasyScraperCsv(
   const price = findColumn(headers, [/price/, /amount/, /cost/, /قیمت/, /مبلغ/, /تومان/, /ریال/]);
   const originalPrice = findColumn(headers, [/oldprice/, /original/, /before/, /rrp/, /listprice/, /قیمتاصلی/, /قبل/, /خطخورده/]);
   const url = findColumn(headers, [/url/, /link/, /href/, /آدرس/, /لینک/]);
+  const image = findColumn(headers, [/image/, /img/, /photo/, /picture/, /thumbnail/, /src/, /عکس/, /تصویر/]);
   const brand = findColumn(headers, [/brand/, /برند/, /سازنده/]);
   const category = findColumn(headers, [/category/, /cat/, /breadcrumb/, /دسته/, /گروه/]);
   const description = findColumn(headers, [/description/, /desc/, /summary/, /توضیح/, /شرح/]);
@@ -401,7 +422,7 @@ export function parseEasyScraperCsv(
   const sourceLabel = options.sourceLabel || "easy-scraper";
 
   if (shouldUseWideEasyScraperParser(rows, headers, title, price, url)) {
-    const wideProducts = parseWideProductRows(rows, sourceLabel);
+    const wideProducts = parseWideProductRows(rows, sourceLabel, image);
     if (wideProducts.length > 0) {
       return { products: wideProducts, warnings };
     }
@@ -416,6 +437,7 @@ export function parseEasyScraperCsv(
 
   rows.slice(1).forEach((row, index) => {
     const productUrl = url >= 0 ? safeUrl(cleanCell(row[url])) : "";
+    const imageUrl = pickImageUrl(row, image);
     const sourceHost = hostFromUrl(productUrl, sourceLabel);
     const rowContext = `${sourceLabel} ${sourceHost} ${productUrl}`;
     const productTitle = pickTitle(row, { title, price, url });
@@ -439,6 +461,7 @@ export function parseEasyScraperCsv(
       description: description >= 0 ? cleanCell(row[description]).slice(0, 900) || productTitle : productTitle,
       price: productPrice,
       originalPrice: productOriginalPrice > productPrice ? productOriginalPrice : undefined,
+      imageUrl: imageUrl || undefined,
       stock: isOut ? 0 : 5,
       specs,
       externalSourceUrl: productUrl || `easy-scraper://${sourceLabel}/${index + 2}`,

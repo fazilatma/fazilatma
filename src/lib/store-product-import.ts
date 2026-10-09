@@ -8,6 +8,7 @@ export type ImportedStoreProductDraft = {
   description: string;
   price: number;
   originalPrice?: number;
+  imageUrl?: string;
   stock: number;
   specs: Record<string, string>;
   externalSourceUrl: string;
@@ -180,6 +181,22 @@ function absoluteUrl(value: string, baseUrl: string) {
   }
 }
 
+function safeImageUrl(value: string, baseUrl: string) {
+  const url = absoluteUrl(value, baseUrl);
+  return /^https?:\/\//i.test(url) ? url : "";
+}
+
+function imageUrlFromHtml(html: string, pageUrl: string) {
+  const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => match[0] || "");
+  for (const tag of metaTags) {
+    if (!/(?:property|name)=["'](?:og:image|twitter:image(?::src)?)["']/i.test(tag)) continue;
+    const content = tag.match(/content=["']([^"']+)["']/i)?.[1] || "";
+    const imageUrl = safeImageUrl(decodeHtml(content).trim(), pageUrl);
+    if (imageUrl) return imageUrl;
+  }
+  return "";
+}
+
 function stableHash(value: string) {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -327,7 +344,7 @@ function firstText(...values: unknown[]): string {
     }
     if (typeof value === "object" && value) {
       const record = value as Record<string, unknown>;
-      const nested: string = firstText(record.name, record.title, record.value, record.url);
+      const nested: string = firstText(record.name, record.title, record.value, record.url, record.contentUrl, record.thumbnailUrl);
       if (nested) return nested;
       continue;
     }
@@ -395,6 +412,7 @@ function draftFromJsonLdProduct(product: Record<string, unknown>, pageUrl: strin
     description: description || title,
     price: offer.price,
     originalPrice: offer.originalPrice,
+    imageUrl: safeImageUrl(firstText(product.image), pageUrl) || undefined,
     stock: offer.stock,
     specs: specsFromJsonLd(product),
     externalSourceUrl: pageUrl,
@@ -456,6 +474,7 @@ function fallbackDraftFromHtml(html: string, pageUrl: string, sourceHost: string
     description: title,
     price,
     originalPrice,
+    imageUrl: imageUrlFromHtml(html, pageUrl) || undefined,
     stock: /ناموجود|out of stock|sold out/i.test(stripTags(html)) ? 0 : 5,
     specs: {},
     externalSourceUrl: pageUrl,
@@ -715,6 +734,7 @@ function draftFromDigikalaRecord(
     description: firstText(data.description, data.review?.description, title).slice(0, 900) || title,
     price,
     originalPrice: originalPrice > price ? originalPrice : undefined,
+    imageUrl: safeImageUrl(firstText(data.images, data.image, data.image_url, data.imageUrl), url) || undefined,
     stock: firstText(data.default_variant?.status, data.status).toLowerCase().includes("out") ? 0 : 5,
     specs,
     externalSourceUrl: url,
@@ -903,6 +923,7 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
     description: draft.description || draft.summary || draft.title,
     price: draft.price,
     originalPrice: draft.originalPrice && draft.originalPrice > draft.price ? draft.originalPrice : undefined,
+    imageUrl: draft.imageUrl,
     stock: Math.max(0, Math.floor(Number(draft.stock || 0))),
     rating: 4.5,
     reviewsCount: 0,

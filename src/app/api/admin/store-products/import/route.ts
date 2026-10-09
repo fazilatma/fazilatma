@@ -48,6 +48,7 @@ function publicProduct(product: JsonStoreProduct, index: number) {
     originalPrice: product.originalPrice,
     stock: product.stock,
     externalSourceUrl: product.externalSourceUrl,
+    imageUrl: product.imageUrl,
     marketReferenceNote: product.marketReferenceNote,
     importCategory: productImportCategoryKey({
       title: product.title,
@@ -108,6 +109,7 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
       ? imported.marketReferenceNote
       : existing.marketReferenceNote,
     externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
+    imageUrl: imported.imageUrl || existing.imageUrl,
     isActive: true,
   } satisfies JsonStoreProduct;
 }

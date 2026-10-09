@@ -24,16 +24,18 @@ export function repairStoreProductCsvBytes(bytes: Uint8Array, sourceLabel = "eas
       encoding: decoded.encoding,
       encodingWarning: decoded.warning,
       productCount: 0,
+      imageCount: 0,
       warnings: parsed.warnings,
     };
   }
 
   const rows = [
-    ["title", "price_toman", "url", "brand", "category", "description", "stock", "sourceHost"],
+    ["title", "price_toman", "url", "image_url", "brand", "category", "description", "stock", "sourceHost"],
     ...parsed.products.map((product) => [
       product.title,
       product.price,
       product.externalSourceUrl,
+      product.imageUrl || "",
       product.brand,
       product.category,
       product.description || product.summary,
@@ -48,6 +50,7 @@ export function repairStoreProductCsvBytes(bytes: Uint8Array, sourceLabel = "eas
     encoding: decoded.encoding,
     encodingWarning: decoded.warning,
     productCount: parsed.products.length,
+    imageCount: parsed.products.filter((product) => Boolean(product.imageUrl)).length,
     warnings: parsed.warnings,
   };
 }

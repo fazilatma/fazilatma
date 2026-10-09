@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import SellerStars from "@/components/SellerStars";
 import type { HomepageImageSliderSlide } from "@/components/HomepageImageSlider";
 import { productImageUrl } from "@/lib/product-image-shared";
+import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import { decodeCsvBytes } from "@/lib/store-product-csv-encoding";
 import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
 import { repairStoreProductCsvBytes, repairedCsvFileName } from "@/lib/store-product-csv-repair";
@@ -901,8 +902,11 @@ export default function AdminDashboardClient({
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
 
+      const imageMessage = repaired.imageCount > 0
+        ? ` آدرس تصویر ${repaired.imageCount.toLocaleString("fa-IR")} محصول هم در فایل حفظ شد.`
+        : " در این فایل آدرس تصویری تشخیص داده نشد؛ برای عکس‌دار شدن محصولات، فایل اصلی Easy Scraper باید ستون عکس داشته باشد.";
       setProductImportMessage(
-        `${repaired.productCount.toLocaleString("fa-IR")} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${repaired.encoding !== "utf-8" ? `؛ کدگذاری تشخیص‌داده‌شده: ${repaired.encoding}` : ""}. پردازش روی همین دستگاه انجام شد و فایل به سرور ارسال نشد. برای نمایش محصولات، فایل دانلودشده را دوباره انتخاب و «درون‌ریزی CSV» را بزنید.`,
+        `${repaired.productCount.toLocaleString("fa-IR")} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${repaired.encoding !== "utf-8" ? `؛ کدگذاری تشخیص‌داده‌شده: ${repaired.encoding}` : ""}.${imageMessage} پردازش روی همین دستگاه انجام شد و فایل به سرور ارسال نشد. برای نمایش محصولات، فایل دانلودشده را دوباره انتخاب و «درون‌ریزی CSV» را بزنید.`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "ساخت CSV اصلاح‌شده ناموفق بود.";
@@ -1007,7 +1011,11 @@ export default function AdminDashboardClient({
       }
 
       if (action === "preview") {
-        const finalMessage = `${parsedCount.toLocaleString("fa-IR")} محصول از CSV تشخیص داده شد؛ ${entries.length.toLocaleString("fa-IR")} محصول با دسته‌های انتخابی برای پیش‌نمایش آماده است${encoding !== "utf-8" ? ` (کدگذاری ${encoding})` : ""}. پردازش فایل روی همین دستگاه انجام شد.`;
+        const imageCount = entries.filter((entry) => Boolean(entry.draft.imageUrl)).length;
+        const imageText = imageCount > 0
+          ? `${imageCount.toLocaleString("fa-IR")} آدرس تصویر هم پیدا شد.`
+          : "در فایل آدرس تصویر معتبری پیدا نشد.";
+        const finalMessage = `${parsedCount.toLocaleString("fa-IR")} محصول از CSV تشخیص داده شد؛ ${entries.length.toLocaleString("fa-IR")} محصول با دسته‌های انتخابی برای پیش‌نمایش آماده است. ${imageText}${encoding !== "utf-8" ? ` کدگذاری فایل: ${encoding}.` : ""} پردازش فایل روی همین دستگاه انجام شد.`;
         setProductImportMessage(finalMessage);
         return;
       }
@@ -1036,7 +1044,12 @@ export default function AdminDashboardClient({
       const activeStoreText = typeof result.activeStoreProducts === "number"
         ? ` اکنون ${Number(result.activeStoreProducts).toLocaleString("fa-IR")} محصول فعال در فروشگاه ذخیره شده است.`
         : "";
-      const finalMessage = `${Number(result.created || 0).toLocaleString("fa-IR")} محصول اضافه شد، ${Number(result.updated || 0).toLocaleString("fa-IR")} مورد به‌روزرسانی شد و ${Number(result.skipped || 0).toLocaleString("fa-IR")} مورد تکراری/نامعتبر نادیده گرفته شد.${activeStoreText}`;
+      const imageText = typeof result.imageCount === "number"
+        ? result.imageCount > 0
+          ? ` آدرس تصویر ${Number(result.imageCount).toLocaleString("fa-IR")} محصول هم ثبت شد.`
+          : " در CSV آدرس تصویر معتبری پیدا نشد؛ اگر فایل اصلی ستون w-full src دارد، همان فایل را انتخاب کنید."
+        : "";
+      const finalMessage = `${Number(result.created || 0).toLocaleString("fa-IR")} محصول اضافه شد، ${Number(result.updated || 0).toLocaleString("fa-IR")} مورد به‌روزرسانی شد و ${Number(result.skipped || 0).toLocaleString("fa-IR")} مورد تکراری/نامعتبر نادیده گرفته شد.${imageText}${activeStoreText}`;
       setProductImportMessage(finalMessage);
       alert(finalMessage);
     } catch (error) {
@@ -2010,7 +2023,7 @@ export default function AdminDashboardClient({
                     <div className="mb-3">
                       <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
                       <p className="mt-1 text-xs leading-6 text-violet-700">
-                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اصلاح و پیش‌نمایش در مرورگر خودتان انجام می‌شود؛ برای ثبت، فقط فهرست استانداردشدهٔ محصولات به سرور می‌رود، نه فایل خام و حجیم CSV. عدد بالای فروشگاه مجموع محصولات فعالِ قبلی و جدید است؛ تعداد همین فایل را در پیام پیش‌نمایش ببینید. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
+                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اگر فایل ستون تصویر مثل «w-full src» داشته باشد، آدرس همان عکس همراه محصول ذخیره و در کارت کالا نمایش داده می‌شود. اصلاح و پیش‌نمایش در مرورگر خودتان انجام می‌شود؛ برای ثبت، فقط فهرست استانداردشدهٔ محصولات به سرور می‌رود، نه فایل خام و حجیم CSV. عدد بالای فروشگاه مجموع محصولات فعالِ قبلی و جدید است؛ تعداد همین فایل را در پیام پیش‌نمایش ببینید. ستون‌های عنوان، قیمت و لینک محصول به‌صورت هوشمند تشخیص داده می‌شوند و ضریب قیمت همین فرم اعمال می‌شود.
                         اول دسته کالا را از بخش زیر انتخاب کنید؛ مثلاً فقط «موبایل و گوشی». بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و فقط اگر خود CSV ریال را مشخص کرده باشد به تومان تبدیل می‌شود.
                       </p>
                     </div>
@@ -2464,7 +2477,16 @@ export default function AdminDashboardClient({
                                   </span>
                                 </td>
                                 <td className="px-4 py-3">
-                                  <b className="block text-gray-900">{product.title}</b>
+                                  <div className="flex items-center gap-3">
+                                    {product.imageUrl && (
+                                      <StoreProductRemoteImage
+                                        src={product.imageUrl}
+                                        alt={`عکس ${product.title}`}
+                                        className="h-12 w-12 shrink-0 rounded-lg border border-slate-200 bg-white object-contain p-1"
+                                      />
+                                    )}
+                                    <b className="block text-gray-900">{product.title}</b>
+                                  </div>
                                   {product.matchedProduct && (
                                     <span className="mt-1 block text-xs text-gray-500">
                                       مشابه در سایت: {product.matchedProduct.title}

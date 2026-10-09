@@ -101,6 +101,7 @@ function publicProduct(product: JsonStoreProduct, index: number) {
     originalPrice: product.originalPrice,
     stock: product.stock,
     externalSourceUrl: product.externalSourceUrl,
+    imageUrl: product.imageUrl,
     marketReferenceNote: product.marketReferenceNote,
     importCategory: productImportCategoryKey({
       title: product.title,
@@ -129,6 +130,7 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
     priceUpdatedAt: importedIsNewer ? imported.priceUpdatedAt : existing.priceUpdatedAt,
     marketReferenceNote: importedIsNewer ? imported.marketReferenceNote : existing.marketReferenceNote,
     externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
+    imageUrl: imported.imageUrl || existing.imageUrl,
     isActive: true,
   } satisfies JsonStoreProduct;
 }
@@ -163,6 +165,16 @@ async function formDataText(formData: FormData, key: string, fallback = "") {
   return { text: stripTextBom(String(value || fallback)), encoding: "text", warning: "" };
 }
 
+function normalizeRemoteImageUrl(value: unknown) {
+  try {
+    const url = new URL(String(value || "").trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 function normalizeDraftPayload(value: unknown): ImportedStoreProductDraft | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
@@ -189,6 +201,7 @@ function normalizeDraftPayload(value: unknown): ImportedStoreProductDraft | null
     originalPrice: Number.isFinite(Number(record.originalPrice)) && Number(record.originalPrice) > price
       ? Number(record.originalPrice)
       : undefined,
+    imageUrl: normalizeRemoteImageUrl(record.imageUrl),
     stock: Number.isFinite(stock) ? Math.max(0, Math.min(1_000_000, Math.floor(stock))) : 5,
     specs,
     externalSourceUrl: String(record.externalSourceUrl || "").trim().slice(0, 2000),
@@ -276,6 +289,7 @@ async function importPreparedCsvBatch(request: Request) {
       mode: "import-batch",
       sourceHost: sourceLabel,
       selectedCount: filteredDrafts.length,
+      imageCount: importedProducts.filter((product) => Boolean(product.imageUrl)).length,
       activeStoreProducts: activeCount,
       created,
       updated,

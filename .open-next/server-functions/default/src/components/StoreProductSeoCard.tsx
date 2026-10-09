@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import type { JsonStoreProduct } from "@/lib/json-store";
 
 const money = (value: number | string) =>
@@ -25,11 +26,16 @@ function StaticLaptopVisual({ product }: { product: JsonStoreProduct }) {
         <div className="mx-auto h-4 w-56 max-w-full rounded-b-3xl bg-slate-700 shadow-xl" />
         <div className="mx-auto h-2 w-32 rounded-b-2xl bg-slate-400" />
       </div>
-      <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-[#003b5c] shadow-sm">
+      <StoreProductRemoteImage
+        src={product.imageUrl}
+        alt={`عکس ${product.title}`}
+        className="absolute inset-0 z-10 h-full w-full bg-white object-contain p-2"
+      />
+      <span className="absolute right-4 top-4 z-20 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-[#003b5c] shadow-sm">
         {product.brand}
       </span>
       {discount > 0 && (
-        <span className="absolute left-4 top-4 rounded-full bg-rose-600 px-3 py-1 text-xs font-black text-white shadow-sm">
+        <span className="absolute left-4 top-4 z-20 rounded-full bg-rose-600 px-3 py-1 text-xs font-black text-white shadow-sm">
           {discount.toLocaleString("fa-IR")}٪
         </span>
       )}
