@@ -13,15 +13,25 @@ function formatDate(value: string) {
 
 export default function StorePriceHistoryChart({
   history,
+  asOf,
 }: {
   history?: StorePriceHistoryPoint[];
+  asOf?: string;
 }) {
+  const [range, setRange] = useState<"week" | "month" | "year">("month");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const points = useMemo(() => (history || [])
+  const allPoints = useMemo(() => (history || [])
     .filter((point) => Number.isFinite(Date.parse(point.recordedAt)) && Number(point.price) > 0)
     .slice()
-    .sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt))
-    .slice(-30), [history]);
+    .sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)), [history]);
+  const rangeDays = range === "week" ? 7 : range === "month" ? 30 : 365;
+  const rangeAnchor = Date.parse(allPoints[allPoints.length - 1]?.recordedAt || asOf || "");
+  const points = Number.isFinite(rangeAnchor)
+    ? allPoints.filter((point) => {
+        const timestamp = Date.parse(point.recordedAt);
+        return timestamp >= rangeAnchor - rangeDays * 24 * 60 * 60 * 1000 && timestamp <= rangeAnchor;
+      })
+    : allPoints.slice(-30);
 
   const width = 320;
   const height = 140;
@@ -32,30 +42,53 @@ export default function StorePriceHistoryChart({
   const values = points.map((point) => Number(point.price));
   const minPrice = values.length ? Math.min(...values) : 0;
   const maxPrice = values.length ? Math.max(...values) : 0;
-  const range = Math.max(1, maxPrice - minPrice);
+  const rangeSize = Math.max(1, maxPrice - minPrice);
   const coordinates = points.map((point, index) => ({
     x: points.length === 1 ? (left + right) / 2 : left + (index * (right - left)) / (points.length - 1),
-    y: maxPrice === minPrice ? (top + bottom) / 2 : bottom - ((Number(point.price) - minPrice) / range) * (bottom - top),
+    y: maxPrice === minPrice ? (top + bottom) / 2 : bottom - ((Number(point.price) - minPrice) / rangeSize) * (bottom - top),
   }));
   const line = coordinates.map((point) => `${point.x},${point.y}`).join(" ");
   const activeIndex = hoveredIndex !== null && points[hoveredIndex] ? hoveredIndex : null;
   const activePoint = activeIndex !== null ? points[activeIndex] : null;
   const activeCoordinate = activeIndex !== null ? coordinates[activeIndex] : null;
+  const rangeLabel = range === "week" ? "هفتگی" : range === "month" ? "ماهانه" : "سالانه";
+  const hasAnyHistory = allPoints.length > 0;
 
   return (
     <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-base font-black text-slate-900">سابقهٔ واقعی قیمت</h2>
-        <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-black text-rose-600">آخرین ۳۰ ثبت واقعی</span>
+      <div className="mb-3 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-base font-black text-slate-900">سابقهٔ واقعی قیمت</h2>
+          <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-black text-rose-600">{rangeLabel}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 text-[11px] font-bold">
+          {([
+            ["week", "هفتگی"],
+            ["month", "ماهانه"],
+            ["year", "سالانه"],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={range === key}
+              onClick={() => { setRange(key); setHoveredIndex(null); }}
+              className={`rounded-lg px-2 py-2 transition ${range === key ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {points.length === 0 ? (
         <div className="grid min-h-36 place-items-center rounded-2xl bg-slate-50 px-4 text-center text-xs leading-6 text-slate-500">
-          هنوز تاریخچهٔ قیمت واقعی ثبت نشده است. پس از ثبت قیمت CSV یا به‌روزرسانی از مرجع معتبر، نخستین نقطه ثبت می‌شود.
+          {hasAnyHistory
+            ? `در بازهٔ ${rangeLabel} قیمت ثبت‌شده‌ای وجود ندارد؛ بازهٔ دیگری را انتخاب کنید.`
+            : "هنوز تاریخچهٔ قیمت واقعی ثبت نشده است. پس از ثبت قیمت CSV یا به‌روزرسانی از مرجع معتبر، نخستین نقطه ثبت می‌شود."}
         </div>
       ) : (
         <div className="relative" onMouseLeave={() => setHoveredIndex(null)}>
-          <svg viewBox={`0 0 ${width} ${height}`} className="h-36 w-full overflow-visible" role="img" aria-label="نمودار تاریخچه واقعی قیمت در ۳۰ روز اخیر">
+          <svg viewBox={`0 0 ${width} ${height}`} className="h-36 w-full overflow-visible" role="img" aria-label={`نمودار واقعی قیمت ${rangeLabel}`}>
             <path d={`M${left} ${bottom}H${right}`} stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round" />
             <path d={`M${left} ${(top + bottom) / 2}H${right}`} stroke="#eef2f7" strokeWidth="2" strokeLinecap="round" />
             <path d={`M${left} ${top}H${right}`} stroke="#eef2f7" strokeWidth="2" strokeLinecap="round" />

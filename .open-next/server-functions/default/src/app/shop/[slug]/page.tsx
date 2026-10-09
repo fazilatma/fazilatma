@@ -137,7 +137,7 @@ export default async function StoreProductPage({
             <aside dir="rtl" className="order-2 space-y-4 lg:order-1">
               <LaptopVisual product={product} />
               <ProductQuickSpecs product={product} />
-              <StorePriceHistoryChart history={product.priceHistory} />
+              <StorePriceHistoryChart history={product.priceHistory} asOf={product.priceUpdatedAt || product.createdAt} />
             </aside>
 
             <div dir="rtl" className="order-1 lg:order-2">
