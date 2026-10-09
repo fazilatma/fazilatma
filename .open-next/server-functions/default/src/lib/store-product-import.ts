@@ -744,22 +744,34 @@ function draftFromDigikalaRecord(
 }
 
 function digikalaRecordsFromJson(json: unknown): Record<string, unknown>[] {
-  const records = flattenJsonLd(json).filter((item: any) => {
-    if (!item || typeof item !== "object") return false;
-    const record = item as any;
-    return Boolean(
-      firstText(record.title_fa, record.title_en, record.title, record.name) &&
-        firstText(
-          record.default_variant?.price?.selling_price,
-          record.price?.selling_price,
-          record.price,
-        ),
+  const records: Record<string, unknown>[] = [];
+  const visited = new Set<object>();
+  const visit = (value: unknown, depth = 0) => {
+    if (!value || typeof value !== "object" || depth > 24 || visited.has(value)) return;
+    visited.add(value);
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, depth + 1);
+      return;
+    }
+
+    const record = value as Record<string, any>;
+    const title = firstText(record.title_fa, record.title_en, record.title, record.name, record.product_title);
+    const price = firstText(
+      record.default_variant?.price?.selling_price,
+      record.default_variant?.price?.rrp_price,
+      record.price?.selling_price,
+      record.price?.rrp_price,
+      record.price,
     );
-  });
+    if (title && price) records.push(record);
+    for (const nested of Object.values(record)) visit(nested, depth + 1);
+  };
+  visit(json);
+
   const seen = new Set<string>();
   const output: Record<string, unknown>[] = [];
-  for (const record of records as Record<string, unknown>[]) {
-    const key = firstText(record.id, record.product_id, record.title_fa, record.title);
+  for (const record of records) {
+    const key = firstText(record.id, record.product_id, record.title_fa, record.title, record.product_title);
     if (!key || seen.has(key)) continue;
     seen.add(key);
     output.push(record);
@@ -837,7 +849,11 @@ export async function scanStoreProductsFromUrl(
   const selectedCategories = options.categoryFilters || [];
   const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
 
-  if (isDigikalaSource && options.fullSite) {
+  const isDigikalaProductPage = /\/product\/dkp-/i.test(new URL(sourceUrl).pathname);
+  const shouldSearchDigikalaCategories =
+    isDigikalaSource && !isDigikalaProductPage && (options.fullSite || selectedCategories.length > 0);
+
+  if (shouldSearchDigikalaCategories) {
     try {
       const robot = await scanDigikalaRobot(sourceUrl, selectedCategories, limit, warnings);
       scannedUrls.push(...robot.scannedUrls);

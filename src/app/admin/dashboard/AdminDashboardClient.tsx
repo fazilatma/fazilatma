@@ -2171,8 +2171,8 @@ export default function AdminDashboardClient({
                         onChange={(e) => setProductImportScanMode(e.target.value === "page" ? "page" : "full-site")}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="full-site">کل سایت/سایت‌مپ و لینک‌های قابل کشف</option>
-                        <option value="page">فقط همین صفحه و لینک‌های محصول داخل آن</option>
+                        <option value="full-site">جستجوی کامل دسته/سایت‌مپ و لینک‌های قابل کشف (تا سقف ۵۰)</option>
+                        <option value="page">همین صفحه؛ دیجی‌کالا با دسته‌های انتخابی جستجو شود</option>
                       </select>
                     </label>
                     <label className="block text-sm font-bold text-gray-700 lg:col-span-2">
@@ -2193,7 +2193,7 @@ export default function AdminDashboardClient({
                         <div>
                           <b className="text-sm text-gray-900">انتخاب دسته کالا برای لینک فروشگاه، دسته‌بندی یا sitemap</b>
                           <p className="mt-1 text-xs leading-6 text-gray-500">
-                            این تیک‌ها مخصوص اسکن لینک/سایت‌مپ هم همین‌جا در دسترس هستند؛ اگر فقط «موبایل و گوشی» تیک داشته باشد، از لینک فروشگاه فقط محصولات موبایل وارد پیش‌نمایش و سایت می‌شوند.
+                            این تیک‌ها برای اسکن لینک/سایت‌مپ هم اعمال می‌شوند. اگر آدرس اصلی دیجی‌کالا را وارد کنید، محصولات از دسته‌های انتخابی جستجو می‌شوند؛ برای سایت‌های دیگر حالت «فقط همین صفحه» فقط همان صفحه را بررسی می‌کند.
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs font-black">
