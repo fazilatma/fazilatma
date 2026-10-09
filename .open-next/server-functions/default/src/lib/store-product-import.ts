@@ -811,25 +811,46 @@ async function scanDigikalaRobot(
   const categories = selectedCategories.length
     ? selectedCategories
     : (["laptop", "mobile", "tablet", "components", "accessories", "monitor", "gaming", "console"] as ProductImportCategoryKey[]);
+  const maxApiCalls = 3;
+  const activeCategories = categories.slice(0, maxApiCalls);
+  if (categories.length > activeCategories.length) {
+    warnings.push(`برای جلوگیری از سقف زیر‌درخواست‌های Cloudflare، در این نوبت حداکثر ${activeCategories.length} دسته از دیجی‌کالا جستجو می‌شود؛ برای بقیه دسته‌ها نوبت جداگانه اجرا کنید.`);
+  }
   const urls: Array<{ url: string; category: ProductImportCategoryKey }> = [];
+  const activeSources = activeCategories
+    .map((category) => ({ category, source: digikalaCategorySources[category] }))
+    .filter((item): item is { category: ProductImportCategoryKey; source: NonNullable<typeof item.source> } => Boolean(item.source));
 
-  for (const category of categories) {
-    const source = digikalaCategorySources[category];
-    if (!source) continue;
-    for (const slug of source.slugs.slice(0, 3)) {
-      for (let page = 1; page <= 3; page += 1) {
-        urls.push({ url: `https://api.digikala.com/v1/categories/${slug}/search/?page=${page}`, category });
-      }
+  // Start with one category endpoint per selected category, then spend the small
+  // request budget on alternate slugs and later pages to stay below Worker subrequest limits.
+  for (const { category, source } of activeSources) {
+    const slug = source.slugs[0];
+    if (slug) urls.push({ url: `https://api.digikala.com/v1/categories/${slug}/search/?page=1`, category });
+    else urls.push({ url: `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=1`, category });
+  }
+
+  for (const { category, source } of activeSources) {
+    for (const slug of source.slugs.slice(1)) {
+      if (urls.length >= maxApiCalls) break;
+      urls.push({ url: `https://api.digikala.com/v1/categories/${slug}/search/?page=1`, category });
     }
-    for (let page = 1; page <= 3; page += 1) {
-      urls.push({ url: `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=${page}`, category });
+  }
+
+  for (const { category, source } of activeSources) {
+    const primarySlug = source.slugs[0];
+    for (let page = 2; page <= 3 && urls.length < maxApiCalls; page += 1) {
+      if (primarySlug) {
+        urls.push({ url: `https://api.digikala.com/v1/categories/${primarySlug}/search/?page=${page}`, category });
+      } else {
+        urls.push({ url: `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=${page}`, category });
+      }
     }
   }
 
   const drafts: ImportedStoreProductDraft[] = [];
   const scannedUrls: string[] = [];
-  for (let cursor = 0; cursor < urls.length && drafts.length < limit; cursor += 4) {
-    const batch = urls.slice(cursor, cursor + 4);
+  for (let cursor = 0; cursor < urls.length && drafts.length < limit; cursor += 2) {
+    const batch = urls.slice(cursor, cursor + 2);
     const results = await Promise.allSettled(batch.map((item) => fetchDigikalaApi(item.url)));
     for (let index = 0; index < results.length; index += 1) {
       const item = batch[index];
