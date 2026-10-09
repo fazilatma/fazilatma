@@ -25,7 +25,7 @@ export default function StorePriceHistoryChart({
     .slice()
     .sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)), [history]);
   const rangeDays = range === "week" ? 7 : range === "month" ? 30 : 365;
-  const rangeAnchor = Date.parse(allPoints[allPoints.length - 1]?.recordedAt || asOf || "");
+  const rangeAnchor = Date.parse(asOf || allPoints[allPoints.length - 1]?.recordedAt || "");
   const points = Number.isFinite(rangeAnchor)
     ? allPoints.filter((point) => {
         const timestamp = Date.parse(point.recordedAt);

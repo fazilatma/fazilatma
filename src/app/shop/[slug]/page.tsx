@@ -94,6 +94,7 @@ export default async function StoreProductPage({
   const product = await getJsonStoreProductBySlug(slug);
   if (!product) notFound();
   const allProducts = await getJsonStoreProducts();
+  const priceHistoryAsOf = new Date().toISOString();
   const related = allProducts
     .filter((item) => item.id !== product.id)
     .map((item) => ({ product: item, score: relatedScore(product, item) }))
@@ -137,7 +138,7 @@ export default async function StoreProductPage({
             <aside dir="rtl" className="order-2 space-y-4 lg:order-1">
               <LaptopVisual product={product} />
               <ProductQuickSpecs product={product} />
-              <StorePriceHistoryChart history={product.priceHistory} asOf={product.priceUpdatedAt || product.createdAt} />
+              <StorePriceHistoryChart history={product.priceHistory} asOf={priceHistoryAsOf} />
             </aside>
 
             <div dir="rtl" className="order-1 lg:order-2">
