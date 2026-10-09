@@ -377,6 +377,6 @@ export function applyRefreshedPrice(
     priceUpdatedAt: new Date().toISOString().slice(0, 10),
     marketReferenceNote: `به‌روزرسانی قیمت از ${candidate.source}: ${candidate.title}`,
     externalSourceUrl: candidate.url || product.externalSourceUrl,
-    badges: Array.from(new Set([...(product.badges || []), "قیمت به‌روز"])).slice(0, 6),
+    badges: Array.from(new Set([...(product.badges || []).filter((badge) => badge !== "قیمت ثبت‌شده"), "قیمت به‌روز"])).slice(0, 6),
   };
 }

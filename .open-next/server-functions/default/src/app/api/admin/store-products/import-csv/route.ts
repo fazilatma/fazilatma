@@ -125,7 +125,11 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
     originalPrice: importedIsNewer ? imported.originalPrice : existing.originalPrice,
     stock: Math.max(existing.stock || 0, imported.stock || 0),
     specs: { ...existing.specs, ...imported.specs },
-    badges: Array.from(new Set([...(existing.badges || []), ...(imported.badges || []), "قیمت به‌روز"])).slice(0, 6),
+    badges: Array.from(new Set([
+      ...(existing.badges || []).filter((badge) => badge !== "قیمت به‌روز"),
+      ...(imported.badges || []).filter((badge) => badge !== "قیمت به‌روز"),
+      "قیمت ثبت‌شده",
+    ])).slice(0, 6),
     shippingNote: imported.shippingNote || existing.shippingNote,
     priceUpdatedAt: importedIsNewer ? imported.priceUpdatedAt : existing.priceUpdatedAt,
     marketReferenceNote: importedIsNewer ? imported.marketReferenceNote : existing.marketReferenceNote,

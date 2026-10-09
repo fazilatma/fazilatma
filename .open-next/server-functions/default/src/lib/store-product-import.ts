@@ -927,7 +927,7 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
     stock: Math.max(0, Math.floor(Number(draft.stock || 0))),
     rating: 4.5,
     reviewsCount: 0,
-    badges: ["وارداتی", "قیمت به‌روز"],
+    badges: ["وارداتی", "قیمت ثبت‌شده"],
     specs,
     warranty: "۷ روز مهلت تست",
     shippingNote: "قیمت و مشخصات واردشده از لینک فروشگاه",
