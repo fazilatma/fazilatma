@@ -300,7 +300,7 @@ function PriceFilter({ params }: { params: LaptopFilterParams }) {
   ];
   const hasCustomPriceRange = Boolean(getParam(params, "minPrice") || getParam(params, "maxPrice"));
   return (
-    <details className="group border-b border-slate-100 py-3" open={hasCustomPriceRange}>
+    <details className="group border-b border-slate-100 py-3" open>
       <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-black text-slate-900 [&::-webkit-details-marker]:hidden">
         فیلتر براساس قیمت
         <span className="text-lg text-slate-500 transition group-open:rotate-180">⌄</span>
