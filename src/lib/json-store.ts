@@ -15,6 +15,7 @@ import {
 } from "@/lib/seller-rating";
 import { getKvNamespace, kvPutText } from "@/lib/kv-storage";
 import { getExternalMarketSeriesForProduct } from "@/lib/external-market-data";
+import { technicalSpecsFromText } from "@/lib/store-product-specs";
 import {
   estimateFairUsedProductPrice,
   normalizeProductValuationFactors,
@@ -1166,6 +1167,20 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       .replace(/[^a-z0-9-]+/g, "-")
       .replace(/^-+|-+$/g, "");
     if (!title || !slug) continue;
+    const storedSpecs =
+      product.specs &&
+      typeof product.specs === "object" &&
+      !Array.isArray(product.specs)
+        ? Object.fromEntries(
+            Object.entries(product.specs as Record<string, unknown>).map(
+              ([key, val]) => [key, String(val)],
+            ),
+          )
+        : {};
+    const inferredSpecs = technicalSpecsFromText(
+      `${title} ${String(product.summary || "")} ${String(product.description || "")}`,
+    );
+    const specs = { ...inferredSpecs, ...storedSpecs };
     const normalizedProduct: JsonStoreProduct = {
       id: String(product.id || slug),
       slug,
@@ -1184,16 +1199,7 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       badges: Array.isArray(product.badges)
         ? product.badges.map(String).slice(0, 6)
         : [],
-      specs:
-        product.specs &&
-        typeof product.specs === "object" &&
-        !Array.isArray(product.specs)
-          ? Object.fromEntries(
-              Object.entries(product.specs as Record<string, unknown>).map(
-                ([key, val]) => [key, String(val)],
-              ),
-            )
-          : {},
+      specs,
       warranty: String(product.warranty || "۷ روز مهلت تست").trim(),
       shippingNote: String(product.shippingNote || "ارسال قابل پیگیری").trim(),
       priceUpdatedAt: product.priceUpdatedAt
