@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
+import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import { getJsonStoreProducts, type JsonStoreProduct } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
@@ -412,6 +413,11 @@ export default async function ShopPage({
   const products = await getJsonStoreProducts();
   const filteredProducts = products.filter((product) => matchesFilter(product, params));
   const brands = Array.from(new Set(products.map((product) => product.brand)));
+  const firstImageByBrand = new Map<string, JsonStoreProduct>();
+  for (const product of products) {
+    const brand = product.brand.trim().toLowerCase();
+    if (product.imageUrl && brand && !firstImageByBrand.has(brand)) firstImageByBrand.set(brand, product);
+  }
   const currentShopPath = canonicalShopPath(params);
   const productListStructuredData = itemListJsonLd({
     name: shopSeoSubject(params),
@@ -445,26 +451,40 @@ export default async function ShopPage({
 
       <section className="mx-auto max-w-7xl px-4 pt-7 sm:px-6 lg:px-8">
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
-          {laptopCategoryItems.map((item) => (
-            <Link
-              key={item.title}
-              href={item.href}
-              className="group min-w-[126px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50"
-            >
-              <div className="mx-auto mb-3 w-20">
-                <div className="mx-auto h-10 rounded-t-xl border-[6px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
-                <div className="mx-auto h-2 rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
-              </div>
-              {item.badge && (
-                <span className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-rose-600 shadow-sm">
-                  {item.badge}
+          {laptopCategoryItems.map((item) => {
+            const brandProduct = item.brand
+              ? firstImageByBrand.get(item.brand.toLowerCase())
+              : undefined;
+            return (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="group min-w-[126px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50"
+              >
+                <div className="relative mx-auto mb-3 h-12 w-20 overflow-hidden rounded-xl bg-white">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className="h-8 w-16 rounded-t-lg border-[5px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
+                    <div className="h-1.5 w-[76px] rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
+                  </div>
+                  {brandProduct?.imageUrl && (
+                    <StoreProductRemoteImage
+                      src={brandProduct.imageUrl}
+                      alt={`لپ‌تاپ ${item.brand}؛ ${brandProduct.title}`}
+                      className="absolute inset-0 z-10 h-full w-full bg-white object-contain p-0.5"
+                    />
+                  )}
+                </div>
+                {item.badge && (
+                  <span className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-rose-600 shadow-sm">
+                    {item.badge}
+                  </span>
+                )}
+                <span className="block text-xs font-black text-slate-700 group-hover:text-rose-600">
+                  {item.title}
                 </span>
-              )}
-              <span className="block text-xs font-black text-slate-700 group-hover:text-rose-600">
-                {item.title}
-              </span>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </section>
 

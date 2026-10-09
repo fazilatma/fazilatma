@@ -4,6 +4,7 @@ export type LaptopCategoryItem = {
   title: string;
   href: string;
   badge?: string;
+  brand?: string;
 };
 
 export type LaptopGuideItem = {
@@ -41,11 +42,11 @@ export type LaptopCollectionItem = {
 };
 
 export const laptopCategoryItems: LaptopCategoryItem[] = [
-  { title: "لپ‌تاپ لنوو", href: "/shop?brand=Lenovo", badge: "Lenovo" },
-  { title: "لپ‌تاپ اچ‌پی", href: "/shop?brand=HP", badge: "HP" },
-  { title: "لپ‌تاپ دل", href: "/shop?brand=Dell", badge: "Dell" },
-  { title: "لپ‌تاپ ایسوس", href: "/shop?brand=Asus", badge: "Asus" },
-  { title: "مک‌بوک اپل", href: "/shop?brand=Apple", badge: "Apple" },
+  { title: "لپ‌تاپ لنوو", href: "/shop?brand=Lenovo", badge: "Lenovo", brand: "Lenovo" },
+  { title: "لپ‌تاپ اچ‌پی", href: "/shop?brand=HP", badge: "HP", brand: "HP" },
+  { title: "لپ‌تاپ دل", href: "/shop?brand=Dell", badge: "Dell", brand: "Dell" },
+  { title: "لپ‌تاپ ایسوس", href: "/shop?brand=Asus", badge: "Asus", brand: "Asus" },
+  { title: "مک‌بوک اپل", href: "/shop?brand=Apple", badge: "Apple", brand: "Apple" },
   { title: "لپ‌تاپ استوک", href: "/shop?condition=stock", badge: "Stock" },
   { title: "لپ‌تاپ کارکرده تمیز", href: "/shop?condition=used", badge: "Clean" },
   { title: "لپ‌تاپ سبک", href: "/shop?use=student&display=14", badge: "Light" },

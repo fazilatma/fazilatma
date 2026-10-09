@@ -298,27 +298,78 @@ function PriceFilter({ params }: { params: LaptopFilterParams }) {
     { label: "۴۵ تا ۶۰ میلیون", minPrice: "45000000", maxPrice: "60000000" },
     { label: "۶۰ میلیون به بالا", minPrice: "60000000" },
   ];
+  const hasCustomPriceRange = Boolean(getParam(params, "minPrice") || getParam(params, "maxPrice"));
   return (
-    <details className="group border-b border-slate-100 py-3">
+    <details className="group border-b border-slate-100 py-3" open={hasCustomPriceRange}>
       <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-black text-slate-900 [&::-webkit-details-marker]:hidden">
         فیلتر براساس قیمت
         <span className="text-lg text-slate-500 transition group-open:rotate-180">⌄</span>
       </summary>
-      <div className="mt-3 grid gap-2">
-        {options.map((option) => {
-          const active =
-            getParam(params, "minPrice") === (option.minPrice || "") &&
-            getParam(params, "maxPrice") === (option.maxPrice || "");
-          return (
-            <Link
-              key={option.label}
-              href={priceHref(params, option)}
-              className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? "border-rose-500 bg-rose-50 text-rose-700" : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50"}`}
-            >
-              {option.label}
-            </Link>
-          );
-        })}
+      <div className="mt-3 space-y-3">
+        <form action="/shop" method="get" className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          {Object.entries(params).flatMap(([key, rawValue]) => {
+            if (key === "minPrice" || key === "maxPrice") return [];
+            const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+            return values.map((value, index) => value
+              ? <input key={`${key}-${index}`} type="hidden" name={key} value={value} />
+              : null);
+          })}
+          <p className="mb-2 text-xs font-black text-slate-700">بازه دلخواه (تومان)</p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-[11px] font-bold text-slate-500">
+              از
+              <input
+                type="number"
+                name="minPrice"
+                min="0"
+                step="100000"
+                inputMode="numeric"
+                defaultValue={getParam(params, "minPrice")}
+                placeholder="حداقل"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs text-slate-800 outline-none focus:border-rose-400"
+              />
+            </label>
+            <label className="text-[11px] font-bold text-slate-500">
+              تا
+              <input
+                type="number"
+                name="maxPrice"
+                min="0"
+                step="100000"
+                inputMode="numeric"
+                defaultValue={getParam(params, "maxPrice")}
+                placeholder="حداکثر"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs text-slate-800 outline-none focus:border-rose-400"
+              />
+            </label>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <button type="submit" className="flex-1 rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white hover:bg-rose-700">
+              اعمال بازه
+            </button>
+            {hasCustomPriceRange && (
+              <Link href={priceHref(params, {})} className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
+                پاک‌کردن
+              </Link>
+            )}
+          </div>
+        </form>
+        <div className="grid gap-2">
+          {options.map((option) => {
+            const active =
+              getParam(params, "minPrice") === (option.minPrice || "") &&
+              getParam(params, "maxPrice") === (option.maxPrice || "");
+            return (
+              <Link
+                key={option.label}
+                href={priceHref(params, option)}
+                className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? "border-rose-500 bg-rose-50 text-rose-700" : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50"}`}
+              >
+                {option.label}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </details>
   );
