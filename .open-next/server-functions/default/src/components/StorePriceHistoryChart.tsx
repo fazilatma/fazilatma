@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { StorePriceHistoryPoint } from "@/lib/store-price-history";
 
 const money = (value: number) => `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
@@ -14,12 +15,19 @@ function formatDate(value: string) {
 export default function StorePriceHistoryChart({
   history,
   asOf,
+  productId,
+  isAdmin = false,
 }: {
   history?: StorePriceHistoryPoint[];
   asOf?: string;
+  productId?: string;
+  isAdmin?: boolean;
 }) {
+  const router = useRouter();
   const [range, setRange] = useState<"week" | "month" | "year">("month");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [refreshingPrice, setRefreshingPrice] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState("");
   const allPoints = useMemo(() => (history || [])
     .filter((point) => Number.isFinite(Date.parse(point.recordedAt)) && Number(point.price) > 0)
     .slice()
@@ -54,6 +62,39 @@ export default function StorePriceHistoryChart({
   const rangeLabel = range === "week" ? "هفتگی" : range === "month" ? "ماهانه" : "سالانه";
   const hasAnyHistory = allPoints.length > 0;
 
+  const refreshPriceNow = async () => {
+    if (!productId) return;
+    setRefreshingPrice(true);
+    setRefreshMessage("");
+    try {
+      const response = await fetch("/api/admin/store-products/refresh-prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productIds: [productId],
+          references: ["digikala", "torob"],
+          maxProducts: 1,
+          onlyActive: true,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "به‌روزرسانی قیمت از مرجع ناموفق بود.");
+      }
+      if (Number(result.updated || 0) + Number(result.unchanged || 0) === 0) {
+        const itemMessage = result.results?.[0]?.message;
+        setRefreshMessage(itemMessage || "قیمت قابل‌اعتماد پیدا نشد؛ نقطهٔ جدیدی به تاریخچه اضافه نشد.");
+      } else {
+        setRefreshMessage("قیمت از مرجع معتبر بررسی و تاریخچه ثبت شد.");
+        router.refresh();
+      }
+    } catch (error) {
+      setRefreshMessage(error instanceof Error ? error.message : "به‌روزرسانی قیمت ناموفق بود.");
+    } finally {
+      setRefreshingPrice(false);
+    }
+  };
+
   return (
     <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-col gap-3">
@@ -78,6 +119,19 @@ export default function StorePriceHistoryChart({
             </button>
           ))}
         </div>
+        {isAdmin && productId && (
+          <div>
+            <button
+              type="button"
+              disabled={refreshingPrice}
+              onClick={refreshPriceNow}
+              className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-60"
+            >
+              {refreshingPrice ? "در حال بررسی مرجع قیمت..." : "بررسی قیمت معتبر و ثبت نقطهٔ جدید"}
+            </button>
+            {refreshMessage && <p className="mt-2 text-center text-[11px] leading-5 text-slate-500">{refreshMessage}</p>}
+          </div>
+        )}
       </div>
 
       {points.length === 0 ? (

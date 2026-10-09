@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
 import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
@@ -93,6 +94,8 @@ export default async function StoreProductPage({
   const { slug } = await params;
   const product = await getJsonStoreProductBySlug(slug);
   if (!product) notFound();
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
   const allProducts = await getJsonStoreProducts();
   const priceHistoryAsOf = new Date().toISOString();
   const related = allProducts
@@ -138,7 +141,7 @@ export default async function StoreProductPage({
             <aside dir="rtl" className="order-2 space-y-4 lg:order-1">
               <LaptopVisual product={product} />
               <ProductQuickSpecs product={product} />
-              <StorePriceHistoryChart history={product.priceHistory} asOf={priceHistoryAsOf} />
+              <StorePriceHistoryChart history={product.priceHistory} asOf={priceHistoryAsOf} productId={product.id} isAdmin={isAdmin} />
             </aside>
 
             <div dir="rtl" className="order-1 lg:order-2">

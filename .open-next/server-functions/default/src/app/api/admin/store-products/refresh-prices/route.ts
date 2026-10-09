@@ -18,6 +18,7 @@ type Body = {
   maxProducts?: number;
   priceMultiplier?: number;
   onlyActive?: boolean;
+  productIds?: string[];
 };
 
 function normalizeMultiplier(value: unknown) {
@@ -55,11 +56,19 @@ export async function POST(request: Request) {
     const requestedMaxProducts = Math.max(1, Number(body.maxProducts || 20));
     const maxProducts = Math.max(1, Math.min(20, requestedMaxProducts));
     const onlyActive = body.onlyActive !== false;
+    const productIdFilter = Array.isArray(body.productIds) ? new Set(body.productIds.map(String)) : null;
     const data = await getOptiBidData();
-    const targetProducts = data.storeProducts
+    const matchingProducts = data.storeProducts
       .map((product, index) => ({ product, index }))
       .filter(({ product }) => (onlyActive ? product.isActive !== false : true))
-      .slice(0, maxProducts);
+      .filter(({ product }) => !productIdFilter || productIdFilter.has(product.id));
+    const targetProducts = matchingProducts.slice(0, maxProducts);
+    if (productIdFilter && targetProducts.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "محصول انتخاب‌شده در فروشگاه فعال نیست یا پیدا نشد." },
+        { status: 404 },
+      );
+    }
 
     let updated = 0;
     let unchanged = 0;
