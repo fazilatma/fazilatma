@@ -390,7 +390,6 @@ function parseWideProductRows(rows: string[][], sourceLabel: string, imageIndex 
       const rawPrice = chosenPrice?.raw || "";
       const specs: Record<string, string> = { منبع: sourceHost };
       if (rawPrice) specs["قیمت خام CSV"] = rawPrice.slice(0, 80);
-      specs["لینک منبع"] = productUrl;
       specs["ردیف CSV"] = String(rowIndex + 2);
 
       products.push({
@@ -474,7 +473,6 @@ export function parseEasyScraperCsv(
     const isOut = /ناموجود|out|unavailable|اتمام/.test(stockText);
     const specs: Record<string, string> = { منبع: sourceHost };
     if (price >= 0) specs["قیمت خام CSV"] = cleanCell(row[price]).slice(0, 80);
-    if (productUrl) specs["لینک منبع"] = productUrl;
 
     products.push({
       title: productTitle,

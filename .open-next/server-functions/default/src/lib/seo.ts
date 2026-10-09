@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { JsonStoreProduct } from "@/lib/json-store";
+import { publicStoreProductSpecs } from "@/lib/store-product-public";
 
 export const siteUrl = (process.env.NEXT_PUBLIC_CANONICAL_URL || "https://optibid.ir").replace(/\/$/, "");
 export const siteName = "OptiBid";
@@ -192,7 +193,7 @@ export function productJsonLd(product: JsonStoreProduct) {
           },
         }
       : {}),
-    additionalProperty: Object.entries(product.specs || {}).map(([name, value]) => ({
+    additionalProperty: publicStoreProductSpecs(product.specs || {}).map(([name, value]) => ({
       "@type": "PropertyValue",
       name,
       value,

@@ -2,6 +2,7 @@ import Link from "next/link";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import type { JsonStoreProduct } from "@/lib/json-store";
+import { publicStoreProductSpecs } from "@/lib/store-product-public";
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
@@ -45,7 +46,7 @@ export function LaptopVisual({ product, compact = false }: { product: JsonStoreP
 
 export default function StoreProductCard({ product }: { product: JsonStoreProduct }) {
   const discount = discountPercent(product);
-  const keySpecs = Object.entries(product.specs || {}).slice(0, 3);
+  const keySpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 3);
 
   return (
     <article className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:border-rose-200 hover:shadow-xl">

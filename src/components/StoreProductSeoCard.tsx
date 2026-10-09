@@ -1,6 +1,7 @@
 import Link from "next/link";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import type { JsonStoreProduct } from "@/lib/json-store";
+import { publicStoreProductSpecs } from "@/lib/store-product-public";
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
@@ -51,7 +52,7 @@ export default function StoreProductSeoCard({
   sectionId?: string;
 }) {
   const discount = discountPercent(product);
-  const keySpecs = Object.entries(product.specs || {}).slice(0, 3);
+  const keySpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 3);
   const productHref = `/shop/${product.slug}${sectionId ? `#${sectionId}` : ""}`;
 
   return (

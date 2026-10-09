@@ -9,6 +9,7 @@ import {
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
+import { publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
   breadcrumbJsonLd,
   buildSeoMetadata,
@@ -77,7 +78,7 @@ export async function generateMetadata({
       product.brand,
       product.category,
       ...product.badges,
-      ...Object.values(product.specs || {}).slice(0, 4),
+      ...publicStoreProductSpecs(product.specs || {}).map(([, value]) => value).slice(0, 4),
       ...storeSeoKeywords,
     ],
   });
@@ -200,7 +201,7 @@ export default async function StoreProductPage({
           <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">مشخصات فنی</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {Object.entries(product.specs).map(([key, value]) => (
+              {publicStoreProductSpecs(product.specs).map(([key, value]) => (
                 <div key={key} className="rounded-2xl bg-slate-50 p-4 text-sm">
                   <span className="text-slate-500">{key}</span>
                   <b className="mt-1 block text-slate-900">{value}</b>
@@ -301,7 +302,7 @@ function ProductCategoryStrip() {
 }
 
 function ProductQuickSpecs({ product }: { product: JsonStoreProduct }) {
-  const specs = Object.entries(product.specs || {}).slice(0, 6);
+  const specs = publicStoreProductSpecs(product.specs || {}).slice(0, 6);
   return (
     <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">

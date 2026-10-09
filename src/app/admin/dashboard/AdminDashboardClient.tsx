@@ -91,6 +91,16 @@ function normalizedImportPriceMultiplier(value: unknown) {
   return Math.max(0.1, Math.min(10, number));
 }
 
+function productImportSourceLabel(product: any) {
+  const sourceHost = String(product.sourceHost || "").trim().replace(/^www\./i, "");
+  if (sourceHost) return sourceHost;
+  try {
+    return new URL(String(product.externalSourceUrl || "")).hostname.replace(/^www\./i, "") || "—";
+  } catch {
+    return String(product.externalSourceUrl || "").startsWith("easy-scraper:") ? "CSV" : "—";
+  }
+}
+
 function applyImportPriceMultiplierForPreview(draft: ImportedStoreProductDraft, multiplier: number) {
   if (multiplier === 1) return draft;
   const roundToman = (value: number) => Math.max(0, Math.round(Number(value || 0) / 10_000) * 10_000);
@@ -2506,7 +2516,7 @@ export default function AdminDashboardClient({
                                       : "—"}
                                 </td>
                                 <td className="max-w-[220px] truncate px-4 py-3 text-left text-xs text-blue-600" dir="ltr">
-                                  {product.externalSourceUrl}
+                                  {productImportSourceLabel(product)}
                                 </td>
                               </tr>
                               );
