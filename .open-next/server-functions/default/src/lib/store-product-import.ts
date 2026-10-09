@@ -1,4 +1,5 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
+import { appendStorePriceHistory } from "@/lib/store-price-history";
 
 export type ImportedStoreProductDraft = {
   title: string;
@@ -977,6 +978,12 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
     description: draft.description || draft.summary || draft.title,
     price: draft.price,
     originalPrice: draft.originalPrice && draft.originalPrice > draft.price ? draft.originalPrice : undefined,
+    priceHistory: appendStorePriceHistory([], {
+      recordedAt: now,
+      price: draft.price,
+      source: draft.sourceHost || "CSV",
+      sourceUrl: draft.externalSourceUrl,
+    }),
     imageUrl: draft.imageUrl,
     stock: Math.max(0, Math.floor(Number(draft.stock || 0))),
     rating: 4.5,

@@ -1,4 +1,5 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
+import { appendStorePriceHistory } from "@/lib/store-price-history";
 
 export type PriceReferenceKey = "torob" | "digikala" | "instagram" | "telegram" | "google";
 
@@ -370,11 +371,18 @@ export function applyRefreshedPrice(
   const price = roundToman(candidate.price * Math.max(0.1, Math.min(10, multiplier || 1)));
   const previousPrice = Number(product.price || 0);
   const originalPrice = Math.max(Number(product.originalPrice || 0), previousPrice, price);
+  const checkedAt = new Date().toISOString();
   return {
     ...product,
     price,
     originalPrice: originalPrice > price ? originalPrice : product.originalPrice,
-    priceUpdatedAt: new Date().toISOString().slice(0, 10),
+    priceUpdatedAt: checkedAt.slice(0, 10),
+    priceHistory: appendStorePriceHistory(product.priceHistory, {
+      recordedAt: checkedAt,
+      price,
+      source: candidate.source,
+      sourceUrl: candidate.url,
+    }),
     marketReferenceNote: `به‌روزرسانی قیمت از ${candidate.source}: ${candidate.title}`,
     externalSourceUrl: candidate.url || product.externalSourceUrl,
     badges: Array.from(new Set([...(product.badges || []).filter((badge) => badge !== "قیمت ثبت‌شده"), "قیمت به‌روز"])).slice(0, 6),

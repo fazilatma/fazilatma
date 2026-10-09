@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { mergeStorePriceHistory } from "@/lib/store-price-history";
 import {
   getOptiBidData,
   writeOptiBidData,
@@ -114,6 +115,7 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
       : existing.marketReferenceNote,
     externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
     imageUrl: imported.imageUrl || existing.imageUrl,
+    priceHistory: mergeStorePriceHistory(existing.priceHistory, imported.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;
 }

@@ -15,7 +15,6 @@ import {
 } from "@/lib/seller-rating";
 import { getKvNamespace, kvPutText } from "@/lib/kv-storage";
 import { getExternalMarketSeriesForProduct } from "@/lib/external-market-data";
-import { technicalSpecsFromText } from "@/lib/store-product-specs";
 import {
   estimateFairUsedProductPrice,
   normalizeProductValuationFactors,
@@ -31,6 +30,7 @@ import {
   normalizeCatalogCategories,
   type CatalogCategory,
 } from "@/lib/catalog-categories";
+import { appendStorePriceHistory, normalizeStorePriceHistory, type StorePriceHistoryPoint } from "@/lib/store-price-history";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -390,6 +390,7 @@ export type JsonStoreProduct = {
   description: string;
   price: number;
   originalPrice?: number;
+  priceHistory?: StorePriceHistoryPoint[];
   imageUrl?: string;
   stock: number;
   rating: number;
@@ -1167,20 +1168,6 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       .replace(/[^a-z0-9-]+/g, "-")
       .replace(/^-+|-+$/g, "");
     if (!title || !slug) continue;
-    const storedSpecs =
-      product.specs &&
-      typeof product.specs === "object" &&
-      !Array.isArray(product.specs)
-        ? Object.fromEntries(
-            Object.entries(product.specs as Record<string, unknown>).map(
-              ([key, val]) => [key, String(val)],
-            ),
-          )
-        : {};
-    const inferredSpecs = technicalSpecsFromText(
-      `${title} ${String(product.summary || "")} ${String(product.description || "")}`,
-    );
-    const specs = { ...inferredSpecs, ...storedSpecs };
     const normalizedProduct: JsonStoreProduct = {
       id: String(product.id || slug),
       slug,
@@ -1199,7 +1186,16 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       badges: Array.isArray(product.badges)
         ? product.badges.map(String).slice(0, 6)
         : [],
-      specs,
+      specs:
+        product.specs &&
+        typeof product.specs === "object" &&
+        !Array.isArray(product.specs)
+          ? Object.fromEntries(
+              Object.entries(product.specs as Record<string, unknown>).map(
+                ([key, val]) => [key, String(val)],
+              ),
+            )
+          : {},
       warranty: String(product.warranty || "۷ روز مهلت تست").trim(),
       shippingNote: String(product.shippingNote || "ارسال قابل پیگیری").trim(),
       priceUpdatedAt: product.priceUpdatedAt
@@ -1212,10 +1208,31 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
         ? String(product.externalSourceUrl).trim()
         : undefined,
       imageUrl: normalizeRemoteProductImageUrl(product.imageUrl),
+      priceHistory: normalizeStorePriceHistory(product.priceHistory),
       isActive: product.isActive !== false,
       isFeatured: Boolean(product.isFeatured),
       createdAt: String(product.createdAt || new Date().toISOString()),
     };
+    if (!normalizedProduct.priceHistory?.length && normalizedProduct.externalSourceUrl && normalizedProduct.price > 0) {
+      const recordedAt = normalizedProduct.priceUpdatedAt || normalizedProduct.createdAt;
+      const sourceFromSpecs = String(normalizedProduct.specs.منبع || "").trim();
+      let source = sourceFromSpecs || "CSV";
+      try {
+        const sourceUrl = new URL(normalizedProduct.externalSourceUrl);
+        if (sourceUrl.protocol === "http:" || sourceUrl.protocol === "https:") source = sourceUrl.hostname.replace(/^www\\./i, "");
+      } catch {
+        // Keep the import label for non-web source URLs.
+      }
+      const historyDate = new Date(recordedAt);
+      if (Number.isFinite(historyDate.getTime())) {
+        normalizedProduct.priceHistory = appendStorePriceHistory([], {
+          recordedAt: historyDate.toISOString(),
+          price: normalizedProduct.price,
+          source,
+          sourceUrl: normalizedProduct.externalSourceUrl,
+        });
+      }
+    }
     products.push(applyLatestStoreMarketPrice(normalizedProduct));
   }
   return products;

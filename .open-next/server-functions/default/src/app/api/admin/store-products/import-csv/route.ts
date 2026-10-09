@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { decodeCsvBytes } from "@/lib/store-product-csv-encoding";
 import { getOptiBidData, writeOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
+import { mergeStorePriceHistory } from "@/lib/store-price-history";
 import {
   importedDraftToStoreProduct,
   normalizeProductImportCategories,
@@ -135,6 +136,7 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
     marketReferenceNote: importedIsNewer ? imported.marketReferenceNote : existing.marketReferenceNote,
     externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
     imageUrl: imported.imageUrl || existing.imageUrl,
+    priceHistory: mergeStorePriceHistory(existing.priceHistory, imported.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;
 }

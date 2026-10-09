@@ -63,6 +63,7 @@ export async function POST(request: Request) {
 
     let updated = 0;
     let unchanged = 0;
+    let historyRecorded = 0;
     let notFound = 0;
     let failed = 0;
     const results: Array<Record<string, unknown>> = [];
@@ -90,6 +91,8 @@ export async function POST(request: Request) {
         const changeRatio = oldPrice ? Math.abs(newPrice - oldPrice) / oldPrice : 1;
 
         if (changeRatio < 0.005) {
+          data.storeProducts[index] = nextProduct;
+          historyRecorded += 1;
           unchanged += 1;
           results.push({
             ...publicResult(product, "unchanged", "قیمت تغییر معناداری نداشت."),
@@ -122,7 +125,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (updated > 0) await writeOptiBidData(data);
+    if (updated > 0 || historyRecorded > 0) await writeOptiBidData(data);
 
     return NextResponse.json({
       success: true,

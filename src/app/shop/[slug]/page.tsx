@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
+import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import {
   getJsonStoreProductBySlug,
   getJsonStoreProducts,
@@ -136,7 +137,7 @@ export default async function StoreProductPage({
             <aside dir="rtl" className="order-2 space-y-4 lg:order-1">
               <LaptopVisual product={product} />
               <ProductQuickSpecs product={product} />
-              <PriceTrendCard product={product} />
+              <StorePriceHistoryChart history={product.priceHistory} />
             </aside>
 
             <div dir="rtl" className="order-1 lg:order-2">
@@ -317,69 +318,3 @@ function ProductQuickSpecs({ product }: { product: JsonStoreProduct }) {
     </div>
   );
 }
-
-function priceTrendValues(product: JsonStoreProduct) {
-  const current = Number(product.price || 0);
-  const original = Number(product.originalPrice || 0) || Math.round(current * 1.08);
-  return [
-    Math.round(original * 1.02),
-    original,
-    Math.round((original + current) / 2),
-    Math.round(current * 1.03),
-    current,
-  ];
-}
-
-function PriceTrendCard({ product }: { product: JsonStoreProduct }) {
-  const values = priceTrendValues(product);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(1, max - min);
-  const points = values
-    .map((value, index) => {
-      const x = 18 + index * 71;
-      const y = 102 - ((value - min) / range) * 72;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-black text-slate-900">منحنی قیمت</h2>
-        <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-black text-rose-600">
-          ۳۰ روز اخیر
-        </span>
-      </div>
-      <svg viewBox="0 0 320 120" className="h-36 w-full" role="img" aria-label="منحنی قیمت کالا">
-        <defs>
-          <linearGradient id="priceLine" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="#00a8e8" />
-            <stop offset="100%" stopColor="#f43f5e" />
-          </linearGradient>
-        </defs>
-        <path d="M18 104H304" stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round" />
-        <path d="M18 68H304" stroke="#eef2f7" strokeWidth="2" strokeLinecap="round" />
-        <path d="M18 32H304" stroke="#eef2f7" strokeWidth="2" strokeLinecap="round" />
-        <polyline points={points} fill="none" stroke="url(#priceLine)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-        {values.map((value, index) => {
-          const x = 18 + index * 71;
-          const y = 102 - ((value - min) / range) * 72;
-          return <circle key={index} cx={x} cy={y} r="5" fill="#003b5c" />;
-        })}
-      </svg>
-      <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
-        <div className="rounded-2xl bg-slate-50 p-3">
-          کمترین: <b className="text-emerald-700">{money(min)}</b>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          فعلی: <b className="text-rose-600">{money(product.price)}</b>
-        </div>
-      </div>
-      <p className="mt-3 text-[11px] leading-5 text-slate-400">
-        این نمودار بر اساس قیمت فعلی و قیمت قبلی ثبت‌شده در فروشگاه نمایش داده شده و برای مقایسه سریع روند قیمت است.
-      </p>
-    </div>
-  );
-}
-
