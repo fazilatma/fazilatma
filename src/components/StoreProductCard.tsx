@@ -2,7 +2,7 @@ import Link from "next/link";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import type { JsonStoreProduct } from "@/lib/json-store";
-import { publicStoreProductSpecs } from "@/lib/store-product-public";
+import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
@@ -54,7 +54,7 @@ export default function StoreProductCard({ product }: { product: JsonStoreProduc
         <LaptopVisual product={product} compact />
         <div className="px-3 pt-3">
           <div className="mb-2 flex flex-wrap gap-1">
-            {product.badges.slice(0, 2).map((badge) => (
+            {publicStoreProductBadges(product.badges).slice(0, 2).map((badge) => (
               <span key={badge} className="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
                 {badge}
               </span>

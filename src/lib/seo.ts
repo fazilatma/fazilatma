@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { JsonStoreProduct } from "@/lib/json-store";
-import { publicStoreProductSpecs } from "@/lib/store-product-public";
+import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 
 export const siteUrl = (process.env.NEXT_PUBLIC_CANONICAL_URL || "https://optibid.ir").replace(/\/$/, "");
 export const siteName = "OptiBid";
@@ -148,7 +148,7 @@ export function breadcrumbJsonLd(items: Array<{ name: string; url: string }>) {
 }
 
 export function productJsonLd(product: JsonStoreProduct) {
-  const text = `${product.title} ${product.category} ${product.summary} ${product.description} ${product.badges.join(" ")}`;
+  const text = `${product.title} ${product.category} ${product.summary} ${product.description} ${publicStoreProductBadges(product.badges).join(" ")}`;
   const isUsed = /استوک|کارکرده|دست.?دوم/i.test(text);
   const productUrl = absoluteUrl(`/shop/${product.slug}`);
 
