@@ -179,6 +179,22 @@ export async function POST(request: Request) {
         `${(scan.products.length - filteredDrafts.length).toLocaleString("fa-IR")} محصول به دلیل عدم تطابق با دسته‌های انتخابی نادیده گرفته شد.`,
       );
     }
+    if (filteredDrafts.length === 0) {
+      const message = scan.products.length > 0
+        ? "از اسکن محصولات پیدا شد، اما هیچ‌کدام با دسته‌های انتخاب‌شده مطابقت نداشتند."
+        : "از این لینک محصولی استخراج نشد. برای دیجی‌کالا، آدرس اصلی همراه دسته‌های انتخابی را بدهید یا از CSV خروجی Easy Scraper استفاده کنید.";
+      const warningText = scan.warnings.slice(0, 2).join("؛ ");
+      return NextResponse.json(
+        {
+          success: false,
+          message: `${message}${warningText ? ` جزئیات: ${warningText}` : ""}`,
+          warnings: scan.warnings,
+          scannedUrls: scan.scannedUrls,
+          sourceUrl: scan.sourceUrl,
+        },
+        { status: 422 },
+      );
+    }
 
     const importedProducts = filteredDrafts
       .map((draft) => applyPriceMultiplier(draft, priceMultiplier))

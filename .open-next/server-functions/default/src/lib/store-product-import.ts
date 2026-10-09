@@ -780,8 +780,25 @@ function digikalaRecordsFromJson(json: unknown): Record<string, unknown>[] {
 }
 
 async function fetchDigikalaApi(url: string) {
-  const text = await fetchText(url);
-  return parseJsonLoose(text);
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+      ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
+      : undefined;
+  const response = await fetch(url, {
+    headers: {
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      accept: "application/json, text/plain, */*",
+      "accept-language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
+      referer: "https://www.digikala.com/",
+      origin: "https://www.digikala.com",
+    },
+    signal: timeoutSignal,
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const text = await response.text();
+  const result = parseJsonLoose(text);
+  if (!result) throw new Error("پاسخ API دیجی‌کالا JSON معتبر نبود.");
+  return result;
 }
 
 async function scanDigikalaRobot(
