@@ -140,9 +140,9 @@ async function readJsonResponse(response: Response, fallbackMessage: string) {
 const priceRefreshReferenceOptions = [
   { id: "torob", label: "ترب", hint: "جستجو در بازار ترب و قیمت‌های فروشنده‌ها" },
   { id: "digikala", label: "دیجی‌کالا", hint: "جستجو در داده‌های قابل خواندن دیجی‌کالا" },
-  { id: "google", label: "سرچ گوگل", hint: "جستجوی عمومی قیمت در نتایج قابل خواندن" },
-  { id: "instagram", label: "اینستاگرام", hint: "برای محصولاتی که لینک منبع اینستاگرام دارند" },
-  { id: "telegram", label: "تلگرام", hint: "برای محصولاتی که لینک منبع تلگرام دارند" },
+  { id: "google", label: "گوگل و سایت‌های فروشگاهی", hint: "جستجوی قیمت محصول در نتایج وب و فروشگاه‌های ایندکس‌شده" },
+  { id: "instagram", label: "اینستاگرام", hint: "بررسی صفحه مستقیم و نتایج عمومی ایندکس‌شده اینستاگرام" },
+  { id: "telegram", label: "تلگرام", hint: "بررسی کانال مستقیم و نتایج عمومی ایندکس‌شده تلگرام" },
 ] as const;
 
 export default function AdminDashboardClient({
@@ -331,9 +331,12 @@ export default function AdminDashboardClient({
   const [scanningProductImport, setScanningProductImport] = useState(false);
   const [applyingProductImport, setApplyingProductImport] = useState(false);
   const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
-  const [priceRefreshReferences, setPriceRefreshReferences] = useState<string[]>(["torob", "digikala"]);
+  const [priceRefreshReferences, setPriceRefreshReferences] = useState<string[]>(
+    priceRefreshReferenceOptions.map((item) => item.id),
+  );
   const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
   const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(20);
+  const [priceRefreshOffset, setPriceRefreshOffset] = useState(0);
   const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
   const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
   const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
@@ -806,6 +809,7 @@ export default function AdminDashboardClient({
         ? current.filter((item) => item !== referenceId)
         : [...current, referenceId],
     );
+    setPriceRefreshOffset(0);
   };
 
   const clearStoreProducts = async () => {
@@ -839,23 +843,60 @@ export default function AdminDashboardClient({
     setRefreshingStorePrices(true);
     setPriceRefreshMessage("");
     try {
-      const response = await fetch("/api/admin/store-products/refresh-prices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          references: priceRefreshReferences,
-          maxProducts: priceRefreshMaxProducts,
-          priceMultiplier: priceRefreshMultiplier,
-          onlyActive: true,
-        }),
-      });
-      const result = await response.json();
-      if (!result.success)
-        throw new Error(result.message || "به‌روزرسانی قیمت‌ها ناموفق بود.");
-      setPriceRefreshMessage(result.message || "قیمت‌ها به‌روزرسانی شدند.");
-      setPriceRefreshResults(result.results || []);
-      setPriceRefreshWarnings(result.warnings || []);
-      alert(result.message || "قیمت‌ها به‌روزرسانی شدند.");
+      const startOffset = priceRefreshOffset;
+      let cursor = startOffset;
+      let remaining = priceRefreshMaxProducts;
+      let totalProducts = 0;
+      let totalChecked = 0;
+      let updated = 0;
+      let unchanged = 0;
+      let notFound = 0;
+      let failed = 0;
+      let hasMore = true;
+      const results: any[] = [];
+      const warnings: string[] = [];
+
+      while (remaining > 0 && hasMore) {
+        setPriceRefreshMessage(`ربات در حال بررسی است؛ ${totalChecked.toLocaleString("fa-IR")} کالا از سقف این نوبت بررسی شده...`);
+        const response = await fetch("/api/admin/store-products/refresh-prices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            references: priceRefreshReferences,
+            maxProducts: remaining,
+            priceMultiplier: priceRefreshMultiplier,
+            onlyActive: true,
+            offset: cursor,
+          }),
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || "به‌روزرسانی قیمت‌ها ناموفق بود.");
+        const checked = Number(result.totalChecked || 0);
+        totalProducts = Number(result.totalProducts || totalProducts);
+        totalChecked += checked;
+        remaining -= checked;
+        updated += Number(result.updated || 0);
+        unchanged += Number(result.unchanged || 0);
+        notFound += Number(result.notFound || 0);
+        failed += Number(result.failed || 0);
+        results.push(...(result.results || []));
+        warnings.push(...(result.warnings || []));
+        cursor = Number(result.nextOffset || 0);
+        hasMore = Boolean(result.hasMore);
+        if (checked === 0) break;
+      }
+
+      setPriceRefreshOffset(cursor);
+      const checkedFrom = totalChecked ? startOffset + 1 : 0;
+      const checkedTo = startOffset + totalChecked;
+      const progress = totalProducts && totalChecked
+        ? ` کالاهای ${checkedFrom.toLocaleString("fa-IR")} تا ${checkedTo.toLocaleString("fa-IR")} از ${totalProducts.toLocaleString("fa-IR")} بررسی شدند.${hasMore ? " اجرای بعدی از ادامهٔ فهرست است." : " چرخه کامل شد و اجرای بعدی از ابتداست."}`
+        : "";
+      const message = `${updated.toLocaleString("fa-IR")} قیمت تغییر کرد، ${unchanged.toLocaleString("fa-IR")} قیمت دوباره ثبت شد، برای ${notFound.toLocaleString("fa-IR")} کالا قیمت معتبر پیدا نشد و ${failed.toLocaleString("fa-IR")} بررسی خطا داشت.${progress}`;
+      setPriceRefreshMessage(message);
+      setPriceRefreshResults(results);
+      setPriceRefreshWarnings([...new Set(warnings)]);
+      alert(message);
     } catch (error) {
       const message = error instanceof Error ? error.message : "به‌روزرسانی قیمت‌ها ناموفق بود.";
       setPriceRefreshMessage(message);
@@ -2290,20 +2331,35 @@ export default function AdminDashboardClient({
                     <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
                       <div>
                         <h3 className="text-lg font-black text-emerald-900">
-                          🔄 به‌روزرسانی قیمت محصولات موجود
+                          🤖 ربات به‌روزرسانی قیمت محصولات موجود
                         </h3>
                         <p className="mt-1 text-sm leading-7 text-emerald-700">
-                          ادمین می‌تواند منابع قیمت را انتخاب کند تا قیمت محصولات فعلی سایت از همان مراجع به‌روزرسانی شود.
+                          منابع را انتخاب کنید و ربات را اجرا کنید. هر اجرا دستهٔ امن بعدی از محصولات قبلی را بررسی می‌کند و قیمت معتبر را همراه تاریخ در نمودار ذخیره می‌کند.
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        disabled={refreshingStorePrices}
-                        onClick={refreshStorePrices}
-                        className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
-                      >
-                        {refreshingStorePrices ? "در حال به‌روزرسانی..." : "به‌روزرسانی قیمت‌ها"}
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={refreshingStorePrices}
+                          onClick={refreshStorePrices}
+                          className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                        >
+                          {refreshingStorePrices ? "ربات در حال بررسی قیمت‌هاست..." : priceRefreshOffset > 0 ? "ادامهٔ ربات از محصول بعدی" : "اجرای ربات قیمت"}
+                        </button>
+                        {priceRefreshOffset > 0 && (
+                          <button
+                            type="button"
+                            disabled={refreshingStorePrices}
+                            onClick={() => {
+                              setPriceRefreshOffset(0);
+                              setPriceRefreshMessage("چرخهٔ ربات از ابتدای فهرست تنظیم شد.");
+                            }}
+                            className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-xs font-black text-emerald-700 disabled:opacity-50"
+                          >
+                            شروع چرخه از ابتدا
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-[1fr_170px]">
@@ -2313,14 +2369,20 @@ export default function AdminDashboardClient({
                           <div className="flex gap-2 text-xs font-black">
                             <button
                               type="button"
-                              onClick={() => setPriceRefreshReferences(priceRefreshReferenceOptions.map((item) => item.id))}
+                              onClick={() => {
+                                setPriceRefreshReferences(priceRefreshReferenceOptions.map((item) => item.id));
+                                setPriceRefreshOffset(0);
+                              }}
                               className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
                             >
                               انتخاب همه
                             </button>
                             <button
                               type="button"
-                              onClick={() => setPriceRefreshReferences([])}
+                              onClick={() => {
+                                setPriceRefreshReferences([]);
+                                setPriceRefreshOffset(0);
+                              }}
                               className="rounded-full bg-slate-100 px-3 py-1 text-slate-600"
                             >
                               پاک کردن
@@ -2359,7 +2421,10 @@ export default function AdminDashboardClient({
                             max="10"
                             step="0.01"
                             value={priceRefreshMultiplier}
-                            onChange={(e) => setPriceRefreshMultiplier(Math.max(0.1, Math.min(10, Number(e.target.value || 1))))}
+                            onChange={(e) => {
+                              setPriceRefreshMultiplier(Math.max(0.1, Math.min(10, Number(e.target.value || 1))));
+                              setPriceRefreshOffset(0);
+                            }}
                             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </label>
@@ -2370,7 +2435,10 @@ export default function AdminDashboardClient({
                             min="1"
                             max="20"
                             value={priceRefreshMaxProducts}
-                            onChange={(e) => setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))))}
+                            onChange={(e) => {
+                              setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))));
+                              setPriceRefreshOffset(0);
+                            }}
                             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </label>

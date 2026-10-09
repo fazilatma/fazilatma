@@ -12,6 +12,16 @@ function formatDate(value: string) {
   return date.toLocaleDateString("fa-IR", { year: "numeric", month: "short", day: "numeric" });
 }
 
+const priceReferenceOptions = [
+  { id: "digikala", label: "دیجی‌کالا" },
+  { id: "torob", label: "ترب" },
+  { id: "google", label: "گوگل" },
+  { id: "instagram", label: "اینستاگرام" },
+  { id: "telegram", label: "تلگرام" },
+] as const;
+
+type PriceReferenceId = (typeof priceReferenceOptions)[number]["id"];
+
 function PriceHistoryGraph({
   points,
   rangeLabel,
@@ -126,6 +136,9 @@ export default function StorePriceHistoryChart({
   const [range, setRange] = useState<"week" | "month" | "year">("month");
   const [refreshingPrice, setRefreshingPrice] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState("");
+  const [selectedReferences, setSelectedReferences] = useState<PriceReferenceId[]>(
+    priceReferenceOptions.map((option) => option.id),
+  );
   const [expanded, setExpanded] = useState(false);
   const allPoints = useMemo(() => (history || [])
     .filter((point) => Number.isFinite(Date.parse(point.recordedAt)) && Number(point.price) > 0)
@@ -145,6 +158,10 @@ export default function StorePriceHistoryChart({
 
   const refreshPriceNow = async () => {
     if (!productId) return;
+    if (selectedReferences.length === 0) {
+      setRefreshMessage("حداقل یک مرجع قیمت را انتخاب کنید.");
+      return;
+    }
     setRefreshingPrice(true);
     setRefreshMessage("");
     try {
@@ -153,7 +170,7 @@ export default function StorePriceHistoryChart({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productIds: [productId],
-          references: ["digikala", "torob"],
+          references: selectedReferences,
           maxProducts: 1,
           onlyActive: true,
         }),
@@ -219,7 +236,30 @@ export default function StorePriceHistoryChart({
         </div>
           {rangeControls}
           {isAdmin && productId && (
-            <div>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                {priceReferenceOptions.map((option) => {
+                  const checked = selectedReferences.includes(option.id);
+                  return (
+                    <label
+                      key={option.id}
+                      className={`cursor-pointer rounded-full px-2 py-1 text-[10px] font-bold transition ${checked ? "bg-emerald-100 text-emerald-800" : "bg-white text-slate-400"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setSelectedReferences((current) =>
+                          current.includes(option.id)
+                            ? current.filter((item) => item !== option.id)
+                            : [...current, option.id],
+                        )}
+                        className="ml-1 align-middle"
+                      />
+                      {option.label}
+                    </label>
+                  );
+                })}
+              </div>
               <button
                 type="button"
                 disabled={refreshingPrice}

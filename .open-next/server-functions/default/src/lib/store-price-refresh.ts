@@ -74,8 +74,10 @@ function normalizePriceToToman(rawPrice: unknown, currency?: string) {
   let price = numberFromText(rawPrice);
   const normalizedCurrency = String(currency || "").toUpperCase();
   if (!price) return 0;
-  if (normalizedCurrency === "IRR" || normalizedCurrency === "RIAL") price = price / 10;
-  if (!normalizedCurrency && price >= 250_000_000) price = price / 10;
+  const isRial = normalizedCurrency === "IRR" || normalizedCurrency === "RIAL" || normalizedCurrency === "ریال";
+  const isToman = normalizedCurrency === "IRT" || normalizedCurrency === "TOMAN" || normalizedCurrency === "تومان" || normalizedCurrency === "تومن";
+  if (isRial) price = price / 10;
+  if (!isRial && !isToman && price >= 250_000_000) price = price / 10;
   return Math.round(price);
 }
 
@@ -249,24 +251,80 @@ function candidatesFromJson(value: unknown, source: PriceReferenceKey, baseUrl: 
   return candidates;
 }
 
+function priceValuesFromText(text: string) {
+  const values = new Set<number>();
+  const explicitTomanPatterns = [
+    /([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})\s*(?:تومان|تومن|IRT)/gi,
+    /(?:تومان|تومن|IRT)\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})/gi,
+  ];
+  const explicitRialPatterns = [
+    /([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})\s*(?:ریال|IRR)/gi,
+    /(?:ریال|IRR)\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})/gi,
+  ];
+  for (const pattern of explicitTomanPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      const price = normalizePriceToToman(match[1], "IRT");
+      if (price >= 100_000 && price <= 1_500_000_000) values.add(price);
+    }
+  }
+  for (const pattern of explicitRialPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      const price = normalizePriceToToman(match[1], "IRR");
+      if (price >= 100_000 && price <= 1_500_000_000) values.add(price);
+    }
+  }
+  for (const match of text.matchAll(/"price"\s*:\s*"?([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})"?/gi)) {
+    const price = normalizePriceToToman(match[1]);
+    if (price >= 100_000 && price <= 1_500_000_000) values.add(price);
+  }
+  return [...values].sort((a, b) => a - b);
+}
+
 function candidatesFromHtml(html: string, source: PriceReferenceKey, baseUrl: string) {
   const candidates = candidatesFromJson(extractJsonLdObjects(html), source, baseUrl);
   const title = extractTitle(html);
-  const text = stripTags(html);
-  const priceValues = new Set<number>();
-  const patterns = [
-    /([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})\s*(?:تومان|تومن|IRT)/gi,
-    /(?:تومان|تومن|IRT)\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})/gi,
-    /"price"\s*:\s*"?([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})"?/gi,
-  ];
-  for (const pattern of patterns) {
-    for (const match of text.matchAll(pattern)) {
-      const price = normalizePriceToToman(match[1]);
-      if (price >= 100_000 && price <= 1_500_000_000) priceValues.add(price);
-    }
+  const prices = priceValuesFromText(stripTags(html));
+  if (title && prices[0]) candidates.push({ source, title, price: prices[0], url: baseUrl });
+  return candidates;
+}
+
+function googleResultUrl(value: string) {
+  const decoded = decodeHtml(value || "");
+  try {
+    const candidate = new URL(decoded, "https://www.google.com/");
+    const redirected = candidate.pathname === "/url" ? candidate.searchParams.get("q") || "" : candidate.toString();
+    const url = new URL(redirected);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
   }
-  const minPrice = [...priceValues].sort((a, b) => a - b)[0];
-  if (title && minPrice) candidates.push({ source, title, price: minPrice, url: baseUrl });
+}
+
+function candidatesFromGoogleSearch(
+  html: string,
+  source: "google" | "instagram" | "telegram",
+  searchUrl: string,
+) {
+  const candidates: Omit<PriceCandidate, "score">[] = [];
+  const resultPattern = /<a\b[^>]*href=["']([^"']+)["'][^>]*>[\s\S]*?<h3[^>]*>([\s\S]*?)<\/h3>[\s\S]*?(?=<h3|<a\b[^>]*href=|$)/gi;
+  for (const match of html.matchAll(resultPattern)) {
+    const url = googleResultUrl(match[1]);
+    if (!url) continue;
+    const block = stripTags(match[0]).slice(0, 1200);
+    const title = stripTags(match[2] || "");
+    const prices = priceValuesFromText(block);
+    if (!title || !prices[0]) continue;
+    candidates.push({ source, title, price: prices[0], url });
+  }
+
+  // Some Google layouts do not expose result cards in stable HTML. Keep a page-level
+  // fallback, but retain the product query as its title so strict token scoring applies.
+  if (!candidates.length) {
+    const text = stripTags(html);
+    const prices = priceValuesFromText(text);
+    const query = new URL(searchUrl).searchParams.get("q") || "";
+    if (prices[0] && query) candidates.push({ source, title: query.replace(/site:\S+/gi, " ").replace(/\s+/g, " ").trim(), price: prices[0], url: searchUrl });
+  }
   return candidates;
 }
 
@@ -309,15 +367,24 @@ async function torobCandidates(product: JsonStoreProduct) {
   return all;
 }
 
-async function googleCandidates(product: JsonStoreProduct) {
-  const query = encodeURIComponent(`${product.title} قیمت`);
-  const url = `https://www.google.com/search?q=${query}&hl=fa`;
+async function googleSearchCandidates(
+  product: JsonStoreProduct,
+  source: "google" | "instagram" | "telegram",
+  siteFilter = "",
+) {
+  const queryText = `${siteFilter ? `site:${siteFilter} ` : ""}${product.title} قیمت تومان`;
+  const url = `https://www.google.com/search?q=${encodeURIComponent(queryText)}&hl=fa&num=10`;
   const html = await fetchText(url);
-  return candidatesFromHtml(html, "google", url);
+  return candidatesFromGoogleSearch(html, source, url);
+}
+
+async function googleCandidates(product: JsonStoreProduct) {
+  return googleSearchCandidates(product, "google");
 }
 
 async function socialCandidates(product: JsonStoreProduct, source: "instagram" | "telegram") {
-  return directSourceCandidates(product, source);
+  const site = source === "instagram" ? "instagram.com" : "t.me";
+  return googleSearchCandidates(product, source, site);
 }
 
 export function normalizePriceReferences(value: unknown): PriceReferenceKey[] {

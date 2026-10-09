@@ -19,6 +19,7 @@ type Body = {
   priceMultiplier?: number;
   onlyActive?: boolean;
   productIds?: string[];
+  offset?: number;
 };
 
 function normalizeMultiplier(value: unknown) {
@@ -54,15 +55,22 @@ export async function POST(request: Request) {
 
     const multiplier = normalizeMultiplier(body.priceMultiplier);
     const requestedMaxProducts = Math.max(1, Number(body.maxProducts || 20));
-    const maxProducts = Math.max(1, Math.min(20, requestedMaxProducts));
+    const requestWeight = references.reduce((total, source) => {
+      if (source === "torob" || source === "digikala") return total + 2;
+      return total + 1;
+    }, 0);
+    const safeWorkerLimit = Math.max(1, Math.floor(36 / Math.max(1, requestWeight)));
+    const maxProducts = Math.max(1, Math.min(20, safeWorkerLimit, requestedMaxProducts));
     const onlyActive = body.onlyActive !== false;
     const productIdFilter = Array.isArray(body.productIds) ? new Set(body.productIds.map(String)) : null;
+    const requestedOffset = productIdFilter ? 0 : Math.max(0, Math.floor(Number(body.offset || 0)));
     const data = await getOptiBidData();
     const matchingProducts = data.storeProducts
       .map((product, index) => ({ product, index }))
       .filter(({ product }) => (onlyActive ? product.isActive !== false : true))
       .filter(({ product }) => !productIdFilter || productIdFilter.has(product.id));
-    const targetProducts = matchingProducts.slice(0, maxProducts);
+    const offset = requestedOffset >= matchingProducts.length ? 0 : requestedOffset;
+    const targetProducts = matchingProducts.slice(offset, offset + maxProducts);
     if (productIdFilter && targetProducts.length === 0) {
       return NextResponse.json(
         { success: false, message: "محصول انتخاب‌شده در فروشگاه فعال نیست یا پیدا نشد." },
@@ -140,9 +148,14 @@ export async function POST(request: Request) {
       success: true,
       references,
       priceMultiplier: multiplier,
+      totalProducts: matchingProducts.length,
+      offset,
+      nextOffset: offset + targetProducts.length >= matchingProducts.length ? 0 : offset + targetProducts.length,
+      hasMore: offset + targetProducts.length < matchingProducts.length,
       totalChecked: targetProducts.length,
       updated,
       unchanged,
+      historyRecorded,
       notFound,
       failed,
       warnings: warnings.slice(0, 20),
