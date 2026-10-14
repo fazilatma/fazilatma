@@ -2661,7 +2661,7 @@ export default function AdminDashboardClient({
                           اسلایدر صفحه اصلی فروشگاه لپ‌تاپ
                         </h3>
                         <p className="mt-1 text-sm leading-7 text-rose-700">
-                          این همان بخش آبی بالای صفحه اصلی فروشگاه است. حداکثر ۴ تصویر تبلیغاتی/بنری برای فروش لپ‌تاپ بارگذاری کنید.
+                          تصویر اسلاید ۱ در جایگاه سمت چپ بنر آبی اصلی و تصویر اسلاید ۲ در جایگاه سمت چپ بنر کوچک زیر آن نمایش داده می‌شود. تصویر PNG/WebP با پس‌زمینه شفاف یا عکس محصول افقی بهترین نتیجه را دارد.
                         </p>
                       </div>
                       <label className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-rose-700 shadow-sm">
@@ -2703,7 +2703,11 @@ export default function AdminDashboardClient({
                         >
                           <div className="mb-3 flex items-center justify-between gap-3">
                             <b className="text-sm text-gray-900">
-                              اسلاید فروشگاهی {Number(index + 1).toLocaleString("fa-IR")}
+                              {index === 0
+                                ? "تصویر بنر اصلی بالا (جایگاه ۱)"
+                                : index === 1
+                                  ? "تصویر بنر کوچک زیر آن (جایگاه ۲)"
+                                  : `اسلاید فروشگاهی ${Number(index + 1).toLocaleString("fa-IR")}`}
                             </b>
                             <label className="flex items-center gap-2 text-xs font-bold text-gray-600">
                               <input
@@ -2725,7 +2729,7 @@ export default function AdminDashboardClient({
                                   <img
                                     src={productImageUrl(slide.image)}
                                     alt={slide.title}
-                                    className="h-full w-full object-cover"
+                                    className="h-full w-full object-contain p-1"
                                   />
                                 ) : (
                                   "بدون عکس"

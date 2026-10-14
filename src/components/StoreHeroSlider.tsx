@@ -64,24 +64,26 @@ export default function StoreHeroSlider({
   return (
     <div className="relative min-h-[185px] overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-4 text-white shadow-xl md:min-h-[220px] md:p-5 xl:min-h-[235px]">
       {imageUrl && (
-        <img
-          src={imageUrl}
-          alt={slide.title}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <div className="absolute inset-y-0 left-0 z-[1] hidden w-[38%] items-center justify-center p-3 sm:flex md:p-5">
+          <img
+            src={imageUrl}
+            alt={slide.title}
+            className="max-h-full max-w-full object-contain drop-shadow-2xl"
+          />
+        </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-l from-[#003b5c]/95 via-[#006494]/80 to-[#00a8e8]/75" />
+      <div className={`absolute inset-0 z-[2] ${imageUrl ? "bg-gradient-to-l from-[#003b5c]/95 via-[#006494]/75 to-transparent" : "bg-gradient-to-l from-[#003b5c]/95 via-[#006494]/80 to-[#00a8e8]/75"}`} />
       <div className="absolute -left-16 bottom-8 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
 
       {!imageUrl && (
-        <div className="absolute bottom-5 left-10 hidden w-48 opacity-30 lg:block">
+        <div className="absolute bottom-5 left-10 z-[3] hidden w-48 opacity-30 lg:block">
           <div className="mx-auto h-20 rounded-t-3xl border-[9px] border-white/70 bg-white/10" />
           <div className="mx-auto h-3 rounded-b-3xl bg-white/70" />
         </div>
       )}
 
-      <div className="relative z-10 flex min-h-[145px] flex-col justify-center md:min-h-[170px] xl:min-h-[185px]">
+      <div className="relative z-10 flex min-h-[145px] w-full flex-col justify-center md:min-h-[170px] lg:w-[68%] xl:min-h-[185px]">
         <span className="mb-2 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-xs font-black ring-1 ring-white/20">
           فروشگاه تخصصی لپ‌تاپ و کامپیوتر
         </span>

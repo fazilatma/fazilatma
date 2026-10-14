@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { productImageUrl } from "@/lib/product-image-shared";
+import type { HomepageImageSliderSlide } from "@/lib/json-store";
+
 const slides = [
   {
     id: "stock-test",
@@ -38,8 +41,12 @@ const slides = [
   },
 ];
 
-export default function StoreAdSlider() {
+export default function StoreAdSlider({ slides: configuredSlides }: { slides?: HomepageImageSliderSlide[] }) {
   const activeSlide = slides[0];
+  const configuredImage = configuredSlides?.[1]?.isActive !== false
+    ? configuredSlides?.[1]?.image
+    : undefined;
+  const imageUrl = configuredImage ? productImageUrl(configuredImage) : "";
 
   return (
     <section
@@ -48,12 +55,22 @@ export default function StoreAdSlider() {
     >
       <div className="absolute -left-12 bottom-0 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute -right-16 -top-14 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute bottom-3 left-7 hidden w-36 opacity-25 md:block">
-        <div className="mx-auto h-12 rounded-t-3xl border-[7px] border-white/80 bg-white/10" />
-        <div className="mx-auto h-2 rounded-b-3xl bg-white/80" />
-      </div>
+      {imageUrl ? (
+        <div className="absolute inset-y-0 left-0 hidden w-[32%] items-center justify-center p-2 md:flex md:p-3">
+          <img
+            src={imageUrl}
+            alt="تصویر بنر ویژه فروشگاه"
+            className="max-h-full max-w-full object-contain drop-shadow-xl"
+          />
+        </div>
+      ) : (
+        <div className="absolute bottom-3 left-7 hidden w-36 opacity-25 md:block">
+          <div className="mx-auto h-12 rounded-t-3xl border-[7px] border-white/80 bg-white/10" />
+          <div className="mx-auto h-2 rounded-b-3xl bg-white/80" />
+        </div>
+      )}
 
-      <div className="relative z-10 max-w-2xl">
+      <div className="relative z-10 max-w-2xl md:max-w-[72%]">
         <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-black ring-1 ring-white/20">
           {activeSlide.eyebrow}
         </span>

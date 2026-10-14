@@ -54,7 +54,7 @@ export default function StorefrontHome({
               slides={heroSlides}
               durationSeconds={heroDurationSeconds}
             />
-            <StoreAdSlider />
+            <StoreAdSlider slides={heroSlides} />
             <StoreLaptopBrandSlider />
             <SmartLaptopPickStrip />
             <SpecialOfferCarousel
