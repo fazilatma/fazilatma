@@ -70,7 +70,7 @@ export default function StoreHeroSlider({
           <img
             src={imageUrl}
             alt={slide.title}
-            className="max-h-full max-w-full object-contain drop-shadow-2xl"
+            className="max-h-full max-w-full bg-transparent object-contain mix-blend-multiply drop-shadow-2xl"
           />
         </div>
       )}
