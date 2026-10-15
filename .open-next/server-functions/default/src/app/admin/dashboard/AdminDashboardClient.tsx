@@ -2678,6 +2678,71 @@ export default function AdminDashboardClient({
                         فعال
                       </label>
                     </div>
+
+                    <div className="mb-5 rounded-2xl border-2 border-dashed border-rose-200 bg-white p-4">
+                      <div className="mb-4">
+                        <h4 className="text-base font-black text-slate-900">
+                          بارگذاری مستقیم تصاویر دو جایگاه مشخص‌شده در صفحه اصلی
+                        </h4>
+                        <p className="mt-1 text-xs leading-6 text-slate-500">
+                          تصویر اول داخل کادر سمت چپ بنر آبی و تصویر دوم داخل کادر سمت چپ بنر سبز نمایش داده می‌شود. پس از انتخاب هر دو فایل، دکمه ذخیره را بزنید.
+                        </p>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {([0, 1] as const).map((index) => {
+                          const slide = ensureStorefrontSlides()[index];
+                          const pendingFile = storefrontSlideFiles[index];
+                          return (
+                            <div key={`banner-slot-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                              <b className="block text-sm text-slate-900">
+                                {index === 0 ? "جایگاه تصویر بنر آبی اصلی" : "جایگاه تصویر بنر سبز زیر آن"}
+                              </b>
+                              <div className="mt-3 flex items-center gap-4">
+                                <div className="grid h-28 w-40 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white text-xs text-slate-400">
+                                  {slide.image ? (
+                                    <img
+                                      src={productImageUrl(slide.image)}
+                                      alt={index === 0 ? "تصویر فعلی بنر آبی" : "تصویر فعلی بنر سبز"}
+                                      className="h-full w-full object-contain p-2"
+                                    />
+                                  ) : (
+                                    "هنوز تصویری ثبت نشده"
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="inline-flex cursor-pointer rounded-xl bg-rose-600 px-4 py-2 text-xs font-black text-white hover:bg-rose-700">
+                                    انتخاب تصویر
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg,image/png,image/webp"
+                                      onChange={(event) =>
+                                        setStorefrontSlideFiles((current) => ({
+                                          ...current,
+                                          [index]: event.target.files?.[0] || null,
+                                        }))
+                                      }
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  <span className="mt-2 block truncate text-[11px] text-slate-500">
+                                    {pendingFile ? pendingFile.name : "JPG، PNG یا WebP؛ حداکثر ۵ مگابایت"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={savingStorefrontSlider || (!storefrontSlideFiles[0] && !storefrontSlideFiles[1])}
+                        onClick={saveStorefrontSlider}
+                        className="mt-4 rounded-xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-rose-600 disabled:bg-slate-300"
+                      >
+                        {savingStorefrontSlider ? "در حال بارگذاری تصاویر..." : "ذخیره و نمایش تصاویر در صفحه اصلی"}
+                      </button>
+                    </div>
+
                     <label className="mb-4 block max-w-xs text-sm font-bold text-gray-700">
                       زمان تعویض اسلاید فروشگاهی (ثانیه)
                       <input
