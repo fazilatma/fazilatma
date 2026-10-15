@@ -22,6 +22,7 @@ export default function StorefrontHome({
   heroDurationSeconds?: number;
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
+  const bannerProducts = products.filter((product) => Boolean(product.imageUrl)).slice(0, 2);
   const collectionRows = laptopCollectionItems.map((collection) => ({
     collection,
     products: getLaptopCollectionProducts(products, collection.slug).slice(0, 3),
@@ -53,8 +54,12 @@ export default function StorefrontHome({
             <StoreHeroSlider
               slides={heroSlides}
               durationSeconds={heroDurationSeconds}
+              fallbackImageUrl={bannerProducts[0]?.imageUrl}
             />
-            <StoreAdSlider slides={heroSlides} />
+            <StoreAdSlider
+              slides={heroSlides}
+              fallbackImageUrl={bannerProducts[1]?.imageUrl || bannerProducts[0]?.imageUrl}
+            />
             <StoreLaptopBrandSlider />
             <SmartLaptopPickStrip />
             <SpecialOfferCarousel

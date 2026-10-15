@@ -50,16 +50,18 @@ const fallbackSlides: StoreHeroSlide[] = [
 export default function StoreHeroSlider({
   slides,
   durationSeconds: _durationSeconds = 5,
+  fallbackImageUrl = "",
 }: {
   slides?: StoreHeroSlide[];
   durationSeconds?: number;
+  fallbackImageUrl?: string;
 }) {
   const activeSlides = (slides || [])
     .filter((slide) => slide.isActive !== false)
     .slice(0, 4);
   const displaySlides = activeSlides.length > 0 ? activeSlides : fallbackSlides;
   const slide = displaySlides[0];
-  const imageUrl = slide.image ? productImageUrl(slide.image) : "";
+  const imageUrl = slide.image ? productImageUrl(slide.image) : fallbackImageUrl;
 
   return (
     <div className="relative min-h-[185px] overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-4 text-white shadow-xl md:min-h-[220px] md:p-5 xl:min-h-[235px]">

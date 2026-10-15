@@ -41,12 +41,18 @@ const slides = [
   },
 ];
 
-export default function StoreAdSlider({ slides: configuredSlides }: { slides?: HomepageImageSliderSlide[] }) {
+export default function StoreAdSlider({
+  slides: configuredSlides,
+  fallbackImageUrl = "",
+}: {
+  slides?: HomepageImageSliderSlide[];
+  fallbackImageUrl?: string;
+}) {
   const activeSlide = slides[0];
   const configuredImage = configuredSlides?.[1]?.isActive !== false
     ? configuredSlides?.[1]?.image
     : undefined;
-  const imageUrl = configuredImage ? productImageUrl(configuredImage) : "";
+  const imageUrl = configuredImage ? productImageUrl(configuredImage) : fallbackImageUrl;
 
   return (
     <section
