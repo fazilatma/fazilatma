@@ -66,7 +66,7 @@ export default function StoreAdSlider({
           <img
             src={imageUrl}
             alt="تصویر بنر ویژه فروشگاه"
-            className="max-h-full max-w-full bg-transparent object-contain mix-blend-multiply drop-shadow-xl"
+            className="max-h-full max-w-full bg-transparent object-contain mix-blend-darken drop-shadow-xl"
           />
         </div>
       ) : (

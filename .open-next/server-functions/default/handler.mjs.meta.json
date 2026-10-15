@@ -3954,7 +3954,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 254146,
+      "bytes": 254135,
       "imports": [
         {
           "path": "path",
@@ -6615,7 +6615,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2013762,
+      "bytes": 2013758,
       "imports": [],
       "format": "cjs"
     },
@@ -8884,7 +8884,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_app_page_tsx_1q8t6fz._.js": {
-      "bytes": 59174,
+      "bytes": 59170,
       "imports": [],
       "format": "cjs"
     },
@@ -18419,7 +18419,7 @@
           "bytesInOutput": 461
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 213269
+          "bytesInOutput": 213258
         },
         ".open-next/cloudflare-templates/shims/throw.js": {
           "bytesInOutput": 215
@@ -18785,7 +18785,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2456427
+          "bytesInOutput": 2456423
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -19136,7 +19136,7 @@
           "bytesInOutput": 37136
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_app_page_tsx_1q8t6fz._.js": {
-          "bytesInOutput": 79767
+          "bytesInOutput": 79763
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_AmazingDealsSection_tsx_1gyms56._.js": {
           "bytesInOutput": 1243
@@ -19868,7 +19868,7 @@
           "bytesInOutput": 74055
         }
       },
-      "bytes": 9993737
+      "bytes": 9993718
     }
   }
 }
