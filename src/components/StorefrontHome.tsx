@@ -39,15 +39,28 @@ export default function StorefrontHome({
           }
         : slide)
     : heroSlides;
+  const partCollectionSubtitles: Record<string, string> = {
+    growing: "قطعاتی که بر اساس تقاضا، مشخصات فنی و وضعیت قیمت توجه بیشتری گرفته‌اند.",
+    "best-selling": "پردازنده، مادربرد، کارت گرافیک، رم و قطعات پرطرفدار فروشگاه.",
+    "special-offers": "قطعات منتخب با قیمت جذاب‌تر و فرصت خرید بهتر.",
+  };
   const collectionRows = laptopCollectionItems.map((collection) => ({
-    collection,
+    collection: computerPartsOnly
+      ? {
+          ...collection,
+          subtitle: partCollectionSubtitles[collection.slug] || collection.subtitle,
+          href: `/shop?category=computer-parts&collection=${collection.slug}`,
+        }
+      : collection,
     products: getLaptopCollectionProducts(products, collection.slug).slice(0, 3),
   }));
   const specialOfferProducts =
     getLaptopCollectionProducts(products, "special-offers").slice(0, 8);
   const productListStructuredData = itemListJsonLd({
-    name: "فروشگاه لپ‌تاپ OptiBid",
-    description: "خرید آنلاین لپ‌تاپ نو، استوک، اداری، دانشجویی، مهندسی و گیمینگ در OptiBid.",
+    name: computerPartsOnly ? "فروشگاه قطعات کامپیوتر OptiBid" : "فروشگاه لپ‌تاپ OptiBid",
+    description: computerPartsOnly
+      ? "خرید آنلاین پردازنده، مادربرد، کارت گرافیک، رم، حافظه و قطعات کامپیوتر در OptiBid."
+      : "خرید آنلاین لپ‌تاپ نو، استوک، اداری، دانشجویی، مهندسی و گیمینگ در OptiBid.",
     url: "/",
     items: products
       .filter((product) => product.isActive !== false)

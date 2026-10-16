@@ -6616,7 +6616,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2043468,
+      "bytes": 2044480,
       "imports": [],
       "format": "cjs"
     },
@@ -8800,7 +8800,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_0jr94yk._.js": {
-      "bytes": 65118,
+      "bytes": 65796,
       "imports": [],
       "format": "cjs"
     },
@@ -18276,7 +18276,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2493434
+          "bytesInOutput": 2495352
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -18621,7 +18621,7 @@
           "bytesInOutput": 39091
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_0jr94yk._.js": {
-          "bytesInOutput": 88734
+          "bytesInOutput": 90327
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_AmazingDealsSection_tsx_1gyms56._.js": {
           "bytesInOutput": 1243
@@ -19353,7 +19353,7 @@
           "bytesInOutput": 74055
         }
       },
-      "bytes": 9713391
+      "bytes": 9716902
     }
   }
 }
