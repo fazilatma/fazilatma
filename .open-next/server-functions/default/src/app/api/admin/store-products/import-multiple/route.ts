@@ -39,12 +39,16 @@ function modelTokens(title: string) {
     .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,2})\b/g, "$1-$2")
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${family.replace(/\s+/g, "")}-${model}`)
     .replace(/[^a-z0-9آ-ی-]+/g, " ");
-  return new Set(
-    normalized
-      .split(/\s+/)
-      .filter((token) => /\d/.test(token) && token.length >= 4)
-      .filter((token) => !/^(?:\d+(?:gb|tb|mhz|hz)|ddr\d|pcie\d*|usb\d*|\d+)$/.test(token)),
-  );
+  const tokens = normalized
+    .split(/\s+/)
+    .filter((token) => /\d/.test(token) && token.length >= 4)
+    .filter((token) => !/^(?:\d+(?:gb|tb|mhz|hz|w|bit|nm|core|cores|thread|threads)|ddr\d|pcie\d*|usb\d*|lga\d+|am\d+|fm\d+|str\d+|socket\d*|gen\d+|\d+(?:th|nd|rd)|\d+)$/.test(token));
+  const expanded = new Set(tokens);
+  for (const token of tokens) {
+    const processorModel = token.match(/^(?:i[3579]|ryzen[3579])-(.+)$/)?.[1];
+    if (processorModel && processorModel.length >= 5) expanded.add(processorModel);
+  }
+  return expanded;
 }
 
 function findMultiSourceMatch(products: JsonStoreProduct[], candidate: JsonStoreProduct) {
@@ -213,7 +217,7 @@ export async function POST(request: Request) {
       activeStoreProducts,
       warnings: warnings.slice(0, 20),
       scannedUrls,
-      message: `${links.length.toLocaleString("fa-IR")} لینک بررسی شد؛ ${aggregated.length.toLocaleString("fa-IR")} محصول یکتا با کمترین قیمت انتخاب شد. ${created.toLocaleString("fa-IR")} محصول اضافه و ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی شد.`,
+      message: `${links.length.toLocaleString("fa-IR")} لینک بررسی شد؛ ${rawProducts.toLocaleString("fa-IR")} ردیف قیمت‌دار خوانده شد، ${aggregated.length.toLocaleString("fa-IR")} محصول یکتا باقی ماند و ${Math.max(0, rawProducts - aggregated.length).toLocaleString("fa-IR")} تکراری حذف شد. ${created.toLocaleString("fa-IR")} محصول اضافه و ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی شد.`,
     });
   } catch (error) {
     return NextResponse.json(
