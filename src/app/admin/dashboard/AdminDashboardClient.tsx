@@ -17,6 +17,7 @@ import {
 } from "@/lib/store-product-import";
 import { useLiveContent } from "@/hooks/useLiveContent";
 import type { CatalogCategory } from "@/lib/catalog-categories";
+import { parseSourceLinks } from "@/lib/source-link-parser";
 
 const indicatorOptions = [
   { id: "sma", label: "SMA", description: "میانگین متحرک ساده ۷ و ۲۰ روزه" },
@@ -89,14 +90,6 @@ function normalizedImportPriceMultiplier(value: unknown) {
   const number = Number(value || 1);
   if (!Number.isFinite(number) || number <= 0) return 1;
   return Math.max(0.1, Math.min(10, number));
-}
-
-function parseComputerPartsLinks(value: unknown) {
-  return String(value || "")
-    .replace(/&amp;(?=https?:\/\/)/gi, "&")
-    .split(/\r?\n|\s*&\s*(?=https?:\/\/)|[|،]+/i)
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function productImportSourceLabel(product: any) {
@@ -833,7 +826,7 @@ export default function AdminDashboardClient({
   };
 
   const useComputerPartsSource = () => {
-    const sourceUrl = parseComputerPartsLinks(platformFinance.storeComputerPartsSourceUrl)[0] || "";
+    const sourceUrl = parseSourceLinks(platformFinance.storeComputerPartsSourceUrl, 8)[0] || "";
     if (!sourceUrl) {
       alert("ابتدا لینک مرجع قطعات کامپیوتر را وارد و ذخیره کنید.");
       return;
@@ -847,7 +840,7 @@ export default function AdminDashboardClient({
 
   const importComputerPartsFromSource = async () => {
     const sourceText = String(platformFinance.storeComputerPartsSourceUrl || "").trim();
-    const sourceLinks = parseComputerPartsLinks(sourceText);
+    const sourceLinks = parseSourceLinks(sourceText, 8);
     if (!sourceLinks.length) {
       alert("حداقل یک لینک مرجع معتبر برای قطعات کامپیوتر وارد کنید.");
       return;

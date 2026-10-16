@@ -5,6 +5,7 @@ import {
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { mergeStorePriceHistory } from "@/lib/store-price-history";
+import { parseSourceLinks } from "@/lib/source-link-parser";
 import {
   importedDraftToStoreProduct,
   productMatchesImportCategories,
@@ -13,27 +14,6 @@ import {
 } from "@/lib/store-product-import";
 
 export const dynamic = "force-dynamic";
-
-function normalizeLinks(value: unknown) {
-  const raw = (Array.isArray(value) ? value.map(String).join("\n") : String(value || ""))
-    .replace(/&amp;(?=https?:\/\/)/gi, "&");
-  const candidates = raw
-    .split(/\r?\n|\s*&\s*(?=https?:\/\/)|[|،]+/i)
-    .map((item) => item.trim())
-    .filter(Boolean);
-  const links: string[] = [];
-  for (const candidate of candidates) {
-    try {
-      const url = new URL(candidate);
-      if ((url.protocol === "http:" || url.protocol === "https:") && !links.includes(url.toString())) {
-        links.push(url.toString());
-      }
-    } catch {
-      // Invalid fragments are reported through the final count/message.
-    }
-  }
-  return links.slice(0, 8);
-}
 
 function normalizeMultiplier(value: unknown) {
   const number = Number(value || 1);
@@ -141,7 +121,7 @@ function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: Json
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const links = normalizeLinks(body.links);
+    const links = parseSourceLinks(body.links, 8);
     if (links.length === 0) {
       return NextResponse.json(
         { success: false, message: "حداقل یک لینک معتبر وارد کنید. لینک‌ها را با & یا خط جدید جدا کنید." },
