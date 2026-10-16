@@ -74,6 +74,22 @@ function activeCount(params: LaptopFilterParams) {
   ].filter((key) => Boolean(getParam(params, key))).length;
 }
 
+const computerPartBrandOptions: FilterOption[] = [
+  { label: "Intel", value: "Intel" },
+  { label: "AMD", value: "AMD" },
+  { label: "NVIDIA", value: "NVIDIA" },
+  { label: "ASUS", value: "Asus" },
+  { label: "MSI", value: "MSI" },
+  { label: "Gigabyte", value: "Gigabyte" },
+  { label: "Corsair", value: "Corsair" },
+  { label: "Kingston", value: "Kingston" },
+  { label: "Samsung", value: "Samsung" },
+  { label: "Western Digital", value: "Western Digital" },
+  { label: "Seagate", value: "Seagate" },
+  { label: "Cooler Master", value: "Cooler Master" },
+  { label: "Green", value: "Green" },
+];
+
 const ramOptions: FilterOption[] = [
   { label: "۸ گیگابایت", value: "8GB" },
   { label: "۱۶ گیگابایت", value: "16GB" },
@@ -178,7 +194,14 @@ export default function LaptopFilterSidebar({
   params?: LaptopFilterParams;
   sticky?: boolean;
 }) {
-  const brands = Array.from(new Set(products.map((product) => product.brand)));
+  const computerPartsMode = getParam(params, "category") === "computer-parts";
+  const detectedBrands = Array.from(new Set(products.map((product) => product.brand).filter(Boolean)));
+  const brands = computerPartsMode
+    ? Array.from(new Map([
+        ...computerPartBrandOptions.map((option) => [option.value.toLowerCase(), option] as const),
+        ...detectedBrands.map((brand) => [brand.toLowerCase(), { label: brand, value: brand }] as const),
+      ]).values())
+    : detectedBrands.map((brand) => ({ label: brand, value: brand }));
   const appliedFilters = activeCount(params);
 
   return (
@@ -192,7 +215,9 @@ export default function LaptopFilterSidebar({
           <div className="mt-1 text-xs text-slate-500">
             {appliedFilters
               ? `${appliedFilters.toLocaleString("fa-IR")} فیلتر فعال`
-              : "مشخصات کامل لپ‌تاپ"}
+              : computerPartsMode
+                ? "مشخصات و برند قطعات"
+                : "مشخصات کامل لپ‌تاپ"}
           </div>
         </div>
         <Link
@@ -219,7 +244,7 @@ export default function LaptopFilterSidebar({
         </Link>
 
         <PriceFilter params={params} />
-        <FilterGroup title="برندها" queryKey="brand" params={params} options={brands.map((brand) => ({ label: brand, value: brand }))} />
+        <FilterGroup title="برندها" queryKey="brand" params={params} options={brands} defaultOpen={computerPartsMode} />
         <FilterGroup title="ظرفیت حافظه RAM" queryKey="ram" params={params} options={ramOptions} />
         <FilterGroup title="نوع پنل" queryKey="panel" params={params} options={panelOptions} />
         <FilterGroup title="ابعاد نمایشگر" queryKey="display" params={params} options={displayOptions} />

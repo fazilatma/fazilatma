@@ -213,10 +213,21 @@ function brandFromTitle(title: string, fallback = "Digikala") {
   if (/asus|ایسوس/.test(lower)) return "Asus";
   if (/apple|macbook|مک|اپل|iphone|آیفون/.test(lower)) return "Apple";
   if (/hp|اچ ?پی|اچ‌پی/.test(lower)) return "HP";
-  if (/samsung|سامسونگ/.test(lower)) return "Samsung";
-  if (/xiaomi|شیائومی/.test(lower)) return "Xiaomi";
   if (/acer|ایسر/.test(lower)) return "Acer";
   if (/msi/.test(lower)) return "MSI";
+  if (/gigabyte|گیگابایت|aorus/.test(lower)) return "Gigabyte";
+  if (/corsair|کورسیر/.test(lower)) return "Corsair";
+  if (/kingston|کینگستون/.test(lower)) return "Kingston";
+  if (/crucial|کروشیال/.test(lower)) return "Crucial";
+  if (/samsung|سامسونگ/.test(lower)) return "Samsung";
+  if (/xiaomi|شیائومی/.test(lower)) return "Xiaomi";
+  if (/western\s*digital|وسترن\s*دیجیتال|\bwd\b/.test(lower)) return "Western Digital";
+  if (/seagate|سیگیت/.test(lower)) return "Seagate";
+  if (/cooler\s*master|کولر\s*مستر/.test(lower)) return "Cooler Master";
+  if (/green|گرین/.test(lower)) return "Green";
+  if (/\bintel\b|اینتل/.test(lower)) return "Intel";
+  if (/\bamd\b|ای\s*ام\s*دی/.test(lower)) return "AMD";
+  if (/nvidia|انویدیا/.test(lower)) return "NVIDIA";
   return fallback;
 }
 
