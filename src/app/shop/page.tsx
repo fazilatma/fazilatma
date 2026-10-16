@@ -236,8 +236,8 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
     const partKeywords: Record<string, string[]> = {
       cpu: ["پردازنده", "cpu", "intel", "amd", "ryzen", "core i"],
       gpu: ["کارت گرافیک", "gpu", "geforce", "radeon", "rtx", "gtx"],
-      ram: ["رم کامپیوتر", "حافظه رم", "رم دسکتاپ", "ماژول رم", "ram", "ddr4", "ddr5"],
-      ssd: ["ssd", "nvme", "حافظه"],
+      ram: ["رم کامپیوتر", "حافظه رم", "رم دسکتاپ", "ماژول رم", "ram module", "memory module"],
+      ssd: ["ssd", "nvme", "solid state", "هارد اس اس دی"],
       motherboard: ["مادربرد", "motherboard"],
       power: ["پاور", "منبع تغذیه", "power supply", "psu"],
       case: ["کیس", "case"],
@@ -248,7 +248,7 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   }
   if (partGroup) {
     const groupKeywords: Record<string, string[]> = {
-      memory: ["حافظه رم", "رم کامپیوتر", "رم دسکتاپ", "ram", "ddr4", "ddr5", "ssd", "nvme"],
+      memory: ["حافظه رم", "رم کامپیوتر", "رم دسکتاپ", "ماژول رم", "ram module", "memory module", "ssd", "nvme", "solid state"],
       platform: ["پردازنده", "cpu", "intel", "amd", "ryzen", "core i", "مادربرد", "motherboard"],
       "graphics-power": ["کارت گرافیک", "gpu", "geforce", "radeon", "rtx", "gtx", "پاور", "منبع تغذیه", "power supply", "psu"],
       "case-cooling": ["کیس", "case", "خنک", "cooler", "فن", "خمیر سیلیکون"],
