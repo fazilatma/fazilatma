@@ -87,6 +87,22 @@ function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduc
   } satisfies JsonStoreProduct;
 }
 
+function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: JsonStoreProduct) {
+  const merged = mergeLowestPrice(existing, candidate);
+  return {
+    ...merged,
+    price: candidate.price,
+    originalPrice:
+      candidate.originalPrice && candidate.originalPrice > candidate.price
+        ? candidate.originalPrice
+        : undefined,
+    priceUpdatedAt: candidate.priceUpdatedAt,
+    marketReferenceNote: candidate.marketReferenceNote,
+    externalSourceUrl: candidate.externalSourceUrl,
+    priceHistory: mergeStorePriceHistory(existing.priceHistory, candidate.priceHistory),
+  } satisfies JsonStoreProduct;
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
@@ -153,7 +169,7 @@ export async function POST(request: Request) {
     for (const product of aggregated) {
       const matchIndex = findMatchingStoreProductIndex(data.storeProducts, product);
       if (matchIndex >= 0) {
-        data.storeProducts[matchIndex] = mergeLowestPrice(data.storeProducts[matchIndex], product);
+        data.storeProducts[matchIndex] = applyCurrentAggregatedPrice(data.storeProducts[matchIndex], product);
         updated += 1;
         continue;
       }
