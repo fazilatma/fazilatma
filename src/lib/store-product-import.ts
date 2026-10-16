@@ -671,10 +671,10 @@ const digikalaCategorySources: Record<ProductImportCategoryKey, { query: string;
   mobile: { query: "گوشی موبایل", slugs: ["mobile-phone"] },
   tablet: { query: "تبلت", slugs: ["tablet"] },
   desktop: { query: "کامپیوتر آماده", slugs: ["desktop-computer", "all-in-one"] },
-  components: { query: "قطعات کامپیوتر", slugs: ["computer-parts"] },
+  components: { query: "قطعات کامپیوتر", slugs: [] },
   accessories: { query: "لوازم جانبی کامپیوتر", slugs: ["computer-accessories"] },
   monitor: { query: "مانیتور", slugs: ["monitor"] },
-  storage: { query: "SSD هارد", slugs: ["ssd", "internal-hard-drive", "external-hard-drive"] },
+  storage: { query: "SSD هارد NVMe", slugs: [] },
   gaming: { query: "لپ تاپ گیمینگ RTX", slugs: ["gaming-laptop", "gaming-accessories"] },
   console: { query: "کنسول بازی", slugs: ["game-console"] },
   network: { query: "مودم روتر شبکه", slugs: ["network-products"] },
@@ -798,6 +798,7 @@ async function fetchDigikalaApi(url: string) {
       ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
       : undefined;
   const response = await fetch(url, {
+    redirect: "manual",
     headers: {
       "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       accept: "application/json, text/plain, */*",
@@ -918,10 +919,17 @@ export async function scanStoreProductsFromUrl(
           warnings,
         };
       }
-      warnings.push("ربات دیجی‌کالا محصولی پیدا نکرد؛ روش عمومی اسکن صفحه ادامه پیدا کرد.");
+      warnings.push("جستجوی مستقیم دیجی‌کالا محصولی پیدا نکرد. برای این دسته یک CSV خروجی Easy Scraper یا لینک دسته‌بندی دقیق‌تر امتحان کنید.");
     } catch (error) {
       warnings.push(`ربات دیجی‌کالا اجرا نشد: ${error instanceof Error ? error.message : "خطا"}`);
     }
+    return {
+      sourceUrl,
+      sourceHost,
+      scannedUrls,
+      products: [],
+      warnings,
+    };
   }
 
   const queue: string[] = [sourceUrl];
