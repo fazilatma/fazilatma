@@ -18,6 +18,7 @@ import {
 import { useLiveContent } from "@/hooks/useLiveContent";
 import type { CatalogCategory } from "@/lib/catalog-categories";
 import { parseSourceLinks } from "@/lib/source-link-parser";
+import { scanDigikalaComponentsInBrowser } from "@/lib/digikala-client-import";
 
 const indicatorOptions = [
   { id: "sma", label: "SMA", description: "میانگین متحرک ساده ۷ و ۲۰ روزه" },
@@ -857,26 +858,105 @@ export default function AdminDashboardClient({
           storeComputerPartsSourceUrl: sourceText,
         }),
       });
-      const response = await fetch("/api/admin/store-products/import-multiple", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          links: sourceLinks,
-          limit: 500,
-          priceMultiplier: productImportPriceMultiplier,
-        }),
+
+      const digikalaLinks = sourceLinks.filter((link) => {
+        try {
+          return /(^|\.)digikala\.com$/i.test(new URL(link).hostname.replace(/^www\./i, ""));
+        } catch {
+          return false;
+        }
       });
-      const result = await readJsonResponse(response, "درون‌ریزی قطعات کامپیوتر ناموفق بود.");
-      if (!result.success) throw new Error(result.message || "محصول قطعه‌ای از لینک پیدا نشد.");
+      const serverLinks = sourceLinks.filter((link) => !digikalaLinks.includes(link));
+      const warnings: string[] = [];
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+      let activeStoreProducts = 0;
+      let scannedProducts = 0;
+      let scannedPages = 0;
+
+      // APIهای دیجی‌کالا IP ورکر Cloudflare را redirect می‌کنند، اما در مرورگر
+      // مدیر قابل دسترسی‌اند. اسکن در مرورگر انجام و فقط دادهٔ استانداردشده، دسته‌ای ذخیره می‌شود.
+      if (digikalaLinks.length > 0) {
+        setProductImportMessage("در حال خواندن مستقیم زیرگروه‌های پردازنده، گرافیک، رم، مادربرد، حافظه، پاور و کیس از دیجی‌کالا...");
+        const scan = await scanDigikalaComponentsInBrowser({
+          maxProducts: 5_000,
+          maxPagesPerCategory: 45,
+          concurrency: 3,
+          onProgress: (progress) => setProductImportMessage(progress.message),
+        });
+        warnings.push(...scan.warnings);
+        scannedProducts = scan.products.length;
+        scannedPages = scan.scannedPages;
+        if (scan.products.length === 0) {
+          throw new Error(
+            `مرورگر نتوانست محصولات قیمت‌دار دیجی‌کالا را بخواند.${scan.warnings.length ? ` جزئیات: ${scan.warnings.slice(0, 2).join("؛ ")}` : ""}`,
+          );
+        }
+
+        const batchSize = 350;
+        for (let cursor = 0; cursor < scan.products.length; cursor += batchSize) {
+          const batch = scan.products.slice(cursor, cursor + batchSize);
+          setProductImportMessage(
+            `${scan.products.length.toLocaleString("fa-IR")} محصول پیدا شد؛ در حال ذخیره دستهٔ ${(Math.floor(cursor / batchSize) + 1).toLocaleString("fa-IR")} از ${Math.ceil(scan.products.length / batchSize).toLocaleString("fa-IR")}...`,
+          );
+          const response = await fetch("/api/admin/store-products/import-csv", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              products: batch,
+              strategy: "merge",
+              priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
+              categoryFilters: ["components", "storage"],
+              sourceLabel: "digikala-browser-category-scan",
+            }),
+          });
+          const result = await readJsonResponse(response, "ثبت دستهٔ محصولات دیجی‌کالا ناموفق بود.");
+          if (!result.success) throw new Error(result.message || "ثبت دستهٔ محصولات دیجی‌کالا ناموفق بود.");
+          created += Number(result.created || 0);
+          updated += Number(result.updated || 0);
+          skipped += Number(result.skipped || 0);
+          activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
+          if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+        }
+      }
+
+      if (serverLinks.length > 0) {
+        setProductImportMessage("در حال بررسی سایر لینک‌های مرجع...");
+        const response = await fetch("/api/admin/store-products/import-multiple", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            links: serverLinks,
+            limit: 500,
+            priceMultiplier: productImportPriceMultiplier,
+          }),
+        });
+        const result = await readJsonResponse(response, "درون‌ریزی سایر لینک‌های قطعات ناموفق بود.");
+        if (!result.success) {
+          if (scannedProducts === 0) throw new Error(result.message || "محصول قطعه‌ای از لینک‌ها پیدا نشد.");
+          warnings.push(result.message || "یکی از لینک‌های دیگر خوانده نشد.");
+        } else {
+          created += Number(result.created || 0);
+          updated += Number(result.updated || 0);
+          skipped += Number(result.duplicatesRemoved || 0);
+          activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
+          if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+        }
+      }
+
       setPlatformFinance((current) => ({
         ...current,
         storeComputerPartsCatalogEnabled: true,
         storeComputerPartsSourceUrl: sourceText,
       }));
-      setProductImportWarnings(result.warnings || []);
-      setProductImportPreview(result.products || []);
-      setProductImportPreviewSource("link");
-      const message = `${result.message || "قطعات کامپیوتر وارد شدند."} اکنون ${Number(result.activeStoreProducts || 0).toLocaleString("fa-IR")} محصول فعال در فروشگاه وجود دارد.`;
+      setProductImportWarnings([...new Set(warnings)].slice(0, 30));
+      setProductImportPreview([]);
+      setProductImportPreviewSource("");
+      const scanText = scannedProducts
+        ? `${scannedProducts.toLocaleString("fa-IR")} محصول قیمت‌دار از ${scannedPages.toLocaleString("fa-IR")} صفحهٔ زیرگروه‌های اصلی دیجی‌کالا خوانده شد. `
+        : "";
+      const message = `${scanText}${created.toLocaleString("fa-IR")} محصول اضافه، ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی و ${skipped.toLocaleString("fa-IR")} مورد تکراری/نامعتبر حذف شد. اکنون ${activeStoreProducts.toLocaleString("fa-IR")} محصول فعال در فروشگاه وجود دارد.`;
       setProductImportMessage(message);
       alert(message);
     } catch (error) {
@@ -2503,7 +2583,7 @@ export default function AdminDashboardClient({
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    لینک دسته‌بندی ترب و دیجی‌کالا به‌صورت چندصفحه‌ای خوانده می‌شود و در هر اجرا تا ۵۰۰ محصول مرتبط از هر لینک دریافت می‌گردد. محصولات تکراری بین همهٔ صفحه‌ها و لینک‌ها فقط یک‌بار ذخیره می‌شوند.
+                    برای لینک قطعات دیجی‌کالا، هشت زیرگروه اصلی پردازنده، گرافیک، رم، مادربرد، SSD، هارد، پاور و کیس مستقیماً در همین مرورگر و تا ۵٬۰۰۰ محصول قیمت‌دار خوانده می‌شود؛ سپس محصولات به‌صورت دسته‌ای و بدون تکرار ذخیره می‌شوند. عدد کل صفحهٔ والد دیجی‌کالا شامل هزاران لوازم جانبی و قطعات یدکی خارج از این هشت گروه نیز هست.
                   </div>
 
                   <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">

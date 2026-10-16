@@ -186,7 +186,7 @@ function normalizeDraftPayload(value: unknown): ImportedStoreProductDraft | null
   const record = value as Record<string, unknown>;
   const title = String(record.title || "").trim().slice(0, 180);
   const price = Number(record.price);
-  if (!title || !Number.isFinite(price) || price < 100_000 || price > 1_000_000_000) return null;
+  if (!title || !Number.isFinite(price) || price < 100_000 || price > 1_500_000_000) return null;
   const rawSpecs = record.specs && typeof record.specs === "object" && !Array.isArray(record.specs)
     ? record.specs as Record<string, unknown>
     : {};

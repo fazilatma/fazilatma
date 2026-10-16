@@ -343,7 +343,7 @@ function buildHref(
 ) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([paramKey, rawValue]) => {
-    if (paramKey === key || options?.clearKeys?.includes(paramKey)) return;
+    if (paramKey === key || (paramKey === "page" && key !== "page") || options?.clearKeys?.includes(paramKey)) return;
     const valueToKeep = Array.isArray(rawValue) ? rawValue[0] : rawValue;
     if (valueToKeep) query.set(paramKey, valueToKeep);
   });
@@ -503,6 +503,17 @@ export default async function ShopPage({
   );
   const filteredProducts = products.filter((product) => matchesFilter(product, params));
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
+  const pageSize = 60;
+  const requestedPage = Math.max(1, Math.floor(Number(getParam(params, "page") || 1)));
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
+  const paginationStart = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  const paginationPages = Array.from(
+    { length: Math.min(5, totalPages) },
+    (_, index) => paginationStart + index,
+  );
   const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
   const quickCategoryItems = computerPartsOnly ? computerPartsCategoryItems : laptopCategoryItems;
   const firstImageByPart = new Map<string, JsonStoreProduct>();
@@ -526,7 +537,7 @@ export default async function ShopPage({
     name: shopSeoSubject(params),
     description: "لیست محصولات فروشگاه لپ‌تاپ OptiBid با قیمت، مشخصات فنی و امکان ثبت سفارش آنلاین.",
     url: currentShopPath,
-    items: filteredProducts.slice(0, 24).map((product) => ({
+    items: visibleProducts.slice(0, 24).map((product) => ({
       name: product.title,
       url: `/shop/${product.slug}`,
     })),
@@ -559,7 +570,7 @@ export default async function ShopPage({
             className="mt-6 max-w-3xl rounded-[1.5rem] border border-slate-200 bg-slate-50 p-2 shadow-sm"
           >
             {Object.entries(params).flatMap(([key, rawValue]) => {
-              if (key === "q") return [];
+              if (key === "q" || key === "page") return [];
               const values = Array.isArray(rawValue) ? rawValue : [rawValue];
               return values.map((value, index) =>
                 value ? <input key={`${key}-${index}`} type="hidden" name={key} value={value} /> : null,
@@ -723,11 +734,47 @@ export default async function ShopPage({
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredProducts.map((product) => (
+              {visibleProducts.map((product) => (
                 <StoreProductCard key={product.id} product={product} />
               ))}
             </div>
           )}
+
+          {filteredProducts.length > pageSize ? (
+            <nav
+              aria-label="صفحه‌بندی محصولات"
+              className="mt-6 flex flex-col items-center justify-between gap-3 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:flex-row"
+            >
+              <p className="text-xs font-bold text-slate-500">
+                نمایش {(pageStart + 1).toLocaleString("fa-IR")} تا {Math.min(pageStart + pageSize, filteredProducts.length).toLocaleString("fa-IR")} از {filteredProducts.length.toLocaleString("fa-IR")} کالا
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Link
+                  href={buildHref(params, "page", String(Math.max(1, currentPage - 1)))}
+                  aria-disabled={currentPage === 1}
+                  className={`rounded-xl px-3 py-2 text-xs font-black ring-1 ring-slate-200 ${currentPage === 1 ? "pointer-events-none bg-slate-50 text-slate-300" : "bg-white text-slate-700 hover:bg-rose-50 hover:text-rose-600"}`}
+                >
+                  قبلی
+                </Link>
+                {paginationPages.map((page) => (
+                  <Link
+                    key={page}
+                    href={buildHref(params, "page", String(page))}
+                    className={`grid h-9 min-w-9 place-items-center rounded-xl px-2 text-xs font-black ${page === currentPage ? "bg-rose-600 text-white" : "bg-slate-50 text-slate-600 hover:bg-rose-50 hover:text-rose-600"}`}
+                  >
+                    {page.toLocaleString("fa-IR")}
+                  </Link>
+                ))}
+                <Link
+                  href={buildHref(params, "page", String(Math.min(totalPages, currentPage + 1)))}
+                  aria-disabled={currentPage === totalPages}
+                  className={`rounded-xl px-3 py-2 text-xs font-black ring-1 ring-slate-200 ${currentPage === totalPages ? "pointer-events-none bg-slate-50 text-slate-300" : "bg-white text-slate-700 hover:bg-rose-50 hover:text-rose-600"}`}
+                >
+                  بعدی
+                </Link>
+              </div>
+            </nav>
+          ) : null}
 
           <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">

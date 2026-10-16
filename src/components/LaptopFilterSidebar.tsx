@@ -16,7 +16,7 @@ const getParam = (params: LaptopFilterParams, key: string) => {
 function buildHref(params: LaptopFilterParams, key: string, value: string) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([paramKey, rawValue]) => {
-    if (paramKey === key) return;
+    if (paramKey === key || paramKey === "page") return;
     const valueToKeep = Array.isArray(rawValue) ? rawValue[0] : rawValue;
     if (valueToKeep) query.set(paramKey, valueToKeep);
   });
@@ -31,7 +31,7 @@ function priceHref(
 ) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, rawValue]) => {
-    if (["minPrice", "maxPrice"].includes(key)) return;
+    if (["minPrice", "maxPrice", "page"].includes(key)) return;
     const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
     if (value) query.set(key, value);
   });
@@ -336,7 +336,7 @@ function PriceFilter({ params }: { params: LaptopFilterParams }) {
       <div className="mt-3 space-y-3">
         <form action="/shop" method="get" className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           {Object.entries(params).flatMap(([key, rawValue]) => {
-            if (key === "minPrice" || key === "maxPrice") return [];
+            if (key === "minPrice" || key === "maxPrice" || key === "page") return [];
             const values = Array.isArray(rawValue) ? rawValue : [rawValue];
             return values.map((value, index) => value
               ? <input key={`${key}-${index}`} type="hidden" name={key} value={value} />
