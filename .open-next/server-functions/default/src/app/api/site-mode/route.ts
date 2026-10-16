@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
-import { getJsonSiteMode } from "@/lib/json-store";
+import { getJsonSiteMode, getJsonStoreCatalogSettings } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const siteMode = await getJsonSiteMode();
+  const [siteMode, catalog] = await Promise.all([
+    getJsonSiteMode(),
+    getJsonStoreCatalogSettings(),
+  ]);
   return NextResponse.json({
     success: true,
     siteMode,
+    storeLaptopCatalogEnabled: catalog.laptopEnabled,
+    storeComputerPartsCatalogEnabled: catalog.computerPartsEnabled,
     label: siteMode === "store" ? "فروشگاه اینترنتی" : "درخواست خرید",
   });
 }

@@ -45,11 +45,22 @@ const slides = [
 export default function StoreAdSlider({
   slides: configuredSlides,
   fallbackImageUrl = "",
+  focus = "laptop",
 }: {
   slides?: HomepageImageSliderSlide[];
   fallbackImageUrl?: string;
+  focus?: "laptop" | "components";
 }) {
-  const activeSlide = slides[0];
+  const activeSlide = focus === "components"
+    ? {
+        ...slides[0],
+        eyebrow: "ویژه قطعات کامپیوتر",
+        title: "قطعات کامپیوتر برای سیستم اقتصادی تا حرفه‌ای",
+        text: "پردازنده، کارت گرافیک، مادربرد، رم، حافظه و پاور را با مشخصات و قیمت قابل مقایسه انتخاب کنید.",
+        href: "/shop?category=computer-parts",
+        cta: "مشاهده همه قطعات",
+      }
+    : slides[0];
   const configuredImage = configuredSlides?.[1]?.isActive !== false
     ? configuredSlides?.[1]?.image
     : undefined;
@@ -88,7 +99,7 @@ export default function StoreAdSlider({
           {activeSlide.text}
         </div>
         <div className="mt-2.5 flex flex-wrap gap-2">
-          {slides.map((slide) => (
+          {[activeSlide, ...slides.slice(1)].map((slide) => (
             <Link
               key={slide.id}
               href={slide.href}

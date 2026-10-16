@@ -157,6 +157,16 @@ function storeLaptopHref(label: string) {
       .slice(0, 70) || "shop",
   );
   const withFragment = (href: string) => `${href}#${fragment}`;
+  const partsBase = "/shop?category=computer-parts";
+  if (text.includes("کارت گرافیک") || text.includes("gpu") || text.includes("rtx") || text.includes("gtx") || text.includes("radeon")) return withFragment(`${partsBase}&part=gpu`);
+  if (text.includes("مادربرد") || text.includes("motherboard")) return withFragment(`${partsBase}&part=motherboard`);
+  if (text.includes("پردازنده") || text.includes("intel") || text.includes("amd") || text.includes("ryzen") || text.includes("core ultra")) return withFragment(`${partsBase}&part=cpu`);
+  if (text.includes("رم کامپیوتر") || text.includes("ram") || text.includes("ddr")) return withFragment(`${partsBase}&part=ram`);
+  if (text.includes("ssd") || text.includes("هارد")) return withFragment(`${partsBase}&part=ssd`);
+  if (text.includes("پاور") || text.includes("منبع تغذیه")) return withFragment(`${partsBase}&part=power`);
+  if (text.includes("خنک") || text.includes("فن کیس") || text.includes("خمیر سیلیکون")) return withFragment(`${partsBase}&part=cooler`);
+  if (text === "کیس" || text.includes("کیس کامپیوتر")) return withFragment(`${partsBase}&part=case`);
+  if (text.includes("قطعات")) return withFragment(partsBase);
   if (text.includes("لنوو") || text.includes("thinkpad") || text.includes("legion")) return withFragment("/shop?brand=Lenovo");
   if (text.includes("اچ") || text.includes("hp") || text.includes("elitebook")) return withFragment("/shop?brand=HP");
   if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return withFragment("/shop?brand=Dell");
@@ -255,6 +265,8 @@ export default function Header() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [previousUserRole, setPreviousUserRole] = useState<string | null>(null);
   const [siteMode, setSiteMode] = useState<"store" | "request">("store");
+  const [laptopCatalogEnabled, setLaptopCatalogEnabled] = useState(false);
+  const [computerPartsCatalogEnabled, setComputerPartsCatalogEnabled] = useState(true);
   const [cartCount, setCartCount] = useState(0);
   const [headerCategories, setHeaderCategories] = useState<CatalogCategory[]>(
     defaultCatalogCategories,
@@ -280,6 +292,8 @@ export default function Header() {
       .then((result) => {
         if (result.success && (result.siteMode === "store" || result.siteMode === "request")) {
           setSiteMode(result.siteMode);
+          setLaptopCatalogEnabled(result.storeLaptopCatalogEnabled === true);
+          setComputerPartsCatalogEnabled(result.storeComputerPartsCatalogEnabled !== false);
         }
       })
       .catch(() => undefined);
@@ -342,6 +356,11 @@ export default function Header() {
     sessionStorage.removeItem("redirectAfterAuth");
   };
 
+  const visibleStoreTopNavMenus = storeTopNavMenus.filter((menu) => {
+    if (menu.title === "لپ‌تاپ") return laptopCatalogEnabled;
+    if (menu.title === "قطعات کامپیوتر") return computerPartsCatalogEnabled;
+    return true;
+  });
   const visibleHeaderCategories = (
     siteMode === "store" ? storeLaptopCategories : headerCategories
   ).filter((category) => category.isActive !== false);
@@ -408,13 +427,17 @@ export default function Header() {
             </div>
           </Link>            <div className="group relative hidden py-5 md:block">
               <Link
-                href={siteMode === "store" ? "/shop#store-categories" : "/categories"}
+                href={siteMode === "store" ? (computerPartsCatalogEnabled && !laptopCatalogEnabled ? "/shop?category=computer-parts" : "/shop#store-categories") : "/categories"}
                 className="flex items-center gap-1 text-gray-900 hover:text-green-600 transition font-black"
               >
                 <span className="text-lg leading-none">☰</span>{" "}
-                {siteMode === "store" ? "دسته‌بندی لپ‌تاپ‌ها" : "دسته‌بندی کالاها"}
+                {siteMode === "store"
+                  ? computerPartsCatalogEnabled && !laptopCatalogEnabled
+                    ? "دسته‌بندی قطعات"
+                    : "دسته‌بندی لپ‌تاپ‌ها"
+                  : "دسته‌بندی کالاها"}
               </Link>
-              <div className="invisible absolute right-0 top-full z-50 w-[840px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+              <div className={computerPartsCatalogEnabled && !laptopCatalogEnabled ? "hidden" : "invisible absolute right-0 top-full z-50 w-[840px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100"}>
                 <div className="grid min-h-[420px] grid-cols-12">
                   <div className="col-span-4 max-h-[70vh] overflow-y-auto border-l border-gray-100 bg-gray-50 p-3">
                     {visibleHeaderCategories.map((category) => {
@@ -483,7 +506,7 @@ export default function Header() {
           <div className="hidden md:flex items-center space-x-5 space-x-reverse">
             {siteMode === "store" ? (
               <>
-                {storeTopNavMenus.map((menu) => (
+                {visibleStoreTopNavMenus.map((menu) => (
                   <StoreTopNavItem key={menu.title} menu={menu} />
                 ))}
                 <Link

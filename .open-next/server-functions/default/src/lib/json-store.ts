@@ -821,6 +821,9 @@ export type OptiBidJsonData = {
   supportChatMessages: JsonSupportChatMessage[];
   settings: {
     siteMode: SiteMode;
+    storeLaptopCatalogEnabled: boolean;
+    storeComputerPartsCatalogEnabled: boolean;
+    storeComputerPartsSourceUrl: string;
     storeHeroSliderEnabled: boolean;
     storeHeroSliderDurationSeconds: number;
     storeHeroSliderSlides: HomepageImageSliderSlide[];
@@ -937,6 +940,9 @@ const emptyData = (): OptiBidJsonData => ({
   supportChatMessages: [],
   settings: {
     siteMode: "store",
+    storeLaptopCatalogEnabled: false,
+    storeComputerPartsCatalogEnabled: true,
+    storeComputerPartsSourceUrl: "",
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: defaultStoreHeroSliderSlides,
@@ -1441,6 +1447,16 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         (parsed.settings as { siteMode?: SiteMode } | undefined)?.siteMode === "request"
           ? "request"
           : "store",
+      storeLaptopCatalogEnabled:
+        (parsed.settings as { storeLaptopCatalogEnabled?: boolean } | undefined)
+          ?.storeLaptopCatalogEnabled === true,
+      storeComputerPartsCatalogEnabled:
+        (parsed.settings as { storeComputerPartsCatalogEnabled?: boolean } | undefined)
+          ?.storeComputerPartsCatalogEnabled !== false,
+      storeComputerPartsSourceUrl: String(
+        (parsed.settings as { storeComputerPartsSourceUrl?: string } | undefined)
+          ?.storeComputerPartsSourceUrl || "",
+      ).trim().slice(0, 500),
       storeHeroSliderEnabled:
         (parsed.settings as { storeHeroSliderEnabled?: boolean } | undefined)
           ?.storeHeroSliderEnabled !== false,
@@ -4313,6 +4329,8 @@ export async function updateJsonPlatformFinanceSettings(
       "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.";
 
   const booleanHomepageKeys = [
+    "storeLaptopCatalogEnabled",
+    "storeComputerPartsCatalogEnabled",
     "storeHeroSliderEnabled",
     "homepageShowStats",
     "homepageShowCategories",
@@ -4330,6 +4348,7 @@ export async function updateJsonPlatformFinanceSettings(
     "homepageShowFinalCta",
   ];
   const stringHomepageKeys = [
+    "storeComputerPartsSourceUrl",
     "homepageHeroTitle",
     "homepageHeroSubtitle",
     "homepageCategoriesTitle",
@@ -4408,6 +4427,15 @@ export async function updateJsonPlatformFinanceSettings(
 export async function getJsonSiteMode(): Promise<SiteMode> {
   const data = await getOptiBidData();
   return data.settings.siteMode === "request" ? "request" : "store";
+}
+
+export async function getJsonStoreCatalogSettings() {
+  const data = await getOptiBidData();
+  return {
+    laptopEnabled: data.settings.storeLaptopCatalogEnabled,
+    computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
+    computerPartsSourceUrl: data.settings.storeComputerPartsSourceUrl,
+  };
 }
 
 export async function getJsonStoreProducts() {

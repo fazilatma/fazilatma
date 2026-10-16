@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalog-categories";
 import type { ProductValuationFactors } from "@/lib/request-valuation";
 import { buildSeoMetadata } from "@/lib/seo";
+import { filterProductsByCatalogSections } from "@/lib/store-catalog-sections";
 import {
   getJsonBuyerRankings,
   getJsonHomepageStats,
@@ -107,6 +108,8 @@ export default async function HomePage() {
   let storeProducts: JsonStoreProduct[] = [];
   let storeHeroSlides: HomepageImageSliderSlide[] = [];
   let storeHeroDurationSeconds = 5;
+  let storeLaptopCatalogEnabled = false;
+  let storeComputerPartsCatalogEnabled = true;
   let amazingSettings = {
     enabled: true,
     durationHours: 6,
@@ -195,8 +198,16 @@ export default async function HomePage() {
 
     realStats = stats;
     siteMode = data.settings.siteMode === "request" ? "request" : "store";
-    storeProducts = (data.storeProducts || []).filter(
-      (product) => product.isActive && product.stock > 0,
+    storeLaptopCatalogEnabled = data.settings.storeLaptopCatalogEnabled;
+    storeComputerPartsCatalogEnabled = data.settings.storeComputerPartsCatalogEnabled;
+    storeProducts = filterProductsByCatalogSections(
+      (data.storeProducts || []).filter(
+        (product) => product.isActive && product.stock > 0,
+      ),
+      {
+        laptopEnabled: storeLaptopCatalogEnabled,
+        computerPartsEnabled: storeComputerPartsCatalogEnabled,
+      },
     );
     storeHeroSlides = data.settings.storeHeroSliderSlides || [];
     storeHeroDurationSeconds = data.settings.storeHeroSliderDurationSeconds || 5;
@@ -379,6 +390,8 @@ export default async function HomePage() {
         products={storeProducts}
         heroSlides={storeHeroSlides}
         heroDurationSeconds={storeHeroDurationSeconds}
+        laptopCatalogEnabled={storeLaptopCatalogEnabled}
+        computerPartsCatalogEnabled={storeComputerPartsCatalogEnabled}
       />
     );
   }

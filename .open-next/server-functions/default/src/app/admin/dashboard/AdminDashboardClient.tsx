@@ -249,6 +249,9 @@ export default function AdminDashboardClient({
       "جایگاه تبلیغات، نردبان درخواست و کمپین‌های ویژه لپ‌تاپ و کامپیوتر دست‌دوم",
     homepageImageSliderDurationSeconds: 5,
     homepageImageSliderSlides: [] as HomepageImageSliderSlide[],
+    storeLaptopCatalogEnabled: false,
+    storeComputerPartsCatalogEnabled: true,
+    storeComputerPartsSourceUrl: "",
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
@@ -312,6 +315,7 @@ export default function AdminDashboardClient({
   >({});
   const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
   const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
+  const [savingStoreCatalog, setSavingStoreCatalog] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
   const [productImportLimit, setProductImportLimit] = useState(50);
   const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
@@ -536,6 +540,36 @@ export default function AdminDashboardClient({
           ? error.message
           : "ذخیره تنظیمات مالی ناموفق بود.",
       );
+    }
+  };
+
+  const saveStoreCatalogSettings = async () => {
+    if (
+      !platformFinance.storeLaptopCatalogEnabled &&
+      !platformFinance.storeComputerPartsCatalogEnabled
+    ) {
+      alert("حداقل یکی از بخش‌های لپ‌تاپ یا قطعات کامپیوتر باید فعال باشد.");
+      return;
+    }
+    setSavingStoreCatalog(true);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
+          storeComputerPartsCatalogEnabled: Boolean(platformFinance.storeComputerPartsCatalogEnabled),
+          storeComputerPartsSourceUrl: String(platformFinance.storeComputerPartsSourceUrl || "").trim(),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات فروشگاه ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      alert("تنظیمات نمایش لپ‌تاپ و قطعات کامپیوتر ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات فروشگاه ناموفق بود.");
+    } finally {
+      setSavingStoreCatalog(false);
     }
   };
 
@@ -787,6 +821,19 @@ export default function AdminDashboardClient({
     setProductImportCsvDrafts([]);
     setProductImportPreviewSource("");
     setProductImportSelectedKeys([]);
+  };
+
+  const useComputerPartsSource = () => {
+    const sourceUrl = String(platformFinance.storeComputerPartsSourceUrl || "").trim();
+    if (!sourceUrl) {
+      alert("ابتدا لینک مرجع قطعات کامپیوتر را وارد و ذخیره کنید.");
+      return;
+    }
+    setProductImportUrl(sourceUrl);
+    setProductImportCategories(["components"]);
+    setProductImportScanMode("full-site");
+    clearProductImportPreviewState();
+    setProductImportMessage("لینک مرجع قطعات در فرم قرار گرفت؛ اکنون «اسکن و پیش‌نمایش» را بزنید.");
   };
 
   const setProductImportCategoriesAndReset = (categories: string[]) => {
@@ -2049,6 +2096,75 @@ export default function AdminDashboardClient({
                     <p className="mt-2 text-sm leading-7 text-gray-500">
                       از CSV خروجی Easy Scraper یا لینک صفحه محصول/دسته‌بندی استفاده کنید؛ فیلتر دسته کالا برای هر دو روش اعمال می‌شود تا فقط همان گروه‌های انتخاب‌شده وارد فروشگاه شوند.
                     </p>
+                  </div>
+
+                  <div className="mb-5 rounded-3xl border border-cyan-200 bg-cyan-50/60 p-5">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-black text-cyan-950">فعال‌سازی بخش‌های فروشگاه</h3>
+                      <p className="mt-1 text-xs leading-6 text-cyan-800">
+                        فعلاً می‌توانید فروشگاه را روی قطعات کامپیوتر متمرکز کنید و هر زمان خواستید بخش لپ‌تاپ را دوباره فعال کنید.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-cyan-100 bg-white p-4">
+                        <span>
+                          <b className="block text-sm text-slate-900">بخش لپ‌تاپ و نوت‌بوک</b>
+                          <span className="mt-1 block text-xs text-slate-500">نمایش محصولات و بخش‌های مخصوص لپ‌تاپ</span>
+                        </span>
+                        <span className={`relative h-7 w-12 rounded-full transition ${platformFinance.storeLaptopCatalogEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(platformFinance.storeLaptopCatalogEnabled)}
+                            onChange={(event) => updatePlatformFinanceField("storeLaptopCatalogEnabled", event.target.checked)}
+                            className="sr-only"
+                          />
+                          <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeLaptopCatalogEnabled ? "left-1" : "left-6"}`} />
+                        </span>
+                      </label>
+                      <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-cyan-100 bg-white p-4">
+                        <span>
+                          <b className="block text-sm text-slate-900">بخش قطعات کامپیوتر</b>
+                          <span className="mt-1 block text-xs text-slate-500">پردازنده، مادربرد، کارت گرافیک، رم، پاور و سایر قطعات</span>
+                        </span>
+                        <span className={`relative h-7 w-12 rounded-full transition ${platformFinance.storeComputerPartsCatalogEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(platformFinance.storeComputerPartsCatalogEnabled)}
+                            onChange={(event) => updatePlatformFinanceField("storeComputerPartsCatalogEnabled", event.target.checked)}
+                            className="sr-only"
+                          />
+                          <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeComputerPartsCatalogEnabled ? "left-1" : "left-6"}`} />
+                        </span>
+                      </label>
+                    </div>
+                    <label className="mt-4 block text-sm font-bold text-slate-800">
+                      لینک مرجع ورود و قیمت قطعات کامپیوتر
+                      <input
+                        type="url"
+                        value={platformFinance.storeComputerPartsSourceUrl || ""}
+                        onChange={(event) => updatePlatformFinanceField("storeComputerPartsSourceUrl", event.target.value)}
+                        placeholder="https://example.com/computer-parts یا لینک دسته‌بندی/سایت‌مپ"
+                        className="mt-2 w-full rounded-xl border border-cyan-200 bg-white px-4 py-3 text-left outline-none focus:ring-2 focus:ring-cyan-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={savingStoreCatalog}
+                        onClick={saveStoreCatalogSettings}
+                        className="rounded-xl bg-cyan-700 px-5 py-3 text-sm font-black text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                      >
+                        {savingStoreCatalog ? "در حال ذخیره..." : "ذخیره وضعیت بخش‌ها و لینک مرجع"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={useComputerPartsSource}
+                        className="rounded-xl border border-cyan-300 bg-white px-5 py-3 text-sm font-black text-cyan-800 hover:bg-cyan-50"
+                      >
+                        انتقال لینک به ربات درون‌ریزی قطعات
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mb-5 rounded-3xl border border-red-100 bg-red-50/60 p-4">

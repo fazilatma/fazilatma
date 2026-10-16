@@ -16,13 +16,29 @@ export default function StorefrontHome({
   products,
   heroSlides,
   heroDurationSeconds,
+  laptopCatalogEnabled = true,
+  computerPartsCatalogEnabled = false,
 }: {
   products: JsonStoreProduct[];
   heroSlides?: HomepageImageSliderSlide[];
   heroDurationSeconds?: number;
+  laptopCatalogEnabled?: boolean;
+  computerPartsCatalogEnabled?: boolean;
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
   const bannerProducts = products.filter((product) => Boolean(product.imageUrl)).slice(0, 2);
+  const computerPartsOnly = computerPartsCatalogEnabled && !laptopCatalogEnabled;
+  const effectiveHeroSlides = computerPartsOnly
+    ? (heroSlides || []).map((slide, index) => index === 0
+        ? {
+            ...slide,
+            title: "خرید آنلاین قطعات کامپیوتر با مقایسه مشخصات و قیمت",
+            subtitle: "پردازنده، مادربرد، کارت گرافیک، رم، SSD، پاور و قطعات موردنیاز سیستم را یکجا بررسی و مقایسه کنید.",
+            cta: "مشاهده همه قطعات",
+            href: "/shop?category=computer-parts",
+          }
+        : slide)
+    : heroSlides;
   const collectionRows = laptopCollectionItems.map((collection) => ({
     collection,
     products: getLaptopCollectionProducts(products, collection.slug).slice(0, 3),
@@ -52,16 +68,19 @@ export default function StorefrontHome({
         <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="min-w-0 space-y-5">
             <StoreHeroSlider
-              slides={heroSlides}
+              slides={effectiveHeroSlides}
               durationSeconds={heroDurationSeconds}
               fallbackImageUrl={bannerProducts[0]?.imageUrl}
+              focus={computerPartsOnly ? "components" : "laptop"}
             />
             <StoreAdSlider
-              slides={heroSlides}
+              slides={effectiveHeroSlides}
               fallbackImageUrl={bannerProducts[1]?.imageUrl || bannerProducts[0]?.imageUrl}
+              focus={computerPartsOnly ? "components" : "laptop"}
             />
-            <StoreLaptopBrandSlider />
-            <SmartLaptopPickStrip />
+            {laptopCatalogEnabled && <StoreLaptopBrandSlider />}
+            {computerPartsCatalogEnabled && <StoreComputerPartsSlider />}
+            {laptopCatalogEnabled && <SmartLaptopPickStrip />}
             <SpecialOfferCarousel
               products={specialOfferProducts.length > 0 ? specialOfferProducts : featured}
             />
@@ -77,49 +96,39 @@ export default function StorefrontHome({
                 مسیرهای سریع خرید
               </span>
               <h2 className="mt-3 text-2xl font-black text-slate-900">
-                پیشنهاد خرید بر اساس بودجه و کاربری
+                {computerPartsOnly ? "پیشنهاد خرید قطعات بر اساس نوع سیستم" : "پیشنهاد خرید بر اساس بودجه و کاربری"}
               </h2>
               <div className="mt-2 text-sm leading-7 text-slate-500">
-                مسیرهای آماده برای رسیدن سریع به لپ‌تاپ مناسب دانشجویی، اداری، مهندسی یا گیمینگ.
+                {computerPartsOnly
+                  ? "مسیرهای آماده برای انتخاب قطعات سیستم اقتصادی، اداری، حرفه‌ای یا گیمینگ."
+                  : "مسیرهای آماده برای رسیدن سریع به لپ‌تاپ مناسب دانشجویی، اداری، مهندسی یا گیمینگ."}
               </div>
             </div>
-            <Link href="/shop?ref=budget-use#budget-use" className="text-sm font-black text-emerald-700">
-              مشاهده همه مدل‌ها ←
+            <Link href={computerPartsOnly ? "/shop?category=computer-parts" : "/shop?ref=budget-use#budget-use"} className="text-sm font-black text-emerald-700">
+              مشاهده همه محصولات ←
             </Link>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <QuickPathCard
-              title="اقتصادی و دانشجویی"
-              text="مدل‌های سبک، قیمت منطقی و مناسب کلاس، وب‌گردی و کار روزمره."
-              href="/shop?use=student&maxPrice=45000000&ref=student-budget"
-              icon="🎓"
-              color="emerald"
-            />
-            <QuickPathCard
-              title="اداری و شرکتی"
-              text="لپ‌تاپ‌های پایدار برای حسابداری، آفیس، جلسات و استفاده طولانی."
-              href="/shop?use=business&ram=16GB&ref=business-ram"
-              icon="💼"
-              color="blue"
-            />
-            <QuickPathCard
-              title="مهندسی و طراحی"
-              text="پردازنده قوی، رم بالاتر و SSD پرسرعت برای نرم‌افزارهای تخصصی."
-              href="/shop?use=engineering&ram=16GB&ref=engineering-ram"
-              icon="🧮"
-              color="amber"
-            />
-            <QuickPathCard
-              title="گیمینگ و تدوین"
-              text="مدل‌های RTX و گرافیک مجزا برای بازی، تدوین و کارهای سنگین."
-              href="/shop?use=gaming&gpuType=rtx&ref=gaming-rtx"
-              icon="🎮"
-              color="rose"
-            />
+            {computerPartsOnly ? (
+              <>
+                <QuickPathCard title="سیستم اقتصادی" text="پردازنده و مادربرد اقتصادی، رم مناسب و SSD برای کارهای روزمره." href="/shop?category=computer-parts&part=cpu&maxPrice=20000000" icon="💰" color="emerald" />
+                <QuickPathCard title="سیستم اداری" text="قطعات پایدار و کم‌مصرف برای آفیس، حسابداری و کار مداوم." href="/shop?category=computer-parts&part=motherboard" icon="💼" color="blue" />
+                <QuickPathCard title="سیستم حرفه‌ای" text="پردازنده چند‌هسته‌ای، رم بیشتر و حافظه سریع برای کار تخصصی." href="/shop?category=computer-parts&part=cpu" icon="⚙️" color="amber" />
+                <QuickPathCard title="سیستم گیمینگ" text="کارت گرافیک، پاور و خنک‌کننده مناسب برای بازی و پردازش سنگین." href="/shop?category=computer-parts&part=gpu" icon="🎮" color="rose" />
+              </>
+            ) : (
+              <>
+                <QuickPathCard title="اقتصادی و دانشجویی" text="مدل‌های سبک، قیمت منطقی و مناسب کلاس، وب‌گردی و کار روزمره." href="/shop?use=student&maxPrice=45000000&ref=student-budget" icon="🎓" color="emerald" />
+                <QuickPathCard title="اداری و شرکتی" text="لپ‌تاپ‌های پایدار برای حسابداری، آفیس، جلسات و استفاده طولانی." href="/shop?use=business&ram=16GB&ref=business-ram" icon="💼" color="blue" />
+                <QuickPathCard title="مهندسی و طراحی" text="پردازنده قوی، رم بالاتر و SSD پرسرعت برای نرم‌افزارهای تخصصی." href="/shop?use=engineering&ram=16GB&ref=engineering-ram" icon="🧮" color="amber" />
+                <QuickPathCard title="گیمینگ و تدوین" text="مدل‌های RTX و گرافیک مجزا برای بازی، تدوین و کارهای سنگین." href="/shop?use=gaming&gpuType=rtx&ref=gaming-rtx" icon="🎮" color="rose" />
+              </>
+            )}
           </div>
         </div>
       </section>
 
+      {laptopCatalogEnabled && (
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
@@ -142,8 +151,10 @@ export default function StorefrontHome({
           </div>
         </div>
       </section>
+      )}
 
 
+      {laptopCatalogEnabled && (
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-900">
@@ -162,6 +173,7 @@ export default function StorefrontHome({
           </div>
         </div>
       </section>
+      )}
       <section className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {collectionRows.map(({ collection, products: rowProducts }) => (
           <StoreCollectionRow
@@ -172,6 +184,7 @@ export default function StorefrontHome({
         ))}
       </section>
 
+      {laptopCatalogEnabled && (
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
@@ -191,7 +204,9 @@ export default function StorefrontHome({
           <QuickPathCard title="استوک تمیز" text="انتخاب‌های کارکرده و استوک با تمرکز روی مهلت تست و سلامت کالا." href="/shop?condition=stock&ref=selected-stock#selected-stock" icon="🧪" color="amber" />
         </div>
       </section>
+      )}
 
+      {laptopCatalogEnabled && (
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
@@ -220,6 +235,7 @@ export default function StorefrontHome({
           </div>
         </div>
       </section>
+      )}
     </div>
   );
 }
@@ -235,6 +251,41 @@ const brandCircleItems = [
   { title: "SSD", subtitle: "سرعت بالا", href: "/shop?ssd=512GB&ref=ssd", color: "from-emerald-500 to-teal-700" },
   { title: "i7", subtitle: "حرفه‌ای", href: "/shop?cpu=i7&ref=cpu-i7", color: "from-violet-500 to-[#003b5c]" },
 ];
+
+const computerPartItems = [
+  { title: "CPU", subtitle: "پردازنده", href: "/shop?category=computer-parts&part=cpu", color: "from-blue-500 to-indigo-700" },
+  { title: "GPU", subtitle: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", color: "from-rose-500 to-orange-600" },
+  { title: "RAM", subtitle: "حافظه رم", href: "/shop?category=computer-parts&part=ram", color: "from-violet-500 to-fuchsia-700" },
+  { title: "SSD", subtitle: "حافظه پرسرعت", href: "/shop?category=computer-parts&part=ssd", color: "from-emerald-500 to-teal-700" },
+  { title: "MB", subtitle: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", color: "from-cyan-500 to-blue-700" },
+  { title: "PSU", subtitle: "پاور", href: "/shop?category=computer-parts&part=power", color: "from-amber-500 to-orange-700" },
+  { title: "CASE", subtitle: "کیس", href: "/shop?category=computer-parts&part=case", color: "from-slate-500 to-slate-800" },
+  { title: "COOL", subtitle: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", color: "from-sky-500 to-cyan-700" },
+];
+
+function StoreComputerPartsSlider() {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">انتخاب سریع قطعات</span>
+          <h2 className="mt-2 text-xl font-black text-slate-900">دسته‌بندی قطعات کامپیوتر</h2>
+        </div>
+        <Link href="/shop?category=computer-parts" className="text-xs font-black text-rose-600 md:text-sm">مشاهده همه قطعات ←</Link>
+      </div>
+      <div className="flex gap-3 overflow-x-auto scroll-smooth pb-1">
+        {computerPartItems.map((item) => (
+          <Link key={item.title} href={item.href} className="group w-32 shrink-0 text-center">
+            <div className={`mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br ${item.color} p-[3px] shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-lg`}>
+              <div className="grid h-full w-full place-items-center rounded-full bg-white text-lg font-black text-slate-800">{item.title}</div>
+            </div>
+            <span className="mt-2 block text-xs font-black text-slate-700">{item.subtitle}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function StoreLaptopBrandSlider() {
   return (

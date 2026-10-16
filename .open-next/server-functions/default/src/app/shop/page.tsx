@@ -3,7 +3,12 @@ import Link from "next/link";
 import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
-import { getJsonStoreProducts, type JsonStoreProduct } from "@/lib/json-store";
+import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
+import {
+  filterProductsByCatalogSections,
+  isComputerPartsCatalogProduct,
+  isLaptopCatalogProduct,
+} from "@/lib/store-catalog-sections";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 
@@ -16,6 +21,17 @@ type FilterOption = {
   value: string;
   hint?: string;
 };
+
+const computerPartsCategoryItems = [
+  { title: "پردازنده", href: "/shop?category=computer-parts&part=cpu", badge: "CPU" },
+  { title: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", badge: "GPU" },
+  { title: "حافظه رم", href: "/shop?category=computer-parts&part=ram", badge: "RAM" },
+  { title: "حافظه SSD", href: "/shop?category=computer-parts&part=ssd", badge: "SSD" },
+  { title: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", badge: "MB" },
+  { title: "پاور", href: "/shop?category=computer-parts&part=power", badge: "PSU" },
+  { title: "کیس", href: "/shop?category=computer-parts&part=case", badge: "CASE" },
+  { title: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", badge: "COOL" },
+];
 
 const getParam = (params: ShopSearchParams, key: string) => {
   const value = params[key];
@@ -202,6 +218,25 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const minPrice = Number(getParam(params, "minPrice") || 0);
   const maxPrice = Number(getParam(params, "maxPrice") || 0);
   const tags = productFilterTags(product);
+  const catalogCategory = getParam(params, "category");
+  const part = getParam(params, "part").toLowerCase();
+
+  if (catalogCategory === "computer-parts" && !isComputerPartsCatalogProduct(product)) return false;
+  if (catalogCategory === "laptop" && !isLaptopCatalogProduct(product)) return false;
+  if (part) {
+    const partKeywords: Record<string, string[]> = {
+      cpu: ["پردازنده", "cpu", "intel", "amd", "ryzen", "core i"],
+      gpu: ["کارت گرافیک", "gpu", "geforce", "radeon", "rtx", "gtx"],
+      ram: ["رم کامپیوتر", "ram", "ddr4", "ddr5"],
+      ssd: ["ssd", "nvme", "حافظه"],
+      motherboard: ["مادربرد", "motherboard"],
+      power: ["پاور", "منبع تغذیه", "power supply", "psu"],
+      case: ["کیس", "case"],
+      cooler: ["خنک", "cooler", "فن پردازنده", "خمیر سیلیکون"],
+    };
+    const keywords = partKeywords[part] || [];
+    if (keywords.length && !keywords.some((keyword) => text.includes(keyword))) return false;
+  }
 
   if (getParam(params, "available") === "1" && product.stock <= 0) return false;
   if (brand && product.brand !== brand) return false;
@@ -410,8 +445,17 @@ export default async function ShopPage({
   searchParams: Promise<ShopSearchParams>;
 }) {
   const params = await searchParams;
-  const products = await getJsonStoreProducts();
+  const data = await getOptiBidData();
+  const products = filterProductsByCatalogSections(
+    data.storeProducts.filter((product) => product.isActive && product.stock > 0),
+    {
+      laptopEnabled: data.settings.storeLaptopCatalogEnabled,
+      computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
+    },
+  );
   const filteredProducts = products.filter((product) => matchesFilter(product, params));
+  const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
+  const quickCategoryItems = computerPartsOnly ? computerPartsCategoryItems : laptopCategoryItems;
   const brands = Array.from(new Set(products.map((product) => product.brand)));
   const firstImageByBrand = new Map<string, JsonStoreProduct>();
   for (const product of products) {
@@ -441,19 +485,22 @@ export default async function ShopPage({
             فروشگاه اینترنتی OptiBid
           </span>
           <h1 className="mt-4 text-3xl font-black text-slate-900 md:text-4xl">
-            خرید لپ‌تاپ و کامپیوتر
+            {computerPartsOnly ? "خرید قطعات کامپیوتر" : "خرید لپ‌تاپ و کامپیوتر"}
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            لیست مدل‌های منتخب با امکان مقایسه مشخصات فنی، گارانتی تست، قیمت و ثبت سفارش آنلاین.
+            {computerPartsOnly
+              ? "پردازنده، مادربرد، کارت گرافیک، رم، حافظه، پاور و سایر قطعات را با قیمت و مشخصات مقایسه کنید."
+              : "لیست مدل‌های منتخب با امکان مقایسه مشخصات فنی، گارانتی تست، قیمت و ثبت سفارش آنلاین."}
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pt-7 sm:px-6 lg:px-8">
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
-          {laptopCategoryItems.map((item) => {
-            const brandProduct = item.brand
-              ? firstImageByBrand.get(item.brand.toLowerCase())
+          {quickCategoryItems.map((item) => {
+            const itemBrand = "brand" in item ? item.brand : undefined;
+            const brandProduct = itemBrand
+              ? firstImageByBrand.get(itemBrand.toLowerCase())
               : undefined;
             return (
               <Link
@@ -461,17 +508,23 @@ export default async function ShopPage({
                 href={item.href}
                 className="group min-w-[126px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50"
               >
-                <div className="relative mx-auto mb-3 h-12 w-20 overflow-hidden rounded-xl bg-white">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="h-8 w-16 rounded-t-lg border-[5px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
-                    <div className="h-1.5 w-[76px] rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
-                  </div>
-                  {brandProduct?.imageUrl && (
-                    <StoreProductRemoteImage
-                      src={brandProduct.imageUrl}
-                      alt={`لپ‌تاپ ${item.brand}؛ ${brandProduct.title}`}
-                      className="absolute inset-0 z-10 h-full w-full bg-white object-contain p-0.5"
-                    />
+                <div className="relative mx-auto mb-3 grid h-12 w-20 place-items-center overflow-hidden rounded-xl bg-white">
+                  {computerPartsOnly ? (
+                    <span className="text-sm font-black text-[#003b5c]">{item.badge}</span>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <div className="h-8 w-16 rounded-t-lg border-[5px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
+                        <div className="h-1.5 w-[76px] rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
+                      </div>
+                      {brandProduct?.imageUrl && (
+                        <StoreProductRemoteImage
+                          src={brandProduct.imageUrl}
+                          alt={`لپ‌تاپ ${itemBrand}؛ ${brandProduct.title}`}
+                          className="absolute inset-0 z-10 h-full w-full bg-white object-contain p-0.5"
+                        />
+                      )}
+                    </>
                   )}
                 </div>
                 {item.badge && (

@@ -1,12 +1,23 @@
 import Link from "next/link";
+import { getJsonStoreCatalogSettings } from "@/lib/json-store";
 
-const quickLinks = [
+const laptopQuickLinks = [
   { href: "/shop?ref=brand-search#brand-search", label: "همه لپ‌تاپ‌ها" },
   { href: "/shop?use=business&ref=business#static-header", label: "اداری" },
   { href: "/shop?use=student&ref=student#static-header", label: "دانشجویی" },
   { href: "/shop?use=gaming&ref=gaming#static-header", label: "گیمینگ" },
   { href: "/shop?condition=stock&ref=stock#static-header", label: "استوک" },
   { href: "/shop/collections/special-offers", label: "فروش ویژه" },
+  { href: "/support?ref=static-header", label: "پشتیبانی" },
+];
+
+const computerPartsQuickLinks = [
+  { href: "/shop?category=computer-parts", label: "همه قطعات" },
+  { href: "/shop?category=computer-parts&part=cpu", label: "پردازنده" },
+  { href: "/shop?category=computer-parts&part=gpu", label: "کارت گرافیک" },
+  { href: "/shop?category=computer-parts&part=motherboard", label: "مادربرد" },
+  { href: "/shop?category=computer-parts&part=ram", label: "رم" },
+  { href: "/shop?category=computer-parts&part=ssd", label: "SSD" },
   { href: "/support?ref=static-header", label: "پشتیبانی" },
 ];
 
@@ -23,7 +34,11 @@ function Logo() {
   );
 }
 
-export default function StoreStaticHeader() {
+export default async function StoreStaticHeader() {
+  const catalog = await getJsonStoreCatalogSettings();
+  const quickLinks = catalog.computerPartsEnabled && !catalog.laptopEnabled
+    ? computerPartsQuickLinks
+    : laptopQuickLinks;
   return (
     <header dir="rtl" className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
