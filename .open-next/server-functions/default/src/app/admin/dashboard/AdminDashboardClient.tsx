@@ -862,7 +862,7 @@ export default function AdminDashboardClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           links: sourceLinks,
-          limit: 50,
+          limit: 500,
           priceMultiplier: productImportPriceMultiplier,
         }),
       });
@@ -2503,7 +2503,7 @@ export default function AdminDashboardClient({
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    نکته: این نسخه روی Cloudflare Worker اجرا می‌شود و برای جلوگیری از خطای محدودیت منابع، در هر بار تا ۵۰ محصول را امن اسکن می‌کند. برای واردسازی هزاران محصول، باید همین ربات را روی سرور اختصاصی/Python Worker مرحله‌ای اجرا کنیم.
+                    لینک دسته‌بندی ترب و دیجی‌کالا به‌صورت چندصفحه‌ای خوانده می‌شود و در هر اجرا تا ۵۰۰ محصول مرتبط از هر لینک دریافت می‌گردد. محصولات تکراری بین همهٔ صفحه‌ها و لینک‌ها فقط یک‌بار ذخیره می‌شوند.
                   </div>
 
                   <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">

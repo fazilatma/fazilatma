@@ -51,21 +51,52 @@ function modelTokens(title: string) {
   return expanded;
 }
 
-function findMultiSourceMatch(products: JsonStoreProduct[], candidate: JsonStoreProduct) {
-  if (candidate.externalSourceUrl) {
-    const exactUrl = products.findIndex((product) => product.externalSourceUrl === candidate.externalSourceUrl);
-    if (exactUrl >= 0) return exactUrl;
-  }
-  const identity = storeProductIdentityKey(candidate);
-  const exactIdentity = products.findIndex((product) => storeProductIdentityKey(product) === identity);
-  if (exactIdentity >= 0) return exactIdentity;
+type ProductMatchIndex = {
+  urls: Map<string, number>;
+  identities: Map<string, number>;
+  models: Map<string, number>;
+};
 
-  const candidateModels = modelTokens(candidate.title);
-  if (candidateModels.size === 0) return -1;
-  return products.findIndex((product) => {
-    const existingModels = modelTokens(product.title);
-    return [...candidateModels].some((token) => existingModels.has(token));
-  });
+function addProductToMatchIndex(index: ProductMatchIndex, product: JsonStoreProduct, productIndex: number) {
+  if (product.externalSourceUrl && !index.urls.has(product.externalSourceUrl)) {
+    index.urls.set(product.externalSourceUrl, productIndex);
+  }
+  const identity = storeProductIdentityKey(product);
+  if (!index.identities.has(identity)) index.identities.set(identity, productIndex);
+  for (const model of modelTokens(product.title)) {
+    if (!index.models.has(model)) index.models.set(model, productIndex);
+  }
+}
+
+function createProductMatchIndex(products: JsonStoreProduct[]) {
+  const index: ProductMatchIndex = {
+    urls: new Map(),
+    identities: new Map(),
+    models: new Map(),
+  };
+  products.forEach((product, productIndex) => addProductToMatchIndex(index, product, productIndex));
+  return index;
+}
+
+function findMultiSourceMatch(
+  products: JsonStoreProduct[],
+  candidate: JsonStoreProduct,
+  matchIndex?: ProductMatchIndex,
+) {
+  const index = matchIndex || createProductMatchIndex(products);
+  if (candidate.externalSourceUrl) {
+    const exactUrl = index.urls.get(candidate.externalSourceUrl);
+    if (exactUrl !== undefined) return exactUrl;
+  }
+  const exactIdentity = index.identities.get(storeProductIdentityKey(candidate));
+  if (exactIdentity !== undefined) return exactIdentity;
+
+  let earliestMatch = Number.POSITIVE_INFINITY;
+  for (const model of modelTokens(candidate.title)) {
+    const productIndex = index.models.get(model);
+    if (productIndex !== undefined && productIndex < earliestMatch) earliestMatch = productIndex;
+  }
+  return Number.isFinite(earliestMatch) ? earliestMatch : -1;
 }
 
 function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduct) {
@@ -133,11 +164,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const requestedLimit = Math.max(1, Math.min(50, Number(body.limit || 50)));
+    // منابع تخصصی ترب و دیجی‌کالا به‌صورت چندصفحه‌ای خوانده می‌شوند.
+    // سقف برای هر لینک است تا یک دستهٔ بزرگ به ۵۰ نتیجهٔ صفحهٔ اول محدود نشود.
+    const requestedLimit = Math.max(1, Math.min(500, Number(body.limit || 500)));
     const multiplier = normalizeMultiplier(body.priceMultiplier);
     const warnings: string[] = [];
     const scannedUrls: string[] = [];
     const aggregated: JsonStoreProduct[] = [];
+    const aggregatedMatchIndex = createProductMatchIndex(aggregated);
     let rawProducts = 0;
 
     for (const link of links) {
@@ -163,9 +197,14 @@ export async function POST(request: Request) {
 
       for (const draft of drafts) {
         const product = applyMultiplier(importedDraftToStoreProduct(draft), multiplier);
-        const matchIndex = findMultiSourceMatch(aggregated, product);
-        if (matchIndex >= 0) aggregated[matchIndex] = mergeLowestPrice(aggregated[matchIndex], product);
-        else aggregated.push(product);
+        const matchIndex = findMultiSourceMatch(aggregated, product, aggregatedMatchIndex);
+        if (matchIndex >= 0) {
+          aggregated[matchIndex] = mergeLowestPrice(aggregated[matchIndex], product);
+          addProductToMatchIndex(aggregatedMatchIndex, aggregated[matchIndex], matchIndex);
+        } else {
+          const productIndex = aggregated.push(product) - 1;
+          addProductToMatchIndex(aggregatedMatchIndex, product, productIndex);
+        }
       }
     }
 
@@ -186,10 +225,12 @@ export async function POST(request: Request) {
     let created = 0;
     let updated = 0;
     const existingSlugs = new Set(data.storeProducts.map((product) => product.slug));
+    const storedMatchIndex = createProductMatchIndex(data.storeProducts);
     for (const product of aggregated) {
-      const matchIndex = findMultiSourceMatch(data.storeProducts, product);
+      const matchIndex = findMultiSourceMatch(data.storeProducts, product, storedMatchIndex);
       if (matchIndex >= 0) {
         data.storeProducts[matchIndex] = applyCurrentAggregatedPrice(data.storeProducts[matchIndex], product);
+        addProductToMatchIndex(storedMatchIndex, data.storeProducts[matchIndex], matchIndex);
         updated += 1;
         continue;
       }
@@ -200,7 +241,8 @@ export async function POST(request: Request) {
         suffix += 1;
       }
       existingSlugs.add(candidate.slug);
-      data.storeProducts.push(candidate);
+      const productIndex = data.storeProducts.push(candidate) - 1;
+      addProductToMatchIndex(storedMatchIndex, candidate, productIndex);
       created += 1;
     }
     await writeOptiBidData(data);

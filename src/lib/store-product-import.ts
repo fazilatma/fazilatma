@@ -283,7 +283,7 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey | "
   if (/router|modem|network|switch|مودم|روتر|شبکه|سوییچ|کابل شبکه/.test(lower)) return "network";
   if (/console|playstation|xbox|nintendo|ps5|ps4|کنسول|پلی.?استیشن|ایکس.?باکس/.test(lower)) return "console";
   if (/ssd|hdd|hard|storage|flash|memory card|هارد|حافظه|فلش|مموری/.test(lower)) return "storage";
-  if (/cpu|processor|gpu|graphics|motherboard|ram|power\s*supply|case|cooler|پردازنده|کارت گرافیک|مادربرد|رم کامپیوتر|پاور کامپیوتر|منبع تغذیه|کیس|خنک/.test(lower)) return "components";
+  if (/cpu|processor|gpu|graphics|motherboard|ram|power\s*supply|computer\s*case|computer\s*chassis|cooler|thermal\s*paste|sound\s*card|پردازنده|کارت گرافیک|مادربرد|رم کامپیوتر|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک|فن(?:\s|$)|خمیر (?:حرارتی|سیلیکون)|کارت صدا|قطعات کامپیوتر/.test(lower)) return "components";
   if (/mouse|keyboard|ماوس|کیبورد|پد ماوس/.test(lower)) return "accessories";
   if (/gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (/desktop|all.?in.?one|mini.?pc|pc |computer|کیس آماده|کامپیوتر|مینی.?پی.?سی|آل.?این.?وان/.test(lower)) return "desktop";
@@ -747,7 +747,19 @@ function draftFromDigikalaRecord(
     description: firstText(data.description, data.review?.description, title).slice(0, 900) || title,
     price,
     originalPrice: originalPrice > price ? originalPrice : undefined,
-    imageUrl: safeImageUrl(firstText(data.images, data.image, data.image_url, data.imageUrl), url) || undefined,
+    imageUrl: safeImageUrl(
+      firstText(
+        data.images?.main?.url,
+        data.images?.main?.webp_url,
+        data.images?.list?.[0]?.url,
+        data.images?.list?.[0]?.webp_url,
+        data.images,
+        data.image,
+        data.image_url,
+        data.imageUrl,
+      ),
+      url,
+    ) || undefined,
     stock: firstText(data.default_variant?.status, data.status).toLowerCase().includes("out") ? 0 : 5,
     specs,
     externalSourceUrl: url,
@@ -757,6 +769,15 @@ function draftFromDigikalaRecord(
 }
 
 function digikalaRecordsFromJson(json: unknown): Record<string, unknown>[] {
+  const directProducts = (json as any)?.data?.products;
+  if (Array.isArray(directProducts)) {
+    return directProducts.filter(
+      (item): item is Record<string, unknown> => Boolean(item && typeof item === "object"),
+    );
+  }
+
+  // پاسخ بعضی endpointهای قدیمی ساختار متفاوتی دارد؛ فقط در آن حالت
+  // به جستجوی بازگشتی و پرهزینه در کل JSON برمی‌گردیم.
   const records: Record<string, unknown>[] = [];
   const visited = new Set<object>();
   const visit = (value: unknown, depth = 0) => {
@@ -821,50 +842,53 @@ async function scanDigikalaRobot(
   limit: number,
   warnings: string[],
 ) {
-  const sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, "");
+  const parsedSource = new URL(sourceUrl);
+  const sourceHost = parsedSource.hostname.replace(/^www\./, "");
+  const sourceCategorySlug = parsedSource.pathname.match(/\/search\/category-([a-z0-9-]+)\/?/i)?.[1] || "";
   const categories = selectedCategories.length
     ? selectedCategories
     : (["laptop", "mobile", "tablet", "components", "accessories", "monitor", "gaming", "console"] as ProductImportCategoryKey[]);
-  const maxApiCalls = 3;
-  const activeCategories = categories.slice(0, maxApiCalls);
-  if (categories.length > activeCategories.length) {
-    warnings.push(`برای جلوگیری از سقف زیر‌درخواست‌های Cloudflare، در این نوبت حداکثر ${activeCategories.length} دسته از دیجی‌کالا جستجو می‌شود؛ برای بقیه دسته‌ها نوبت جداگانه اجرا کنید.`);
+  const activeCategories = categories.slice(0, 3);
+  if (!sourceCategorySlug && categories.length > activeCategories.length) {
+    warnings.push(`در این نوبت ${activeCategories.length.toLocaleString("fa-IR")} دستهٔ نخست دیجی‌کالا جستجو شد؛ برای دسته‌های دیگر نوبت جداگانه اجرا کنید.`);
   }
+
   const urls: Array<{ url: string; category: ProductImportCategoryKey }> = [];
-  const activeSources = activeCategories
-    .map((category) => ({ category, source: digikalaCategorySources[category] }))
-    .filter((item): item is { category: ProductImportCategoryKey; source: NonNullable<typeof item.source> } => Boolean(item.source));
+  const targetPages = Math.min(20, Math.max(3, Math.ceil(limit / 32) + 3));
 
-  // Start with one category endpoint per selected category, then spend the small
-  // request budget on alternate slugs and later pages to stay below Worker subrequest limits.
-  for (const { category, source } of activeSources) {
-    const slug = source.slugs[0];
-    if (slug) urls.push({ url: `https://api.digikala.com/v1/categories/${slug}/search/?page=1`, category });
-    else urls.push({ url: `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=1`, category });
-  }
-
-  for (const { category, source } of activeSources) {
-    for (const slug of source.slugs.slice(1)) {
-      if (urls.length >= maxApiCalls) break;
-      urls.push({ url: `https://api.digikala.com/v1/categories/${slug}/search/?page=1`, category });
+  if (sourceCategorySlug) {
+    const fallbackCategory = selectedCategories.includes("components")
+      ? "components"
+      : selectedCategories[0] || "components";
+    for (let page = 1; page <= targetPages; page += 1) {
+      urls.push({
+        url: `https://api.digikala.com/v1/categories/${sourceCategorySlug}/search/?page=${page}`,
+        category: fallbackCategory,
+      });
     }
-  }
-
-  for (const { category, source } of activeSources) {
-    const primarySlug = source.slugs[0];
-    for (let page = 2; page <= 3 && urls.length < maxApiCalls; page += 1) {
-      if (primarySlug) {
-        urls.push({ url: `https://api.digikala.com/v1/categories/${primarySlug}/search/?page=${page}`, category });
-      } else {
-        urls.push({ url: `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=${page}`, category });
+  } else {
+    const activeSources = activeCategories
+      .map((category) => ({ category, source: digikalaCategorySources[category] }))
+      .filter((item): item is { category: ProductImportCategoryKey; source: NonNullable<typeof item.source> } => Boolean(item.source));
+    const callsPerSource = Math.max(1, Math.floor(20 / Math.max(1, activeSources.length)));
+    for (let page = 1; page <= callsPerSource; page += 1) {
+      for (const { category, source } of activeSources) {
+        const primarySlug = source.slugs[0];
+        urls.push({
+          url: primarySlug
+            ? `https://api.digikala.com/v1/categories/${primarySlug}/search/?page=${page}`
+            : `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=${page}`,
+          category,
+        });
       }
     }
   }
 
   const drafts: ImportedStoreProductDraft[] = [];
   const scannedUrls: string[] = [];
-  for (let cursor = 0; cursor < urls.length && drafts.length < limit; cursor += 2) {
-    const batch = urls.slice(cursor, cursor + 2);
+  let reachedEnd = false;
+  for (let cursor = 0; cursor < urls.length && uniqueDrafts(drafts).length < limit && !reachedEnd; cursor += 3) {
+    const batch = urls.slice(cursor, cursor + 3);
     const results = await Promise.allSettled(batch.map((item) => fetchDigikalaApi(item.url)));
     for (let index = 0; index < results.length; index += 1) {
       const item = batch[index];
@@ -875,15 +899,21 @@ async function scanDigikalaRobot(
         continue;
       }
       const records = digikalaRecordsFromJson(result.value);
+      if (sourceCategorySlug && records.length === 0) reachedEnd = true;
       for (const record of records) {
         const draft = draftFromDigikalaRecord(record, sourceHost, item.category);
-        if (draft) drafts.push(draft);
-        if (drafts.length >= limit) break;
+        if (!draft) continue;
+        if (selectedCategories.length > 0 && !productMatchesImportCategories(draft, selectedCategories)) continue;
+        drafts.push(draft);
       }
     }
   }
 
-  return { drafts: uniqueDrafts(drafts).slice(0, limit), scannedUrls };
+  const unique = uniqueDrafts(drafts).slice(0, limit);
+  if (unique.length >= limit) {
+    warnings.push(`اسکن چندصفحه‌ای دیجی‌کالا به سقف ${limit.toLocaleString("fa-IR")} محصول مرتبط برای این لینک رسید.`);
+  }
+  return { drafts: unique, scannedUrls };
 }
 
 async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: string[]) {
@@ -891,8 +921,16 @@ async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: 
   const categoryId = parsedSource.pathname.match(/\/browse\/(\d+)/i)?.[1];
   if (!categoryId) return { drafts: [] as ImportedStoreProductDraft[], scannedUrls: [] as string[] };
 
-  const apiUrl = `https://api.torob.com/v4/base-product/search/?page=0&sort=popularity&size=${Math.min(50, limit)}&category=${categoryId}`;
-  try {
+  const pageSize = Math.min(100, Math.max(20, limit));
+  const pageCount = Math.min(8, Math.max(1, Math.ceil(limit / pageSize) + 2));
+  const apiUrls = Array.from(
+    { length: pageCount },
+    (_, page) => `https://api.torob.com/v4/base-product/search/?page=${page}&sort=popularity&size=${pageSize}&category=${categoryId}`,
+  );
+  const drafts: ImportedStoreProductDraft[] = [];
+  const scannedUrls: string[] = [];
+
+  const fetchPage = async (apiUrl: string) => {
     const timeoutSignal =
       typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
         ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
@@ -910,37 +948,54 @@ async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const raw = await response.text();
     const payload = parseJsonLoose(raw) as { results?: Array<Record<string, any>> } | null;
-    const records = Array.isArray(payload?.results) ? payload.results : [];
-    const drafts: ImportedStoreProductDraft[] = [];
-    for (const record of records) {
-      const title = firstText(record.name1, record.name2).slice(0, 180);
-      const price = normalizePriceToToman(record.price, "IRT");
-      if (!title || price < 100_000 || price > 1_500_000_000) continue;
-      const productUrl = absoluteUrl(firstText(record.web_client_absolute_url), "https://torob.com/");
-      const imageUrl = safeImageUrl(firstText(record.image_url, record.media_urls), productUrl);
-      const stockText = firstText(record.stock_status, record.price_text_mode).toLowerCase();
-      drafts.push({
-        title,
-        brand: brandFromTitle(title, "Torob"),
-        category: categoryFromTitle(title),
-        summary: title,
-        description: firstText(record.name2, record.name1).slice(0, 900) || title,
-        price,
-        stock: /ناموجود|inactive|out/.test(stockText) ? 0 : 5,
-        specs: { منبع: "torob.com" },
-        externalSourceUrl: productUrl,
-        imageUrl: imageUrl || undefined,
-        sourceHost: "torob.com",
-        currency: "IRT",
-      });
-      if (drafts.length >= limit) break;
+    return Array.isArray(payload?.results) ? payload.results : [];
+  };
+
+  let reachedEnd = false;
+  for (let cursor = 0; cursor < apiUrls.length && uniqueDrafts(drafts).length < limit && !reachedEnd; cursor += 3) {
+    const batch = apiUrls.slice(cursor, cursor + 3);
+    const results = await Promise.allSettled(batch.map(fetchPage));
+    for (let index = 0; index < results.length; index += 1) {
+      const apiUrl = batch[index];
+      const result = results[index];
+      scannedUrls.push(apiUrl);
+      if (result.status === "rejected") {
+        warnings.push(`خواندن صفحهٔ ترب ناموفق بود (${apiUrl}): ${result.reason instanceof Error ? result.reason.message : "خطا"}`);
+        continue;
+      }
+      const records = result.value;
+      if (records.length === 0) reachedEnd = true;
+      for (const record of records) {
+        const title = firstText(record.name1, record.name2).slice(0, 180);
+        const price = normalizePriceToToman(record.price, "IRT");
+        if (!title || price < 100_000 || price > 1_500_000_000) continue;
+        const productUrl = absoluteUrl(firstText(record.web_client_absolute_url), "https://torob.com/");
+        const imageUrl = safeImageUrl(firstText(record.image_url, record.media_urls), productUrl);
+        const stockText = firstText(record.stock_status, record.price_text_mode).toLowerCase();
+        drafts.push({
+          title,
+          brand: brandFromTitle(title, "Torob"),
+          category: categoryFromTitle(title),
+          summary: title,
+          description: firstText(record.name2, record.name1).slice(0, 900) || title,
+          price,
+          stock: /ناموجود|inactive|out/.test(stockText) ? 0 : 5,
+          specs: { منبع: "torob.com" },
+          externalSourceUrl: productUrl,
+          imageUrl: imageUrl || undefined,
+          sourceHost: "torob.com",
+          currency: "IRT",
+        });
+      }
     }
-    if (!drafts.length) warnings.push("API دسته‌بندی ترب محصول قیمت‌دار قابل استفاده‌ای برنگرداند.");
-    return { drafts: uniqueDrafts(drafts).slice(0, limit), scannedUrls: [apiUrl] };
-  } catch (error) {
-    warnings.push(`خواندن API دسته‌بندی ترب ناموفق بود: ${error instanceof Error ? error.message : "خطا"}`);
-    return { drafts: [] as ImportedStoreProductDraft[], scannedUrls: [apiUrl] };
   }
+
+  const unique = uniqueDrafts(drafts).slice(0, limit);
+  if (!unique.length) warnings.push("API دسته‌بندی ترب محصول قیمت‌دار قابل استفاده‌ای برنگرداند.");
+  if (unique.length >= limit) {
+    warnings.push(`اسکن چندصفحه‌ای ترب به سقف ${limit.toLocaleString("fa-IR")} محصول برای این لینک رسید.`);
+  }
+  return { drafts: unique, scannedUrls };
 }
 
 export async function scanStoreProductsFromUrl(
@@ -949,15 +1004,18 @@ export async function scanStoreProductsFromUrl(
 ): Promise<StoreProductImportScanResult> {
   const sourceUrl = new URL(inputUrl).toString();
   if (!/^https?:$/i.test(new URL(sourceUrl).protocol)) throw new Error("فقط لینک‌های http/https قابل درون‌ریزی هستند.");
-  const sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, "");
-  const limit = Math.max(1, Math.min(50, Number(options.limit || (options.fullSite ? 50 : 20))));
+  const parsedSource = new URL(sourceUrl);
+  const sourceHost = parsedSource.hostname.replace(/^www\./, "");
+  const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
+  const isTorobBrowseSource = /(^|\.)torob\.com$/i.test(sourceHost) && /\/browse\/\d+/i.test(parsedSource.pathname);
+  const specializedLimit = isDigikalaSource || isTorobBrowseSource ? 500 : 50;
+  const defaultLimit = options.fullSite ? specializedLimit : 20;
+  const limit = Math.max(1, Math.min(specializedLimit, Number(options.limit || defaultLimit)));
   const maxPages = Math.max(limit, Math.min(100, Number(options.maxPages || limit + 30)));
   const warnings: string[] = [];
   const scannedUrls: string[] = [];
   const allDrafts: ImportedStoreProductDraft[] = [];
   const selectedCategories = options.categoryFilters || [];
-  const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
-  const isTorobBrowseSource = /(^|\.)torob\.com$/i.test(sourceHost) && /\/browse\/\d+/i.test(new URL(sourceUrl).pathname);
 
   if (isTorobBrowseSource) {
     const robot = await scanTorobBrowseRobot(sourceUrl, limit, warnings);
