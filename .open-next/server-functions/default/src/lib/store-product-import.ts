@@ -561,10 +561,13 @@ async function fetchText(url: string) {
       ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
       : undefined;
   const response = await fetch(url, {
+    redirect: "follow",
     headers: {
       "user-agent":
-        "Mozilla/5.0 (compatible; OptiBidProductImporter/1.0; +https://optibid.ir)",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
+      "cache-control": "no-cache",
     },
     signal: timeoutSignal,
   });
@@ -824,6 +827,119 @@ function digikalaRecordsFromJson(json: unknown): Record<string, unknown>[] {
   return output;
 }
 
+function formattedPricesFromText(value: string) {
+  const normalized = toEnglishDigits(decodeHtml(value));
+  const prices = [...normalized.matchAll(/\d{1,3}(?:[٬،٫,.]\d{3}){1,4}/g)]
+    .map((match) => Number((match[0] || "").replace(/[٬،٫,.]/g, "")))
+    .filter((price) => Number.isFinite(price) && price >= 100_000 && price <= 1_500_000_000);
+  return [...new Set(prices)].sort((a, b) => a - b);
+}
+
+function htmlAttribute(tag: string, name: string) {
+  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, "i"));
+  return decodeHtml(match?.[2] || "").trim();
+}
+
+function productTitleFromSlug(productUrl: string) {
+  try {
+    const path = decodeURIComponent(new URL(productUrl).pathname);
+    const slug = path.split("/").filter(Boolean).at(-1) || "";
+    return slug.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 180);
+  } catch {
+    return "";
+  }
+}
+
+function imageFromProductCard(cardHtml: string, nearbyHtml: string, pageUrl: string) {
+  for (const match of cardHtml.matchAll(/<img\b[^>]*>/gi)) {
+    const tag = match[0] || "";
+    const alt = htmlAttribute(tag, "alt");
+    const src = htmlAttribute(tag, "src") || htmlAttribute(tag, "data-src");
+    if (!src || /badge|logo|icon|svg/i.test(src)) continue;
+    if (alt || /digikala-products|image\.torob\.com/i.test(src)) {
+      const safe = safeImageUrl(src, pageUrl);
+      if (safe) return safe.replace(/_\/(?:0x\d+|\d+x\d+)\.(?:jpg|webp)(?:\?.*)?$/i, "");
+    }
+  }
+  const nearbyImages = [...nearbyHtml.matchAll(/https:\/\/(?:image\.torob\.com|dkstatics-public\.digikala\.com)\/[^"'\\s<>]+/gi)];
+  const raw = decodeHtml(nearbyImages.at(-1)?.[0] || "");
+  return safeImageUrl(raw.replace(/_\/(?:0x\d+|\d+x\d+)\.(?:jpg|webp)(?:\?.*)?$/i, ""), pageUrl);
+}
+
+function titleFromProductCard(cardHtml: string, productUrl: string, source: "digikala" | "torob") {
+  for (const heading of cardHtml.matchAll(/<h[1-4]\b[^>]*>([\s\S]*?)<\/h[1-4]>/gi)) {
+    const title = stripTags(heading[1] || "");
+    if (title.length >= 5) return title.slice(0, 180);
+  }
+  const altTitles = [...cardHtml.matchAll(/<img\b[^>]*>/gi)]
+    .map((match) => htmlAttribute(match[0] || "", "alt"))
+    .filter((title) => title.length >= 5 && !/فروش ویژه|badge|logo|icon/i.test(title))
+    .map((title) => title.replace(/^تصویر\s+/, "").trim());
+  if (altTitles.length) return altTitles.sort((a, b) => b.length - a.length)[0].slice(0, 180);
+
+  const text = stripTags(cardHtml)
+    .replace(/(?:کارکرده\s*)?(?:از\s*)?[\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]*\s*تومان[\s\S]*$/i, "")
+    .replace(/تنها\s+\d+\s+عدد[\s\S]*$/i, "")
+    .trim();
+  if (text.length >= 5 && text.length <= 220) return text.slice(0, 180);
+  const slugTitle = productTitleFromSlug(productUrl);
+  return source === "torob" ? slugTitle.replace(/^p\s+/, "") : slugTitle;
+}
+
+function productCardDraftsFromHtml(
+  html: string,
+  pageUrl: string,
+  source: "digikala" | "torob",
+): ImportedStoreProductDraft[] {
+  const sourceHost = source === "digikala" ? "digikala.com" : "torob.com";
+  const linkPattern = source === "digikala" ? "\\/product\\/dkp-\\d+" : "\\/p\\/[a-f0-9-]+";
+  const anchorPattern = new RegExp(
+    `<a\\b([^>]*\\bhref=["']([^"']*${linkPattern}[^"']*)["'][^>]*)>([\\s\\S]*?)<\\/a>`,
+    "gi",
+  );
+  const byUrl = new Map<string, ImportedStoreProductDraft>();
+  for (const match of html.matchAll(anchorPattern)) {
+    const rawHref = decodeHtml(match[2] || "");
+    const cardHtml = match[3] || "";
+    let productUrl = absoluteUrl(rawHref, pageUrl);
+    if (!productUrl) continue;
+    if (source === "digikala") {
+      const canonical = new URL(productUrl);
+      canonical.search = "";
+      canonical.hash = "";
+      productUrl = canonical.toString();
+    }
+    const cardText = stripTags(cardHtml);
+    const prices = formattedPricesFromText(cardText);
+    if (!prices.length) continue;
+    const price = prices[0];
+    const originalPrice = [...prices].reverse().find((value) => value > price * 1.03);
+    const title = titleFromProductCard(cardHtml, productUrl, source);
+    if (!title || title.length < 5) continue;
+    const matchIndex = match.index || 0;
+    const nearbyHtml = html.slice(Math.max(0, matchIndex - 3000), matchIndex + Math.min(3000, match[0].length));
+    const imageUrl = imageFromProductCard(cardHtml, nearbyHtml, pageUrl);
+    const draft: ImportedStoreProductDraft = {
+      title,
+      brand: brandFromTitle(title, source === "digikala" ? "Digikala" : "Torob"),
+      category: categoryFromTitle(title),
+      summary: title,
+      description: title,
+      price,
+      originalPrice,
+      imageUrl: imageUrl || undefined,
+      stock: /ناموجود|out of stock/i.test(cardText) ? 0 : 5,
+      specs: { منبع: sourceHost },
+      externalSourceUrl: productUrl,
+      sourceHost,
+      currency: "IRT",
+    };
+    const existing = byUrl.get(productUrl);
+    byUrl.set(productUrl, existing ? chooseBetterDraft(existing, draft) : draft);
+  }
+  return [...byUrl.values()];
+}
+
 async function fetchDigikalaApi(url: string) {
   const timeoutSignal =
     typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
@@ -854,94 +970,46 @@ async function scanDigikalaRobot(
   warnings: string[],
 ) {
   const parsedSource = new URL(sourceUrl);
-  const sourceHost = parsedSource.hostname.replace(/^www\./, "");
   const sourceCategorySlug = parsedSource.pathname.match(/\/search\/category-([a-z0-9-]+)\/?/i)?.[1] || "";
-  const categories = selectedCategories.length
-    ? selectedCategories
-    : (["laptop", "mobile", "tablet", "components", "accessories", "monitor", "gaming", "console"] as ProductImportCategoryKey[]);
-  const activeCategories = categories.slice(0, 3);
-  if (!sourceCategorySlug && categories.length > activeCategories.length) {
-    warnings.push(`در این نوبت ${activeCategories.length.toLocaleString("fa-IR")} دستهٔ نخست دیجی‌کالا جستجو شد؛ برای دسته‌های دیگر نوبت جداگانه اجرا کنید.`);
-  }
-
-  const urls: Array<{ url: string; category: ProductImportCategoryKey }> = [];
-  const targetPages = Math.min(20, Math.max(3, Math.ceil(limit / 32) + 3));
-
-  if (sourceCategorySlug) {
-    // لینک «قطعات کامپیوتر» دیجی‌کالا یک والد با بیش از ۱۹هزار نتیجه است و
-    // صفحات اول آن بیشتر لوازم جانبی‌اند. برای پوشش واقعی فیلترهای فروشگاه،
-    // زیرگروه‌های اصلی را به‌شکل متوازن و دوربه‌دور می‌خوانیم.
-    const categorySlugs = sourceCategorySlug === "computer-devices"
-      ? [
-          "processor",
-          "graphics-card",
-          "ram",
-          "motherboard",
-          "internal-ssd",
-          "internal-hard-drive",
-          "psu",
-          "computer-chassis",
-        ]
-      : [sourceCategorySlug];
-    const maxCalls = sourceCategorySlug === "computer-devices" ? 20 : targetPages;
-    for (let page = 1; urls.length < maxCalls; page += 1) {
-      for (const slug of categorySlugs) {
-        if (urls.length >= maxCalls) break;
-        const category: ProductImportCategoryKey = /(?:ssd|hard-drive)/.test(slug)
-          ? "storage"
-          : selectedCategories.includes("components")
-            ? "components"
-            : selectedCategories[0] || "components";
-        urls.push({
-          url: `https://api.digikala.com/v1/categories/${slug}/search/?page=${page}`,
-          category,
-        });
-      }
-    }
-  } else {
-    const activeSources = activeCategories
-      .map((category) => ({ category, source: digikalaCategorySources[category] }))
-      .filter((item): item is { category: ProductImportCategoryKey; source: NonNullable<typeof item.source> } => Boolean(item.source));
-    const callsPerSource = Math.max(1, Math.floor(20 / Math.max(1, activeSources.length)));
-    for (let page = 1; page <= callsPerSource; page += 1) {
-      for (const { category, source } of activeSources) {
-        const primarySlug = source.slugs[0];
-        urls.push({
-          url: primarySlug
-            ? `https://api.digikala.com/v1/categories/${primarySlug}/search/?page=${page}`
-            : `https://api.digikala.com/v1/search/?q=${encodeURIComponent(source.query)}&page=${page}`,
-          category,
-        });
-      }
-    }
-  }
-
+  const categorySlugs = sourceCategorySlug === "computer-devices"
+    ? [
+        "processor",
+        "graphics-card",
+        "ram",
+        "motherboard",
+        "internal-ssd",
+        "internal-hard-drive",
+        "psu",
+        "computer-chassis",
+      ]
+    : sourceCategorySlug
+      ? [sourceCategorySlug]
+      : ["processor", "graphics-card", "ram", "motherboard", "internal-ssd", "internal-hard-drive", "psu", "computer-chassis"];
+  const pageUrls = categorySlugs.map(
+    (slug) => `https://www.digikala.com/search/category-${slug}/`,
+  );
   const drafts: ImportedStoreProductDraft[] = [];
   const scannedUrls: string[] = [];
-  for (let cursor = 0; cursor < urls.length && uniqueDrafts(drafts).length < limit; cursor += 1) {
-    const item = urls[cursor];
-    scannedUrls.push(item.url);
-    let payload: unknown;
+
+  // API دیجی‌کالا روی IPهای Cloudflare وارد حلقهٔ redirect می‌شود. صفحهٔ HTML
+  // عمومی هر زیرگروه همان کارت، قیمت و تصویر را به‌شکل SSR در اختیار می‌گذارد.
+  for (let index = 0; index < pageUrls.length && uniqueDrafts(drafts).length < limit; index += 1) {
+    const pageUrl = pageUrls[index];
+    scannedUrls.push(pageUrl);
     try {
-      payload = await fetchDigikalaApi(item.url);
+      const html = await fetchText(pageUrl);
+      const pageDrafts = productCardDraftsFromHtml(html, pageUrl, "digikala").filter(
+        (draft) => selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories),
+      );
+      drafts.push(...pageDrafts);
     } catch (error) {
-      warnings.push(`صفحهٔ ${(cursor + 1).toLocaleString("fa-IR")} دیجی‌کالا خوانده نشد: ${error instanceof Error ? error.message : "خطا"}`);
-      if (cursor === 0 && sourceCategorySlug) break;
-      continue;
-    }
-    const records = digikalaRecordsFromJson(payload);
-    if (sourceCategorySlug && records.length === 0) break;
-    for (const record of records) {
-      const draft = draftFromDigikalaRecord(record, sourceHost, item.category);
-      if (!draft) continue;
-      if (selectedCategories.length > 0 && !productMatchesImportCategories(draft, selectedCategories)) continue;
-      drafts.push(draft);
+      warnings.push(`زیرگروه ${(index + 1).toLocaleString("fa-IR")} دیجی‌کالا خوانده نشد: ${error instanceof Error ? error.message : "خطا"}`);
     }
   }
 
   const unique = uniqueDrafts(drafts).slice(0, limit);
-  if (unique.length >= limit) {
-    warnings.push(`اسکن چندصفحه‌ای دیجی‌کالا به سقف ${limit.toLocaleString("fa-IR")} محصول مرتبط برای این لینک رسید.`);
+  if (!unique.length && warnings.length === 0) {
+    warnings.push("از صفحه‌های عمومی زیرگروه‌های دیجی‌کالا کارت قیمت‌دار قابل استفاده‌ای استخراج نشد.");
   }
   return { drafts: unique, scannedUrls };
 }
@@ -951,81 +1019,39 @@ async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: 
   const categoryId = parsedSource.pathname.match(/\/browse\/(\d+)/i)?.[1];
   if (!categoryId) return { drafts: [] as ImportedStoreProductDraft[], scannedUrls: [] as string[] };
 
-  // API ترب از داخل Worker برای size=100 پاسخ 490 می‌دهد. اندازهٔ رسمی/پایدار
-  // ۵۰ است؛ صفحه‌ها نیز عمداً پشت سر هم خوانده می‌شوند تا ضدربات ترب فعال نشود.
-  const pageSize = Math.min(50, Math.max(20, limit));
-  const pageCount = Math.min(12, Math.max(1, Math.ceil(limit / pageSize) + 2));
-  const apiUrls = Array.from(
-    { length: pageCount },
-    (_, page) => `https://api.torob.com/v4/base-product/search/?page=${page}&sort=popularity&size=${pageSize}&category=${categoryId}`,
-  );
+  // API ترب روی IP ورکر پاسخ 490 می‌دهد؛ خود صفحهٔ عمومی دسته‌بندی SSR است و
+  // با پارامتر page محصولات واقعی، تصویر و کمترین قیمت را برمی‌گرداند.
+  const pageCount = Math.min(20, Math.max(1, Math.ceil(limit / 22)));
+  const pageUrls = Array.from({ length: pageCount }, (_, index) => {
+    if (index === 0) return sourceUrl;
+    const pageUrl = new URL(sourceUrl);
+    pageUrl.searchParams.set("page", String(index + 1));
+    return pageUrl.toString();
+  });
   const drafts: ImportedStoreProductDraft[] = [];
   const scannedUrls: string[] = [];
 
-  const fetchPage = async (apiUrl: string) => {
-    const timeoutSignal =
-      typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
-        ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
-        : undefined;
-    const response = await fetch(apiUrl, {
-      redirect: "follow",
-      headers: {
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        accept: "application/json, text/plain, */*",
-        "accept-language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
-        referer: sourceUrl,
-      },
-      signal: timeoutSignal,
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const raw = await response.text();
-    const payload = parseJsonLoose(raw) as { results?: Array<Record<string, any>> } | null;
-    return Array.isArray(payload?.results) ? payload.results : [];
-  };
-
-  for (let page = 0; page < apiUrls.length && uniqueDrafts(drafts).length < limit; page += 1) {
-    const apiUrl = apiUrls[page];
-    scannedUrls.push(apiUrl);
-    let records: Array<Record<string, any>> = [];
+  for (let index = 0; index < pageUrls.length && uniqueDrafts(drafts).length < limit; index += 1) {
+    const pageUrl = pageUrls[index];
+    scannedUrls.push(pageUrl);
     try {
-      records = await fetchPage(apiUrl);
+      const html = await fetchText(pageUrl);
+      const pageDrafts = productCardDraftsFromHtml(html, pageUrl, "torob");
+      if (!pageDrafts.length) {
+        warnings.push(`صفحهٔ ${(index + 1).toLocaleString("fa-IR")} ترب کارت قیمت‌دار قابل تشخیص نداشت.`);
+        if (index === 0) break;
+        continue;
+      }
+      drafts.push(...pageDrafts);
     } catch (error) {
-      warnings.push(`صفحهٔ ${(page + 1).toLocaleString("fa-IR")} ترب خوانده نشد: ${error instanceof Error ? error.message : "خطا"}`);
-      // اگر همان صفحهٔ اول رد شد، درخواست‌های بعدی نیز معمولاً رد می‌شوند.
-      if (page === 0) break;
-      continue;
-    }
-    if (records.length === 0) break;
-    for (const record of records) {
-      const title = firstText(record.name1, record.name2).slice(0, 180);
-      const price = normalizePriceToToman(record.price, "IRT");
-      if (!title || price < 100_000 || price > 1_500_000_000) continue;
-      const productUrl = absoluteUrl(firstText(record.web_client_absolute_url), "https://torob.com/");
-      const imageUrl = safeImageUrl(firstText(record.image_url, record.media_urls), productUrl);
-      const stockText = firstText(record.stock_status, record.price_text_mode).toLowerCase();
-      drafts.push({
-        title,
-        brand: brandFromTitle(title, "Torob"),
-        category: categoryFromTitle(title),
-        summary: title,
-        description: firstText(record.name2, record.name1).slice(0, 900) || title,
-        price,
-        stock: /ناموجود|inactive|out/.test(stockText) ? 0 : 5,
-        specs: { منبع: "torob.com" },
-        externalSourceUrl: productUrl,
-        imageUrl: imageUrl || undefined,
-        sourceHost: "torob.com",
-        currency: "IRT",
-      });
+      warnings.push(`صفحهٔ ${(index + 1).toLocaleString("fa-IR")} ترب خوانده نشد: ${error instanceof Error ? error.message : "خطا"}`);
+      if (index === 0) break;
     }
   }
 
   const unique = uniqueDrafts(drafts).slice(0, limit);
   if (!unique.length && warnings.length === 0) {
-    warnings.push("API دسته‌بندی ترب محصول قیمت‌دار قابل استفاده‌ای برنگرداند.");
-  }
-  if (unique.length >= limit) {
-    warnings.push(`اسکن چندصفحه‌ای ترب به سقف ${limit.toLocaleString("fa-IR")} محصول برای این لینک رسید.`);
+    warnings.push("از صفحه‌های عمومی ترب کارت قیمت‌دار قابل استفاده‌ای استخراج نشد.");
   }
   return { drafts: unique, scannedUrls };
 }
@@ -1064,7 +1090,7 @@ export async function scanStoreProductsFromUrl(
         warnings,
       };
     }
-    warnings.push("API دسته‌بندی ترب در این نوبت محصول قابل استفاده‌ای برنگرداند.");
+    warnings.push("صفحه‌های عمومی دسته‌بندی ترب در این نوبت محصول قابل استفاده‌ای برنگرداندند.");
     return {
       sourceUrl,
       sourceHost,
@@ -1092,7 +1118,7 @@ export async function scanStoreProductsFromUrl(
           warnings,
         };
       }
-      warnings.push("جستجوی مستقیم دیجی‌کالا محصولی پیدا نکرد. برای این دسته یک CSV خروجی Easy Scraper یا لینک دسته‌بندی دقیق‌تر امتحان کنید.");
+      warnings.push("صفحه‌های عمومی زیرگروه‌های دیجی‌کالا محصول قیمت‌دار قابل استفاده‌ای برنگرداندند.");
     } catch (error) {
       warnings.push(`ربات دیجی‌کالا اجرا نشد: ${error instanceof Error ? error.message : "خطا"}`);
     }
