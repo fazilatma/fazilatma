@@ -5739,7 +5739,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_lib_store-product-import_ts_0q6cfhj._.js": {
-      "bytes": 26128,
+      "bytes": 26335,
       "imports": [],
       "format": "cjs"
     },
@@ -5866,7 +5866,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/node_modules_next_dist_esm_build_templates_app-route_1ejx3nq.js": {
-      "bytes": 12715,
+      "bytes": 13050,
       "imports": [],
       "format": "cjs"
     },
@@ -6687,7 +6687,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2084165,
+      "bytes": 2086427,
       "imports": [],
       "format": "cjs"
     },
@@ -18297,7 +18297,7 @@
           "bytesInOutput": 149144
         },
         ".open-next/server-functions/default/.next/server/chunks/src_lib_store-product-import_ts_0q6cfhj._.js": {
-          "bytesInOutput": 32732
+          "bytesInOutput": 32796
         },
         ".open-next/server-functions/default/.next/server/chunks/1oeh_server_app_api_admin_store-products_import-csv_route_actions_12yap1n.js": {
           "bytesInOutput": 299
@@ -18318,7 +18318,7 @@
           "bytesInOutput": 2197
         },
         ".open-next/server-functions/default/.next/server/chunks/node_modules_next_dist_esm_build_templates_app-route_1ejx3nq.js": {
-          "bytesInOutput": 14383
+          "bytesInOutput": 14877
         },
         ".open-next/server-functions/default/.next/server/chunks/1oeh_server_app_api_admin_store-products_refresh-prices_route_actions_1cert3k.js": {
           "bytesInOutput": 307
@@ -18420,7 +18420,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2542116
+          "bytesInOutput": 2546087
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -19500,7 +19500,7 @@
           "bytesInOutput": 74342
         }
       },
-      "bytes": 9804506
+      "bytes": 9809035
     }
   }
 }

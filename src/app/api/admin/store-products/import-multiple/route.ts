@@ -174,23 +174,38 @@ export async function POST(request: Request) {
     const aggregatedMatchIndex = createProductMatchIndex(aggregated);
     let rawProducts = 0;
 
-    for (const link of links) {
-      let host = "";
-      try {
-        host = new URL(link).hostname;
-      } catch {
+    // هر منبع در مسیر مستقل اجرا می‌شود؛ بنابراین رد شدن ترب، اسکن دیجی‌کالا
+    // را متوقف نمی‌کند. داخل هر منبع، صفحه‌ها همچنان ترتیبی خوانده می‌شوند.
+    const sourceScans = await Promise.all(
+      links.map(async (link) => {
+        const host = new URL(link).hostname;
+        const specializedSource = /(?:^|\.)(?:digikala\.com|torob\.com)$/i.test(host.replace(/^www\./, ""));
+        try {
+          const scan = await scanStoreProductsFromUrl(link, {
+            limit: requestedLimit,
+            fullSite: specializedSource,
+            maxPages: specializedSource ? 12 : 6,
+            categoryFilters: ["components", "storage"],
+          });
+          return { host, scan, error: "" };
+        } catch (error) {
+          return {
+            host,
+            scan: null,
+            error: error instanceof Error ? error.message : "خطای نامشخص",
+          };
+        }
+      }),
+    );
+
+    for (const source of sourceScans) {
+      if (!source.scan) {
+        warnings.push(`${source.host}: اجرای ربات این منبع ناموفق بود: ${source.error}`);
         continue;
       }
-      const specializedSource = /(?:^|\.)(?:digikala\.com|torob\.com)$/i.test(host.replace(/^www\./, ""));
-      const scan = await scanStoreProductsFromUrl(link, {
-        limit: requestedLimit,
-        fullSite: specializedSource,
-        maxPages: specializedSource ? 12 : 6,
-        categoryFilters: ["components", "storage"],
-      });
-      warnings.push(...scan.warnings.map((warning) => `${host}: ${warning}`));
-      scannedUrls.push(...scan.scannedUrls);
-      const drafts = scan.products.filter((draft) =>
+      warnings.push(...source.scan.warnings.map((warning) => `${source.host}: ${warning}`));
+      scannedUrls.push(...source.scan.scannedUrls);
+      const drafts = source.scan.products.filter((draft) =>
         productMatchesImportCategories(draft, ["components", "storage"]),
       );
       rawProducts += drafts.length;
@@ -209,7 +224,11 @@ export async function POST(request: Request) {
     }
 
     if (aggregated.length === 0) {
-      const warningSummary = warnings.slice(0, 3).join("؛ ");
+      const warningSummary = sourceScans
+        .map((source) => warnings.find((warning) => warning.startsWith(`${source.host}:`)))
+        .filter((warning): warning is string => Boolean(warning))
+        .slice(0, 3)
+        .join("؛ ");
       return NextResponse.json(
         {
           success: false,
