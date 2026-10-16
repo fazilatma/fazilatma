@@ -49,6 +49,33 @@ const getParam = (params: ShopSearchParams, key: string) => {
 const lowerSearchText = (product: JsonStoreProduct) =>
   `${product.title} ${product.brand} ${product.category} ${product.summary} ${product.description} ${product.badges.join(" ")} ${Object.values(product.specs || {}).join(" ")}`.toLowerCase();
 
+const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+
+function normalizeShopSearchText(value: string) {
+  return String(value || "")
+    .replace(/[۰-۹]/g, (digit) => String(persianDigits.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String(arabicDigits.indexOf(digit)))
+    .replace(/ي/g, "ی")
+    .replace(/ك/g, "ک")
+    .toLowerCase()
+    .replace(/[\u200c\s]+/g, " ")
+    .replace(/[^a-z0-9آ-ی]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchesProductSearch(product: JsonStoreProduct, query: string) {
+  const normalizedQuery = normalizeShopSearchText(query);
+  if (!normalizedQuery) return true;
+  const searchableText = normalizeShopSearchText(
+    `${product.id} ${product.slug} ${product.title} ${product.brand} ${product.category} ${product.summary} ${product.description} ${product.badges.join(" ")} ${Object.entries(product.specs || {})
+      .map(([key, value]) => `${key} ${value}`)
+      .join(" ")}`,
+  );
+  return normalizedQuery.split(" ").every((token) => searchableText.includes(token));
+}
+
 const useKeyword: Record<string, string[]> = {
   business: ["اداری", "شرکتی", "business", "حسابداری", "برنامه"],
   student: ["دانشجویی", "student", "سبک", "روزمره"],
@@ -229,7 +256,9 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const catalogCategory = getParam(params, "category");
   const part = getParam(params, "part").toLowerCase();
   const partGroup = getParam(params, "partGroup").toLowerCase();
+  const searchQuery = getParam(params, "q").slice(0, 120);
 
+  if (!matchesProductSearch(product, searchQuery)) return false;
   if (catalogCategory === "computer-parts" && !isComputerPartsCatalogProduct(product)) return false;
   if (catalogCategory === "laptop" && !isLaptopCatalogProduct(product)) return false;
   if (part) {
@@ -473,6 +502,7 @@ export default async function ShopPage({
     },
   );
   const filteredProducts = products.filter((product) => matchesFilter(product, params));
+  const searchQuery = getParam(params, "q").trim().slice(0, 120);
   const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
   const quickCategoryItems = computerPartsOnly ? computerPartsCategoryItems : laptopCategoryItems;
   const firstImageByPart = new Map<string, JsonStoreProduct>();
@@ -521,6 +551,63 @@ export default async function ShopPage({
               ? "پردازنده، مادربرد، کارت گرافیک، رم، حافظه، پاور و سایر قطعات را با قیمت و مشخصات مقایسه کنید."
               : "لیست مدل‌های منتخب با امکان مقایسه مشخصات فنی، گارانتی تست، قیمت و ثبت سفارش آنلاین."}
           </p>
+
+          <form
+            action="/shop"
+            method="get"
+            role="search"
+            className="mt-6 max-w-3xl rounded-[1.5rem] border border-slate-200 bg-slate-50 p-2 shadow-sm"
+          >
+            {Object.entries(params).flatMap(([key, rawValue]) => {
+              if (key === "q") return [];
+              const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+              return values.map((value, index) =>
+                value ? <input key={`${key}-${index}`} type="hidden" name={key} value={value} /> : null,
+              );
+            })}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">جستجوی کالا</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                >
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                  <path d="m16.5 16.5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                <input
+                  type="search"
+                  name="q"
+                  defaultValue={searchQuery}
+                  maxLength={120}
+                  autoComplete="off"
+                  placeholder={computerPartsOnly ? "جستجو بین قطعات؛ مثلاً Ryzen 7، RTX 5060 یا H610..." : "نام، برند یا مدل کالا را جستجو کنید..."}
+                  className="h-12 w-full rounded-2xl border border-transparent bg-white pr-12 pl-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-rose-300 focus:ring-4 focus:ring-rose-100"
+                />
+              </label>
+              <button
+                type="submit"
+                className="h-12 rounded-2xl bg-rose-600 px-7 text-sm font-black text-white transition hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-200"
+              >
+                جستجوی کالا
+              </button>
+              {searchQuery ? (
+                <Link
+                  href={buildHref(params, "q", "")}
+                  className="grid h-12 place-items-center rounded-2xl bg-white px-5 text-sm font-black text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-100"
+                >
+                  پاک کردن
+                </Link>
+              ) : null}
+            </div>
+            {searchQuery ? (
+              <p className="px-2 pt-2 text-xs font-bold text-slate-500">
+                {filteredProducts.length.toLocaleString("fa-IR")} نتیجه برای «{searchQuery}» پیدا شد.
+              </p>
+            ) : null}
+          </form>
         </div>
       </section>
 
@@ -602,7 +689,11 @@ export default async function ShopPage({
                 {filteredProducts.length.toLocaleString("fa-IR")} کالا
               </h2>
               <p className="mt-1 text-xs text-slate-500">
-                فیلترهای سمت راست برای انتخاب دقیق‌تر لپ‌تاپ بر اساس برند، رم، پردازنده، گرافیک و کاربری هستند.
+                {searchQuery
+                  ? `نتایج جستجوی «${searchQuery}» همراه با فیلترهای انتخاب‌شده نمایش داده می‌شود.`
+                  : computerPartsOnly
+                    ? "با جستجو و فیلترهای سمت راست می‌توانید قطعه را بر اساس مدل، برند، نوع و قیمت پیدا کنید."
+                    : "فیلترهای سمت راست برای انتخاب دقیق‌تر لپ‌تاپ بر اساس برند، رم، پردازنده، گرافیک و کاربری هستند."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-bold">
@@ -622,9 +713,12 @@ export default async function ShopPage({
           </div>
           {filteredProducts.length === 0 ? (
             <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-              کالایی با این فیلتر پیدا نشد.
-              <Link href="/shop" className="mt-4 block font-black text-rose-600">
-                حذف فیلترها و مشاهده همه کالاها
+              {searchQuery ? `کالایی برای «${searchQuery}» پیدا نشد.` : "کالایی با این فیلتر پیدا نشد."}
+              <Link
+                href={searchQuery ? buildHref(params, "q", "") : "/shop"}
+                className="mt-4 block font-black text-rose-600"
+              >
+                {searchQuery ? "پاک کردن جستجو و نمایش کالاها" : "حذف فیلترها و مشاهده همه کالاها"}
               </Link>
             </div>
           ) : (

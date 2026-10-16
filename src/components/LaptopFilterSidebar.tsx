@@ -43,6 +43,7 @@ function priceHref(
 
 function activeCount(params: LaptopFilterParams) {
   return [
+    "q",
     "available",
     "brand",
     "part",
