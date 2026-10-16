@@ -12,6 +12,7 @@
   "/api/admin/seller-metrics/route": "app/api/admin/seller-metrics/route.js",
   "/api/admin/store-products/clear/route": "app/api/admin/store-products/clear/route.js",
   "/api/admin/store-products/import-csv/route": "app/api/admin/store-products/import-csv/route.js",
+  "/api/admin/store-products/import-multiple/route": "app/api/admin/store-products/import-multiple/route.js",
   "/api/admin/store-products/import/route": "app/api/admin/store-products/import/route.js",
   "/api/admin/store-products/refresh-prices/route": "app/api/admin/store-products/refresh-prices/route.js",
   "/api/admin/store-products/repair-csv/route": "app/api/admin/store-products/repair-csv/route.js",

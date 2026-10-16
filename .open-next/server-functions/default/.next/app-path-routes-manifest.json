@@ -12,6 +12,7 @@
   "/api/admin/seller-metrics/route": "/api/admin/seller-metrics",
   "/api/admin/store-products/clear/route": "/api/admin/store-products/clear",
   "/api/admin/store-products/import-csv/route": "/api/admin/store-products/import-csv",
+  "/api/admin/store-products/import-multiple/route": "/api/admin/store-products/import-multiple",
   "/api/admin/store-products/import/route": "/api/admin/store-products/import",
   "/api/admin/store-products/refresh-prices/route": "/api/admin/store-products/refresh-prices",
   "/api/admin/store-products/repair-csv/route": "/api/admin/store-products/repair-csv",

@@ -91,6 +91,13 @@ function normalizedImportPriceMultiplier(value: unknown) {
   return Math.max(0.1, Math.min(10, number));
 }
 
+function parseComputerPartsLinks(value: unknown) {
+  return String(value || "")
+    .split(/\r?\n|\s*&\s*(?=https?:\/\/)|[|،]+/i)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function productImportSourceLabel(product: any) {
   const sourceHost = String(product.sourceHost || "").trim().replace(/^www\./i, "");
   if (sourceHost) return sourceHost;
@@ -825,7 +832,7 @@ export default function AdminDashboardClient({
   };
 
   const useComputerPartsSource = () => {
-    const sourceUrl = String(platformFinance.storeComputerPartsSourceUrl || "").trim();
+    const sourceUrl = parseComputerPartsLinks(platformFinance.storeComputerPartsSourceUrl)[0] || "";
     if (!sourceUrl) {
       alert("ابتدا لینک مرجع قطعات کامپیوتر را وارد و ذخیره کنید.");
       return;
@@ -838,9 +845,10 @@ export default function AdminDashboardClient({
   };
 
   const importComputerPartsFromSource = async () => {
-    const sourceUrl = String(platformFinance.storeComputerPartsSourceUrl || "").trim();
-    if (!sourceUrl) {
-      alert("لینک مرجع قطعات کامپیوتر را وارد کنید.");
+    const sourceText = String(platformFinance.storeComputerPartsSourceUrl || "").trim();
+    const sourceLinks = parseComputerPartsLinks(sourceText);
+    if (!sourceLinks.length) {
+      alert("حداقل یک لینک مرجع معتبر برای قطعات کامپیوتر وارد کنید.");
       return;
     }
     setImportingComputerParts(true);
@@ -852,20 +860,16 @@ export default function AdminDashboardClient({
         body: JSON.stringify({
           storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
           storeComputerPartsCatalogEnabled: true,
-          storeComputerPartsSourceUrl: sourceUrl,
+          storeComputerPartsSourceUrl: sourceText,
         }),
       });
-      const response = await fetch("/api/admin/store-products/import", {
+      const response = await fetch("/api/admin/store-products/import-multiple", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          url: sourceUrl,
+          links: sourceLinks,
           limit: 50,
-          action: "import",
-          strategy: "merge",
-          scanMode: "full-site",
           priceMultiplier: productImportPriceMultiplier,
-          categoryFilters: ["components", "storage"],
         }),
       });
       const result = await readJsonResponse(response, "درون‌ریزی قطعات کامپیوتر ناموفق بود.");
@@ -873,7 +877,7 @@ export default function AdminDashboardClient({
       setPlatformFinance((current) => ({
         ...current,
         storeComputerPartsCatalogEnabled: true,
-        storeComputerPartsSourceUrl: sourceUrl,
+        storeComputerPartsSourceUrl: sourceText,
       }));
       setProductImportWarnings(result.warnings || []);
       setProductImportPreview(result.products || []);
@@ -2192,15 +2196,17 @@ export default function AdminDashboardClient({
                       </label>
                     </div>
                     <label className="mt-4 block text-sm font-bold text-slate-800">
-                      لینک مرجع ورود و قیمت قطعات کامپیوتر
-                      <input
-                        type="url"
+                      لینک‌های مرجع ورود و قیمت قطعات کامپیوتر
+                      <textarea
                         value={platformFinance.storeComputerPartsSourceUrl || ""}
                         onChange={(event) => updatePlatformFinanceField("storeComputerPartsSourceUrl", event.target.value)}
-                        placeholder="https://example.com/computer-parts یا لینک دسته‌بندی/سایت‌مپ"
-                        className="mt-2 w-full rounded-xl border border-cyan-200 bg-white px-4 py-3 text-left outline-none focus:ring-2 focus:ring-cyan-500"
+                        placeholder="https://site-one.com/parts & https://site-two.com/components"
+                        className="mt-2 min-h-24 w-full rounded-xl border border-cyan-200 bg-white px-4 py-3 text-left leading-7 outline-none focus:ring-2 focus:ring-cyan-500"
                         dir="ltr"
                       />
+                      <span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">
+                        چند لینک را با علامت &amp; یا خط جدید جدا کنید. سیستم محصولات تکراری را ادغام و کمترین قیمت معتبر بین همه لینک‌ها را انتخاب می‌کند.
+                      </span>
                     </label>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button

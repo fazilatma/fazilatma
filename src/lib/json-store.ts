@@ -1456,7 +1456,7 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       storeComputerPartsSourceUrl: String(
         (parsed.settings as { storeComputerPartsSourceUrl?: string } | undefined)
           ?.storeComputerPartsSourceUrl || "https://www.digikala.com/",
-      ).trim().slice(0, 500),
+      ).trim().slice(0, 4000),
       storeHeroSliderEnabled:
         (parsed.settings as { storeHeroSliderEnabled?: boolean } | undefined)
           ?.storeHeroSliderEnabled !== false,
@@ -4389,6 +4389,11 @@ export async function updateJsonPlatformFinanceSettings(
     if (typeof updatesRecord[key] === "string") {
       settingsRecord[key] = String(updatesRecord[key]).trim().slice(0, 300);
     }
+  }
+  if (typeof updatesRecord.storeComputerPartsSourceUrl === "string") {
+    settingsRecord.storeComputerPartsSourceUrl = String(updatesRecord.storeComputerPartsSourceUrl)
+      .trim()
+      .slice(0, 4000);
   }
   const supportStringLimits: Record<string, number> = {
     supportPageTitle: 120,

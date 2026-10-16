@@ -224,6 +224,12 @@
       "namedRegex": "^/api/admin/store\\-products/import\\-csv(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/import-multiple",
+      "regex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$"
+    },
+    {
       "page": "/api/admin/store-products/refresh-prices",
       "regex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$",
       "routeKeys": {},
