@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StoreBannerImage from "@/components/StoreBannerImage";
 import { productImageUrl } from "@/lib/product-image-shared";
 import type { HomepageImageSliderSlide } from "@/lib/json-store";
 
@@ -63,10 +64,10 @@ export default function StoreAdSlider({
       <div className="absolute -right-16 -top-14 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
       {imageUrl ? (
         <div className="absolute inset-y-0 left-0 hidden w-[32%] items-center justify-center p-2 md:flex md:p-3">
-          <img
+          <StoreBannerImage
             src={imageUrl}
             alt="تصویر بنر ویژه فروشگاه"
-            className="max-h-full max-w-full bg-transparent object-contain mix-blend-darken drop-shadow-xl"
+            className="max-h-full max-w-full bg-transparent object-contain drop-shadow-xl"
           />
         </div>
       ) : (

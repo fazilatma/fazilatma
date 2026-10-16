@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StoreBannerImage from "@/components/StoreBannerImage";
 import { productImageUrl, type ProductImageAttachment } from "@/lib/product-image-shared";
 
 type StoreHeroSlide = {
@@ -67,10 +68,10 @@ export default function StoreHeroSlider({
     <div className="relative min-h-[185px] overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-4 text-white shadow-xl md:min-h-[220px] md:p-5 xl:min-h-[235px]">
       {imageUrl && (
         <div className="absolute inset-y-0 left-0 z-[1] hidden w-[38%] items-center justify-center p-3 sm:flex md:p-5">
-          <img
+          <StoreBannerImage
             src={imageUrl}
             alt={slide.title}
-            className="max-h-full max-w-full bg-transparent object-contain mix-blend-darken drop-shadow-2xl"
+            className="max-h-full max-w-full bg-transparent object-contain drop-shadow-2xl"
           />
         </div>
       )}
