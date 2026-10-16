@@ -251,7 +251,7 @@ export default function AdminDashboardClient({
     homepageImageSliderSlides: [] as HomepageImageSliderSlide[],
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
-    storeComputerPartsSourceUrl: "",
+    storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
@@ -316,6 +316,7 @@ export default function AdminDashboardClient({
   const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
   const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
   const [savingStoreCatalog, setSavingStoreCatalog] = useState(false);
+  const [importingComputerParts, setImportingComputerParts] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
   const [productImportLimit, setProductImportLimit] = useState(50);
   const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
@@ -834,6 +835,59 @@ export default function AdminDashboardClient({
     setProductImportScanMode("full-site");
     clearProductImportPreviewState();
     setProductImportMessage("لینک مرجع قطعات در فرم قرار گرفت؛ اکنون «اسکن و پیش‌نمایش» را بزنید.");
+  };
+
+  const importComputerPartsFromSource = async () => {
+    const sourceUrl = String(platformFinance.storeComputerPartsSourceUrl || "").trim();
+    if (!sourceUrl) {
+      alert("لینک مرجع قطعات کامپیوتر را وارد کنید.");
+      return;
+    }
+    setImportingComputerParts(true);
+    setProductImportMessage("");
+    try {
+      await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
+          storeComputerPartsCatalogEnabled: true,
+          storeComputerPartsSourceUrl: sourceUrl,
+        }),
+      });
+      const response = await fetch("/api/admin/store-products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: sourceUrl,
+          limit: 50,
+          action: "import",
+          strategy: "merge",
+          scanMode: "full-site",
+          priceMultiplier: productImportPriceMultiplier,
+          categoryFilters: ["components", "storage"],
+        }),
+      });
+      const result = await readJsonResponse(response, "درون‌ریزی قطعات کامپیوتر ناموفق بود.");
+      if (!result.success) throw new Error(result.message || "محصول قطعه‌ای از لینک پیدا نشد.");
+      setPlatformFinance((current) => ({
+        ...current,
+        storeComputerPartsCatalogEnabled: true,
+        storeComputerPartsSourceUrl: sourceUrl,
+      }));
+      setProductImportWarnings(result.warnings || []);
+      setProductImportPreview(result.products || []);
+      setProductImportPreviewSource("link");
+      const message = `${result.message || "قطعات کامپیوتر وارد شدند."} اکنون ${Number(result.activeStoreProducts || 0).toLocaleString("fa-IR")} محصول فعال در فروشگاه وجود دارد.`;
+      setProductImportMessage(message);
+      alert(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "درون‌ریزی قطعات کامپیوتر ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setImportingComputerParts(false);
+    }
   };
 
   const setProductImportCategoriesAndReset = (categories: string[]) => {
@@ -2159,10 +2213,19 @@ export default function AdminDashboardClient({
                       </button>
                       <button
                         type="button"
-                        onClick={useComputerPartsSource}
-                        className="rounded-xl border border-cyan-300 bg-white px-5 py-3 text-sm font-black text-cyan-800 hover:bg-cyan-50"
+                        disabled={importingComputerParts}
+                        onClick={importComputerPartsFromSource}
+                        className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:bg-slate-300"
                       >
-                        انتقال لینک به ربات درون‌ریزی قطعات
+                        {importingComputerParts ? "ربات در حال دریافت قطعات..." : "دریافت و ذخیره مستقیم قطعات از این لینک"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={importingComputerParts}
+                        onClick={useComputerPartsSource}
+                        className="rounded-xl border border-cyan-300 bg-white px-5 py-3 text-sm font-black text-cyan-800 hover:bg-cyan-50 disabled:opacity-50"
+                      >
+                        انتقال لینک به فرم پیش‌نمایش دستی
                       </button>
                     </div>
                   </div>

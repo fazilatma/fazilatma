@@ -235,7 +235,7 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
     const partKeywords: Record<string, string[]> = {
       cpu: ["پردازنده", "cpu", "intel", "amd", "ryzen", "core i"],
       gpu: ["کارت گرافیک", "gpu", "geforce", "radeon", "rtx", "gtx"],
-      ram: ["رم کامپیوتر", "ram", "ddr4", "ddr5"],
+      ram: ["رم کامپیوتر", "حافظه رم", "رم دسکتاپ", "ماژول رم", "ram", "ddr4", "ddr5"],
       ssd: ["ssd", "nvme", "حافظه"],
       motherboard: ["مادربرد", "motherboard"],
       power: ["پاور", "منبع تغذیه", "power supply", "psu"],

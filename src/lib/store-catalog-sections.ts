@@ -19,7 +19,7 @@ export function isComputerPartsCatalogProduct(
   const text = productText(product);
   const key = productImportCategoryKey(product);
   if (isLaptopCatalogProduct(product)) return false;
-  return key === "components" || /قطعات کامپیوتر|پردازنده|\bcpu\b|کارت گرافیک|\bgpu\b|مادربرد|\bram\b|رم کامپیوتر|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک.?کننده پردازنده|فن کیس|خمیر سیلیکون/.test(text);
+  return key === "components" || key === "storage" || /قطعات کامپیوتر|پردازنده|\bcpu\b|کارت گرافیک|\bgpu\b|مادربرد|\bram\b|حافظه رم|رم کامپیوتر|رم دسکتاپ|ماژول رم|\bssd\b|\bnvme\b|هارد اینترنال|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک.?کننده پردازنده|فن کیس|خمیر سیلیکون/.test(text);
 }
 
 export function filterProductsByCatalogSections(

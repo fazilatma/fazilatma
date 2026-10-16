@@ -942,7 +942,7 @@ const emptyData = (): OptiBidJsonData => ({
     siteMode: "store",
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
-    storeComputerPartsSourceUrl: "",
+    storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: defaultStoreHeroSliderSlides,
@@ -1455,7 +1455,7 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           ?.storeComputerPartsCatalogEnabled !== false,
       storeComputerPartsSourceUrl: String(
         (parsed.settings as { storeComputerPartsSourceUrl?: string } | undefined)
-          ?.storeComputerPartsSourceUrl || "",
+          ?.storeComputerPartsSourceUrl || "https://www.digikala.com/",
       ).trim().slice(0, 500),
       storeHeroSliderEnabled:
         (parsed.settings as { storeHeroSliderEnabled?: boolean } | undefined)
