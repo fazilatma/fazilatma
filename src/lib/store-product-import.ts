@@ -912,10 +912,7 @@ async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: 
         description: firstText(record.name2, record.name1).slice(0, 900) || title,
         price,
         stock: /ناموجود|inactive|out/.test(stockText) ? 0 : 5,
-        specs: {
-          منبع: "torob.com",
-          ...(record.shop_text ? { "تعداد فروشگاه‌ها": String(record.shop_text) } : {}),
-        },
+        specs: { منبع: "torob.com" },
         externalSourceUrl: productUrl,
         imageUrl: imageUrl || undefined,
         sourceHost: "torob.com",

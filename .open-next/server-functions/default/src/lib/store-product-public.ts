@@ -4,6 +4,7 @@ const internalSpecKeyPatterns = [
   /قیمت\s*خام|raw\s*price/i,
   /ردیف\s*(?:csv|فایل)?|csv\s*row/i,
   /sourcehost|source\s*host/i,
+  /تعداد\s*فروشگاه|shop\s*count/i,
 ];
 
 export function publicStoreProductSpecs(specs: Record<string, string> = {}) {
