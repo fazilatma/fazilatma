@@ -2,6 +2,7 @@ import Link from "next/link";
 import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductSeoCard from "@/components/StoreProductSeoCard";
+import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import {
   getLaptopCollectionProducts,
   laptopCollectionItems,
@@ -265,15 +266,20 @@ const brandCircleItems = [
   { title: "i7", subtitle: "حرفه‌ای", href: "/shop?cpu=i7&ref=cpu-i7", color: "from-violet-500 to-[#003b5c]" },
 ];
 
-const computerPartItems = [
-  { title: "CPU", subtitle: "پردازنده", href: "/shop?category=computer-parts&part=cpu", color: "from-blue-500 to-indigo-700" },
-  { title: "GPU", subtitle: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", color: "from-rose-500 to-orange-600" },
-  { title: "RAM", subtitle: "حافظه رم", href: "/shop?category=computer-parts&part=ram", color: "from-violet-500 to-fuchsia-700" },
-  { title: "SSD", subtitle: "حافظه پرسرعت", href: "/shop?category=computer-parts&part=ssd", color: "from-emerald-500 to-teal-700" },
-  { title: "MB", subtitle: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", color: "from-cyan-500 to-blue-700" },
-  { title: "PSU", subtitle: "پاور", href: "/shop?category=computer-parts&part=power", color: "from-amber-500 to-orange-700" },
-  { title: "CASE", subtitle: "کیس", href: "/shop?category=computer-parts&part=case", color: "from-slate-500 to-slate-800" },
-  { title: "COOL", subtitle: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", color: "from-sky-500 to-cyan-700" },
+const computerPartItems: Array<{
+  title: string;
+  subtitle: string;
+  href: string;
+  kind: ComputerPartVisualKind;
+}> = [
+  { title: "CPU", subtitle: "پردازنده", href: "/shop?category=computer-parts&part=cpu", kind: "cpu" },
+  { title: "GPU", subtitle: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", kind: "gpu" },
+  { title: "RAM", subtitle: "حافظه رم", href: "/shop?category=computer-parts&part=ram", kind: "ram" },
+  { title: "SSD", subtitle: "حافظه پرسرعت", href: "/shop?category=computer-parts&part=ssd", kind: "ssd" },
+  { title: "MB", subtitle: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", kind: "motherboard" },
+  { title: "PSU", subtitle: "پاور", href: "/shop?category=computer-parts&part=power", kind: "power" },
+  { title: "CASE", subtitle: "کیس", href: "/shop?category=computer-parts&part=case", kind: "case" },
+  { title: "COOL", subtitle: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", kind: "cooler" },
 ];
 
 function StoreComputerPartsSlider() {
@@ -289,9 +295,7 @@ function StoreComputerPartsSlider() {
       <div className="flex gap-3 overflow-x-auto scroll-smooth pb-1">
         {computerPartItems.map((item) => (
           <Link key={item.title} href={item.href} className="group w-32 shrink-0 text-center">
-            <div className={`mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br ${item.color} p-[3px] shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-lg`}>
-              <div className="grid h-full w-full place-items-center rounded-full bg-white text-lg font-black text-slate-800">{item.title}</div>
-            </div>
+            <ComputerPartVisual kind={item.kind} className="mx-auto h-24 w-24 rounded-full transition group-hover:-translate-y-1 group-hover:shadow-lg" />
             <span className="mt-2 block text-xs font-black text-slate-700">{item.subtitle}</span>
           </Link>
         ))}

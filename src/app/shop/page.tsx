@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
+import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import {
@@ -22,15 +23,21 @@ type FilterOption = {
   hint?: string;
 };
 
-const computerPartsCategoryItems = [
-  { title: "پردازنده", href: "/shop?category=computer-parts&part=cpu", badge: "CPU" },
-  { title: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", badge: "GPU" },
-  { title: "حافظه رم", href: "/shop?category=computer-parts&part=ram", badge: "RAM" },
-  { title: "حافظه SSD", href: "/shop?category=computer-parts&part=ssd", badge: "SSD" },
-  { title: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", badge: "MB" },
-  { title: "پاور", href: "/shop?category=computer-parts&part=power", badge: "PSU" },
-  { title: "کیس", href: "/shop?category=computer-parts&part=case", badge: "CASE" },
-  { title: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", badge: "COOL" },
+const computerPartsCategoryItems: Array<{
+  title: string;
+  href: string;
+  badge: string;
+  kind: ComputerPartVisualKind;
+  part: string;
+}> = [
+  { title: "پردازنده", href: "/shop?category=computer-parts&part=cpu", badge: "CPU", kind: "cpu", part: "cpu" },
+  { title: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", badge: "GPU", kind: "gpu", part: "gpu" },
+  { title: "حافظه رم", href: "/shop?category=computer-parts&part=ram", badge: "RAM", kind: "ram", part: "ram" },
+  { title: "حافظه SSD", href: "/shop?category=computer-parts&part=ssd", badge: "SSD", kind: "ssd", part: "ssd" },
+  { title: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", badge: "MB", kind: "motherboard", part: "motherboard" },
+  { title: "پاور", href: "/shop?category=computer-parts&part=power", badge: "PSU", kind: "power", part: "power" },
+  { title: "کیس", href: "/shop?category=computer-parts&part=case", badge: "CASE", kind: "case", part: "case" },
+  { title: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", badge: "COOL", kind: "cooler", part: "cooler" },
 ];
 
 const getParam = (params: ShopSearchParams, key: string) => {
@@ -456,6 +463,16 @@ export default async function ShopPage({
   const filteredProducts = products.filter((product) => matchesFilter(product, params));
   const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
   const quickCategoryItems = computerPartsOnly ? computerPartsCategoryItems : laptopCategoryItems;
+  const firstImageByPart = new Map<string, JsonStoreProduct>();
+  if (computerPartsOnly) {
+    for (const item of computerPartsCategoryItems) {
+      const product = products.find((candidate) =>
+        Boolean(candidate.imageUrl) &&
+        matchesFilter(candidate, { category: "computer-parts", part: item.part }),
+      );
+      if (product) firstImageByPart.set(item.part, product);
+    }
+  }
   const brands = Array.from(new Set(products.map((product) => product.brand)));
   const firstImageByBrand = new Map<string, JsonStoreProduct>();
   for (const product of products) {
@@ -499,9 +516,12 @@ export default async function ShopPage({
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
           {quickCategoryItems.map((item) => {
             const itemBrand = "brand" in item ? item.brand : undefined;
+            const partKind = "kind" in item ? item.kind : undefined;
+            const partKey = "part" in item ? item.part : undefined;
             const brandProduct = itemBrand
               ? firstImageByBrand.get(itemBrand.toLowerCase())
               : undefined;
+            const partProduct = partKey ? firstImageByPart.get(partKey) : undefined;
             return (
               <Link
                 key={item.title}
@@ -509,8 +529,16 @@ export default async function ShopPage({
                 className="group min-w-[126px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50"
               >
                 <div className="relative mx-auto mb-3 grid h-12 w-20 place-items-center overflow-hidden rounded-xl bg-white">
-                  {computerPartsOnly ? (
-                    <span className="text-sm font-black text-[#003b5c]">{item.badge}</span>
+                  {computerPartsOnly && partKind ? (
+                    partProduct?.imageUrl ? (
+                      <StoreProductRemoteImage
+                        src={partProduct.imageUrl}
+                        alt={`${item.title}؛ ${partProduct.title}`}
+                        className="h-full w-full bg-white object-contain p-1"
+                      />
+                    ) : (
+                      <ComputerPartVisual kind={partKind} className="h-12 w-20 shadow-none" />
+                    )
                   ) : (
                     <>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
