@@ -861,7 +861,7 @@ function imageFromProductCard(cardHtml: string, nearbyHtml: string, pageUrl: str
       if (safe) return safe.replace(/_\/(?:0x\d+|\d+x\d+)\.(?:jpg|webp)(?:\?.*)?$/i, "");
     }
   }
-  const nearbyImages = [...nearbyHtml.matchAll(/https:\/\/(?:image\.torob\.com|dkstatics-public\.digikala\.com)\/[^"'\\s<>]+/gi)];
+  const nearbyImages = [...nearbyHtml.matchAll(/https:\/\/(?:image\.torob\.com|dkstatics-public\.digikala\.com)\/[^\s"'<>\\]+/gi)];
   const raw = decodeHtml(nearbyImages.at(-1)?.[0] || "");
   return safeImageUrl(raw.replace(/_\/(?:0x\d+|\d+x\d+)\.(?:jpg|webp)(?:\?.*)?$/i, ""), pageUrl);
 }
@@ -1196,7 +1196,12 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
     summary: draft.summary || draft.title,
     description: draft.description || draft.summary || draft.title,
     price: draft.price,
-    originalPrice: draft.originalPrice && draft.originalPrice > draft.price ? draft.originalPrice : undefined,
+    originalPrice:
+      draft.originalPrice &&
+      draft.originalPrice > draft.price &&
+      draft.originalPrice <= draft.price * 1.8
+        ? draft.originalPrice
+        : undefined,
     priceHistory: appendStorePriceHistory([], {
       recordedAt: now,
       price: draft.price,

@@ -1155,10 +1155,22 @@ function normalizeRemoteProductImageUrl(value: unknown) {
   try {
     const url = new URL(String(value || "").trim());
     if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    // نسخهٔ قبلی پارسر HTML آدرس تصاویر ترب را روی «/ba» قطع می‌کرد.
+    // این URL ناقص را نمایش نمی‌دهیم تا تصویر جایگزین سالم دیده شود و ورود بعدی آن را اصلاح کند.
+    if (/^(?:www\.)?image\.torob\.com$/i.test(url.hostname) && url.pathname.length < 16) return undefined;
     return url.toString();
   } catch {
     return undefined;
   }
+}
+
+function hasSuspiciousImportedDiscount(product: Partial<JsonStoreProduct>) {
+  const price = Number(product.price || 0);
+  const originalPrice = Number(product.originalPrice || 0);
+  if (!product.externalSourceUrl || price <= 0 || originalPrice <= price) return false;
+  const extremeDiscount = originalPrice >= price * 2.2;
+  const unroundedImportedPrice = price % 1_000 !== 0;
+  return extremeDiscount && unroundedImportedPrice;
 }
 
 function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
@@ -1174,6 +1186,11 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       .replace(/[^a-z0-9-]+/g, "-")
       .replace(/^-+|-+$/g, "");
     if (!title || !slug) continue;
+    const storedPrice = Math.max(0, Number(product.price || 0));
+    const storedOriginalPrice = product.originalPrice
+      ? Math.max(0, Number(product.originalPrice))
+      : undefined;
+    const repairSuspiciousPrice = hasSuspiciousImportedDiscount(product);
     const normalizedProduct: JsonStoreProduct = {
       id: String(product.id || slug),
       slug,
@@ -1182,10 +1199,12 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       category: String(product.category || "لپ‌تاپ").trim(),
       summary: String(product.summary || title).trim(),
       description: String(product.description || product.summary || title).trim(),
-      price: Math.max(0, Number(product.price || 0)),
-      originalPrice: product.originalPrice
-        ? Math.max(0, Number(product.originalPrice))
-        : undefined,
+      price: repairSuspiciousPrice && storedOriginalPrice
+        ? storedOriginalPrice
+        : storedPrice,
+      originalPrice: repairSuspiciousPrice
+        ? undefined
+        : storedOriginalPrice,
       stock: Math.max(0, Math.floor(Number(product.stock || 0))),
       rating: Math.max(0, Math.min(5, Number(product.rating || 4.5))),
       reviewsCount: Math.max(0, Math.floor(Number(product.reviewsCount || 0))),
@@ -1219,6 +1238,14 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       isFeatured: Boolean(product.isFeatured),
       createdAt: String(product.createdAt || new Date().toISOString()),
     };
+    if (repairSuspiciousPrice) {
+      normalizedProduct.priceHistory = (normalizedProduct.priceHistory || []).filter(
+        (point) => point.price >= normalizedProduct.price * 0.35,
+      );
+      normalizedProduct.badges = normalizedProduct.badges.filter(
+        (badge) => !/تخفیف|شگفت/i.test(badge),
+      );
+    }
     if (!normalizedProduct.priceHistory?.length && normalizedProduct.externalSourceUrl && normalizedProduct.price > 0) {
       const recordedAt = normalizedProduct.priceUpdatedAt || normalizedProduct.createdAt;
       const sourceFromSpecs = String(normalizedProduct.specs.منبع || "").trim();

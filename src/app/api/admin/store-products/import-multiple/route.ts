@@ -99,19 +99,20 @@ function findMultiSourceMatch(
   return Number.isFinite(earliestMatch) ? earliestMatch : -1;
 }
 
+function validSaleOriginalPrice(price: number, originalPrice: number | undefined) {
+  const original = Number(originalPrice || 0);
+  // اختلاف قیمت دو فروشگاه «تخفیف» نیست. فقط قیمت قبل از تخفیف همان کارت
+  // و فقط در بازهٔ منطقی پذیرفته می‌شود تا برچسب‌های ۷۰ تا ۹۰ درصدی جعلی نشوند.
+  return original > price && original <= price * 1.8 ? original : undefined;
+}
+
 function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduct) {
   const candidateIsCheaper = candidate.price > 0 && (existing.price <= 0 || candidate.price < existing.price);
   const chosen = candidateIsCheaper ? candidate : existing;
   const price = Math.min(
     ...[existing.price, candidate.price].filter((value) => Number.isFinite(value) && value > 0),
   );
-  const possibleOriginalPrices = [
-    existing.originalPrice,
-    candidate.originalPrice,
-    existing.price,
-    candidate.price,
-  ].filter((value): value is number => Number.isFinite(value) && Number(value) > price);
-  const originalPrice = possibleOriginalPrices.length ? Math.max(...possibleOriginalPrices) : undefined;
+  const originalPrice = validSaleOriginalPrice(price, chosen.originalPrice);
   return {
     ...existing,
     title: candidate.title.length > existing.title.length ? candidate.title : existing.title,
@@ -142,10 +143,7 @@ function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: Json
   return {
     ...merged,
     price: candidate.price,
-    originalPrice:
-      candidate.originalPrice && candidate.originalPrice > candidate.price
-        ? candidate.originalPrice
-        : undefined,
+    originalPrice: validSaleOriginalPrice(candidate.price, candidate.originalPrice),
     priceUpdatedAt: candidate.priceUpdatedAt,
     marketReferenceNote: candidate.marketReferenceNote,
     externalSourceUrl: candidate.externalSourceUrl,
