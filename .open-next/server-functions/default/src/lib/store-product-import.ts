@@ -886,6 +886,51 @@ async function scanDigikalaRobot(
   return { drafts: uniqueDrafts(drafts).slice(0, limit), scannedUrls };
 }
 
+async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: string[]) {
+  const parsedSource = new URL(sourceUrl);
+  const categoryId = parsedSource.pathname.match(/\/browse\/(\d+)/i)?.[1];
+  if (!categoryId) return { drafts: [] as ImportedStoreProductDraft[], scannedUrls: [] as string[] };
+
+  const apiUrl = `https://api.torob.com/v4/base-product/search/?page=0&sort=popularity&size=${Math.min(50, limit)}&category=${categoryId}`;
+  try {
+    const raw = await fetchText(apiUrl);
+    const payload = parseJsonLoose(raw) as { results?: Array<Record<string, any>> } | null;
+    const records = Array.isArray(payload?.results) ? payload.results : [];
+    const drafts: ImportedStoreProductDraft[] = [];
+    for (const record of records) {
+      const title = firstText(record.name1, record.name2).slice(0, 180);
+      const price = normalizePriceToToman(record.price, "IRT");
+      if (!title || price < 100_000 || price > 1_500_000_000) continue;
+      const productUrl = absoluteUrl(firstText(record.web_client_absolute_url), "https://torob.com/");
+      const imageUrl = safeImageUrl(firstText(record.image_url, record.media_urls), productUrl);
+      const stockText = firstText(record.stock_status, record.price_text_mode).toLowerCase();
+      drafts.push({
+        title,
+        brand: brandFromTitle(title, "Torob"),
+        category: categoryFromTitle(title),
+        summary: title,
+        description: firstText(record.name2, record.name1).slice(0, 900) || title,
+        price,
+        stock: /ناموجود|inactive|out/.test(stockText) ? 0 : 5,
+        specs: {
+          منبع: "torob.com",
+          ...(record.shop_text ? { "تعداد فروشگاه‌ها": String(record.shop_text) } : {}),
+        },
+        externalSourceUrl: productUrl,
+        imageUrl: imageUrl || undefined,
+        sourceHost: "torob.com",
+        currency: "IRT",
+      });
+      if (drafts.length >= limit) break;
+    }
+    if (!drafts.length) warnings.push("API دسته‌بندی ترب محصول قیمت‌دار قابل استفاده‌ای برنگرداند.");
+    return { drafts: uniqueDrafts(drafts).slice(0, limit), scannedUrls: [apiUrl] };
+  } catch (error) {
+    warnings.push(`خواندن API دسته‌بندی ترب ناموفق بود: ${error instanceof Error ? error.message : "خطا"}`);
+    return { drafts: [] as ImportedStoreProductDraft[], scannedUrls: [apiUrl] };
+  }
+}
+
 export async function scanStoreProductsFromUrl(
   inputUrl: string,
   options: StoreProductImportScanOptions = {},
@@ -900,6 +945,25 @@ export async function scanStoreProductsFromUrl(
   const allDrafts: ImportedStoreProductDraft[] = [];
   const selectedCategories = options.categoryFilters || [];
   const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
+  const isTorobBrowseSource = /(^|\.)torob\.com$/i.test(sourceHost) && /\/browse\/\d+/i.test(new URL(sourceUrl).pathname);
+
+  if (isTorobBrowseSource) {
+    const robot = await scanTorobBrowseRobot(sourceUrl, limit, warnings);
+    scannedUrls.push(...robot.scannedUrls);
+    const filtered = robot.drafts.filter((draft) =>
+      selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories),
+    );
+    if (filtered.length > 0) {
+      return {
+        sourceUrl,
+        sourceHost,
+        scannedUrls,
+        products: uniqueDrafts(filtered).slice(0, limit),
+        warnings,
+      };
+    }
+    warnings.push("از API دسته‌بندی ترب محصولی مطابق دسته‌های انتخابی پیدا نشد؛ روش عمومی صفحه امتحان می‌شود.");
+  }
 
   const isDigikalaProductPage = /\/product\/dkp-/i.test(new URL(sourceUrl).pathname);
   const shouldSearchDigikalaCategories =
