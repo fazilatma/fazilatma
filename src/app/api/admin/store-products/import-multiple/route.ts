@@ -6,9 +6,9 @@ import {
 } from "@/lib/json-store";
 import { mergeStorePriceHistory } from "@/lib/store-price-history";
 import {
-  findMatchingStoreProductIndex,
   importedDraftToStoreProduct,
   productMatchesImportCategories,
+  storeProductIdentityKey,
   scanStoreProductsFromUrl,
 } from "@/lib/store-product-import";
 
@@ -47,6 +47,40 @@ function applyMultiplier(product: JsonStoreProduct, multiplier: number) {
     price: round(product.price * multiplier),
     originalPrice: product.originalPrice ? round(product.originalPrice * multiplier) : undefined,
   };
+}
+
+function modelTokens(title: string) {
+  const normalized = String(title || "")
+    .toLowerCase()
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+    .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,2})\b/g, "$1-$2")
+    .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${family.replace(/\s+/g, "")}-${model}`)
+    .replace(/[^a-z0-9آ-ی-]+/g, " ");
+  return new Set(
+    normalized
+      .split(/\s+/)
+      .filter((token) => /\d/.test(token) && token.length >= 4)
+      .filter((token) => !/^(?:\d+(?:gb|tb|mhz|hz)|ddr\d|pcie\d*|usb\d*|\d+)$/.test(token)),
+  );
+}
+
+function findMultiSourceMatch(products: JsonStoreProduct[], candidate: JsonStoreProduct) {
+  if (candidate.externalSourceUrl) {
+    const exactUrl = products.findIndex((product) => product.externalSourceUrl === candidate.externalSourceUrl);
+    if (exactUrl >= 0) return exactUrl;
+  }
+  const identity = storeProductIdentityKey(candidate);
+  const exactIdentity = products.findIndex((product) => storeProductIdentityKey(product) === identity);
+  if (exactIdentity >= 0) return exactIdentity;
+
+  const candidateModels = modelTokens(candidate.title);
+  if (candidateModels.size === 0) return -1;
+  return products.findIndex((product) => {
+    const existingModels = modelTokens(product.title);
+    return [...candidateModels].some((token) => existingModels.has(token));
+  });
 }
 
 function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduct) {
@@ -144,7 +178,7 @@ export async function POST(request: Request) {
 
       for (const draft of drafts) {
         const product = applyMultiplier(importedDraftToStoreProduct(draft), multiplier);
-        const matchIndex = findMatchingStoreProductIndex(aggregated, product);
+        const matchIndex = findMultiSourceMatch(aggregated, product);
         if (matchIndex >= 0) aggregated[matchIndex] = mergeLowestPrice(aggregated[matchIndex], product);
         else aggregated.push(product);
       }
@@ -167,7 +201,7 @@ export async function POST(request: Request) {
     let updated = 0;
     const existingSlugs = new Set(data.storeProducts.map((product) => product.slug));
     for (const product of aggregated) {
-      const matchIndex = findMatchingStoreProductIndex(data.storeProducts, product);
+      const matchIndex = findMultiSourceMatch(data.storeProducts, product);
       if (matchIndex >= 0) {
         data.storeProducts[matchIndex] = applyCurrentAggregatedPrice(data.storeProducts[matchIndex], product);
         updated += 1;

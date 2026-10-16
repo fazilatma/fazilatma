@@ -6,7 +6,6 @@ import {
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import {
-  findMatchingStoreProductIndex,
   importedDraftToStoreProduct,
   normalizeProductImportCategories,
   productImportCategoryKey,
@@ -34,6 +33,16 @@ type ImportBody = {
 
 function productSelectionKey(product: JsonStoreProduct) {
   return `${product.id}|${product.externalSourceUrl || product.slug}|${product.title}`;
+}
+
+function findStrictSourceMatch(products: JsonStoreProduct[], imported: JsonStoreProduct) {
+  if (imported.externalSourceUrl) {
+    return products.findIndex((product) => product.externalSourceUrl === imported.externalSourceUrl);
+  }
+  const idMatch = products.findIndex((product) => product.id === imported.id);
+  if (idMatch >= 0) return idMatch;
+  const identity = storeProductIdentityKey(imported);
+  return products.findIndex((product) => storeProductIdentityKey(product) === identity);
 }
 
 function publicProduct(product: JsonStoreProduct, index: number) {
@@ -230,7 +239,7 @@ export async function POST(request: Request) {
     if (action === "preview") {
       const data = await getOptiBidData();
       const preview = importedProducts.map((product, index) => {
-        const matchIndex = findMatchingStoreProductIndex(data.storeProducts, product);
+        const matchIndex = findStrictSourceMatch(data.storeProducts, product);
         return {
           ...publicProduct(product, index),
           action: matchIndex >= 0 ? "update" : "create",
@@ -266,7 +275,7 @@ export async function POST(request: Request) {
     const changedProducts: ReturnType<typeof publicProduct>[] = [];
 
     for (const product of selectedProducts) {
-      const matchIndex = findMatchingStoreProductIndex(data.storeProducts, product);
+      const matchIndex = findStrictSourceMatch(data.storeProducts, product);
       if (matchIndex >= 0 && strategy === "merge") {
         data.storeProducts[matchIndex] = mergeProducts(
           data.storeProducts[matchIndex],
