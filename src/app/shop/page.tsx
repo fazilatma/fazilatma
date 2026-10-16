@@ -228,6 +228,7 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const tags = productFilterTags(product);
   const catalogCategory = getParam(params, "category");
   const part = getParam(params, "part").toLowerCase();
+  const partGroup = getParam(params, "partGroup").toLowerCase();
 
   if (catalogCategory === "computer-parts" && !isComputerPartsCatalogProduct(product)) return false;
   if (catalogCategory === "laptop" && !isLaptopCatalogProduct(product)) return false;
@@ -243,6 +244,16 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
       cooler: ["خنک", "cooler", "فن پردازنده", "خمیر سیلیکون"],
     };
     const keywords = partKeywords[part] || [];
+    if (keywords.length && !keywords.some((keyword) => text.includes(keyword))) return false;
+  }
+  if (partGroup) {
+    const groupKeywords: Record<string, string[]> = {
+      memory: ["حافظه رم", "رم کامپیوتر", "رم دسکتاپ", "ram", "ddr4", "ddr5", "ssd", "nvme"],
+      platform: ["پردازنده", "cpu", "intel", "amd", "ryzen", "core i", "مادربرد", "motherboard"],
+      "graphics-power": ["کارت گرافیک", "gpu", "geforce", "radeon", "rtx", "gtx", "پاور", "منبع تغذیه", "power supply", "psu"],
+      "case-cooling": ["کیس", "case", "خنک", "cooler", "فن", "خمیر سیلیکون"],
+    };
+    const keywords = groupKeywords[partGroup] || [];
     if (keywords.length && !keywords.some((keyword) => text.includes(keyword))) return false;
   }
 

@@ -45,6 +45,8 @@ function activeCount(params: LaptopFilterParams) {
   return [
     "available",
     "brand",
+    "part",
+    "partGroup",
     "use",
     "ram",
     "cpu",

@@ -110,11 +110,11 @@ export default function StorefrontHome({
                 مسیرهای سریع خرید
               </span>
               <h2 className="mt-3 text-2xl font-black text-slate-900">
-                {computerPartsOnly ? "پیشنهاد خرید قطعات بر اساس نوع سیستم" : "پیشنهاد خرید بر اساس بودجه و کاربری"}
+                {computerPartsOnly ? "انتخاب سریع بر اساس نوع قطعه" : "پیشنهاد خرید بر اساس بودجه و کاربری"}
               </h2>
               <div className="mt-2 text-sm leading-7 text-slate-500">
                 {computerPartsOnly
-                  ? "مسیرهای آماده برای انتخاب قطعات سیستم اقتصادی، اداری، حرفه‌ای یا گیمینگ."
+                  ? "مسیرهای مستقیم برای ارتقای حافظه، انتخاب پردازنده و مادربرد، گرافیک و پاور یا کیس و خنک‌کننده."
                   : "مسیرهای آماده برای رسیدن سریع به لپ‌تاپ مناسب دانشجویی، اداری، مهندسی یا گیمینگ."}
               </div>
             </div>
@@ -125,10 +125,10 @@ export default function StorefrontHome({
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {computerPartsOnly ? (
               <>
-                <QuickPathCard title="سیستم اقتصادی" text="پردازنده و مادربرد اقتصادی، رم مناسب و SSD برای کارهای روزمره." href="/shop?category=computer-parts&part=cpu&maxPrice=20000000" icon="💰" color="emerald" />
-                <QuickPathCard title="سیستم اداری" text="قطعات پایدار و کم‌مصرف برای آفیس، حسابداری و کار مداوم." href="/shop?category=computer-parts&part=motherboard" icon="💼" color="blue" />
-                <QuickPathCard title="سیستم حرفه‌ای" text="پردازنده چند‌هسته‌ای، رم بیشتر و حافظه سریع برای کار تخصصی." href="/shop?category=computer-parts&part=cpu" icon="⚙️" color="amber" />
-                <QuickPathCard title="سیستم گیمینگ" text="کارت گرافیک، پاور و خنک‌کننده مناسب برای بازی و پردازش سنگین." href="/shop?category=computer-parts&part=gpu" icon="🎮" color="rose" />
+                <QuickPathCard title="ارتقای RAM و SSD" text="افزایش سرعت سیستم با حافظه رم بیشتر و ذخیره‌سازی NVMe یا SSD." href="/shop?category=computer-parts&partGroup=memory" icon="💾" color="emerald" />
+                <QuickPathCard title="پردازنده و مادربرد" text="انتخاب CPU و مادربرد سازگار بر اساس سوکت، نسل و نوع کاربری." href="/shop?category=computer-parts&partGroup=platform" icon="🧩" color="blue" />
+                <QuickPathCard title="کارت گرافیک و پاور" text="انتخاب GPU همراه با پاور مناسب برای توان مصرفی و پایداری سیستم." href="/shop?category=computer-parts&partGroup=graphics-power" icon="🎮" color="amber" />
+                <QuickPathCard title="کیس و خنک‌کننده" text="مدیریت جریان هوا و دمای قطعات با کیس، فن و خنک‌کننده مناسب." href="/shop?category=computer-parts&partGroup=case-cooling" icon="❄️" color="rose" />
               </>
             ) : (
               <>
