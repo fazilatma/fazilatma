@@ -271,15 +271,16 @@ const computerPartItems: Array<{
   subtitle: string;
   href: string;
   kind: ComputerPartVisualKind;
+  image: string;
 }> = [
-  { title: "CPU", subtitle: "پردازنده", href: "/shop?category=computer-parts&part=cpu", kind: "cpu" },
-  { title: "GPU", subtitle: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", kind: "gpu" },
-  { title: "RAM", subtitle: "حافظه رم", href: "/shop?category=computer-parts&part=ram", kind: "ram" },
-  { title: "SSD", subtitle: "حافظه پرسرعت", href: "/shop?category=computer-parts&part=ssd", kind: "ssd" },
-  { title: "MB", subtitle: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", kind: "motherboard" },
-  { title: "PSU", subtitle: "پاور", href: "/shop?category=computer-parts&part=power", kind: "power" },
-  { title: "CASE", subtitle: "کیس", href: "/shop?category=computer-parts&part=case", kind: "case" },
-  { title: "COOL", subtitle: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", kind: "cooler" },
+  { title: "CPU", subtitle: "پردازنده", href: "/shop?category=computer-parts&part=cpu", kind: "cpu", image: "/images/parts/cpu.png" },
+  { title: "GPU", subtitle: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", kind: "gpu", image: "/images/parts/gpu.png" },
+  { title: "RAM", subtitle: "حافظه رم", href: "/shop?category=computer-parts&part=ram", kind: "ram", image: "/images/parts/ram.png" },
+  { title: "SSD", subtitle: "حافظه پرسرعت", href: "/shop?category=computer-parts&part=ssd", kind: "ssd", image: "/images/parts/ssd.png" },
+  { title: "MB", subtitle: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", kind: "motherboard", image: "/images/parts/motherboard.png" },
+  { title: "PSU", subtitle: "پاور", href: "/shop?category=computer-parts&part=power", kind: "power", image: "/images/parts/power.png" },
+  { title: "CASE", subtitle: "کیس", href: "/shop?category=computer-parts&part=case", kind: "case", image: "/images/parts/case.png" },
+  { title: "COOL", subtitle: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", kind: "cooler", image: "/images/parts/cooler.png" },
 ];
 
 function StoreComputerPartsSlider() {
@@ -295,7 +296,9 @@ function StoreComputerPartsSlider() {
       <div className="flex gap-3 overflow-x-auto scroll-smooth pb-1">
         {computerPartItems.map((item) => (
           <Link key={item.title} href={item.href} className="group w-32 shrink-0 text-center">
-            <ComputerPartVisual kind={item.kind} className="mx-auto h-24 w-24 rounded-full transition group-hover:-translate-y-1 group-hover:shadow-lg" />
+            <div className="mx-auto h-24 w-24 overflow-hidden rounded-full border border-slate-100 bg-white p-1 shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-lg">
+              <img src={item.image} alt={`تصویر ${item.subtitle}`} className="h-full w-full rounded-full object-contain" />
+            </div>
             <span className="mt-2 block text-xs font-black text-slate-700">{item.subtitle}</span>
           </Link>
         ))}

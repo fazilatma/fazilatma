@@ -29,15 +29,16 @@ const computerPartsCategoryItems: Array<{
   badge: string;
   kind: ComputerPartVisualKind;
   part: string;
+  image: string;
 }> = [
-  { title: "پردازنده", href: "/shop?category=computer-parts&part=cpu", badge: "CPU", kind: "cpu", part: "cpu" },
-  { title: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", badge: "GPU", kind: "gpu", part: "gpu" },
-  { title: "حافظه رم", href: "/shop?category=computer-parts&part=ram", badge: "RAM", kind: "ram", part: "ram" },
-  { title: "حافظه SSD", href: "/shop?category=computer-parts&part=ssd", badge: "SSD", kind: "ssd", part: "ssd" },
-  { title: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", badge: "MB", kind: "motherboard", part: "motherboard" },
-  { title: "پاور", href: "/shop?category=computer-parts&part=power", badge: "PSU", kind: "power", part: "power" },
-  { title: "کیس", href: "/shop?category=computer-parts&part=case", badge: "CASE", kind: "case", part: "case" },
-  { title: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", badge: "COOL", kind: "cooler", part: "cooler" },
+  { title: "پردازنده", href: "/shop?category=computer-parts&part=cpu", badge: "CPU", kind: "cpu", part: "cpu", image: "/images/parts/cpu.png" },
+  { title: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", badge: "GPU", kind: "gpu", part: "gpu", image: "/images/parts/gpu.png" },
+  { title: "حافظه رم", href: "/shop?category=computer-parts&part=ram", badge: "RAM", kind: "ram", part: "ram", image: "/images/parts/ram.png" },
+  { title: "حافظه SSD", href: "/shop?category=computer-parts&part=ssd", badge: "SSD", kind: "ssd", part: "ssd", image: "/images/parts/ssd.png" },
+  { title: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", badge: "MB", kind: "motherboard", part: "motherboard", image: "/images/parts/motherboard.png" },
+  { title: "پاور", href: "/shop?category=computer-parts&part=power", badge: "PSU", kind: "power", part: "power", image: "/images/parts/power.png" },
+  { title: "کیس", href: "/shop?category=computer-parts&part=case", badge: "CASE", kind: "case", part: "case", image: "/images/parts/case.png" },
+  { title: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", badge: "COOL", kind: "cooler", part: "cooler", image: "/images/parts/cooler.png" },
 ];
 
 const getParam = (params: ShopSearchParams, key: string) => {
@@ -518,6 +519,7 @@ export default async function ShopPage({
             const itemBrand = "brand" in item ? item.brand : undefined;
             const partKind = "kind" in item ? item.kind : undefined;
             const partKey = "part" in item ? item.part : undefined;
+            const partImage = "image" in item ? item.image : undefined;
             const brandProduct = itemBrand
               ? firstImageByBrand.get(itemBrand.toLowerCase())
               : undefined;
@@ -536,6 +538,8 @@ export default async function ShopPage({
                         alt={`${item.title}؛ ${partProduct.title}`}
                         className="h-full w-full bg-white object-contain p-1"
                       />
+                    ) : partImage ? (
+                      <img src={partImage} alt={`تصویر ${item.title}`} className="h-full w-full bg-white object-contain p-1" />
                     ) : (
                       <ComputerPartVisual kind={partKind} className="h-12 w-20 shadow-none" />
                     )
