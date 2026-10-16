@@ -1,7 +1,7 @@
 import Link from "next/link";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
-import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
+import type { ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
@@ -26,6 +26,17 @@ function computerPartVisualKind(product: JsonStoreProduct): ComputerPartVisualKi
   return "cpu";
 }
 
+const computerPartFallbackImages: Record<ComputerPartVisualKind, string> = {
+  cpu: "/images/parts/cpu.png",
+  gpu: "/images/parts/gpu.png",
+  ram: "/images/parts/ram.png",
+  ssd: "/images/parts/ssd.png",
+  motherboard: "/images/parts/motherboard.png",
+  power: "/images/parts/power.png",
+  case: "/images/parts/case.png",
+  cooler: "/images/parts/cooler.png",
+};
+
 export function LaptopVisual({ product, compact = false }: { product: JsonStoreProduct; compact?: boolean }) {
   const isComputerPart = isComputerPartsCatalogProduct(product);
   return (
@@ -36,9 +47,10 @@ export function LaptopVisual({ product, compact = false }: { product: JsonStoreP
       <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-[#00a8e8]/10" />
       <div className="absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-rose-500/10" />
       {isComputerPart ? (
-        <ComputerPartVisual
-          kind={computerPartVisualKind(product)}
-          className={compact ? "relative h-28 w-28 shadow-xl" : "relative h-36 w-36 shadow-xl"}
+        <img
+          src={computerPartFallbackImages[computerPartVisualKind(product)]}
+          alt={`تصویر مرتبط با ${product.title}`}
+          className="relative h-[82%] w-[82%] object-contain drop-shadow-xl"
         />
       ) : (
         <div className="relative w-44 max-w-[75%]">
