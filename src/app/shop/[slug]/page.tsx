@@ -13,6 +13,10 @@ import {
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
+  applyLiveStoreProductSnapshot,
+  getLiveStoreProductSnapshot,
+} from "@/lib/store-product-live";
+import {
   breadcrumbJsonLd,
   buildSeoMetadata,
   jsonLd,
@@ -92,8 +96,10 @@ export default async function StoreProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getJsonStoreProductBySlug(slug);
-  if (!product) notFound();
+  const storedProduct = await getJsonStoreProductBySlug(slug);
+  if (!storedProduct) notFound();
+  const liveSnapshot = await getLiveStoreProductSnapshot(storedProduct);
+  const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
   const allProducts = await getJsonStoreProducts();
