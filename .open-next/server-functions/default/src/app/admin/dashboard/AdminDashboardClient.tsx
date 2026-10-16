@@ -93,6 +93,7 @@ function normalizedImportPriceMultiplier(value: unknown) {
 
 function parseComputerPartsLinks(value: unknown) {
   return String(value || "")
+    .replace(/&amp;(?=https?:\/\/)/gi, "&")
     .split(/\r?\n|\s*&\s*(?=https?:\/\/)|[|،]+/i)
     .map((item) => item.trim())
     .filter(Boolean);

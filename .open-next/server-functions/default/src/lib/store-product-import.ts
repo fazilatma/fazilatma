@@ -893,7 +893,22 @@ async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: 
 
   const apiUrl = `https://api.torob.com/v4/base-product/search/?page=0&sort=popularity&size=${Math.min(50, limit)}&category=${categoryId}`;
   try {
-    const raw = await fetchText(apiUrl);
+    const timeoutSignal =
+      typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+        ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
+        : undefined;
+    const response = await fetch(apiUrl, {
+      redirect: "follow",
+      headers: {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        accept: "application/json, text/plain, */*",
+        "accept-language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
+        referer: sourceUrl,
+      },
+      signal: timeoutSignal,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const raw = await response.text();
     const payload = parseJsonLoose(raw) as { results?: Array<Record<string, any>> } | null;
     const records = Array.isArray(payload?.results) ? payload.results : [];
     const drafts: ImportedStoreProductDraft[] = [];

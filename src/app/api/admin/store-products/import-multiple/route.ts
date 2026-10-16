@@ -15,7 +15,8 @@ import {
 export const dynamic = "force-dynamic";
 
 function normalizeLinks(value: unknown) {
-  const raw = Array.isArray(value) ? value.map(String).join("\n") : String(value || "");
+  const raw = (Array.isArray(value) ? value.map(String).join("\n") : String(value || ""))
+    .replace(/&amp;(?=https?:\/\/)/gi, "&");
   const candidates = raw
     .split(/\r?\n|\s*&\s*(?=https?:\/\/)|[|،]+/i)
     .map((item) => item.trim())
@@ -185,10 +186,11 @@ export async function POST(request: Request) {
     }
 
     if (aggregated.length === 0) {
+      const warningSummary = warnings.slice(0, 3).join("؛ ");
       return NextResponse.json(
         {
           success: false,
-          message: "از لینک‌های واردشده محصول قطعه‌ایِ قیمت‌دار پیدا نشد. لینک دسته‌بندی دقیق یا CSV را امتحان کنید.",
+          message: `از لینک‌های واردشده محصول قطعه‌ایِ قیمت‌دار پیدا نشد.${warningSummary ? ` جزئیات: ${warningSummary}` : ""}`,
           warnings: warnings.slice(0, 20),
           scannedUrls,
         },
