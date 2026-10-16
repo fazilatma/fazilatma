@@ -56,6 +56,10 @@ function formattedToman(value: string) {
 
 function firstTorobPrice(html: string) {
   const text = stripTags(html);
+  const headerText = text.split(/فروشنده[‌\s]*ها/i)[0] || text;
+  // بعضی مدل‌های هم‌نام به صفحه‌ای منتهی می‌شوند که فروشندهٔ آخر آن ناموجود است؛
+  // قیمت چنین صفحه‌ای نباید جای قیمت فعال ذخیره‌شده را بگیرد.
+  if (/ناموجود/i.test(headerText) && !/ارزان[‌\s-]*ترین/i.test(headerText)) return 0;
   const priorityPatterns = [
     /خرید\s+از[\s\S]{0,240}?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان[\s\S]{0,80}?ارزان[‌\s-]*ترین/i,
     /ارزان[‌\s-]*ترین[\s\S]{0,120}?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i,
@@ -70,8 +74,12 @@ function firstTorobPrice(html: string) {
 }
 
 function torobImage(html: string, pageUrl: string) {
+  const normalized = decodeHtml(html)
+    .replace(/\\\//g, "/")
+    .replace(/\\u002F/gi, "/")
+    .replace(/\\"/g, '"');
   const matches = [
-    ...html.matchAll(/https:\/\/image\.torob\.com\/[^\s"'<>\\]+/gi),
+    ...normalized.matchAll(/https:\/\/image\.torob\.com\/[^\s"'<>\\]+/gi),
   ];
   for (const match of matches) {
     const raw = decodeHtml(match[0] || "")
