@@ -995,11 +995,34 @@ async function fetchDigikalaApi(url: string) {
     },
     signal: timeoutSignal,
   });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const text = await response.text();
-  const result = parseJsonLoose(text);
-  if (!result) throw new Error("پاسخ API دیجی‌کالا JSON معتبر نبود.");
-  return result;
+  if (response.ok) {
+    const text = await response.text();
+    const result = parseJsonLoose(text);
+    if (result) return result;
+  }
+
+  // API دیجی‌کالا گاهی IPهای Cloudflare را به همان URL برمی‌گرداند. Reader عمومی
+  // Jina درخواست را از شبکه‌ای جدا اجرا می‌کند و JSON خام را داخل Markdown Content می‌دهد.
+  const target = new URL(url);
+  const readerUrl = `https://r.jina.ai/http://api.digikala.com${target.pathname}${target.search}`;
+  const readerResponse = await fetch(readerUrl, {
+    redirect: "follow",
+    headers: {
+      "user-agent": "Mozilla/5.0 (compatible; OptiBidCatalogReader/1.0)",
+      accept: "text/plain, text/markdown, */*",
+      "cache-control": "no-cache",
+    },
+    signal: timeoutSignal,
+  });
+  if (!readerResponse.ok) {
+    throw new Error(`Digikala HTTP ${response.status} / Reader HTTP ${readerResponse.status}`);
+  }
+  const readerText = await readerResponse.text();
+  const jsonStart = readerText.indexOf("{");
+  const jsonText = jsonStart >= 0 ? readerText.slice(jsonStart).trim() : readerText.trim();
+  const readerResult = parseJsonLoose(jsonText);
+  if (!readerResult) throw new Error("پاسخ واسط دیجی‌کالا JSON معتبر نبود.");
+  return readerResult;
 }
 
 async function scanDigikalaRobot(
