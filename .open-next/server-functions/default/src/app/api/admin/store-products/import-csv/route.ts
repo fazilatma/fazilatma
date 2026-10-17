@@ -223,8 +223,8 @@ async function importPreparedCsvBatch(request: Request) {
     if (!incoming.length) {
       return NextResponse.json({ success: false, message: "این دسته محصولی برای درون‌ریزی ندارد." }, { status: 400 });
     }
-    if (incoming.length > 1_000) {
-      return NextResponse.json({ success: false, message: "در هر درخواست حداکثر ۱۰۰۰ محصول ارسال کنید." }, { status: 413 });
+    if (incoming.length > 6_000) {
+      return NextResponse.json({ success: false, message: "در هر درخواست حداکثر ۶۰۰۰ محصول ارسال کنید." }, { status: 413 });
     }
 
     const normalizedDrafts = incoming.map(normalizeDraftPayload).filter((item): item is ImportedStoreProductDraft => Boolean(item));

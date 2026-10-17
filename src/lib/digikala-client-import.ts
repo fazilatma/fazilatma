@@ -30,6 +30,7 @@ const componentSources: DigikalaSource[] = [
   { slug: "internal-hard-drive", category: "حافظه و ذخیره‌سازی", part: "ssd" },
   { slug: "psu", category: "قطعات کامپیوتر", part: "power" },
   { slug: "computer-chassis", category: "قطعات کامپیوتر", part: "case" },
+  { slug: "cooling-system", category: "قطعات کامپیوتر", part: "cooler" },
 ];
 
 const brandRules: Array<[RegExp, string]> = [
@@ -183,6 +184,34 @@ function categoryPageFromPayload(
 async function fetchCategoryPage(source: DigikalaSource, page: number) {
   const url = `${apiUrl(source.slug, page)}&sort=7`;
   let lastError: unknown;
+  try {
+    const proxyResponse = await fetch(
+      `/api/admin/store-products/digikala-page?slug=${encodeURIComponent(source.slug)}&page=${page}`,
+      { method: "GET", cache: "no-store", credentials: "same-origin" },
+    );
+    if (proxyResponse.ok) {
+      const payload = await proxyResponse.json() as {
+        products?: ImportedStoreProductDraft[];
+        totalPages?: number;
+        totalItems?: number;
+      };
+      const drafts = Array.isArray(payload.products) ? payload.products : [];
+      const totalItems = Math.max(0, Number(payload.totalItems || 0));
+      const totalPages = Math.max(1, Number(payload.totalPages || 1));
+      return {
+        source,
+        page,
+        records: [] as Array<Record<string, any>>,
+        drafts,
+        totalPages,
+        totalItems,
+        paginationKnown: totalPages > 1 || totalItems > drafts.length,
+      };
+    }
+    lastError = new Error(`Proxy HTTP ${proxyResponse.status}`);
+  } catch (error) {
+    lastError = error;
+  }
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const response = await fetch(url, {
@@ -246,6 +275,16 @@ async function fetchCategoryPage(source: DigikalaSource, page: number) {
   }
 }
 
+function draftsFromCategoryPage(
+  result: { drafts?: ImportedStoreProductDraft[]; records?: Array<Record<string, any>> },
+  source: DigikalaSource,
+) {
+  if (Array.isArray(result.drafts)) return result.drafts;
+  return (Array.isArray(result.records) ? result.records : [])
+    .map((record) => draftFromRecord(record, source))
+    .filter((draft): draft is ImportedStoreProductDraft => Boolean(draft));
+}
+
 export async function scanDigikalaComponentsInBrowser(
   options: {
     maxProducts?: number;
@@ -298,16 +337,14 @@ export async function scanDigikalaComponentsInBrowser(
       warnings.push(`${source.slug}: ${result.reason instanceof Error ? result.reason.message : "خطا"}`);
       continue;
     }
+    const firstDrafts = draftsFromCategoryPage(result.value, source);
     const categoryPages = result.value.paginationKnown
       ? Math.min(maxPagesPerCategory, result.value.totalPages)
-      : result.value.records.length >= 10
+      : firstDrafts.length >= 10
         ? maxPagesPerCategory
         : 1;
     totalPages += categoryPages;
-    for (const record of result.value.records) {
-      const draft = draftFromRecord(record, source);
-      if (draft) byUrl.set(draft.externalSourceUrl, draft);
-    }
+    for (const draft of firstDrafts) byUrl.set(draft.externalSourceUrl, draft);
     for (let page = 2; page <= categoryPages; page += 1) pageTasks.push({ source, page });
   }
   totalPages = Math.max(completedPages, totalPages);
@@ -336,12 +373,12 @@ export async function scanDigikalaComponentsInBrowser(
         continue;
       }
       const productsBeforePage = byUrl.size;
-      for (const record of result.value.records) {
-        const draft = draftFromRecord(record, task.source);
-        if (draft) byUrl.set(draft.externalSourceUrl, draft);
+      const pageDrafts = draftsFromCategoryPage(result.value, task.source);
+      for (const draft of pageDrafts) {
+        byUrl.set(draft.externalSourceUrl, draft);
         if (byUrl.size >= maxProducts) break;
       }
-      if (result.value.records.length === 0 || byUrl.size === productsBeforePage) {
+      if (pageDrafts.length === 0 || byUrl.size === productsBeforePage) {
         endedSources.add(task.source.slug);
       }
     }

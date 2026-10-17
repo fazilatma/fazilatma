@@ -1047,6 +1047,42 @@ async function fetchDigikalaApi(url: string) {
   return readerResult;
 }
 
+export async function fetchDigikalaCategoryPageDrafts(slug: string, page: number) {
+  const safeSlug = String(slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const safePage = Math.max(1, Math.min(500, Math.floor(Number(page || 1))));
+  const apiUrl = `https://api.digikala.com/v1/categories/${safeSlug}/search/?page=${safePage}&sort=7`;
+  const payload = await fetchDigikalaApi(apiUrl) as Record<string, any>;
+  const records = digikalaRecordsFromJson(payload);
+  const storageCategory = /(?:ssd|hard-drive)/.test(safeSlug);
+  const fallbackCategory: ProductImportCategoryKey = storageCategory ? "storage" : "components";
+  const partBySlug: Record<string, string> = {
+    processor: "cpu",
+    "graphics-card": "gpu",
+    ram: "ram",
+    motherboard: "motherboard",
+    "internal-ssd": "ssd",
+    "internal-hard-drive": "ssd",
+    psu: "power",
+    "computer-chassis": "case",
+    "cooling-system": "cooler",
+  };
+  const products = records
+    .map((record) => draftFromDigikalaRecord(record, "digikala.com", fallbackCategory))
+    .filter((draft): draft is ImportedStoreProductDraft => Boolean(draft))
+    .map((draft) => ({
+      ...draft,
+      specs: { ...draft.specs, "نوع قطعه": partBySlug[safeSlug] || "" },
+    }));
+  const pager = payload?.data?.pager || payload?.pager || {};
+  const totalItems = Math.max(0, Math.floor(Number(pager.total_items || pager.total_count || 0)));
+  const totalPages = Math.max(
+    1,
+    Math.floor(Number(pager.total_pages || pager.last_page || 0)),
+    totalItems && records.length ? Math.ceil(totalItems / records.length) : 1,
+  );
+  return { products, totalPages, totalItems, apiUrl };
+}
+
 async function scanDigikalaRobot(
   sourceUrl: string,
   selectedCategories: ProductImportCategoryKey[],

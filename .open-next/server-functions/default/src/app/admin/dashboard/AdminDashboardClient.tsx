@@ -1018,31 +1018,27 @@ export default function AdminDashboardClient({
         scannedProducts += scan.products.length;
         scannedPages += scan.scannedPages;
 
-        const batchSize = 350;
-        for (let cursor = 0; cursor < scan.products.length; cursor += batchSize) {
-          const batch = scan.products.slice(cursor, cursor + batchSize);
-          setProductImportMessage(
-            `${scan.products.length.toLocaleString("fa-IR")} محصول از لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} پیدا شد؛ در حال ذخیره دستهٔ ${(Math.floor(cursor / batchSize) + 1).toLocaleString("fa-IR")} از ${Math.ceil(scan.products.length / batchSize).toLocaleString("fa-IR")}...`,
-          );
-          const response = await fetch("/api/admin/store-products/import-csv", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              products: batch,
-              strategy: "merge",
-              priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
-              categoryFilters: ["components", "storage"],
-              sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
-            }),
-          });
-          const result = await readJsonResponse(response, "ثبت دستهٔ محصولات دیجی‌کالا ناموفق بود.");
-          if (!result.success) throw new Error(result.message || "ثبت دستهٔ محصولات دیجی‌کالا ناموفق بود.");
-          created += Number(result.created || 0);
-          updated += Number(result.updated || 0);
-          skipped += Number(result.skipped || 0);
-          activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
-          if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
-        }
+        setProductImportMessage(
+          `${scan.products.length.toLocaleString("fa-IR")} محصول از لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} پیدا شد؛ در حال ذخیرهٔ یکپارچهٔ همه محصولات...`,
+        );
+        const response = await fetch("/api/admin/store-products/import-csv", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            products: scan.products,
+            strategy: "merge",
+            priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
+            categoryFilters: ["components", "storage"],
+            sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
+          }),
+        });
+        const result = await readJsonResponse(response, "ثبت یکپارچهٔ محصولات دیجی‌کالا ناموفق بود.");
+        if (!result.success) throw new Error(result.message || "ثبت محصولات دیجی‌کالا ناموفق بود.");
+        created += Number(result.created || 0);
+        updated += Number(result.updated || 0);
+        skipped += Number(result.skipped || 0);
+        activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
+        if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
       }
 
       if (serverSources.length > 0) {
