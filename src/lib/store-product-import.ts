@@ -986,13 +986,12 @@ async function fetchDigikalaApi(url: string) {
       ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
       : undefined;
   const response = await fetch(url, {
-    redirect: "follow",
+    redirect: "manual",
     headers: {
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      "user-agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
       accept: "application/json, text/plain, */*",
-      "accept-language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
-      referer: "https://www.digikala.com/",
-      origin: "https://www.digikala.com",
+      "accept-language": "fa-IR,fa;q=0.9,en;q=0.6",
+      "cache-control": "no-cache",
     },
     signal: timeoutSignal,
   });
@@ -1034,8 +1033,51 @@ async function scanDigikalaRobot(
   const drafts: ImportedStoreProductDraft[] = [];
   const scannedUrls: string[] = [];
 
-  // API دیجی‌کالا روی IPهای Cloudflare وارد حلقهٔ redirect می‌شود. صفحهٔ HTML
-  // عمومی هر زیرگروه همان کارت، قیمت و تصویر را به‌شکل SSR در اختیار می‌گذارد.
+  // ابتدا API صفحه‌بندی‌شده را با sort صریح و redirect دستی امتحان می‌کنیم؛
+  // این شکل درخواست از حلقهٔ redirect بعضی IPهای Cloudflare جلوگیری می‌کند.
+  const endedApiSlugs = new Set<string>();
+  const maxApiCalls = Math.min(40, Math.max(categorySlugs.length, Math.ceil(limit / 20) + categorySlugs.length));
+  let apiCalls = 0;
+  for (let page = 1; apiCalls < maxApiCalls && uniqueDrafts(drafts).length < limit; page += 1) {
+    let attemptedOnPage = 0;
+    for (const slug of categorySlugs) {
+      if (apiCalls >= maxApiCalls || uniqueDrafts(drafts).length >= limit) break;
+      if (endedApiSlugs.has(slug)) continue;
+      attemptedOnPage += 1;
+      apiCalls += 1;
+      const apiUrl = `https://api.digikala.com/v1/categories/${slug}/search/?page=${page}&sort=7`;
+      scannedUrls.push(apiUrl);
+      try {
+        const payload = await fetchDigikalaApi(apiUrl);
+        const records = digikalaRecordsFromJson(payload);
+        if (!records.length) {
+          endedApiSlugs.add(slug);
+          continue;
+        }
+        const fallbackCategory: ProductImportCategoryKey = /(?:ssd|hard-drive)/.test(slug)
+          ? "storage"
+          : "components";
+        const pageDrafts = records
+          .map((record) => draftFromDigikalaRecord(record, "digikala.com", fallbackCategory))
+          .filter((draft): draft is ImportedStoreProductDraft => Boolean(draft))
+          .filter((draft) =>
+            (selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories)) &&
+            productMatchesComputerPartFilters(draft, partFilters),
+          );
+        const before = uniqueDrafts(drafts).length;
+        drafts.push(...pageDrafts);
+        if (uniqueDrafts(drafts).length === before) endedApiSlugs.add(slug);
+      } catch (error) {
+        endedApiSlugs.add(slug);
+        if (page === 1) {
+          warnings.push(`API زیرگروه ${slug} در دسترس نبود: ${error instanceof Error ? error.message : "خطا"}`);
+        }
+      }
+    }
+    if (attemptedOnPage === 0) break;
+  }
+
+  // برای زیرگروه‌هایی که API آن‌ها بسته است، صفحهٔ SEO عمومی حداقل صفحه اول را می‌دهد.
   for (let index = 0; index < pageUrls.length && uniqueDrafts(drafts).length < limit; index += 1) {
     const pageUrl = pageUrls[index];
     scannedUrls.push(pageUrl);
