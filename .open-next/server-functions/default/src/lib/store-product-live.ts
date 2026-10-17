@@ -1,5 +1,6 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
+import { technicalSpecsFromText } from "@/lib/store-product-specs";
 
 export type LiveStoreProductComment = {
   id: string;
@@ -156,14 +157,30 @@ async function fetchDigikalaJson(url: string) {
   translated.searchParams.set("_x_tr_sl", "auto");
   translated.searchParams.set("_x_tr_tl", "en");
   translated.searchParams.set("_x_tr_hl", "en");
-  const response = await fetch(translated.toString(), {
+  try {
+    const response = await fetch(translated.toString(), {
+      redirect: "follow",
+      cache: "no-store",
+      headers: { accept: "application/json, text/plain, */*" },
+      signal: timeoutSignal,
+    });
+    if (response.ok) return await response.json() as Record<string, any>;
+  } catch {
+    // Reader عمومی در ادامه امتحان می‌شود.
+  }
+
+  const readerUrl = `https://r.jina.ai/http://api.digikala.com${target.pathname}${target.search}`;
+  const readerResponse = await fetch(readerUrl, {
     redirect: "follow",
     cache: "no-store",
-    headers: { accept: "application/json, text/plain, */*" },
+    headers: { accept: "text/plain, text/markdown, */*" },
     signal: timeoutSignal,
   });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return await response.json() as Record<string, any>;
+  if (!readerResponse.ok) throw new Error(`Reader HTTP ${readerResponse.status}`);
+  const text = await readerResponse.text();
+  const jsonStart = text.indexOf("{");
+  if (jsonStart < 0) throw new Error("پاسخ جزئیات کالا JSON نداشت.");
+  return JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
 }
 
 function digikalaDetailSnapshot(payload: Record<string, any>) {
@@ -305,11 +322,67 @@ export async function getLiveStoreProductSnapshot(
   }
 }
 
+function inferredProductDetails(product: JsonStoreProduct) {
+  const raw = `${product.title} ${product.summary || ""}`;
+  const text = toEnglishDigits(raw.replace(/[\u200c]/g, " "));
+  const lower = text.toLowerCase();
+  const specs: Record<string, string> = {
+    ...technicalSpecsFromText(text),
+  };
+  if (product.brand && product.brand !== "OptiBid" && product.brand !== "Digikala") specs["برند"] = product.brand;
+
+  const model = text.match(/مدل\s+(.+?)(?=\s+(?:ظرفیت|با\s|نوع\s|رابط|سوکت|حافظه)|$)/i)?.[1]?.trim();
+  if (model && model.length <= 80) specs["مدل"] = model;
+  const capacity = text.match(/(\d+(?:\.\d+)?)\s*(ترابایت|گیگابایت|tb|gb)/i);
+  if (capacity && !specs["ظرفیت"]) specs["ظرفیت"] = `${capacity[1]} ${capacity[2]}`;
+  const wattage = text.match(/(\d{3,4})\s*(?:وات|watt|w\b)/i)?.[1];
+  if (wattage) specs["توان"] = `${wattage} وات`;
+  const socket = text.match(/\b(?:LGA\s*\d{3,4}|AM[345]|TR[45]|sTRX4)\b/i)?.[0];
+  if (socket) specs["سوکت"] = socket.toUpperCase().replace(/\s+/g, " ");
+  const chipset = text.match(/\b(?:H|B|Z|X|A)\d{3}[A-Z0-9-]*\b/i)?.[0];
+  if (chipset && /مادربرد|motherboard/i.test(text)) specs["چیپست"] = chipset.toUpperCase();
+  const interfaceName = text.match(/\b(?:SATA(?:\s*III)?|PCIe(?:\s*[345](?:\.0)?)?|NVMe|USB\s*[23](?:\.\d)?)\b/i)?.[0];
+  if (interfaceName) specs["رابط"] = interfaceName.toUpperCase().replace(/\s+/g, " ");
+  const diskRpm = text.match(/(\d{4,5})\s*(?:RPM|دور در دقیقه)/i)?.[1];
+  if (diskRpm) specs["سرعت چرخش"] = `${diskRpm} دور در دقیقه`;
+  const formFactor = text.match(/(2\.5|3\.5)\s*(?:اینچ|inch)/i)?.[1];
+  if (formFactor) specs["فرم فاکتور"] = `${formFactor} اینچ`;
+  const memoryType = text.match(/\bGDDR[3567X]*\b/i)?.[0];
+  if (memoryType) specs["نوع حافظه گرافیکی"] = memoryType.toUpperCase();
+  const memoryAmount = text.match(/(\d{1,2})\s*GB/i)?.[1];
+  if (memoryAmount && /گرافیک|rtx|gtx|radeon|gpu/i.test(text)) specs["حافظه گرافیکی"] = `${memoryAmount} GB`;
+
+  let type = "قطعه کامپیوتر";
+  if (/هارد|hard disk|hdd/i.test(lower)) {
+    type = /اکسترنال|external/i.test(lower) ? "هارد اکسترنال" : "هارددیسک اینترنال";
+    specs["نوع محصول"] = type;
+    if (/purple|surveillance|نظارت/i.test(lower)) specs["کاربری"] = "ذخیره‌سازی سیستم‌های نظارتی";
+  } else if (/ssd|nvme/i.test(lower)) type = "حافظه SSD";
+  else if (/کارت گرافیک|rtx|gtx|radeon/i.test(lower)) type = "کارت گرافیک";
+  else if (/پردازنده|cpu|ryzen|core i/i.test(lower)) type = "پردازنده";
+  else if (/مادربرد|motherboard/i.test(lower)) type = "مادربرد";
+  else if (/منبع تغذیه|پاور|power supply|psu/i.test(lower)) type = "منبع تغذیه";
+  else if (/رم کامپیوتر|memory module/i.test(lower)) type = "حافظه RAM";
+  specs["دسته محصول"] ||= type;
+
+  const description = product.description && product.description !== product.title
+    ? product.description
+    : `${product.title} یک ${type} از برند ${product.brand || "معتبر"} است. مشخصات نمایش‌داده‌شده از عنوان، دسته‌بندی و داده‌های فنی قابل‌دریافت این مدل استخراج شده‌اند تا مقایسه و انتخاب دقیق‌تر انجام شود.`;
+  return { specs, description };
+}
+
 export function applyLiveStoreProductSnapshot(
   product: JsonStoreProduct,
   snapshot: LiveStoreProductSnapshot | null,
 ): JsonStoreProduct {
-  if (!snapshot) return product;
+  const inferred = inferredProductDetails(product);
+  if (!snapshot) {
+    return {
+      ...product,
+      specs: { ...inferred.specs, ...product.specs },
+      description: inferred.description,
+    };
+  }
   const price = snapshot.price || product.price;
   const priceChanged = Boolean(snapshot.price && snapshot.price !== product.price);
   return {
@@ -317,8 +390,8 @@ export function applyLiveStoreProductSnapshot(
     price,
     originalPrice: priceChanged ? undefined : product.originalPrice,
     imageUrl: snapshot.imageUrl || product.imageUrl,
-    specs: { ...product.specs, ...(snapshot.specs || {}) },
-    description: snapshot.description || product.description,
+    specs: { ...inferred.specs, ...product.specs, ...(snapshot.specs || {}) },
+    description: snapshot.description || inferred.description,
     rating: snapshot.rating || product.rating,
     reviewsCount: snapshot.reviewsCount || product.reviewsCount,
     priceUpdatedAt: snapshot.checkedAt.slice(0, 10),
