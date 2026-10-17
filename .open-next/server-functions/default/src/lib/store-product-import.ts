@@ -1056,6 +1056,30 @@ async function scanDigikalaRobot(
   const drafts: ImportedStoreProductDraft[] = [];
   const scannedUrls: string[] = [];
 
+  try {
+    const cacheUrl = "https://raw.githubusercontent.com/fazilatma/fazilatma/refs/heads/arena/01a020d5-fazilatma/data/digikala-components-cache.json";
+    const cacheResponse = await fetch(cacheUrl, { cache: "no-store" });
+    if (cacheResponse.ok) {
+      const cache = await cacheResponse.json() as { products?: ImportedStoreProductDraft[] };
+      const acceptedParts = new Set(
+        categorySlugs.map((slug) => slugParts[slug]).filter(Boolean),
+      );
+      const cachedDrafts = (Array.isArray(cache.products) ? cache.products : [])
+        .filter((draft) => acceptedParts.size === 0 || acceptedParts.has(String(draft?.specs?.["نوع قطعه"] || "")))
+        .filter((draft) =>
+          (selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories)) &&
+          productMatchesComputerPartFilters(draft, partFilters),
+        )
+        .slice(0, limit);
+      if (cachedDrafts.length) {
+        scannedUrls.push(cacheUrl);
+        return { drafts: uniqueDrafts(cachedDrafts), scannedUrls };
+      }
+    }
+  } catch {
+    // اگر کش هنوز ساخته نشده باشد، API مستقیم و Reader در ادامه امتحان می‌شوند.
+  }
+
   // ابتدا API صفحه‌بندی‌شده را با sort صریح و redirect دستی امتحان می‌کنیم؛
   // این شکل درخواست از حلقهٔ redirect بعضی IPهای Cloudflare جلوگیری می‌کند.
   const endedApiSlugs = new Set<string>();

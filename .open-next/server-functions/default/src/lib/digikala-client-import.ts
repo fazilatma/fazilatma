@@ -261,6 +261,37 @@ export async function scanDigikalaComponentsInBrowser(
     throw new Error("برای این لینک حداقل یک گروه قابل دریافت از دیجی‌کالا انتخاب کنید.");
   }
 
+  // کش کامل توسط GitHub Actions خارج از شبکهٔ Cloudflare ساخته می‌شود؛ این مسیر
+  // پایدارترین راه دریافت هزاران محصول بدون CORS، redirect و محدودیت زیر‌درخواست است.
+  try {
+    const cacheUrl = `https://raw.githubusercontent.com/fazilatma/fazilatma/refs/heads/arena/01a020d5-fazilatma/data/digikala-components-cache.json?v=${Math.floor(Date.now() / 300_000)}`;
+    const response = await fetch(cacheUrl, { cache: "no-store", mode: "cors", credentials: "omit" });
+    if (response.ok) {
+      const payload = await response.json() as { generatedAt?: string; products?: ImportedStoreProductDraft[] };
+      const selectedSourceParts = new Set(selectedSources.map((source) => source.part));
+      const products = (Array.isArray(payload.products) ? payload.products : [])
+        .filter((draft) => selectedSourceParts.has(String(draft?.specs?.["نوع قطعه"] || "")))
+        .slice(0, maxProducts);
+      if (products.length >= 100 || (selectedSources.length === 1 && products.length > 0)) {
+        options.onProgress?.({
+          completedPages: 1,
+          totalPages: 1,
+          products: products.length,
+          message: `${products.length.toLocaleString("fa-IR")} محصول از کش کامل و تازهٔ دیجی‌کالا آماده شد.`,
+        });
+        return {
+          products,
+          scannedPages: 1,
+          totalPages: 1,
+          categoryCount: selectedSources.length,
+          warnings: payload.generatedAt ? [`زمان ساخت کش: ${payload.generatedAt}`] : [],
+        };
+      }
+    }
+  } catch {
+    // تا زمان آماده‌شدن یا در صورت اختلال GitHub، روش مستقیم/Reader ادامه پیدا می‌کند.
+  }
+
   const warnings: string[] = [];
   const byUrl = new Map<string, ImportedStoreProductDraft>();
   let completedPages = 0;
