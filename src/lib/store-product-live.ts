@@ -13,6 +13,7 @@ export type LiveStoreProductComment = {
 
 export type LiveStoreProductSnapshot = {
   price?: number;
+  originalPrice?: number;
   imageUrl?: string;
   specs?: Record<string, string>;
   description?: string;
@@ -87,6 +88,35 @@ function firstTorobPrice(html: string) {
     if (price) return price;
   }
   return 0;
+}
+
+function strongModelTokens(value: string) {
+  return toEnglishDigits(value)
+    .toLowerCase()
+    .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+    .replace(/[^a-z0-9آ-ی]+/g, " ")
+    .split(/\s+/)
+    .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
+    .filter((token) => !/^\d+(?:gb|tb|w|mhz|rpm)$/.test(token));
+}
+
+function torobComparablePrice(html: string, productTitle: string) {
+  const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
+  if (!requiredTokens.length) return 0;
+  const anchorPattern = /<a\b[^>]*href=["'][^"']*\/p\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const prices: number[] = [];
+  for (const match of html.matchAll(anchorPattern)) {
+    const text = stripTags(match[1] || "");
+    const normalized = toEnglishDigits(text)
+      .toLowerCase()
+      .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+      .replace(/[^a-z0-9آ-ی]+/g, " ");
+    if (!requiredTokens.every((token) => normalized.includes(token))) continue;
+    const rawPrice = text.match(/(?:از\s*)?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i)?.[1] || "";
+    const price = formattedToman(rawPrice);
+    if (price) prices.push(price);
+  }
+  return prices.length ? Math.min(...prices) : 0;
 }
 
 function torobImage(html: string, pageUrl: string) {
@@ -204,11 +234,15 @@ function digikalaDetailSnapshot(payload: Record<string, any>) {
   ).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const rawRate = Number(detail?.rating?.rate || 0);
   const rating = rawRate > 5 ? rawRate / 20 : rawRate;
+  const sellingPrice = Math.round(Number(detail?.default_variant?.price?.selling_price || 0) / 10);
+  const rrpPrice = Math.round(Number(detail?.default_variant?.price?.rrp_price || 0) / 10);
   return {
     specs,
     description: description.slice(0, 5000),
     rating: Number.isFinite(rating) && rating > 0 ? Math.min(5, rating) : undefined,
     reviewsCount: Math.max(0, Math.floor(Number(detail?.rating?.count || 0))),
+    price: sellingPrice >= 100_000 && sellingPrice <= 1_500_000_000 ? sellingPrice : undefined,
+    originalPrice: rrpPrice > sellingPrice && rrpPrice <= sellingPrice * 1.8 ? rrpPrice : undefined,
   };
 }
 
@@ -269,7 +303,7 @@ export async function getLiveStoreProductSnapshot(
 
   try {
     const html = await fetchSourceHtml(sourceUrl).catch(() => "");
-    const extractedPrice = html
+    let extractedPrice = html
       ? isTorobProduct ? firstTorobPrice(html) : digikalaPrice(html)
       : 0;
     let imageUrl = html
@@ -277,16 +311,22 @@ export async function getLiveStoreProductSnapshot(
       : "";
     let detailData: ReturnType<typeof digikalaDetailSnapshot> | null = null;
     let comments: LiveStoreProductComment[] = [];
+    let trustedCurrentPrice = false;
 
     if (isDigikalaProduct) {
       const productId = parsed.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
       if (productId) {
-        const [detailResult, commentsResult] = await Promise.allSettled([
+        const [detailResult, commentsResult, torobResult] = await Promise.allSettled([
           fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
           fetchDigikalaJson(`https://api.digikala.com/v1/product/${productId}/comments/?page=1`),
+          fetchSourceHtml(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
         ]);
         if (detailResult.status === "fulfilled") {
           detailData = digikalaDetailSnapshot(detailResult.value);
+          if (detailData.price) {
+            extractedPrice = detailData.price;
+            trustedCurrentPrice = true;
+          }
           if (!imageUrl) {
             const detail = detailResult.value?.data?.product;
             const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
@@ -294,17 +334,28 @@ export async function getLiveStoreProductSnapshot(
           }
         }
         if (commentsResult.status === "fulfilled") comments = digikalaComments(commentsResult.value);
+        if (torobResult.status === "fulfilled") {
+          const marketPrice = torobComparablePrice(torobResult.value, product.title);
+          if (marketPrice > 0 && (!extractedPrice || marketPrice < extractedPrice)) {
+            extractedPrice = marketPrice;
+            trustedCurrentPrice = true;
+          }
+        }
       }
     }
 
     const storedPrice = Number(product.price || 0);
     const priceIsSane =
       extractedPrice > 0 &&
-      (!storedPrice || (extractedPrice >= storedPrice * 0.4 && extractedPrice <= storedPrice * 2.5));
+      (trustedCurrentPrice || !storedPrice || (extractedPrice >= storedPrice * 0.4 && extractedPrice <= storedPrice * 2.5));
     const hasDetails = Boolean(detailData && (Object.keys(detailData.specs).length || detailData.description));
     const value = priceIsSane || imageUrl || hasDetails || comments.length
       ? {
           price: priceIsSane ? extractedPrice : undefined,
+          originalPrice:
+            priceIsSane && detailData?.price === extractedPrice
+              ? detailData.originalPrice
+              : undefined,
           imageUrl: imageUrl || undefined,
           specs: detailData?.specs,
           description: detailData?.description || undefined,
@@ -388,7 +439,12 @@ export function applyLiveStoreProductSnapshot(
   return {
     ...product,
     price,
-    originalPrice: priceChanged ? undefined : product.originalPrice,
+    originalPrice:
+      snapshot.originalPrice && snapshot.originalPrice > price
+        ? snapshot.originalPrice
+        : priceChanged
+          ? undefined
+          : product.originalPrice,
     imageUrl: snapshot.imageUrl || product.imageUrl,
     specs: { ...inferred.specs, ...product.specs, ...(snapshot.specs || {}) },
     description: snapshot.description || inferred.description,
