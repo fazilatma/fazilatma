@@ -8,6 +8,7 @@ import { mergeStorePriceHistory } from "@/lib/store-price-history";
 import { parseSourceLinks } from "@/lib/source-link-parser";
 import {
   importedDraftToStoreProduct,
+  productMatchesComputerPartFilters,
   productMatchesImportCategories,
   storeProductIdentityKey,
   scanStoreProductsFromUrl,
@@ -151,11 +152,29 @@ function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: Json
   } satisfies JsonStoreProduct;
 }
 
+function normalizeSourceConfigs(body: Record<string, unknown>) {
+  const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler"]);
+  const configured = Array.isArray(body.sources)
+    ? body.sources.flatMap((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+        const record = item as Record<string, unknown>;
+        const url = parseSourceLinks(record.url, 1)[0];
+        if (!url) return [];
+        const parts = Array.isArray(record.parts)
+          ? [...new Set(record.parts.map((part) => String(part).toLowerCase()).filter((part) => allowedParts.has(part)))]
+          : [];
+        return [{ url, parts }];
+      })
+    : [];
+  if (configured.length) return configured.slice(0, 8);
+  return parseSourceLinks(body.links, 8).map((url) => ({ url, parts: [] as string[] }));
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const links = parseSourceLinks(body.links, 8);
-    if (links.length === 0) {
+    const sourceConfigs = normalizeSourceConfigs(body);
+    if (sourceConfigs.length === 0) {
       return NextResponse.json(
         { success: false, message: "حداقل یک لینک معتبر وارد کنید. لینک‌ها را با & یا خط جدید جدا کنید." },
         { status: 400 },
@@ -175,20 +194,22 @@ export async function POST(request: Request) {
     // هر منبع در مسیر مستقل اجرا می‌شود؛ بنابراین رد شدن ترب، اسکن دیجی‌کالا
     // را متوقف نمی‌کند. داخل هر منبع، صفحه‌ها همچنان ترتیبی خوانده می‌شوند.
     const sourceScans = await Promise.all(
-      links.map(async (link) => {
-        const host = new URL(link).hostname;
+      sourceConfigs.map(async (sourceConfig) => {
+        const host = new URL(sourceConfig.url).hostname;
         const specializedSource = /(?:^|\.)(?:digikala\.com|torob\.com)$/i.test(host.replace(/^www\./, ""));
         try {
-          const scan = await scanStoreProductsFromUrl(link, {
+          const scan = await scanStoreProductsFromUrl(sourceConfig.url, {
             limit: requestedLimit,
             fullSite: specializedSource,
             maxPages: specializedSource ? 12 : 6,
             categoryFilters: ["components", "storage"],
+            partFilters: sourceConfig.parts,
           });
-          return { host, scan, error: "" };
+          return { host, parts: sourceConfig.parts, scan, error: "" };
         } catch (error) {
           return {
             host,
+            parts: sourceConfig.parts,
             scan: null,
             error: error instanceof Error ? error.message : "خطای نامشخص",
           };
@@ -204,7 +225,8 @@ export async function POST(request: Request) {
       warnings.push(...source.scan.warnings.map((warning) => `${source.host}: ${warning}`));
       scannedUrls.push(...source.scan.scannedUrls);
       const drafts = source.scan.products.filter((draft) =>
-        productMatchesImportCategories(draft, ["components", "storage"]),
+        productMatchesImportCategories(draft, ["components", "storage"]) &&
+        productMatchesComputerPartFilters(draft, source.parts),
       );
       rawProducts += drafts.length;
 
@@ -267,7 +289,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      linksCount: links.length,
+      linksCount: sourceConfigs.length,
       rawProducts,
       uniqueProducts: aggregated.length,
       duplicatesRemoved: Math.max(0, rawProducts - aggregated.length),
@@ -276,7 +298,7 @@ export async function POST(request: Request) {
       activeStoreProducts,
       warnings: warnings.slice(0, 20),
       scannedUrls,
-      message: `${links.length.toLocaleString("fa-IR")} لینک بررسی شد؛ ${rawProducts.toLocaleString("fa-IR")} ردیف قیمت‌دار خوانده شد، ${aggregated.length.toLocaleString("fa-IR")} محصول یکتا باقی ماند و ${Math.max(0, rawProducts - aggregated.length).toLocaleString("fa-IR")} تکراری حذف شد. ${created.toLocaleString("fa-IR")} محصول اضافه و ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی شد.`,
+      message: `${sourceConfigs.length.toLocaleString("fa-IR")} لینک بررسی شد؛ ${rawProducts.toLocaleString("fa-IR")} ردیف قیمت‌دار خوانده شد، ${aggregated.length.toLocaleString("fa-IR")} محصول یکتا باقی ماند و ${Math.max(0, rawProducts - aggregated.length).toLocaleString("fa-IR")} تکراری حذف شد. ${created.toLocaleString("fa-IR")} محصول اضافه و ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی شد.`,
     });
   } catch (error) {
     return NextResponse.json(

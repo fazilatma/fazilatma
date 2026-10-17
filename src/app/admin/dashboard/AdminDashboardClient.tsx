@@ -82,6 +82,68 @@ const productImportCategoryOptions = [
 
 const allProductImportCategoryIds = productImportCategoryOptions.map((option) => option.id);
 
+const computerPartSourceTypeOptions = [
+  { id: "cpu", label: "پردازنده CPU" },
+  { id: "gpu", label: "کارت گرافیک GPU" },
+  { id: "ram", label: "حافظه RAM" },
+  { id: "ssd", label: "SSD و هارد" },
+  { id: "motherboard", label: "مادربرد" },
+  { id: "power", label: "پاور" },
+  { id: "case", label: "کیس" },
+  { id: "cooler", label: "خنک‌کننده" },
+] as const;
+
+const allComputerPartSourceTypeIds = computerPartSourceTypeOptions.map((option) => option.id);
+
+type ComputerPartSourceEntry = {
+  id: string;
+  url: string;
+  parts: string[];
+};
+
+function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceEntry[] {
+  const raw = String(value || "").trim();
+  let parsedEntries: Array<{ url?: unknown; parts?: unknown }> = [];
+  if (raw.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) parsedEntries = parsed;
+    } catch {
+      // Legacy plain links are parsed below.
+    }
+  }
+  if (!parsedEntries.length) {
+    parsedEntries = parseSourceLinks(raw, 8).map((url) => ({
+      url,
+      parts: allComputerPartSourceTypeIds,
+    }));
+  }
+  const entries = parsedEntries
+    .slice(0, 8)
+    .map((entry, index) => {
+      const selectedParts = Array.isArray(entry.parts)
+        ? entry.parts.map(String).filter((part) => allComputerPartSourceTypeIds.includes(part as typeof allComputerPartSourceTypeIds[number]))
+        : allComputerPartSourceTypeIds;
+      return {
+        id: `source-${index + 1}`,
+        url: String(entry.url || "").trim(),
+        parts: selectedParts.length ? [...new Set(selectedParts)] : [...allComputerPartSourceTypeIds],
+      };
+    });
+  return entries.length
+    ? entries
+    : [{ id: "source-1", url: "https://www.digikala.com/search/category-computer-devices/", parts: [...allComputerPartSourceTypeIds] }];
+}
+
+function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) {
+  return JSON.stringify(
+    entries.slice(0, 8).map((entry) => ({
+      url: entry.url.trim(),
+      parts: entry.parts,
+    })),
+  );
+}
+
 type PreparedCsvImportDraft = {
   selectionKey: string;
   draft: ImportedStoreProductDraft;
@@ -303,6 +365,9 @@ export default function AdminDashboardClient({
     homepageFinalCtaSubtitle:
       "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
   });
+  const [computerPartSources, setComputerPartSources] = useState<ComputerPartSourceEntry[]>(() =>
+    normalizeComputerPartSourceEntries("https://www.digikala.com/search/category-computer-devices/"),
+  );
   const [platformTransactions, setPlatformTransactions] = useState<any[]>([]);
   const [escrowTransactions, setEscrowTransactions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -358,6 +423,7 @@ export default function AdminDashboardClient({
       .then((result) => {
         if (!result.success) return;
         setPlatformFinance(result.settings);
+        setComputerPartSources(normalizeComputerPartSourceEntries(result.settings.storeComputerPartsSourceUrl));
         setCommissionRate(result.settings.commissionRate);
         setPlatformTransactions(result.platformTransactions || []);
         setEscrowTransactions(result.escrowTransactions || []);
@@ -375,6 +441,45 @@ export default function AdminDashboardClient({
 
   const updatePlatformFinanceField = (key: string, value: unknown) => {
     setPlatformFinance((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateComputerPartSource = (
+    id: string,
+    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts">>,
+  ) => {
+    setComputerPartSources((current) =>
+      current.map((entry) => entry.id === id ? { ...entry, ...updates } : entry),
+    );
+  };
+
+  const addComputerPartSource = () => {
+    setComputerPartSources((current) => {
+      if (current.length >= 8) return current;
+      return [
+        ...current,
+        {
+          id: `source-${Date.now()}-${current.length + 1}`,
+          url: "",
+          parts: [...allComputerPartSourceTypeIds],
+        },
+      ];
+    });
+  };
+
+  const removeComputerPartSource = (id: string) => {
+    setComputerPartSources((current) =>
+      current.length > 1 ? current.filter((entry) => entry.id !== id) : current,
+    );
+  };
+
+  const toggleComputerPartSourceType = (sourceId: string, partId: string) => {
+    setComputerPartSources((current) => current.map((entry) => {
+      if (entry.id !== sourceId) return entry;
+      const parts = entry.parts.includes(partId)
+        ? entry.parts.filter((part) => part !== partId)
+        : [...entry.parts, partId];
+      return { ...entry, parts };
+    }));
   };
 
   const ensureHomepageSlides = () => {
@@ -562,7 +667,7 @@ export default function AdminDashboardClient({
         body: JSON.stringify({
           storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
           storeComputerPartsCatalogEnabled: Boolean(platformFinance.storeComputerPartsCatalogEnabled),
-          storeComputerPartsSourceUrl: String(platformFinance.storeComputerPartsSourceUrl || "").trim(),
+          storeComputerPartsSourceUrl: serializeComputerPartSourceEntries(computerPartSources),
         }),
       });
       const result = await response.json();
@@ -827,7 +932,7 @@ export default function AdminDashboardClient({
   };
 
   const useComputerPartsSource = () => {
-    const sourceUrl = parseSourceLinks(platformFinance.storeComputerPartsSourceUrl, 8)[0] || "";
+    const sourceUrl = computerPartSources.find((entry) => entry.url.trim())?.url.trim() || "";
     if (!sourceUrl) {
       alert("ابتدا لینک مرجع قطعات کامپیوتر را وارد و ذخیره کنید.");
       return;
@@ -840,11 +945,22 @@ export default function AdminDashboardClient({
   };
 
   const importComputerPartsFromSource = async () => {
-    const sourceText = String(platformFinance.storeComputerPartsSourceUrl || "").trim();
-    const sourceLinks = parseSourceLinks(sourceText, 8);
-    if (!sourceLinks.length) {
-      alert("حداقل یک لینک مرجع معتبر برای قطعات کامپیوتر وارد کنید.");
+    const sourceEntries = computerPartSources
+      .map((entry) => ({ ...entry, url: entry.url.trim() }))
+      .filter((entry) => entry.url && entry.parts.length > 0)
+      .slice(0, 8);
+    const sourceText = serializeComputerPartSourceEntries(sourceEntries);
+    if (!sourceEntries.length) {
+      alert("حداقل یک لینک معتبر و یک نوع محصول برای آن انتخاب کنید.");
       return;
+    }
+    for (const entry of sourceEntries) {
+      try {
+        new URL(entry.url);
+      } catch {
+        alert(`لینک «${entry.url}» معتبر نیست.`);
+        return;
+      }
     }
     setImportingComputerParts(true);
     setProductImportMessage("");
@@ -859,14 +975,10 @@ export default function AdminDashboardClient({
         }),
       });
 
-      const digikalaLinks = sourceLinks.filter((link) => {
-        try {
-          return /(^|\.)digikala\.com$/i.test(new URL(link).hostname.replace(/^www\./i, ""));
-        } catch {
-          return false;
-        }
-      });
-      const serverLinks = sourceLinks.filter((link) => !digikalaLinks.includes(link));
+      const digikalaSources = sourceEntries.filter((entry) =>
+        /(^|\.)digikala\.com$/i.test(new URL(entry.url).hostname.replace(/^www\./i, "")),
+      );
+      const serverSources = sourceEntries.filter((entry) => !digikalaSources.includes(entry));
       const warnings: string[] = [];
       let created = 0;
       let updated = 0;
@@ -875,30 +987,42 @@ export default function AdminDashboardClient({
       let scannedProducts = 0;
       let scannedPages = 0;
 
-      // APIهای دیجی‌کالا IP ورکر Cloudflare را redirect می‌کنند، اما در مرورگر
-      // مدیر قابل دسترسی‌اند. اسکن در مرورگر انجام و فقط دادهٔ استانداردشده، دسته‌ای ذخیره می‌شود.
-      if (digikalaLinks.length > 0) {
-        setProductImportMessage("در حال خواندن مستقیم زیرگروه‌های پردازنده، گرافیک، رم، مادربرد، حافظه، پاور و کیس از دیجی‌کالا...");
+      // APIهای دیجی‌کالا IP ورکر Cloudflare را redirect می‌کنند، اما معمولاً در مرورگر
+      // مدیر قابل دسترسی‌اند. هر باکس مستقل و فقط با گروه‌های انتخاب‌شده اسکن می‌شود.
+      for (let sourceIndex = 0; sourceIndex < digikalaSources.length; sourceIndex += 1) {
+        const source = digikalaSources[sourceIndex];
+        const browserParts = source.parts.filter((part) => part !== "cooler");
+        if (source.parts.includes("cooler")) {
+          serverSources.push({ ...source, id: `${source.id}-cooler`, parts: ["cooler"] });
+        }
+        if (!browserParts.length) continue;
+        setProductImportMessage(
+          `در حال خواندن لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} از دیجی‌کالا با ${browserParts.length.toLocaleString("fa-IR")} گروه انتخاب‌شده...`,
+        );
         const scan = await scanDigikalaComponentsInBrowser({
+          sourceUrl: source.url,
+          partFilters: browserParts,
           maxProducts: 5_000,
           maxPagesPerCategory: 45,
           concurrency: 3,
-          onProgress: (progress) => setProductImportMessage(progress.message),
+          onProgress: (progress) => setProductImportMessage(
+            `لینک ${(sourceIndex + 1).toLocaleString("fa-IR")}: ${progress.message}`,
+          ),
         });
-        warnings.push(...scan.warnings);
-        scannedProducts = scan.products.length;
-        scannedPages = scan.scannedPages;
+        warnings.push(...scan.warnings.map((warning) => `لینک ${sourceIndex + 1}: ${warning}`));
         if (scan.products.length === 0) {
-          throw new Error(
-            `مرورگر نتوانست محصولات قیمت‌دار دیجی‌کالا را بخواند.${scan.warnings.length ? ` جزئیات: ${scan.warnings.slice(0, 2).join("؛ ")}` : ""}`,
-          );
+          warnings.push(`لینک ${sourceIndex + 1} در مرورگر محصولی نداد؛ روش پشتیبان سرور امتحان می‌شود.`);
+          serverSources.push(source);
+          continue;
         }
+        scannedProducts += scan.products.length;
+        scannedPages += scan.scannedPages;
 
         const batchSize = 350;
         for (let cursor = 0; cursor < scan.products.length; cursor += batchSize) {
           const batch = scan.products.slice(cursor, cursor + batchSize);
           setProductImportMessage(
-            `${scan.products.length.toLocaleString("fa-IR")} محصول پیدا شد؛ در حال ذخیره دستهٔ ${(Math.floor(cursor / batchSize) + 1).toLocaleString("fa-IR")} از ${Math.ceil(scan.products.length / batchSize).toLocaleString("fa-IR")}...`,
+            `${scan.products.length.toLocaleString("fa-IR")} محصول از لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} پیدا شد؛ در حال ذخیره دستهٔ ${(Math.floor(cursor / batchSize) + 1).toLocaleString("fa-IR")} از ${Math.ceil(scan.products.length / batchSize).toLocaleString("fa-IR")}...`,
           );
           const response = await fetch("/api/admin/store-products/import-csv", {
             method: "POST",
@@ -908,7 +1032,7 @@ export default function AdminDashboardClient({
               strategy: "merge",
               priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
               categoryFilters: ["components", "storage"],
-              sourceLabel: "digikala-browser-category-scan",
+              sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
             }),
           });
           const result = await readJsonResponse(response, "ثبت دستهٔ محصولات دیجی‌کالا ناموفق بود.");
@@ -921,13 +1045,13 @@ export default function AdminDashboardClient({
         }
       }
 
-      if (serverLinks.length > 0) {
+      if (serverSources.length > 0) {
         setProductImportMessage("در حال بررسی سایر لینک‌های مرجع...");
         const response = await fetch("/api/admin/store-products/import-multiple", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            links: serverLinks,
+            sources: serverSources.map((source) => ({ url: source.url, parts: source.parts })),
             limit: 500,
             priceMultiplier: productImportPriceMultiplier,
           }),
@@ -2269,19 +2393,84 @@ export default function AdminDashboardClient({
                         </span>
                       </label>
                     </div>
-                    <label className="mt-4 block text-sm font-bold text-slate-800">
-                      لینک‌های مرجع ورود و قیمت قطعات کامپیوتر
-                      <textarea
-                        value={platformFinance.storeComputerPartsSourceUrl || ""}
-                        onChange={(event) => updatePlatformFinanceField("storeComputerPartsSourceUrl", event.target.value)}
-                        placeholder="https://site-one.com/parts & https://site-two.com/components"
-                        className="mt-2 min-h-24 w-full rounded-xl border border-cyan-200 bg-white px-4 py-3 text-left leading-7 outline-none focus:ring-2 focus:ring-cyan-500"
-                        dir="ltr"
-                      />
-                      <span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">
-                        چند لینک را با علامت &amp; یا خط جدید جدا کنید. سیستم محصولات تکراری را ادغام و کمترین قیمت معتبر بین همه لینک‌ها را انتخاب می‌کند.
-                      </span>
-                    </label>
+                    <div className="mt-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h4 className="text-sm font-black text-slate-800">لینک‌های جداگانهٔ جستجو و گروه محصولات هر لینک</h4>
+                          <p className="mt-1 text-[11px] font-normal leading-5 text-slate-500">
+                            برای هر لینک مشخص کنید ربات فقط کدام قطعات را جستجو کند. حداکثر ۸ لینک قابل ثبت است.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addComputerPartSource}
+                          disabled={computerPartSources.length >= 8}
+                          className="rounded-xl bg-cyan-700 px-4 py-2 text-xs font-black text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                        >
+                          + افزودن باکس لینک
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {computerPartSources.map((source, sourceIndex) => (
+                          <div key={source.id} className="rounded-2xl border border-cyan-200 bg-white p-4 shadow-sm">
+                            <div className="flex items-center justify-between gap-3">
+                              <label className="flex-1 text-xs font-black text-slate-700">
+                                لینک شماره {(sourceIndex + 1).toLocaleString("fa-IR")}
+                                <input
+                                  type="url"
+                                  value={source.url}
+                                  onChange={(event) => updateComputerPartSource(source.id, { url: event.target.value })}
+                                  placeholder="https://www.digikala.com/search/category-computer-devices/"
+                                  className="mt-2 h-11 w-full rounded-xl border border-cyan-200 bg-slate-50 px-3 text-left text-xs font-normal text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                                  dir="ltr"
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => removeComputerPartSource(source.id)}
+                                disabled={computerPartSources.length === 1}
+                                className="mt-6 rounded-xl border border-red-200 px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50 disabled:opacity-30"
+                              >
+                                حذف
+                              </button>
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              {computerPartSourceTypeOptions.map((option) => {
+                                const checked = source.parts.includes(option.id);
+                                return (
+                                  <label
+                                    key={`${source.id}-${option.id}`}
+                                    className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] font-bold transition ${checked ? "border-emerald-400 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-500"}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => toggleComputerPartSourceType(source.id, option.id)}
+                                      className="ml-1 align-middle"
+                                    />
+                                    {option.label}
+                                  </label>
+                                );
+                              })}
+                              <button
+                                type="button"
+                                onClick={() => updateComputerPartSource(source.id, { parts: [...allComputerPartSourceTypeIds] })}
+                                className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-600 hover:bg-slate-200"
+                              >
+                                انتخاب همه
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateComputerPartSource(source.id, { parts: [] })}
+                                className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-600 hover:bg-slate-200"
+                              >
+                                حذف انتخاب‌ها
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
                         type="button"

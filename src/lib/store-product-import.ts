@@ -30,6 +30,7 @@ export type StoreProductImportScanOptions = {
   fullSite?: boolean;
   maxPages?: number;
   categoryFilters?: ProductImportCategoryKey[];
+  partFilters?: string[];
 };
 
 export type ProductImportCategoryKey =
@@ -577,6 +578,25 @@ async function fetchText(url: string) {
 
 const fetchHtml = fetchText;
 
+async function fetchDigikalaSeoHtml(url: string) {
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+      ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
+      : undefined;
+  const response = await fetch(url, {
+    redirect: "follow",
+    headers: {
+      "user-agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "fa-IR,fa;q=0.9,en;q=0.6",
+      "cache-control": "no-cache",
+    },
+    signal: timeoutSignal,
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.text();
+}
+
 function parseSitemapLocs(xml: string) {
   return [...xml.matchAll(/<loc[^>]*>([\s\S]*?)<\/loc>/gi)]
     .map((match) => decodeHtml(stripTags(match[1] || "")))
@@ -667,6 +687,26 @@ export function productMatchesImportCategories(
   if (key === "printer" && selectedCategories.includes("office-machines")) return true;
   if (key === "storage" && selectedCategories.includes("components")) return true;
   return false;
+}
+
+export function productMatchesComputerPartFilters(
+  draft: Pick<ImportedStoreProductDraft, "title" | "brand" | "category" | "summary" | "description" | "specs">,
+  partFilters: string[] = [],
+) {
+  const filters = [...new Set(partFilters.map((item) => String(item).trim().toLowerCase()).filter(Boolean))];
+  if (!filters.length) return true;
+  const text = `${draft.title} ${draft.brand} ${draft.category} ${draft.summary} ${draft.description} ${Object.values(draft.specs || {}).join(" ")}`.toLowerCase();
+  const keywords: Record<string, string[]> = {
+    cpu: ["پردازنده", " cpu ", "intel core", "amd ryzen", "ryzen", "core i"],
+    gpu: ["کارت گرافیک", " gpu ", "geforce", "radeon", "rtx", "gtx"],
+    ram: ["رم کامپیوتر", "حافظه رم", "رم دسکتاپ", "ماژول رم", "ram module", "memory module"],
+    ssd: ["ssd", "nvme", "solid state", "هارد", "hard drive", "ذخیره سازی", "ذخیره‌سازی"],
+    motherboard: ["مادربرد", "motherboard"],
+    power: ["پاور", "منبع تغذیه", "power supply", " psu"],
+    case: ["کیس کامپیوتر", "computer case", "computer chassis"],
+    cooler: ["خنک", "cooler", "فن پردازنده", "خمیر سیلیکون", "thermal paste"],
+  };
+  return filters.some((filter) => (keywords[filter] || []).some((keyword) => text.includes(keyword)));
 }
 
 const digikalaCategorySources: Record<ProductImportCategoryKey, { query: string; slugs: string[] }> = {
@@ -968,23 +1008,26 @@ async function scanDigikalaRobot(
   selectedCategories: ProductImportCategoryKey[],
   limit: number,
   warnings: string[],
+  partFilters: string[] = [],
 ) {
   const parsedSource = new URL(sourceUrl);
   const sourceCategorySlug = parsedSource.pathname.match(/\/search\/category-([a-z0-9-]+)\/?/i)?.[1] || "";
-  const categorySlugs = sourceCategorySlug === "computer-devices"
-    ? [
-        "processor",
-        "graphics-card",
-        "ram",
-        "motherboard",
-        "internal-ssd",
-        "internal-hard-drive",
-        "psu",
-        "computer-chassis",
-      ]
-    : sourceCategorySlug
-      ? [sourceCategorySlug]
-      : ["processor", "graphics-card", "ram", "motherboard", "internal-ssd", "internal-hard-drive", "psu", "computer-chassis"];
+  const slugParts: Record<string, string> = {
+    processor: "cpu",
+    "graphics-card": "gpu",
+    ram: "ram",
+    motherboard: "motherboard",
+    "internal-ssd": "ssd",
+    "internal-hard-drive": "ssd",
+    psu: "power",
+    "computer-chassis": "case",
+  };
+  const selectedPartSet = new Set(partFilters.map((item) => String(item).toLowerCase()));
+  const broadSlugs = ["processor", "graphics-card", "ram", "motherboard", "internal-ssd", "internal-hard-drive", "psu", "computer-chassis"]
+    .filter((slug) => selectedPartSet.size === 0 || selectedPartSet.has(slugParts[slug]));
+  const categorySlugs = sourceCategorySlug && sourceCategorySlug !== "computer-devices"
+    ? [sourceCategorySlug]
+    : broadSlugs;
   const pageUrls = categorySlugs.map(
     (slug) => `https://www.digikala.com/search/category-${slug}/`,
   );
@@ -997,9 +1040,11 @@ async function scanDigikalaRobot(
     const pageUrl = pageUrls[index];
     scannedUrls.push(pageUrl);
     try {
-      const html = await fetchText(pageUrl);
+      const html = await fetchDigikalaSeoHtml(pageUrl);
       const pageDrafts = productCardDraftsFromHtml(html, pageUrl, "digikala").filter(
-        (draft) => selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories),
+        (draft) =>
+          (selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories)) &&
+          productMatchesComputerPartFilters(draft, partFilters),
       );
       drafts.push(...pageDrafts);
     } catch (error) {
@@ -1074,12 +1119,14 @@ export async function scanStoreProductsFromUrl(
   const scannedUrls: string[] = [];
   const allDrafts: ImportedStoreProductDraft[] = [];
   const selectedCategories = options.categoryFilters || [];
+  const selectedPartFilters = options.partFilters || [];
 
   if (isTorobBrowseSource) {
     const robot = await scanTorobBrowseRobot(sourceUrl, limit, warnings);
     scannedUrls.push(...robot.scannedUrls);
     const filtered = robot.drafts.filter((draft) =>
-      selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories),
+      (selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories)) &&
+      productMatchesComputerPartFilters(draft, selectedPartFilters),
     );
     if (filtered.length > 0) {
       return {
@@ -1106,7 +1153,7 @@ export async function scanStoreProductsFromUrl(
 
   if (shouldSearchDigikalaCategories) {
     try {
-      const robot = await scanDigikalaRobot(sourceUrl, selectedCategories, limit, warnings);
+      const robot = await scanDigikalaRobot(sourceUrl, selectedCategories, limit, warnings, selectedPartFilters);
       scannedUrls.push(...robot.scannedUrls);
       allDrafts.push(...robot.drafts);
       if (robot.drafts.length > 0) {
@@ -1172,7 +1219,9 @@ export async function scanStoreProductsFromUrl(
     }
   }
 
-  const products = uniqueDrafts(allDrafts).slice(0, limit);
+  const products = uniqueDrafts(allDrafts)
+    .filter((draft) => productMatchesComputerPartFilters(draft, selectedPartFilters))
+    .slice(0, limit);
   if (!products.length) {
     warnings.push("محصول قابل تشخیص پیدا نشد. اگر سایت با JavaScript قیمت‌ها را بعداً بارگذاری کند، ممکن است نیاز به لینک مستقیم صفحه محصول یا sitemap محصولات داشته باشد.");
   }

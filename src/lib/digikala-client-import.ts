@@ -18,17 +18,18 @@ export type DigikalaClientScanResult = {
 type DigikalaSource = {
   slug: string;
   category: string;
+  part: string;
 };
 
 const componentSources: DigikalaSource[] = [
-  { slug: "processor", category: "قطعات کامپیوتر" },
-  { slug: "graphics-card", category: "قطعات کامپیوتر" },
-  { slug: "ram", category: "قطعات کامپیوتر" },
-  { slug: "motherboard", category: "قطعات کامپیوتر" },
-  { slug: "internal-ssd", category: "حافظه و ذخیره‌سازی" },
-  { slug: "internal-hard-drive", category: "حافظه و ذخیره‌سازی" },
-  { slug: "psu", category: "قطعات کامپیوتر" },
-  { slug: "computer-chassis", category: "قطعات کامپیوتر" },
+  { slug: "processor", category: "قطعات کامپیوتر", part: "cpu" },
+  { slug: "graphics-card", category: "قطعات کامپیوتر", part: "gpu" },
+  { slug: "ram", category: "قطعات کامپیوتر", part: "ram" },
+  { slug: "motherboard", category: "قطعات کامپیوتر", part: "motherboard" },
+  { slug: "internal-ssd", category: "حافظه و ذخیره‌سازی", part: "ssd" },
+  { slug: "internal-hard-drive", category: "حافظه و ذخیره‌سازی", part: "ssd" },
+  { slug: "psu", category: "قطعات کامپیوتر", part: "power" },
+  { slug: "computer-chassis", category: "قطعات کامپیوتر", part: "case" },
 ];
 
 const brandRules: Array<[RegExp, string]> = [
@@ -188,24 +189,48 @@ export async function scanDigikalaComponentsInBrowser(
     maxProducts?: number;
     maxPagesPerCategory?: number;
     concurrency?: number;
+    sourceUrl?: string;
+    partFilters?: string[];
     onProgress?: (progress: DigikalaClientScanProgress) => void;
   } = {},
 ): Promise<DigikalaClientScanResult> {
   const maxProducts = Math.max(100, Math.min(6_000, Number(options.maxProducts || 5_000)));
   const maxPagesPerCategory = Math.max(1, Math.min(60, Number(options.maxPagesPerCategory || 45)));
   const concurrency = Math.max(1, Math.min(4, Number(options.concurrency || 3)));
+  const requestedParts = new Set((options.partFilters || []).map((item) => String(item).trim().toLowerCase()).filter(Boolean));
+  let selectedSources = requestedParts.size
+    ? componentSources.filter((source) => requestedParts.has(source.part))
+    : componentSources;
+  try {
+    const sourceSlug = new URL(String(options.sourceUrl || "")).pathname
+      .match(/\/search\/category-([a-z0-9-]+)\/?/i)?.[1];
+    if (sourceSlug && sourceSlug !== "computer-devices") {
+      const exactSource = componentSources.find((source) => source.slug === sourceSlug);
+      if (exactSource) {
+        selectedSources = requestedParts.size === 0 || requestedParts.has(exactSource.part)
+          ? [exactSource]
+          : [];
+      }
+    }
+  } catch {
+    // A broad/default Digikala link uses the selected part filters above.
+  }
+  if (!selectedSources.length) {
+    throw new Error("برای این لینک حداقل یک گروه قابل دریافت از دیجی‌کالا انتخاب کنید.");
+  }
+
   const warnings: string[] = [];
   const byUrl = new Map<string, ImportedStoreProductDraft>();
   let completedPages = 0;
 
   const firstPageResults = await Promise.allSettled(
-    componentSources.map((source) => fetchCategoryPage(source, 1)),
+    selectedSources.map((source) => fetchCategoryPage(source, 1)),
   );
   const pageTasks: Array<{ source: DigikalaSource; page: number }> = [];
   let totalPages = 0;
   for (let index = 0; index < firstPageResults.length; index += 1) {
     const result = firstPageResults[index];
-    const source = componentSources[index];
+    const source = selectedSources[index];
     completedPages += 1;
     if (result.status === "rejected") {
       warnings.push(`${source.slug}: ${result.reason instanceof Error ? result.reason.message : "خطا"}`);
@@ -258,7 +283,7 @@ export async function scanDigikalaComponentsInBrowser(
     products: [...byUrl.values()].slice(0, maxProducts),
     scannedPages: completedPages,
     totalPages,
-    categoryCount: componentSources.length,
+    categoryCount: selectedSources.length,
     warnings: warnings.slice(0, 30),
   };
 }
