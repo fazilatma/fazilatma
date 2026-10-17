@@ -157,8 +157,31 @@ function apiUrl(slug: string, page: number) {
   return `https://api.digikala.com/v1/categories/${encodeURIComponent(slug)}/search/?page=${page}`;
 }
 
+function categoryPageFromPayload(
+  payload: Record<string, any>,
+  source: DigikalaSource,
+  page: number,
+) {
+  const records = Array.isArray(payload?.data?.products)
+    ? payload.data.products as Array<Record<string, any>>
+    : [];
+  const pager = payload?.data?.pager || payload?.pager || payload?.data?.pagination || {};
+  const totalItems = Math.max(0, Math.floor(Number(
+    pager?.total_items || pager?.total_count || payload?.data?.total_items || payload?.data?.total_count || 0,
+  )));
+  const pageSize = Math.max(1, records.length || Number(pager?.page_size || pager?.per_page || 20));
+  const declaredPages = Math.floor(Number(pager?.total_pages || pager?.last_page || 0));
+  const totalPages = Math.max(
+    1,
+    declaredPages,
+    totalItems > 0 ? Math.ceil(totalItems / pageSize) : records.length >= 10 ? 2 : 1,
+  );
+  const paginationKnown = declaredPages > 1 || totalItems > records.length;
+  return { source, page, records, totalPages, totalItems, paginationKnown };
+}
+
 async function fetchCategoryPage(source: DigikalaSource, page: number) {
-  const url = apiUrl(source.slug, page);
+  const url = `${apiUrl(source.slug, page)}&sort=7`;
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -171,28 +194,36 @@ async function fetchCategoryPage(source: DigikalaSource, page: number) {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json() as Record<string, any>;
-      const records = Array.isArray(payload?.data?.products)
-        ? payload.data.products as Array<Record<string, any>>
-        : [];
-      const pager = payload?.data?.pager || payload?.pager || payload?.data?.pagination || {};
-      const totalItems = Math.max(0, Math.floor(Number(
-        pager?.total_items || pager?.total_count || payload?.data?.total_items || payload?.data?.total_count || 0,
-      )));
-      const pageSize = Math.max(1, records.length || Number(pager?.page_size || pager?.per_page || 20));
-      const declaredPages = Math.floor(Number(pager?.total_pages || pager?.last_page || 0));
-      const totalPages = Math.max(
-        1,
-        declaredPages,
-        totalItems > 0 ? Math.ceil(totalItems / pageSize) : records.length >= 10 ? 2 : 1,
-      );
-      const paginationKnown = declaredPages > 1 || totalItems > records.length;
-      return { source, page, records, totalPages, totalItems, paginationKnown };
+      return categoryPageFromPayload(payload, source, page);
     } catch (error) {
       lastError = error;
-      if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 700));
+      if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 500));
     }
   }
-  throw lastError instanceof Error ? lastError : new Error("خواندن API دیجی‌کالا ناموفق بود.");
+
+  // مرورگر نیز ممکن است با CORS دیجی‌کالا روبه‌رو شود. Reader عمومی پاسخ JSON
+  // همان صفحه را از شبکه‌ای جدا برمی‌گرداند و CORS آن برای مرورگر باز است.
+  try {
+    const target = new URL(url);
+    const readerUrl = `https://r.jina.ai/http://api.digikala.com${target.pathname}${target.search}`;
+    const readerResponse = await fetch(readerUrl, {
+      method: "GET",
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      headers: { accept: "text/plain, text/markdown, */*" },
+    });
+    if (!readerResponse.ok) throw new Error(`Reader HTTP ${readerResponse.status}`);
+    const text = await readerResponse.text();
+    const jsonStart = text.indexOf("{");
+    if (jsonStart < 0) throw new Error("Reader JSON نداشت.");
+    const payload = JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
+    return categoryPageFromPayload(payload, source, page);
+  } catch (readerError) {
+    const directMessage = lastError instanceof Error ? lastError.message : "خطای مستقیم";
+    const readerMessage = readerError instanceof Error ? readerError.message : "خطای واسط";
+    throw new Error(`${directMessage} / ${readerMessage}`);
+  }
 }
 
 export async function scanDigikalaComponentsInBrowser(
