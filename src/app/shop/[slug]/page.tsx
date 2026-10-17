@@ -11,6 +11,7 @@ import {
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
+import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
   applyLiveStoreProductSnapshot,
@@ -28,6 +29,17 @@ export const dynamic = "force-dynamic";
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
+
+const computerPartCategoryItems = [
+  { title: "پردازنده", badge: "CPU", href: "/shop?category=computer-parts&part=cpu" },
+  { title: "کارت گرافیک", badge: "GPU", href: "/shop?category=computer-parts&part=gpu" },
+  { title: "حافظه رم", badge: "RAM", href: "/shop?category=computer-parts&part=ram" },
+  { title: "حافظه SSD و هارد", badge: "SSD", href: "/shop?category=computer-parts&part=ssd" },
+  { title: "مادربرد", badge: "MB", href: "/shop?category=computer-parts&part=motherboard" },
+  { title: "پاور", badge: "PSU", href: "/shop?category=computer-parts&part=power" },
+  { title: "کیس", badge: "CASE", href: "/shop?category=computer-parts&part=case" },
+  { title: "خنک‌کننده", badge: "COOL", href: "/shop?category=computer-parts&part=cooler" },
+];
 
 function productSearchText(product: JsonStoreProduct) {
   return `${product.title} ${product.brand} ${product.category} ${product.summary} ${product.description} ${product.badges.join(" ")} ${Object.values(product.specs || {}).join(" ")}`.toLowerCase();
@@ -75,8 +87,9 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getJsonStoreProductBySlug(slug);
   if (!product) return { title: "محصول پیدا نشد | OptiBid" };
+  const computerPartProduct = isComputerPartsCatalogProduct(product);
   return buildSeoMetadata({
-    title: `${product.title} | خرید لپ‌تاپ`,
+    title: `${product.title} | ${computerPartProduct ? "خرید قطعات کامپیوتر" : "خرید لپ‌تاپ"}`,
     description: `${product.summary} قیمت ${money(product.price)}، مشخصات فنی کامل، وضعیت موجودی، مهلت تست و پیشنهادهای مشابه در فروشگاه OptiBid.`,
     path: `/shop/${product.slug}`,
     keywords: [
@@ -100,6 +113,7 @@ export default async function StoreProductPage({
   if (!storedProduct) notFound();
   const liveSnapshot = await getLiveStoreProductSnapshot(storedProduct);
   const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
+  const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
   const allProducts = await getJsonStoreProducts();
@@ -117,7 +131,10 @@ export default async function StoreProductPage({
   const productStructuredData = productJsonLd(product);
   const breadcrumbStructuredData = breadcrumbJsonLd([
     { name: "خانه", url: "/" },
-    { name: "فروشگاه لپ‌تاپ", url: "/shop" },
+    {
+      name: computerPartProduct ? "فروشگاه قطعات کامپیوتر" : "فروشگاه لپ‌تاپ",
+      url: computerPartProduct ? "/shop?category=computer-parts" : "/shop",
+    },
     { name: product.title, url: `/shop/${product.slug}` },
   ]);
 
@@ -140,7 +157,7 @@ export default async function StoreProductPage({
           <span>{product.title}</span>
         </nav>
 
-        <ProductCategoryStrip />
+        <ProductCategoryStrip computerPartsMode={computerPartProduct} />
 
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div dir="ltr" className="grid gap-8 p-6 lg:grid-cols-[390px_minmax(0,1fr)] lg:p-8">
@@ -271,24 +288,30 @@ export default async function StoreProductPage({
     </div>
   );
 }
-function ProductCategoryStrip() {
+function ProductCategoryStrip({ computerPartsMode }: { computerPartsMode: boolean }) {
+  const items = computerPartsMode
+    ? computerPartCategoryItems
+    : laptopCategoryItems.slice(0, 14);
   return (
     <section className="mb-6 rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3 px-2">
         <div>
           <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
-            دسته‌بندی کالاها
+            {computerPartsMode ? "دسته‌بندی قطعات" : "دسته‌بندی کالاها"}
           </span>
           <h2 className="mt-2 text-lg font-black text-slate-900">
-            مسیر سریع خرید مثل ترب
+            {computerPartsMode ? "مسیر سریع خرید قطعات کامپیوتر" : "مسیر سریع خرید لپ‌تاپ"}
           </h2>
         </div>
-        <Link href="/shop" className="text-xs font-black text-rose-600">
-          همه محصولات ←
+        <Link
+          href={computerPartsMode ? "/shop?category=computer-parts" : "/shop"}
+          className="text-xs font-black text-rose-600"
+        >
+          {computerPartsMode ? "همه قطعات ←" : "همه لپ‌تاپ‌ها ←"}
         </Link>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1">
-        {laptopCategoryItems.slice(0, 14).map((item) => (
+        {items.map((item) => (
           <Link
             key={item.title}
             href={item.href}
