@@ -201,10 +201,30 @@ async function fetchCategoryPage(source: DigikalaSource, page: number) {
     }
   }
 
+  const target = new URL(url);
+  try {
+    const translateUrl = new URL(`https://api-digikala-com.translate.goog${target.pathname}${target.search}`);
+    translateUrl.searchParams.set("_x_tr_sl", "auto");
+    translateUrl.searchParams.set("_x_tr_tl", "en");
+    translateUrl.searchParams.set("_x_tr_hl", "en");
+    const translateResponse = await fetch(translateUrl.toString(), {
+      method: "GET",
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      headers: { accept: "application/json, text/plain, */*" },
+    });
+    if (translateResponse.ok) {
+      const payload = await translateResponse.json() as Record<string, any>;
+      return categoryPageFromPayload(payload, source, page);
+    }
+  } catch {
+    // Reader عمومی در ادامه آخرین مسیر مرورگر است.
+  }
+
   // مرورگر نیز ممکن است با CORS دیجی‌کالا روبه‌رو شود. Reader عمومی پاسخ JSON
   // همان صفحه را از شبکه‌ای جدا برمی‌گرداند و CORS آن برای مرورگر باز است.
   try {
-    const target = new URL(url);
     const readerUrl = `https://r.jina.ai/http://api.digikala.com${target.pathname}${target.search}`;
     const readerResponse = await fetch(readerUrl, {
       method: "GET",

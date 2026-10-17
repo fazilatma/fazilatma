@@ -1001,9 +1001,31 @@ async function fetchDigikalaApi(url: string) {
     if (result) return result;
   }
 
+  const target = new URL(url);
+  const translateUrl = new URL(`https://api-digikala-com.translate.goog${target.pathname}${target.search}`);
+  translateUrl.searchParams.set("_x_tr_sl", "auto");
+  translateUrl.searchParams.set("_x_tr_tl", "en");
+  translateUrl.searchParams.set("_x_tr_hl", "en");
+  try {
+    const translateResponse = await fetch(translateUrl.toString(), {
+      redirect: "follow",
+      headers: {
+        "user-agent": "Mozilla/5.0 (compatible; OptiBidCatalogReader/1.0)",
+        accept: "application/json, text/plain, */*",
+        "cache-control": "no-cache",
+      },
+      signal: timeoutSignal,
+    });
+    if (translateResponse.ok) {
+      const translated = parseJsonLoose(await translateResponse.text());
+      if (translated) return translated;
+    }
+  } catch {
+    // Reader عمومی در ادامه به‌عنوان آخرین مسیر امتحان می‌شود.
+  }
+
   // API دیجی‌کالا گاهی IPهای Cloudflare را به همان URL برمی‌گرداند. Reader عمومی
   // Jina درخواست را از شبکه‌ای جدا اجرا می‌کند و JSON خام را داخل Markdown Content می‌دهد.
-  const target = new URL(url);
   const readerUrl = `https://r.jina.ai/http://api.digikala.com${target.pathname}${target.search}`;
   const readerResponse = await fetch(readerUrl, {
     redirect: "follow",
