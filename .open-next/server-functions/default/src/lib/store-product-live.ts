@@ -1,9 +1,23 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
 
+export type LiveStoreProductComment = {
+  id: string;
+  userName: string;
+  body: string;
+  rate: number;
+  createdAt: string;
+  isBuyer: boolean;
+};
+
 export type LiveStoreProductSnapshot = {
   price?: number;
   imageUrl?: string;
+  specs?: Record<string, string>;
+  description?: string;
+  comments?: LiveStoreProductComment[];
+  rating?: number;
+  reviewsCount?: number;
   checkedAt: string;
 };
 
@@ -121,6 +135,81 @@ function digikalaImage(html: string, pageUrl: string) {
   return "";
 }
 
+async function fetchDigikalaJson(url: string) {
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+      ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(12000)
+      : undefined;
+  try {
+    const direct = await fetch(url, {
+      redirect: "manual",
+      cache: "no-store",
+      headers: { accept: "application/json, text/plain, */*" },
+      signal: timeoutSignal,
+    });
+    if (direct.ok) return await direct.json() as Record<string, any>;
+  } catch {
+    // Google proxy below.
+  }
+  const target = new URL(url);
+  const translated = new URL(`https://api-digikala-com.translate.goog${target.pathname}${target.search}`);
+  translated.searchParams.set("_x_tr_sl", "auto");
+  translated.searchParams.set("_x_tr_tl", "en");
+  translated.searchParams.set("_x_tr_hl", "en");
+  const response = await fetch(translated.toString(), {
+    redirect: "follow",
+    cache: "no-store",
+    headers: { accept: "application/json, text/plain, */*" },
+    signal: timeoutSignal,
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return await response.json() as Record<string, any>;
+}
+
+function digikalaDetailSnapshot(payload: Record<string, any>) {
+  const detail = payload?.data?.product || payload?.product || {};
+  const specs: Record<string, string> = {};
+  for (const group of Array.isArray(detail.specifications) ? detail.specifications : []) {
+    for (const attribute of Array.isArray(group?.attributes) ? group.attributes : []) {
+      const title = String(attribute?.title || "").trim();
+      const value = (Array.isArray(attribute?.values) ? attribute.values : [attribute?.values])
+        .map((item: unknown) => String(item || "").replace(/\s+/g, " ").trim())
+        .filter(Boolean)
+        .join("، ");
+      if (title && value && Object.keys(specs).length < 36) specs[title.slice(0, 80)] = value.slice(0, 500);
+    }
+  }
+  const description = String(
+    detail?.review?.description ||
+      detail?.expert_reviews?.description ||
+      payload?.data?.seo?.description ||
+      "",
+  ).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const rawRate = Number(detail?.rating?.rate || 0);
+  const rating = rawRate > 5 ? rawRate / 20 : rawRate;
+  return {
+    specs,
+    description: description.slice(0, 5000),
+    rating: Number.isFinite(rating) && rating > 0 ? Math.min(5, rating) : undefined,
+    reviewsCount: Math.max(0, Math.floor(Number(detail?.rating?.count || 0))),
+  };
+}
+
+function digikalaComments(payload: Record<string, any>): LiveStoreProductComment[] {
+  const comments = Array.isArray(payload?.data?.comments) ? payload.data.comments : [];
+  return comments
+    .map((comment: Record<string, any>) => ({
+      id: String(comment.id || ""),
+      userName: String(comment.user_name || "کاربر").trim() || "کاربر",
+      body: String(comment.body || "").trim().slice(0, 1200),
+      rate: Math.max(0, Math.min(5, Number(comment.rate || 0))),
+      createdAt: String(comment.created_at || comment.relative_date || "").trim(),
+      isBuyer: Boolean(comment.is_buyer),
+    }))
+    .filter((comment: LiveStoreProductComment) => comment.id && comment.body)
+    .slice(0, 10);
+}
+
 async function fetchSourceHtml(url: string) {
   const timeoutSignal =
     typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
@@ -162,19 +251,49 @@ export async function getLiveStoreProductSnapshot(
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
   try {
-    const html = await fetchSourceHtml(sourceUrl);
-    const extractedPrice = isTorobProduct ? firstTorobPrice(html) : digikalaPrice(html);
-    const imageUrl = isTorobProduct
-      ? torobImage(html, sourceUrl)
-      : digikalaImage(html, sourceUrl);
+    const html = await fetchSourceHtml(sourceUrl).catch(() => "");
+    const extractedPrice = html
+      ? isTorobProduct ? firstTorobPrice(html) : digikalaPrice(html)
+      : 0;
+    let imageUrl = html
+      ? isTorobProduct ? torobImage(html, sourceUrl) : digikalaImage(html, sourceUrl)
+      : "";
+    let detailData: ReturnType<typeof digikalaDetailSnapshot> | null = null;
+    let comments: LiveStoreProductComment[] = [];
+
+    if (isDigikalaProduct) {
+      const productId = parsed.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
+      if (productId) {
+        const [detailResult, commentsResult] = await Promise.allSettled([
+          fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
+          fetchDigikalaJson(`https://api.digikala.com/v1/product/${productId}/comments/?page=1`),
+        ]);
+        if (detailResult.status === "fulfilled") {
+          detailData = digikalaDetailSnapshot(detailResult.value);
+          if (!imageUrl) {
+            const detail = detailResult.value?.data?.product;
+            const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
+            try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
+          }
+        }
+        if (commentsResult.status === "fulfilled") comments = digikalaComments(commentsResult.value);
+      }
+    }
+
     const storedPrice = Number(product.price || 0);
     const priceIsSane =
       extractedPrice > 0 &&
       (!storedPrice || (extractedPrice >= storedPrice * 0.4 && extractedPrice <= storedPrice * 2.5));
-    const value = priceIsSane || imageUrl
+    const hasDetails = Boolean(detailData && (Object.keys(detailData.specs).length || detailData.description));
+    const value = priceIsSane || imageUrl || hasDetails || comments.length
       ? {
           price: priceIsSane ? extractedPrice : undefined,
           imageUrl: imageUrl || undefined,
+          specs: detailData?.specs,
+          description: detailData?.description || undefined,
+          comments,
+          rating: detailData?.rating,
+          reviewsCount: detailData?.reviewsCount,
           checkedAt: new Date().toISOString(),
         }
       : null;
@@ -198,6 +317,10 @@ export function applyLiveStoreProductSnapshot(
     price,
     originalPrice: priceChanged ? undefined : product.originalPrice,
     imageUrl: snapshot.imageUrl || product.imageUrl,
+    specs: { ...product.specs, ...(snapshot.specs || {}) },
+    description: snapshot.description || product.description,
+    rating: snapshot.rating || product.rating,
+    reviewsCount: snapshot.reviewsCount || product.reviewsCount,
     priceUpdatedAt: snapshot.checkedAt.slice(0, 10),
     shippingNote: snapshot.price
       ? "قیمت هنگام نمایش دوباره بررسی شد"
