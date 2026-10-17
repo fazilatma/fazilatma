@@ -15,6 +15,7 @@ export type LiveStoreProductSnapshot = {
   price?: number;
   originalPrice?: number;
   imageUrl?: string;
+  brand?: string;
   specs?: Record<string, string>;
   description?: string;
   comments?: LiveStoreProductComment[];
@@ -243,6 +244,7 @@ function digikalaDetailSnapshot(payload: Record<string, any>) {
     reviewsCount: Math.max(0, Math.floor(Number(detail?.rating?.count || 0))),
     price: sellingPrice >= 100_000 && sellingPrice <= 1_500_000_000 ? sellingPrice : undefined,
     originalPrice: rrpPrice > sellingPrice && rrpPrice <= sellingPrice * 1.8 ? rrpPrice : undefined,
+    brand: String(detail?.brand?.title_en || detail?.brand?.title_fa || detail?.data_layer?.brand || "").trim() || undefined,
   };
 }
 
@@ -357,6 +359,7 @@ export async function getLiveStoreProductSnapshot(
               ? detailData.originalPrice
               : undefined,
           imageUrl: imageUrl || undefined,
+          brand: detailData?.brand,
           specs: detailData?.specs,
           description: detailData?.description || undefined,
           comments,
@@ -446,6 +449,7 @@ export function applyLiveStoreProductSnapshot(
           ? undefined
           : product.originalPrice,
     imageUrl: snapshot.imageUrl || product.imageUrl,
+    brand: snapshot.brand || product.brand,
     specs: { ...inferred.specs, ...product.specs, ...(snapshot.specs || {}) },
     description: snapshot.description || inferred.description,
     rating: snapshot.rating || product.rating,

@@ -18,8 +18,11 @@ export function isComputerPartsCatalogProduct(
 ) {
   const text = productText(product);
   const key = productImportCategoryKey(product);
+  const explicitComputerPart = /قطعات کامپیوتر|پردازنده|\bcpu\b|کارت گرافیک|\bgpu\b|مادربرد|\bram\b|حافظه رم|رم کامپیوتر|رم دسکتاپ|ماژول رم|\bssd\b|اس\s*اس\s*دی|\bnvme\b|هارد(?:دیسک)?\s*(?:اینترنال|اکسترنال)|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک.?کننده پردازنده|فن کیس|خمیر سیلیکون/.test(text);
+  // وجود عباراتی مثل «مناسب لپ‌تاپ» در مشخصات RAM/SSD نباید قطعه را لپ‌تاپ حساب کند.
+  if (explicitComputerPart) return true;
   if (isLaptopCatalogProduct(product)) return false;
-  return key === "components" || key === "storage" || /قطعات کامپیوتر|پردازنده|\bcpu\b|کارت گرافیک|\bgpu\b|مادربرد|\bram\b|حافظه رم|رم کامپیوتر|رم دسکتاپ|ماژول رم|\bssd\b|\bnvme\b|هارد اینترنال|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک.?کننده پردازنده|فن کیس|خمیر سیلیکون/.test(text);
+  return key === "components" || key === "storage";
 }
 
 export function filterProductsByCatalogSections(
