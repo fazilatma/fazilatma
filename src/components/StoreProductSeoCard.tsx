@@ -1,6 +1,8 @@
 import Link from "next/link";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
+import type { ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import type { JsonStoreProduct } from "@/lib/json-store";
+import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 
 const money = (value: number | string) =>
@@ -11,8 +13,32 @@ function discountPercent(product: JsonStoreProduct) {
   return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
 }
 
+function computerPartKind(product: JsonStoreProduct): ComputerPartVisualKind {
+  const text = `${product.title} ${product.category} ${product.summary}`.toLowerCase();
+  if (/کارت گرافیک|\bgpu\b|geforce|radeon|\brtx\b|\bgtx\b/.test(text)) return "gpu";
+  if (/مادربرد|motherboard/.test(text)) return "motherboard";
+  if (/رم کامپیوتر|حافظه رم|ماژول رم|ram module|memory module/.test(text)) return "ram";
+  if (/\bssd\b|\bnvme\b|solid state|هارد|hard drive/.test(text)) return "ssd";
+  if (/پاور|منبع تغذیه|power supply|\bpsu\b/.test(text)) return "power";
+  if (/خنک|cooler|فن پردازنده|خمیر سیلیکون|thermal paste/.test(text)) return "cooler";
+  if (/کیس کامپیوتر|computer case|computer chassis/.test(text)) return "case";
+  return "cpu";
+}
+
+const partFallbackImages: Record<ComputerPartVisualKind, string> = {
+  cpu: "/images/parts/cpu.png",
+  gpu: "/images/parts/gpu.png",
+  ram: "/images/parts/ram.png",
+  ssd: "/images/parts/ssd.png",
+  motherboard: "/images/parts/motherboard.png",
+  power: "/images/parts/power.png",
+  case: "/images/parts/case.png",
+  cooler: "/images/parts/cooler.png",
+};
+
 function StaticLaptopVisual({ product }: { product: JsonStoreProduct }) {
   const discount = discountPercent(product);
+  const isComputerPart = isComputerPartsCatalogProduct(product);
   return (
     <div
       className="relative grid h-40 place-items-center overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-slate-100 via-white to-blue-50"
@@ -20,13 +46,21 @@ function StaticLaptopVisual({ product }: { product: JsonStoreProduct }) {
     >
       <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-[#00a8e8]/10" />
       <div className="absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-rose-500/10" />
-      <div className="relative w-44 max-w-[75%]">
-        <div className="mx-auto h-28 rounded-t-2xl border-[10px] border-slate-800 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] p-3 shadow-2xl">
-          <div className="h-full rounded-lg bg-white/10" />
+      {isComputerPart ? (
+        <img
+          src={partFallbackImages[computerPartKind(product)]}
+          alt={`تصویر مشابه ${product.title}`}
+          className="relative h-[82%] w-[82%] object-contain drop-shadow-xl"
+        />
+      ) : (
+        <div className="relative w-44 max-w-[75%]">
+          <div className="mx-auto h-28 rounded-t-2xl border-[10px] border-slate-800 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] p-3 shadow-2xl">
+            <div className="h-full rounded-lg bg-white/10" />
+          </div>
+          <div className="mx-auto h-4 w-56 max-w-full rounded-b-3xl bg-slate-700 shadow-xl" />
+          <div className="mx-auto h-2 w-32 rounded-b-2xl bg-slate-400" />
         </div>
-        <div className="mx-auto h-4 w-56 max-w-full rounded-b-3xl bg-slate-700 shadow-xl" />
-        <div className="mx-auto h-2 w-32 rounded-b-2xl bg-slate-400" />
-      </div>
+      )}
       <StoreProductRemoteImage
         src={product.imageUrl}
         alt={`عکس ${product.title}`}
