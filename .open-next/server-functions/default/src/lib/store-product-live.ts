@@ -347,6 +347,16 @@ export async function getLiveStoreProductSnapshot(
     }
 
     const storedPrice = Number(product.price || 0);
+    // قیمت ذخیره‌شده ممکن است کمترین قیمت معتبر منبع دیگری (مثلاً CSV ترب) باشد.
+    // اگر اختلاف آن با قیمت زنده منطقی است، قیمت پایین‌تر را حفظ می‌کنیم؛ اما قیمت‌های
+    // خراب و چندبرابر ارزان‌ترِ قدیمی (مثل ۸۰۰ هزار به‌جای ۵ میلیون) کنار گذاشته می‌شوند.
+    if (
+      storedPrice > 0 &&
+      extractedPrice > storedPrice &&
+      storedPrice >= extractedPrice * 0.45
+    ) {
+      extractedPrice = storedPrice;
+    }
     const priceIsSane =
       extractedPrice > 0 &&
       (trustedCurrentPrice || !storedPrice || (extractedPrice >= storedPrice * 0.4 && extractedPrice <= storedPrice * 2.5));
