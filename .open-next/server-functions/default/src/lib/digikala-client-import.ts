@@ -174,8 +174,19 @@ async function fetchCategoryPage(source: DigikalaSource, page: number) {
       const records = Array.isArray(payload?.data?.products)
         ? payload.data.products as Array<Record<string, any>>
         : [];
-      const totalPages = Math.max(1, Math.floor(Number(payload?.data?.pager?.total_pages || 1)));
-      return { source, page, records, totalPages };
+      const pager = payload?.data?.pager || payload?.pager || payload?.data?.pagination || {};
+      const totalItems = Math.max(0, Math.floor(Number(
+        pager?.total_items || pager?.total_count || payload?.data?.total_items || payload?.data?.total_count || 0,
+      )));
+      const pageSize = Math.max(1, records.length || Number(pager?.page_size || pager?.per_page || 20));
+      const declaredPages = Math.floor(Number(pager?.total_pages || pager?.last_page || 0));
+      const totalPages = Math.max(
+        1,
+        declaredPages,
+        totalItems > 0 ? Math.ceil(totalItems / pageSize) : records.length >= 10 ? 2 : 1,
+      );
+      const paginationKnown = declaredPages > 1 || totalItems > records.length;
+      return { source, page, records, totalPages, totalItems, paginationKnown };
     } catch (error) {
       lastError = error;
       if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 700));
@@ -236,7 +247,11 @@ export async function scanDigikalaComponentsInBrowser(
       warnings.push(`${source.slug}: ${result.reason instanceof Error ? result.reason.message : "خطا"}`);
       continue;
     }
-    const categoryPages = Math.min(maxPagesPerCategory, result.value.totalPages);
+    const categoryPages = result.value.paginationKnown
+      ? Math.min(maxPagesPerCategory, result.value.totalPages)
+      : result.value.records.length >= 10
+        ? maxPagesPerCategory
+        : 1;
     totalPages += categoryPages;
     for (const record of result.value.records) {
       const draft = draftFromRecord(record, source);
@@ -252,8 +267,12 @@ export async function scanDigikalaComponentsInBrowser(
     message: "صفحه‌های نخست زیرگروه‌های دیجی‌کالا خوانده شد.",
   });
 
+  const endedSources = new Set<string>();
   for (let cursor = 0; cursor < pageTasks.length && byUrl.size < maxProducts; cursor += concurrency) {
-    const batch = pageTasks.slice(cursor, cursor + concurrency);
+    const batch = pageTasks
+      .slice(cursor, cursor + concurrency)
+      .filter((task) => !endedSources.has(task.source.slug));
+    if (!batch.length) continue;
     const results = await Promise.allSettled(
       batch.map((task) => fetchCategoryPage(task.source, task.page)),
     );
@@ -265,10 +284,14 @@ export async function scanDigikalaComponentsInBrowser(
         warnings.push(`${task.source.slug}، صفحه ${task.page}: ${result.reason instanceof Error ? result.reason.message : "خطا"}`);
         continue;
       }
+      const productsBeforePage = byUrl.size;
       for (const record of result.value.records) {
         const draft = draftFromRecord(record, task.source);
         if (draft) byUrl.set(draft.externalSourceUrl, draft);
         if (byUrl.size >= maxProducts) break;
+      }
+      if (result.value.records.length === 0 || byUrl.size === productsBeforePage) {
+        endedSources.add(task.source.slug);
       }
     }
     options.onProgress?.({
