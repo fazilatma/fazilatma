@@ -450,7 +450,12 @@ export function applyLiveStoreProductSnapshot(
           : product.originalPrice,
     imageUrl: snapshot.imageUrl || product.imageUrl,
     brand: snapshot.brand || product.brand,
-    specs: { ...inferred.specs, ...product.specs, ...(snapshot.specs || {}) },
+    specs: {
+      ...inferred.specs,
+      ...product.specs,
+      ...(snapshot.specs || {}),
+      ...(snapshot.brand ? { "برند": snapshot.brand } : {}),
+    },
     description: snapshot.description || inferred.description,
     rating: snapshot.rating || product.rating,
     reviewsCount: snapshot.reviewsCount || product.reviewsCount,
