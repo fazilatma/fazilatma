@@ -284,7 +284,7 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey | "
   if (/router|modem|network|switch|مودم|روتر|شبکه|سوییچ|کابل شبکه/.test(lower)) return "network";
   if (/console|playstation|xbox|nintendo|ps5|ps4|کنسول|پلی.?استیشن|ایکس.?باکس/.test(lower)) return "console";
   if (/ssd|hdd|hard|storage|flash|memory card|هارد|حافظه|فلش|مموری/.test(lower)) return "storage";
-  if (/cpu|processor|gpu|graphics|motherboard|ram|power\s*supply|computer\s*case|computer\s*chassis|cooler|thermal\s*paste|sound\s*card|پردازنده|کارت گرافیک|مادربرد|رم کامپیوتر|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک|فن(?:\s|$)|خمیر (?:حرارتی|سیلیکون)|کارت صدا|قطعات کامپیوتر/.test(lower)) return "components";
+  if (/cpu|processor|core\s*i[3579]|core\s*ultra|ryzen\s*[3579]|pentium|celeron|athlon|gpu|graphics|motherboard|ram|power\s*supply|computer\s*case|computer\s*chassis|cooler|thermal\s*paste|sound\s*card|پردازنده|کارت گرافیک|مادربرد|رم کامپیوتر|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک|فن(?:\s|$)|خمیر (?:حرارتی|سیلیکون)|کارت صدا|قطعات کامپیوتر/.test(lower)) return "components";
   if (/mouse|keyboard|ماوس|کیبورد|پد ماوس/.test(lower)) return "accessories";
   if (/gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (/desktop|all.?in.?one|mini.?pc|pc |computer|کیس آماده|کامپیوتر|مینی.?پی.?سی|آل.?این.?وان/.test(lower)) return "desktop";
@@ -681,7 +681,9 @@ export function productMatchesImportCategories(
 ) {
   if (selectedCategories.length === 0) return true;
   const key = productImportCategoryKey(draft);
-  if (key === "unknown") return false;
+  // وقتی مدیر «انتخاب همه» را زده است، ردیف معتبر را فقط به‌خاطر ناشناخته‌بودن
+  // برچسب دسته حذف نمی‌کنیم؛ مخصوصاً CSVهای ترب که عنوان کوتاه مدل دارند.
+  if (key === "unknown") return selectedCategories.length >= knownProductImportCategories.size;
   if (selectedCategories.includes(key)) return true;
   if (key === "gaming" && selectedCategories.includes("laptop")) return true;
   if (key === "printer" && selectedCategories.includes("office-machines")) return true;

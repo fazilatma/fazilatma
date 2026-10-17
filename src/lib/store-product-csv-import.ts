@@ -265,7 +265,7 @@ function categoryFromTitle(title: string) {
   if (/printer|پرینتر|چاپگر/.test(lower)) return "پرینتر و ماشین اداری";
   if (/console|playstation|xbox|کنسول|پلی/.test(lower)) return "کنسول بازی";
   if (/ssd|hdd|hard|هارد|حافظه/.test(lower) && !/laptop|لپ/.test(lower)) return "حافظه و ذخیره‌سازی";
-  if (/cpu|gpu|motherboard|ram|power\s*supply|پردازنده|کارت گرافیک|مادربرد|پاور کامپیوتر|منبع تغذیه/.test(lower)) return "قطعات کامپیوتر";
+  if (/cpu|core\s*i[3579]|core\s*ultra|ryzen\s*[3579]|pentium|celeron|athlon|gpu|graphics|motherboard|ram|power\s*supply|پردازنده|کارت گرافیک|مادربرد|پاور کامپیوتر|منبع تغذیه/.test(lower)) return "قطعات کامپیوتر";
   if (/mouse|keyboard|ماوس|کیبورد|پد ماوس/.test(lower)) return "لوازم جانبی کامپیوتر";
   return "نامشخص";
 }
