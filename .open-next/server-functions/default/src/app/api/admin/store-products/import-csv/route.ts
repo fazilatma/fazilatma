@@ -39,34 +39,115 @@ function productSelectionKey(product: JsonStoreProduct) {
   return `${product.id}|${product.externalSourceUrl || product.slug}|${product.title}`;
 }
 
-// CSV imports often contain many related models from the same brand. Fuzzy title
-// matching can incorrectly merge dozens of distinct rows; CSV matching must be strict.
+const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+
+function normalizedProductText(product: Pick<JsonStoreProduct, "title" | "brand" | "category" | "specs">) {
+  return `${product.title} ${product.brand} ${product.category} ${Object.values(product.specs || {}).join(" ")}`
+    .replace(/[۰-۹]/g, (digit) => String(persianDigits.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String(arabicDigits.indexOf(digit)))
+    .toLowerCase()
+    .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+    .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,2})\b/g, "$1-$2")
+    .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+    .replace(/[^a-z0-9آ-ی.+-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function capacityKey(text: string) {
+  const match = text.match(/(\d+(?:\.\d+)?)\s*(tb|gb|ترابایت|گیگابایت)/i);
+  if (!match) return "";
+  const unit = /tb|ترابایت/i.test(match[2]) ? "tb" : "gb";
+  return `${match[1]}${unit}`;
+}
+
+function crossSourceProductKey(product: Pick<JsonStoreProduct, "title" | "brand" | "category" | "specs">) {
+  const text = normalizedProductText(product);
+  const brand = String(product.brand || "").toLowerCase().replace(/[^a-z0-9آ-ی]+/g, "");
+  const usefulBrand = /^(?:optibid|digikala|torob|نامشخص)?$/.test(brand) ? "" : brand;
+  const packageType = /\btray\b|بدون جعبه/.test(text) ? "tray" : /\bbox\b|با جعبه/.test(text) ? "box" : "";
+
+  const intelCpu = text.match(/\b(i[3579]-\d{4,5}[a-z]{0,2})\b/)?.[1];
+  const ryzenCpu = text.match(/\b(ryzen[3579]-\d{4}[a-z0-9]*)\b/)?.[1];
+  if (intelCpu || ryzenCpu) return `cpu:${intelCpu || ryzenCpu}:${packageType}`;
+
+  const gpu = text.match(/\b(rtx\d{3,4}|gtx\d{3,4}|rx\d{3,4})\b/)?.[1];
+  if (gpu) {
+    const family = text.match(/\b(dual|prime|tuf|strix|aorus|ventus|gaming|eagle|windforce|nitro|pulse|mech)\b/)?.[1] || "";
+    return usefulBrand ? `gpu:${usefulBrand}:${gpu}:${family}` : "";
+  }
+
+  const tokens = text
+    .split(" ")
+    .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
+    .filter((token) => !/^(?:ddr\d|gddr\d|sata\d*|pcie\d*|usb\d*|lga\d+|am\d+|\d+(?:gb|tb|w|mhz|rpm))$/.test(token));
+  const capacity = capacityKey(text);
+  if (/\bssd\b|nvme|اس اس دی|هارد|hard disk|hdd/.test(text)) {
+    const model = tokens.find((token) => !/^(?:ssd|nvme|hdd)/.test(token)) || tokens[0];
+    return model ? `storage:${model}:${capacity}` : "";
+  }
+  if (/مادربرد|motherboard/.test(text)) {
+    const model = tokens.find((token) => /^(?:h|b|z|x|a)\d{3}/.test(token)) || tokens[0];
+    return model && usefulBrand ? `motherboard:${usefulBrand}:${model}` : "";
+  }
+  if (/منبع تغذیه|پاور|power supply|\bpsu\b/.test(text)) {
+    const model = tokens[0] || "";
+    const watt = text.match(/(\d{3,4})\s*(?:w|وات)/)?.[1] || "";
+    return model && usefulBrand ? `power:${usefulBrand}:${model}:${watt}` : "";
+  }
+  if (/رم کامپیوتر|حافظه رم|ram module|memory module/.test(text)) {
+    const model = tokens[0] || "";
+    const frequency = text.match(/(\d{3,5})\s*mhz/)?.[1] || "";
+    return model && usefulBrand ? `ram:${usefulBrand}:${model}:${capacity}:${frequency}` : "";
+  }
+  return "";
+}
+
+// CSV imports contain many similar models. Cross-source matching therefore uses
+// strong model fingerprints instead of broad title similarity.
 function findMatchingCsvStoreProductIndex(products: JsonStoreProduct[], imported: JsonStoreProduct) {
   if (imported.externalSourceUrl) {
-    // A different source URL is a distinct catalog entry, even when its title is similar.
-    return products.findIndex((product) => product.externalSourceUrl === imported.externalSourceUrl);
+    const sourceMatch = products.findIndex((product) => product.externalSourceUrl === imported.externalSourceUrl);
+    if (sourceMatch >= 0) return sourceMatch;
   }
   const idMatch = products.findIndex((product) => product.id === imported.id);
   if (idMatch >= 0) return idMatch;
   const identity = storeProductIdentityKey(imported);
-  return products.findIndex((product) => storeProductIdentityKey(product) === identity);
+  const identityMatch = products.findIndex((product) => storeProductIdentityKey(product) === identity);
+  if (identityMatch >= 0) return identityMatch;
+  const crossKey = crossSourceProductKey(imported);
+  return crossKey
+    ? products.findIndex((product) => crossSourceProductKey(product) === crossKey)
+    : -1;
 }
 
 function createCsvProductMatchIndex(products: JsonStoreProduct[]) {
   const byUrl = new Map<string, number>();
   const byId = new Map<string, number>();
   const byIdentity = new Map<string, number>();
+  const byCrossSource = new Map<string, number>();
   const remember = (product: JsonStoreProduct, index: number) => {
     if (product.externalSourceUrl) byUrl.set(product.externalSourceUrl, index);
     if (product.id) byId.set(product.id, index);
     byIdentity.set(storeProductIdentityKey(product), index);
+    const crossKey = crossSourceProductKey(product);
+    if (crossKey && !byCrossSource.has(crossKey)) byCrossSource.set(crossKey, index);
   };
   products.forEach(remember);
 
   return {
     find(product: JsonStoreProduct) {
-      if (product.externalSourceUrl) return byUrl.get(product.externalSourceUrl) ?? -1;
-      return byId.get(product.id) ?? byIdentity.get(storeProductIdentityKey(product)) ?? -1;
+      if (product.externalSourceUrl) {
+        const urlMatch = byUrl.get(product.externalSourceUrl);
+        if (urlMatch !== undefined) return urlMatch;
+      }
+      const idMatch = byId.get(product.id);
+      if (idMatch !== undefined) return idMatch;
+      const identityMatch = byIdentity.get(storeProductIdentityKey(product));
+      if (identityMatch !== undefined) return identityMatch;
+      const crossKey = crossSourceProductKey(product);
+      return crossKey ? byCrossSource.get(crossKey) ?? -1 : -1;
     },
     remember,
   };
@@ -114,16 +195,25 @@ function publicProduct(product: JsonStoreProduct, index: number) {
 }
 
 function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
-  const importedIsNewer = String(imported.priceUpdatedAt || "") >= String(existing.priceUpdatedAt || "");
+  const importedIsCheaper = imported.price > 0 && (existing.price <= 0 || imported.price < existing.price);
+  const chosen = importedIsCheaper ? imported : existing;
+  const price = Math.min(
+    ...[existing.price, imported.price].filter((value) => Number.isFinite(value) && value > 0),
+  );
+  const chosenOriginal = Number(chosen.originalPrice || 0);
+  const originalPrice = chosenOriginal > price && chosenOriginal <= price * 1.8
+    ? chosenOriginal
+    : undefined;
+  const existingBrandIsGeneric = !existing.brand || /^(?:optibid|digikala|torob|نامشخص)$/i.test(existing.brand);
   return {
     ...existing,
-    title: existing.title || imported.title,
-    brand: existing.brand || imported.brand,
-    category: existing.category || imported.category,
-    summary: imported.summary || existing.summary,
+    title: imported.title.length > existing.title.length ? imported.title : existing.title,
+    brand: existingBrandIsGeneric && imported.brand ? imported.brand : existing.brand,
+    category: imported.category && imported.category !== "نامشخص" ? imported.category : existing.category,
+    summary: imported.summary.length > existing.summary.length ? imported.summary : existing.summary,
     description: imported.description.length > existing.description.length ? imported.description : existing.description,
-    price: importedIsNewer ? imported.price : existing.price,
-    originalPrice: importedIsNewer ? imported.originalPrice : existing.originalPrice,
+    price,
+    originalPrice,
     stock: Math.max(existing.stock || 0, imported.stock || 0),
     specs: { ...existing.specs, ...imported.specs },
     badges: Array.from(new Set([
@@ -131,11 +221,11 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
       ...(imported.badges || []).filter((badge) => badge !== "قیمت به‌روز"),
       "قیمت ثبت‌شده",
     ])).slice(0, 6),
-    shippingNote: imported.shippingNote || existing.shippingNote,
-    priceUpdatedAt: importedIsNewer ? imported.priceUpdatedAt : existing.priceUpdatedAt,
-    marketReferenceNote: importedIsNewer ? imported.marketReferenceNote : existing.marketReferenceNote,
-    externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
-    imageUrl: imported.imageUrl || existing.imageUrl,
+    shippingNote: chosen.shippingNote || existing.shippingNote,
+    priceUpdatedAt: chosen.priceUpdatedAt,
+    marketReferenceNote: chosen.marketReferenceNote,
+    externalSourceUrl: chosen.externalSourceUrl || existing.externalSourceUrl,
+    imageUrl: existing.imageUrl || imported.imageUrl,
     priceHistory: mergeStorePriceHistory(existing.priceHistory, imported.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;
@@ -150,9 +240,12 @@ function dedupeStoreProducts(products: JsonStoreProduct[]) {
   const indexByIdentity = new Map<string, number>();
   let duplicatesRemoved = 0;
   for (const product of products) {
-    const identity = product.externalSourceUrl
-      ? `url:${product.externalSourceUrl}`
-      : `identity:${storeProductIdentityKey(product)}`;
+    const crossKey = crossSourceProductKey(product);
+    const identity = crossKey
+      ? `cross:${crossKey}`
+      : product.externalSourceUrl
+        ? `url:${product.externalSourceUrl}`
+        : `identity:${storeProductIdentityKey(product)}`;
     const existingIndex = indexByIdentity.get(identity);
     if (existingIndex === undefined) {
       indexByIdentity.set(identity, output.length);
