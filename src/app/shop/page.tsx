@@ -11,6 +11,7 @@ import {
   isLaptopCatalogProduct,
 } from "@/lib/store-catalog-sections";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
+import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
 import { getLiveStoreProductPriceSnapshot } from "@/lib/store-product-live";
@@ -264,18 +265,8 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   if (catalogCategory === "computer-parts" && !isComputerPartsCatalogProduct(product)) return false;
   if (catalogCategory === "laptop" && !isLaptopCatalogProduct(product)) return false;
   if (part) {
-    const partKeywords: Record<string, string[]> = {
-      cpu: ["پردازنده", "cpu", "intel", "amd", "ryzen", "core i"],
-      gpu: ["کارت گرافیک", "gpu", "geforce", "radeon", "rtx", "gtx"],
-      ram: ["رم کامپیوتر", "حافظه رم", "رم دسکتاپ", "ماژول رم", "ram module", "memory module"],
-      ssd: ["ssd", "nvme", "solid state", "هارد اس اس دی"],
-      motherboard: ["مادربرد", "motherboard"],
-      power: ["پاور", "منبع تغذیه", "power supply", "psu"],
-      case: ["کیس", "case"],
-      cooler: ["خنک", "cooler", "فن پردازنده", "خمیر سیلیکون"],
-    };
-    const keywords = partKeywords[part] || [];
-    if (keywords.length && !keywords.some((keyword) => text.includes(keyword))) return false;
+    const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler"]);
+    if (allowedParts.has(part) && storeComputerPartKind(product) !== part) return false;
   }
   if (partGroup) {
     const groupKeywords: Record<string, string[]> = {
@@ -497,7 +488,7 @@ async function repairSuspiciousVisiblePrices(
   const targets = products
     .map((product, index) => ({ product, index }))
     .filter(({ product }) => isSuspiciousStoreProductPrice(product))
-    .slice(0, 8);
+    .slice(0, 2);
 
   // در هر لحظه فقط دو محصول بررسی می‌شوند تا سقف subrequest ورکر Cloudflare رد نشود.
   for (let offset = 0; offset < targets.length; offset += 2) {

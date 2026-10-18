@@ -16,7 +16,6 @@ import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
   applyLiveStoreProductSnapshot,
-  getLiveStoreProductPriceSnapshot,
   getLiveStoreProductSnapshot,
 } from "@/lib/store-product-live";
 import {
@@ -114,20 +113,10 @@ export default async function StoreProductPage({
   const data = await getOptiBidData();
   const storedProduct = data.storeProducts.find((item) => item.slug === slug);
   if (!storedProduct) notFound();
-  const [detailSnapshot, canonicalPriceSnapshot] = await Promise.all([
-    getLiveStoreProductSnapshot(storedProduct, data.settings.storePriceMultiplier),
-    getLiveStoreProductPriceSnapshot(storedProduct, data.settings.storePriceMultiplier),
-  ]);
-  const liveSnapshot = canonicalPriceSnapshot?.price
-    ? {
-        ...(detailSnapshot || { checkedAt: canonicalPriceSnapshot.checkedAt }),
-        price: canonicalPriceSnapshot.price,
-        marketPrice: canonicalPriceSnapshot.marketPrice,
-        priceMultiplier: canonicalPriceSnapshot.priceMultiplier,
-        originalPrice: canonicalPriceSnapshot.originalPrice,
-        checkedAt: canonicalPriceSnapshot.checkedAt,
-      }
-    : detailSnapshot;
+  const liveSnapshot = await getLiveStoreProductSnapshot(
+    storedProduct,
+    data.settings.storePriceMultiplier,
+  );
   const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
   const shouldPersistLivePrice = Boolean(
     liveSnapshot?.price && (

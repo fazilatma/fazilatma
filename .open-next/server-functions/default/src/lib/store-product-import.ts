@@ -1,5 +1,6 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
+import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
 
 export type ImportedStoreProductDraft = {
   title: string;
@@ -697,18 +698,8 @@ export function productMatchesComputerPartFilters(
 ) {
   const filters = [...new Set(partFilters.map((item) => String(item).trim().toLowerCase()).filter(Boolean))];
   if (!filters.length) return true;
-  const text = `${draft.title} ${draft.brand} ${draft.category} ${draft.summary} ${draft.description} ${Object.values(draft.specs || {}).join(" ")}`.toLowerCase();
-  const keywords: Record<string, string[]> = {
-    cpu: ["پردازنده", " cpu ", "intel core", "amd ryzen", "ryzen", "core i"],
-    gpu: ["کارت گرافیک", " gpu ", "geforce", "radeon", "rtx", "gtx"],
-    ram: ["رم کامپیوتر", "حافظه رم", "رم دسکتاپ", "ماژول رم", "ram module", "memory module"],
-    ssd: ["ssd", "nvme", "solid state", "هارد", "hard drive", "ذخیره سازی", "ذخیره‌سازی"],
-    motherboard: ["مادربرد", "motherboard"],
-    power: ["پاور", "منبع تغذیه", "power supply", " psu"],
-    case: ["کیس کامپیوتر", "computer case", "computer chassis"],
-    cooler: ["خنک", "cooler", "فن پردازنده", "خمیر سیلیکون", "thermal paste"],
-  };
-  return filters.some((filter) => (keywords[filter] || []).some((keyword) => text.includes(keyword)));
+  const kind = storeComputerPartKind(draft);
+  return Boolean(kind && filters.includes(kind));
 }
 
 const digikalaCategorySources: Record<ProductImportCategoryKey, { query: string; slugs: string[] }> = {
