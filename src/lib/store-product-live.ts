@@ -498,8 +498,17 @@ export async function getLiveStoreProductPriceSnapshot(
       snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
       return null;
     }
-    // وقتی حداقل یکی از مراجع زنده پاسخ معتبر داده، قیمت تاریخی ذخیره‌شده نباید
-    // نتیجه را پایین‌تر نگه دارد؛ قیمت نهایی دقیقاً از کمترین قیمت فعلی منابع است.
+    // اگر یکی از دو مرجع موقتاً پاسخ نداد، آخرین قیمت تأییدشدهٔ نزدیک را نگه می‌داریم.
+    // کف ۸۵٪ اجازه نمی‌دهد قیمت‌های اشتباهِ مدل مشابه (مثل 265KF به‌جای 265K)
+    // جای قیمت دقیق را بگیرند، اما افت معتبر ترب نسبت به دیجی‌کالا از بین نمی‌رود.
+    const storedMarketPrice = storedProductMarketPrice(product);
+    if (
+      storedMarketPrice > 0 &&
+      storedMarketPrice < extractedPrice &&
+      storedMarketPrice >= extractedPrice * 0.85
+    ) {
+      extractedPrice = storedMarketPrice;
+    }
     const price = roundStorePrice(extractedPrice * priceMultiplier);
     const value: LiveStoreProductSnapshot = {
       price,
