@@ -498,14 +498,8 @@ export async function getLiveStoreProductPriceSnapshot(
       snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
       return null;
     }
-    const storedMarketPrice = storedProductMarketPrice(product);
-    if (
-      storedMarketPrice > 0 &&
-      extractedPrice > storedMarketPrice &&
-      storedMarketPrice >= extractedPrice * 0.45
-    ) {
-      extractedPrice = storedMarketPrice;
-    }
+    // وقتی حداقل یکی از مراجع زنده پاسخ معتبر داده، قیمت تاریخی ذخیره‌شده نباید
+    // نتیجه را پایین‌تر نگه دارد؛ قیمت نهایی دقیقاً از کمترین قیمت فعلی منابع است.
     const price = roundStorePrice(extractedPrice * priceMultiplier);
     const value: LiveStoreProductSnapshot = {
       price,
