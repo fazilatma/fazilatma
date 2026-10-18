@@ -108,6 +108,7 @@ function strongModelTokens(value: string) {
     .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
     .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+    .replace(/\b([a-z]*\d[a-z0-9]*)-(tray|box)\b/g, "$1 $2")
     .replace(/[^a-z0-9آ-ی-]+/g, " ")
     .split(/\s+/)
     .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
@@ -121,26 +122,40 @@ function packageKind(value: string) {
   return "";
 }
 
+function normalizedComparableModelText(value: string) {
+  return toEnglishDigits(value)
+    .toLowerCase()
+    .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+    .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
+    .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+    .replace(/[^a-z0-9آ-ی-]+/g, " ");
+}
+
 function torobComparablePrice(html: string, productTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return 0;
   const requiredPackage = packageKind(productTitle);
-  const anchorPattern = /<a\b[^>]*href=["'][^"']*\/p\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/gi;
   const prices: number[] = [];
-  for (const match of html.matchAll(anchorPattern)) {
-    const text = stripTags(match[1] || "");
-    const normalized = toEnglishDigits(text)
-      .toLowerCase()
-      .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
-      .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
-      .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
-      .replace(/[^a-z0-9آ-ی-]+/g, " ");
-    if (!requiredTokens.every((token) => normalized.includes(token))) continue;
+  const inspectCandidate = (value: string) => {
+    const text = stripTags(value);
+    const normalized = normalizedComparableModelText(text);
+    if (!requiredTokens.every((token) => normalized.includes(token))) return;
     const candidatePackage = packageKind(text);
-    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
-    const rawPrice = text.match(/(?:از\s*)?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i)?.[1] || "";
+    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) return;
+    const rawPrice = text.match(/(?:از\s*)?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*(?:تومان|tomans?)/i)?.[1] || "";
     const price = formattedToman(rawPrice);
     if (price) prices.push(price);
+  };
+
+  const anchorPattern = /<a\b[^>]*href=["'][^"']*\/p\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(anchorPattern)) inspectCandidate(match[1] || "");
+
+  // خروجی Jina و بعضی نسخه‌های SSR ترب Markdown یا کارت‌های چندتکه دارند؛ در آن‌ها
+  // عنوان و قیمت الزاماً داخل یک تگ <a> نیست. اطراف هر قیمت را هم با مدل دقیق می‌سنجیم.
+  const pricePattern = /[\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,}\s*(?:تومان|tomans?)/gi;
+  for (const match of html.matchAll(pricePattern)) {
+    const index = match.index || 0;
+    inspectCandidate(html.slice(Math.max(0, index - 500), Math.min(html.length, index + 160)));
   }
   return prices.length ? Math.min(...prices) : 0;
 }
@@ -343,6 +358,19 @@ async function fetchSourceHtml(url: string) {
   return response.text();
 }
 
+async function fetchTorobPublicPage(url: string) {
+  const target = new URL(url);
+  const readerUrl = `https://r.jina.ai/http://torob.com${target.pathname}${target.search}`;
+  try {
+    return await Promise.any([
+      fetchSourceHtml(url),
+      fetchSourceHtml(readerUrl),
+    ]);
+  } catch {
+    throw new Error("صفحه عمومی ترب قابل دریافت نبود.");
+  }
+}
+
 export async function getLiveStoreProductPriceSnapshot(
   product: JsonStoreProduct,
   configuredPriceMultiplier?: number,
@@ -373,19 +401,24 @@ export async function getLiveStoreProductPriceSnapshot(
     let extractedPrice = 0;
     let sourceOriginalPrice = 0;
     let sourcePrice = 0;
+    let detailData: ReturnType<typeof digikalaDetailSnapshot> | null = null;
+    let imageUrl = "";
 
     if (isDigikalaProduct) {
       const productId = parsed.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
       if (!productId) return null;
       const [detailResult, torobResult] = await Promise.allSettled([
         fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
-        fetchSourceHtml(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
+        fetchTorobPublicPage(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
       ]);
       if (detailResult.status === "fulfilled") {
-        const detail = digikalaDetailSnapshot(detailResult.value);
-        sourcePrice = Number(detail.price || 0);
-        sourceOriginalPrice = Number(detail.originalPrice || 0);
+        detailData = digikalaDetailSnapshot(detailResult.value);
+        sourcePrice = Number(detailData.price || 0);
+        sourceOriginalPrice = Number(detailData.originalPrice || 0);
         extractedPrice = sourcePrice;
+        const detail = detailResult.value?.data?.product;
+        const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
+        try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
       }
       if (torobResult.status === "fulfilled") {
         const torobPrice = torobComparablePrice(torobResult.value, product.title);
@@ -393,7 +426,7 @@ export async function getLiveStoreProductPriceSnapshot(
       }
     } else {
       const [torobResult, digikalaResult] = await Promise.allSettled([
-        fetchSourceHtml(sourceUrl),
+        fetchTorobPublicPage(sourceUrl),
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (torobResult.status === "fulfilled") extractedPrice = firstTorobPrice(torobResult.value);
@@ -426,6 +459,12 @@ export async function getLiveStoreProductPriceSnapshot(
         sourcePrice === extractedPrice && sourceOriginalPrice > sourcePrice
           ? roundStorePrice(sourceOriginalPrice * priceMultiplier)
           : undefined,
+      imageUrl: imageUrl || undefined,
+      brand: detailData?.brand,
+      specs: detailData?.specs,
+      description: detailData?.description || undefined,
+      rating: detailData?.rating,
+      reviewsCount: detailData?.reviewsCount,
       checkedAt: new Date().toISOString(),
     };
     snapshotCache.set(cacheKey, { value, expiresAt: Date.now() + cacheTtlMs });
@@ -463,7 +502,9 @@ export async function getLiveStoreProductSnapshot(
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
   try {
-    const html = await fetchSourceHtml(sourceUrl).catch(() => "");
+    const html = await (
+      isTorobProduct ? fetchTorobPublicPage(sourceUrl) : fetchSourceHtml(sourceUrl)
+    ).catch(() => "");
     let extractedPrice = html
       ? isTorobProduct ? firstTorobPrice(html) : digikalaPrice(html)
       : 0;
@@ -480,7 +521,7 @@ export async function getLiveStoreProductSnapshot(
         const [detailResult, commentsResult, torobResult] = await Promise.allSettled([
           fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
           fetchDigikalaJson(`https://api.digikala.com/v1/product/${productId}/comments/?page=1`),
-          fetchSourceHtml(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
+          fetchTorobPublicPage(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
         ]);
         if (detailResult.status === "fulfilled") {
           detailData = digikalaDetailSnapshot(detailResult.value);

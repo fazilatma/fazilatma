@@ -17,7 +17,7 @@ import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
   applyLiveStoreProductSnapshot,
-  getLiveStoreProductSnapshot,
+  getLiveStoreProductPriceSnapshot,
 } from "@/lib/store-product-live";
 import {
   breadcrumbJsonLd,
@@ -114,7 +114,7 @@ export default async function StoreProductPage({
   const data = await getOptiBidData();
   const storedProduct = data.storeProducts.find((item) => item.slug === slug);
   if (!storedProduct || !isStorefrontEligibleComputerPart(storedProduct)) notFound();
-  const liveSnapshot = await getLiveStoreProductSnapshot(
+  const liveSnapshot = await getLiveStoreProductPriceSnapshot(
     storedProduct,
     data.settings.storePriceMultiplier,
   );
