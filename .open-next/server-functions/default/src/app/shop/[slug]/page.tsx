@@ -12,6 +12,7 @@ import {
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
+import { isStorefrontEligibleComputerPart } from "@/lib/store-computer-part-kind";
 import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
@@ -112,7 +113,7 @@ export default async function StoreProductPage({
   const { slug } = await params;
   const data = await getOptiBidData();
   const storedProduct = data.storeProducts.find((item) => item.slug === slug);
-  if (!storedProduct) notFound();
+  if (!storedProduct || !isStorefrontEligibleComputerPart(storedProduct)) notFound();
   const liveSnapshot = await getLiveStoreProductSnapshot(
     storedProduct,
     data.settings.storePriceMultiplier,
@@ -137,7 +138,7 @@ export default async function StoreProductPage({
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
-  const allProducts = data.storeProducts;
+  const allProducts = data.storeProducts.filter(isStorefrontEligibleComputerPart);
   const priceHistoryAsOf = new Date().toISOString();
   const completeSpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 24);
   const liveComments = liveSnapshot?.comments || [];

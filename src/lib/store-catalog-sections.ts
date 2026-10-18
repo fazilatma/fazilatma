@@ -1,4 +1,5 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
+import { isStorefrontEligibleComputerPart } from "@/lib/store-computer-part-kind";
 import { productImportCategoryKey } from "@/lib/store-product-import";
 
 function productText(product: Pick<JsonStoreProduct, "title" | "brand" | "category" | "specs">) {
@@ -29,10 +30,12 @@ export function filterProductsByCatalogSections(
   products: JsonStoreProduct[],
   settings: { laptopEnabled: boolean; computerPartsEnabled: boolean },
 ) {
+  const visibleComputerPart = (product: JsonStoreProduct) =>
+    isComputerPartsCatalogProduct(product) && isStorefrontEligibleComputerPart(product);
   if (settings.laptopEnabled && settings.computerPartsEnabled) {
-    return products.filter((product) => isLaptopCatalogProduct(product) || isComputerPartsCatalogProduct(product));
+    return products.filter((product) => isLaptopCatalogProduct(product) || visibleComputerPart(product));
   }
   if (settings.laptopEnabled) return products.filter(isLaptopCatalogProduct);
-  if (settings.computerPartsEnabled) return products.filter(isComputerPartsCatalogProduct);
+  if (settings.computerPartsEnabled) return products.filter(visibleComputerPart);
   return [];
 }

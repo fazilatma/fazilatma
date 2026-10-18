@@ -49,3 +49,24 @@ export function storeComputerPartKind(
     `${product.summary || ""} ${product.description || ""} ${Object.values(product.specs || {}).join(" ")}`,
   );
 }
+
+/**
+ * ویترین اصلی فقط پردازنده‌های مصرفیِ نسل‌های جاری را نشان می‌دهد. مدل‌های بسیار قدیمی
+ * Pentium/Celeron/Core نسل‌های اولیه و پردازنده‌های سروری مستعمل قیمت‌های چندصد هزار
+ * تومانی واقعی دارند، اما کنار CPUهای امروزی گمراه‌کننده‌اند و قابل عرضهٔ عادی نیستند.
+ */
+export function isStorefrontEligibleComputerPart(product: StoreComputerPartTextProduct) {
+  const text = `${product.title || ""} ${product.category || ""} ${product.summary || ""} ${Object.values(product.specs || {}).join(" ")}`
+    .toLowerCase()
+    .replace(/[‌\s]+/g, " ");
+  if (/لپ\s?تاپ|لپ‌تاپ|laptop|notebook|macbook|thinkpad|ideapad|latitude|elitebook/.test(text)) return true;
+  if (storeComputerPartKind(product) !== "cpu") return true;
+
+  if (/core\s*ultra|ryzen\s*[3579]|threadripper/.test(text)) return true;
+  const intelCoreModel = text.match(/(?:core\s*)?i[3579]\s*-?\s*(\d{4,5})[a-z]{0,3}\b/)?.[1];
+  if (intelCoreModel) return Number(intelCoreModel) >= 10_000;
+
+  // مدل‌های بدون شناسهٔ نسل قابل اتکا، Pentium/Celeron/Xeon/Opteron و سری‌های E/FX
+  // در بخش محصولات قدیمی نگه داشته می‌شوند و وارد ویترین خرید روز نمی‌شوند.
+  return false;
+}

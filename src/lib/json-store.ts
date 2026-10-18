@@ -37,6 +37,7 @@ import {
   storedProductMarketPrice,
   storedProductPriceMultiplier,
 } from "@/lib/store-pricing";
+import { isStorefrontEligibleComputerPart } from "@/lib/store-computer-part-kind";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -4532,7 +4533,12 @@ export async function getJsonStoreCatalogSettings() {
 export async function getJsonStoreProducts() {
   const data = await getOptiBidData();
   return data.storeProducts
-    .filter((product) => product.isActive && product.stock > 0)
+    .filter(
+      (product) =>
+        product.isActive &&
+        product.stock > 0 &&
+        isStorefrontEligibleComputerPart(product),
+    )
     .sort(
       (a, b) =>
         Number(b.isFeatured) - Number(a.isFeatured) ||
@@ -4560,7 +4566,9 @@ export async function createJsonStoreOrder(input: {
     throw new Error("Store order receiver info is incomplete");
 
   const activeProducts = new Map(
-    data.storeProducts.filter((product) => product.isActive).map((product) => [product.id, product]),
+    data.storeProducts
+      .filter((product) => product.isActive && isStorefrontEligibleComputerPart(product))
+      .map((product) => [product.id, product]),
   );
   const orderItems = input.items.map((item) => {
     const product = activeProducts.get(item.productId);
