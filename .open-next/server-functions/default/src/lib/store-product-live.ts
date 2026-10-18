@@ -106,7 +106,9 @@ function strongModelTokens(value: string) {
   return toEnglishDigits(value)
     .toLowerCase()
     .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
-    .replace(/[^a-z0-9آ-ی]+/g, " ")
+    .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
+    .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+    .replace(/[^a-z0-9آ-ی-]+/g, " ")
     .split(/\s+/)
     .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
     .filter((token) => !/^\d+(?:gb|tb|w|mhz|rpm)$/.test(token));
@@ -130,7 +132,9 @@ function torobComparablePrice(html: string, productTitle: string) {
     const normalized = toEnglishDigits(text)
       .toLowerCase()
       .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
-      .replace(/[^a-z0-9آ-ی]+/g, " ");
+      .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
+      .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+      .replace(/[^a-z0-9آ-ی-]+/g, " ");
     if (!requiredTokens.every((token) => normalized.includes(token))) continue;
     const candidatePackage = packageKind(text);
     if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
@@ -286,7 +290,9 @@ function digikalaComparablePrice(payload: Record<string, any>, productTitle: str
     const normalized = toEnglishDigits(title)
       .toLowerCase()
       .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
-      .replace(/[^a-z0-9آ-ی]+/g, " ");
+      .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
+      .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+      .replace(/[^a-z0-9آ-ی-]+/g, " ");
     if (!requiredTokens.every((token) => normalized.includes(token))) continue;
     const candidatePackage = packageKind(title);
     if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;

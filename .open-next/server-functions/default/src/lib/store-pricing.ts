@@ -87,6 +87,10 @@ export function isSuspiciousStoreProductPrice(product: StorePriceSanityProduct) 
   // ۱۲۰، ۳۱۰ و ۵۱۰ هزار تومانی CPU نباید در کارت یا سبد خرید نمایش داده شوند.
   const modernCpu = /(?:core\s*)?i[3579]\s*-?\s*\d{4,5}[a-z]{0,3}|ryzen\s*[3579]\s*-?\s*\d{4}[a-z0-9]*/i.test(text);
   if (modernCpu && price < 3_000_000) return true;
+  if (/core\s*i3|\bi3\s*-?\s*\d{4,5}/.test(text) && price > 80_000_000) return true;
+  if (/core\s*i5|\bi5\s*-?\s*\d{4,5}/.test(text) && price > 120_000_000) return true;
+  if (/core\s*i7|\bi7\s*-?\s*\d{4,5}/.test(text) && price > 150_000_000) return true;
+  if (/core\s*i9|\bi9\s*-?\s*\d{4,5}/.test(text) && price > 250_000_000) return true;
   if (/کارت گرافیک|\bgpu\b|\brtx\s*\d|\bgtx\s*\d|radeon\s+rx/.test(text) && price < 3_000_000) return true;
   if (/مادربرد|motherboard/.test(text) && price < 1_500_000) return true;
   if (/\bssd\b|\bnvme\b|اس اس دی|هارد|hard disk|\bhdd\b/.test(text) && price < 1_000_000) return true;

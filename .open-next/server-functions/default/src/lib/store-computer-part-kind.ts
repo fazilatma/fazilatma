@@ -23,17 +23,18 @@ export function storeComputerPartKindFromText(value: string): StoreComputerPartK
     .trim();
   if (!text) return "";
 
-  // لوازم نصب و خنک‌کاری ممکن است در عنوان «CPU» یا «پردازنده» داشته باشند؛
+  // لوازم نصب ممکن است در عنوان «CPU» یا «پردازنده» داشته باشند؛
   // باید پیش از خود پردازنده تشخیص داده شوند.
-  if (/خمیر (?:سیلیکون|حرارتی)|thermal paste|براکت|پایه فن|فن پردازنده|cpu fan|cpu cooler|خنک.?کننده|cooling system|\bcooler\b/.test(text)) return "cooler";
+  if (/خمیر (?:سیلیکون|حرارتی)|thermal paste|براکت|پایه فن|فن پردازنده|cpu fan|cpu cooler/.test(text)) return "cooler";
   if (/رم دسکتاپ|رم کامپیوتر|حافظه رم|ماژول رم|desktop ram|ram module|memory module|\bddr[345]\b/.test(text)) return "ram";
   if (/کارت گرافیک|graphics card|video card|\bgpu\b|geforce|\brtx\s*\d|\bgtx\s*\d|radeon\s+rx/.test(text)) return "gpu";
   if (/مادربرد|motherboard|mainboard/.test(text)) return "motherboard";
   if (/\bssd\b|\bnvme\b|solid state|اس اس دی|هارد(?:دیسک)?|hard disk|hard drive|\bhdd\b/.test(text)) return "ssd";
   if (/منبع تغذیه|پاور کامپیوتر|power supply|\bpsu\b/.test(text)) return "power";
   if (/کیس کامپیوتر|computer case|computer chassis|\bchassis\b/.test(text)) return "case";
+  if (/خنک.?کننده|cooling system|\bcooler\b/.test(text)) return "cooler";
   if (
-    /پردازنده مرکزی|پردازنده (?:اینتل|amd|ای ام دی)|central processor|computer processor|\bprocessor\b|\bcpu\b|core\s*(?:i[3579]|ultra)|ryzen\s*[3579]|pentium|celeron|athlon|threadripper|\bxeon\b|\be[357]-?\d{3,4}\b/.test(text)
+    /پردازنده مرکزی|پردازنده (?:اینتل|amd|ای ام دی)|central processor|computer processor|\bprocessor\b|^cpu\s+(?:intel|amd|core|ryzen)|core\s*(?:i[3579]|ultra)|ryzen\s*[3579]|pentium|celeron|athlon|threadripper|\bxeon\b|\be[357]-?\d{3,4}\b/.test(text)
   ) return "cpu";
   return "";
 }
