@@ -122,15 +122,6 @@ function packageKind(value: string) {
   return "";
 }
 
-function normalizedComparableModelText(value: string) {
-  return toEnglishDigits(value)
-    .toLowerCase()
-    .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
-    .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
-    .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
-    .replace(/[^a-z0-9آ-ی-]+/g, " ");
-}
-
 function torobComparablePrice(html: string, productTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return 0;
@@ -138,8 +129,8 @@ function torobComparablePrice(html: string, productTitle: string) {
   const prices: number[] = [];
   const inspectCandidate = (value: string) => {
     const text = stripTags(value);
-    const normalized = normalizedComparableModelText(text);
-    if (!requiredTokens.every((token) => normalized.includes(token))) return;
+    const candidateTokens = new Set(strongModelTokens(text));
+    if (!requiredTokens.every((token) => candidateTokens.has(token))) return;
     const candidatePackage = packageKind(text);
     if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) return;
     const rawPrice = text.match(/(?:از\s*)?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*(?:تومان|tomans?)/i)?.[1] || "";
@@ -172,8 +163,8 @@ function torobComparableJsonPrice(payload: Record<string, any>, productTitle: st
   const prices: number[] = [];
   for (const result of results) {
     const title = `${String(result?.name1 || "")} ${String(result?.name2 || "")}`.trim();
-    const normalized = normalizedComparableModelText(title);
-    if (!requiredTokens.every((token) => normalized.includes(token))) continue;
+    const candidateTokens = new Set(strongModelTokens(title));
+    if (!requiredTokens.every((token) => candidateTokens.has(token))) continue;
     const candidatePackage = packageKind(title);
     if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
     const price = Math.round(Number(result?.price || 0));
@@ -347,13 +338,8 @@ function digikalaComparablePrice(payload: Record<string, any>, productTitle: str
     const title = String(
       candidate?.title_fa || candidate?.title_en || candidate?.title || candidate?.name || "",
     ).trim();
-    const normalized = toEnglishDigits(title)
-      .toLowerCase()
-      .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
-      .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
-      .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
-      .replace(/[^a-z0-9آ-ی-]+/g, " ");
-    if (!requiredTokens.every((token) => normalized.includes(token))) continue;
+    const candidateTokens = new Set(strongModelTokens(title));
+    if (!requiredTokens.every((token) => candidateTokens.has(token))) continue;
     const candidatePackage = packageKind(title);
     if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
     const rawPrice = Number(
