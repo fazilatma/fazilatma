@@ -360,7 +360,10 @@ async function fetchSourceHtml(url: string) {
 
 async function fetchTorobPublicPage(url: string) {
   const target = new URL(url);
-  const readerUrl = `https://r.jina.ai/http://torob.com${target.pathname}${target.search}`;
+  const translated = new URL(`https://torob-com.translate.goog${target.pathname}${target.search}`);
+  translated.searchParams.set("_x_tr_sl", "fa");
+  translated.searchParams.set("_x_tr_tl", "en");
+  translated.searchParams.set("_x_tr_hl", "en");
   const usableTorobPayload = (value: string) => {
     if (!/(?:تومان|tomans?)/i.test(value) || !/\/p\//i.test(value)) {
       throw new Error("پاسخ ترب کارت قیمت‌دار نداشت.");
@@ -370,7 +373,7 @@ async function fetchTorobPublicPage(url: string) {
   try {
     return await Promise.any([
       fetchSourceHtml(url).then(usableTorobPayload),
-      fetchSourceHtml(readerUrl).then(usableTorobPayload),
+      fetchSourceHtml(translated.toString()).then(usableTorobPayload),
     ]);
   } catch {
     throw new Error("صفحه عمومی ترب قابل دریافت نبود.");
