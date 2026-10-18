@@ -337,6 +337,99 @@ async function fetchSourceHtml(url: string) {
   return response.text();
 }
 
+export async function getLiveStoreProductPriceSnapshot(
+  product: JsonStoreProduct,
+  configuredPriceMultiplier?: number,
+): Promise<LiveStoreProductSnapshot | null> {
+  const sourceUrl = String(product.externalSourceUrl || "").trim();
+  if (!sourceUrl) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(sourceUrl);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+  const isTorobProduct = host === "torob.com" && /^\/p\//i.test(parsed.pathname);
+  const isDigikalaProduct = host === "digikala.com" && /\/product\/dkp-/i.test(parsed.pathname);
+  if (!isTorobProduct && !isDigikalaProduct) return null;
+
+  const priceMultiplier = normalizeStorePriceMultiplier(
+    configuredPriceMultiplier ?? product.priceMultiplier,
+    1,
+  );
+  const cacheKey = `price-only|${sourceUrl}|${product.title}|${priceMultiplier}`;
+  const cached = snapshotCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  try {
+    let extractedPrice = 0;
+    let sourceOriginalPrice = 0;
+    let sourcePrice = 0;
+
+    if (isDigikalaProduct) {
+      const productId = parsed.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
+      if (!productId) return null;
+      const [detailResult, torobResult] = await Promise.allSettled([
+        fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
+        fetchSourceHtml(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
+      ]);
+      if (detailResult.status === "fulfilled") {
+        const detail = digikalaDetailSnapshot(detailResult.value);
+        sourcePrice = Number(detail.price || 0);
+        sourceOriginalPrice = Number(detail.originalPrice || 0);
+        extractedPrice = sourcePrice;
+      }
+      if (torobResult.status === "fulfilled") {
+        const torobPrice = torobComparablePrice(torobResult.value, product.title);
+        if (torobPrice > 0 && (!extractedPrice || torobPrice < extractedPrice)) extractedPrice = torobPrice;
+      }
+    } else {
+      const [torobResult, digikalaResult] = await Promise.allSettled([
+        fetchSourceHtml(sourceUrl),
+        fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
+      ]);
+      if (torobResult.status === "fulfilled") extractedPrice = firstTorobPrice(torobResult.value);
+      if (digikalaResult.status === "fulfilled") {
+        const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
+        if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
+          extractedPrice = digikalaPriceValue;
+        }
+      }
+    }
+
+    if (extractedPrice <= 0) {
+      snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
+      return null;
+    }
+    const storedMarketPrice = storedProductMarketPrice(product);
+    if (
+      storedMarketPrice > 0 &&
+      extractedPrice > storedMarketPrice &&
+      storedMarketPrice >= extractedPrice * 0.45
+    ) {
+      extractedPrice = storedMarketPrice;
+    }
+    const price = roundStorePrice(extractedPrice * priceMultiplier);
+    const value: LiveStoreProductSnapshot = {
+      price,
+      marketPrice: extractedPrice,
+      priceMultiplier,
+      originalPrice:
+        sourcePrice === extractedPrice && sourceOriginalPrice > sourcePrice
+          ? roundStorePrice(sourceOriginalPrice * priceMultiplier)
+          : undefined,
+      checkedAt: new Date().toISOString(),
+    };
+    snapshotCache.set(cacheKey, { value, expiresAt: Date.now() + cacheTtlMs });
+    return value;
+  } catch {
+    snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
+    return null;
+  }
+}
+
 export async function getLiveStoreProductSnapshot(
   product: JsonStoreProduct,
   configuredPriceMultiplier?: number,

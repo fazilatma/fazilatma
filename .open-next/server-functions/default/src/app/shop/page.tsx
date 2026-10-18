@@ -12,6 +12,8 @@ import {
 } from "@/lib/store-catalog-sections";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
+import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
+import { getLiveStoreProductPriceSnapshot } from "@/lib/store-product-live";
 
 export const dynamic = "force-dynamic";
 
@@ -487,6 +489,42 @@ export async function generateMetadata({
   });
 }
 
+async function repairSuspiciousVisiblePrices(
+  products: JsonStoreProduct[],
+  multiplier: number,
+) {
+  const repaired = [...products];
+  const targets = products
+    .map((product, index) => ({ product, index }))
+    .filter(({ product }) => isSuspiciousStoreProductPrice(product))
+    .slice(0, 8);
+
+  // در هر لحظه فقط دو محصول بررسی می‌شوند تا سقف subrequest ورکر Cloudflare رد نشود.
+  for (let offset = 0; offset < targets.length; offset += 2) {
+    const batch = targets.slice(offset, offset + 2);
+    const snapshots = await Promise.all(
+      batch.map(({ product }) => getLiveStoreProductPriceSnapshot(product, multiplier)),
+    );
+    snapshots.forEach((snapshot, batchIndex) => {
+      if (!snapshot?.price) return;
+      const target = batch[batchIndex];
+      repaired[target.index] = {
+        ...target.product,
+        price: snapshot.price,
+        marketPrice: snapshot.marketPrice || target.product.marketPrice,
+        priceMultiplier: snapshot.priceMultiplier || target.product.priceMultiplier,
+        originalPrice:
+          snapshot.originalPrice && snapshot.originalPrice > snapshot.price
+            ? snapshot.originalPrice
+            : undefined,
+        priceUpdatedAt: snapshot.checkedAt.slice(0, 10),
+        shippingNote: "قیمت هنگام نمایش دوباره بررسی شد",
+      };
+    });
+  }
+  return repaired;
+}
+
 export default async function ShopPage({
   searchParams,
 }: {
@@ -508,7 +546,11 @@ export default async function ShopPage({
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
   const pageStart = (currentPage - 1) * pageSize;
-  const visibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
+  let visibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
+  visibleProducts = await repairSuspiciousVisiblePrices(
+    visibleProducts,
+    data.settings.storePriceMultiplier,
+  );
   const paginationStart = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
   const paginationPages = Array.from(
     { length: Math.min(5, totalPages) },

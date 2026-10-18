@@ -10,6 +10,13 @@ export type StorePricingFields = {
   marketReferenceNote?: string;
 };
 
+type StorePriceSanityProduct = StorePricingFields & {
+  title?: string;
+  category?: string;
+  summary?: string;
+  specs?: Record<string, string>;
+};
+
 function toEnglishDigits(value: string) {
   return value
     .replace(/[۰-۹]/g, (digit) => String(persianDigits.indexOf(digit)))
@@ -67,6 +74,25 @@ export function storedProductMarketPrice(product: Partial<StorePricingFields>) {
   if (!Number.isFinite(salePrice) || salePrice <= 0) return 0;
   const multiplier = storedProductPriceMultiplier(product, 1);
   return Math.max(0, Math.round(salePrice / multiplier));
+}
+
+export function isSuspiciousStoreProductPrice(product: StorePriceSanityProduct) {
+  const price = Number(product.price || 0);
+  if (!Number.isFinite(price) || price < 100_000 || price > 1_500_000_000) return true;
+  const text = `${product.title || ""} ${product.category || ""} ${product.summary || ""} ${Object.values(product.specs || {}).join(" ")}`
+    .toLowerCase()
+    .replace(/[‌\s]+/g, " ");
+
+  // این کف‌ها فقط برای تشخیص خطاهای واضحِ واحد/ستون قیمت هستند؛ نمونه‌های واقعیِ خراب
+  // ۱۲۰، ۳۱۰ و ۵۱۰ هزار تومانی CPU نباید در کارت یا سبد خرید نمایش داده شوند.
+  const modernCpu = /(?:core\s*)?i[3579]\s*-?\s*\d{4,5}[a-z]{0,3}|ryzen\s*[3579]\s*-?\s*\d{4}[a-z0-9]*/i.test(text);
+  if (modernCpu && price < 3_000_000) return true;
+  if (/کارت گرافیک|\bgpu\b|\brtx\s*\d|\bgtx\s*\d|radeon\s+rx/.test(text) && price < 3_000_000) return true;
+  if (/مادربرد|motherboard/.test(text) && price < 1_500_000) return true;
+  if (/\bssd\b|\bnvme\b|اس اس دی|هارد|hard disk|\bhdd\b/.test(text) && price < 1_000_000) return true;
+  if (/منبع تغذیه|پاور|power supply|\bpsu\b/.test(text) && price < 1_000_000) return true;
+  if (/رم کامپیوتر|حافظه رم|ram module|memory module/.test(text) && price < 400_000) return true;
+  return false;
 }
 
 /** قیمت نهایی فروشگاه = کمترین قیمت معتبر بازار × ضریب سراسری. */

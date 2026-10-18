@@ -4,11 +4,13 @@ import type { ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
+import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
 
 function discountPercent(product: JsonStoreProduct) {
+  if (isSuspiciousStoreProductPrice(product)) return 0;
   if (!product.originalPrice || product.originalPrice <= product.price) return 0;
   return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
 }
@@ -85,6 +87,7 @@ export default function StoreProductSeoCard({
   product: JsonStoreProduct;
   sectionId?: string;
 }) {
+  const priceNeedsReview = isSuspiciousStoreProductPrice(product);
   const discount = discountPercent(product);
   const keySpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 3);
   const productHref = `/shop/${product.slug}${sectionId ? `#${sectionId}` : ""}`;
@@ -121,7 +124,11 @@ export default function StoreProductSeoCard({
               {discount > 0 && (
                 <div className="mt-1 text-xs text-slate-400 line-through">{money(product.originalPrice || 0)}</div>
               )}
-              <div className="mt-1 text-lg font-black text-slate-900">{money(product.price)}</div>
+              {priceNeedsReview ? (
+                <div className="mt-1 text-sm font-black text-amber-700">در حال بررسی قیمت روز</div>
+              ) : (
+                <div className="mt-1 text-lg font-black text-slate-900">{money(product.price)}</div>
+              )}
             </div>
             <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
               موجود
