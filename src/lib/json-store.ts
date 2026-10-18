@@ -31,6 +31,12 @@ import {
   type CatalogCategory,
 } from "@/lib/catalog-categories";
 import { appendStorePriceHistory, normalizeStorePriceHistory, type StorePriceHistoryPoint } from "@/lib/store-price-history";
+import {
+  applyStorePriceFormula,
+  normalizeStorePriceMultiplier,
+  storedProductMarketPrice,
+  storedProductPriceMultiplier,
+} from "@/lib/store-pricing";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -390,6 +396,10 @@ export type JsonStoreProduct = {
   description: string;
   price: number;
   originalPrice?: number;
+  /** کمترین قیمت معتبر بازار پیش از اعمال ضریب فروشگاه (فقط مصرف داخلی). */
+  marketPrice?: number;
+  /** ضریبی که برای تبدیل marketPrice به قیمت نهایی فروشگاه استفاده شده است. */
+  priceMultiplier?: number;
   priceHistory?: StorePriceHistoryPoint[];
   imageUrl?: string;
   stock: number;
@@ -824,6 +834,8 @@ export type OptiBidJsonData = {
     storeLaptopCatalogEnabled: boolean;
     storeComputerPartsCatalogEnabled: boolean;
     storeComputerPartsSourceUrl: string;
+    /** ضریب سراسری قیمت: قیمت نهایی = کمترین قیمت معتبر بازار × این ضریب. */
+    storePriceMultiplier: number;
     storeHeroSliderEnabled: boolean;
     storeHeroSliderDurationSeconds: number;
     storeHeroSliderSlides: HomepageImageSliderSlide[];
@@ -943,6 +955,7 @@ const emptyData = (): OptiBidJsonData => ({
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
+    storePriceMultiplier: 1,
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: defaultStoreHeroSliderSlides,
@@ -1191,6 +1204,13 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       ? Math.max(0, Number(product.originalPrice))
       : undefined;
     const repairSuspiciousPrice = hasSuspiciousImportedDiscount(product);
+    const effectiveStoredPrice = repairSuspiciousPrice && storedOriginalPrice
+      ? storedOriginalPrice
+      : storedPrice;
+    const storedMultiplier = storedProductPriceMultiplier(product, 1);
+    const storedMarketPrice = repairSuspiciousPrice
+      ? Math.max(0, Math.round(effectiveStoredPrice / storedMultiplier))
+      : storedProductMarketPrice(product);
     const normalizedProduct: JsonStoreProduct = {
       id: String(product.id || slug),
       slug,
@@ -1199,12 +1219,12 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       category: String(product.category || "لپ‌تاپ").trim(),
       summary: String(product.summary || title).trim(),
       description: String(product.description || product.summary || title).trim(),
-      price: repairSuspiciousPrice && storedOriginalPrice
-        ? storedOriginalPrice
-        : storedPrice,
+      price: effectiveStoredPrice,
       originalPrice: repairSuspiciousPrice
         ? undefined
         : storedOriginalPrice,
+      marketPrice: storedMarketPrice || undefined,
+      priceMultiplier: storedMultiplier,
       stock: Math.max(0, Math.floor(Number(product.stock || 0))),
       rating: Math.max(0, Math.min(5, Number(product.rating || 4.5))),
       reviewsCount: Math.max(0, Math.floor(Number(product.reviewsCount || 0))),
@@ -1371,7 +1391,7 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
     }),
   ) as JsonUser[];
 
-  return {
+  const migrated: OptiBidJsonData = {
     requests: Array.isArray(parsed.requests)
       ? (parsed.requests.map((request) => {
           const productImages = normalizeProductImageAttachments(
@@ -1484,6 +1504,10 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         (parsed.settings as { storeComputerPartsSourceUrl?: string } | undefined)
           ?.storeComputerPartsSourceUrl || "https://www.digikala.com/",
       ).trim().slice(0, 4000),
+      storePriceMultiplier: normalizeStorePriceMultiplier(
+        (parsed.settings as { storePriceMultiplier?: number } | undefined)?.storePriceMultiplier,
+        1,
+      ),
       storeHeroSliderEnabled:
         (parsed.settings as { storeHeroSliderEnabled?: boolean } | undefined)
           ?.storeHeroSliderEnabled !== false,
@@ -1811,6 +1835,35 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
     },
   };
+
+  const configuredMultiplier = Number(
+    (parsed.settings as { storePriceMultiplier?: number } | undefined)?.storePriceMultiplier,
+  );
+  const hasConfiguredMultiplier = Number.isFinite(configuredMultiplier) && configuredMultiplier > 0;
+  if (!hasConfiguredMultiplier) {
+    const multiplierCounts = new Map<number, number>();
+    for (const product of migrated.storeProducts) {
+      const multiplier = storedProductPriceMultiplier(product, 1);
+      if (Math.abs(multiplier - 1) < 0.0001) continue;
+      multiplierCounts.set(multiplier, (multiplierCounts.get(multiplier) || 0) + 1);
+    }
+    const legacyMultiplier = [...multiplierCounts.entries()]
+      .sort((left, right) => right[1] - left[1])[0]?.[0];
+    migrated.settings.storePriceMultiplier = legacyMultiplier || 1;
+  }
+
+  const globalMultiplier = normalizeStorePriceMultiplier(migrated.settings.storePriceMultiplier, 1);
+  migrated.settings.storePriceMultiplier = globalMultiplier;
+  migrated.storeProducts = migrated.storeProducts.map((product) => {
+    const productMultiplier = hasConfiguredMultiplier
+      ? globalMultiplier
+      : storedProductPriceMultiplier(product, globalMultiplier);
+    const marketPrice = storedProductMarketPrice(product);
+    return marketPrice > 0
+      ? applyStorePriceFormula(product, marketPrice, productMultiplier)
+      : { ...product, priceMultiplier: productMultiplier };
+  });
+  return migrated;
 }
 
 async function ensureDataFile() {
@@ -4354,6 +4407,12 @@ export async function updateJsonPlatformFinanceSettings(
     data.settings.amazingDealsNotificationText =
       updates.amazingDealsNotificationText.trim().slice(0, 300) ||
       "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.";
+  if (typeof updates.storePriceMultiplier === "number") {
+    data.settings.storePriceMultiplier = normalizeStorePriceMultiplier(
+      updates.storePriceMultiplier,
+      data.settings.storePriceMultiplier,
+    );
+  }
 
   const booleanHomepageKeys = [
     "storeLaptopCatalogEnabled",

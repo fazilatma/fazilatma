@@ -316,6 +316,7 @@ export default function AdminDashboardClient({
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
+    storePriceMultiplier: 1,
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
@@ -424,6 +425,9 @@ export default function AdminDashboardClient({
         if (!result.success) return;
         setPlatformFinance(result.settings);
         setComputerPartSources(normalizeComputerPartSourceEntries(result.settings.storeComputerPartsSourceUrl));
+        const savedStoreMultiplier = normalizedImportPriceMultiplier(result.settings.storePriceMultiplier);
+        setProductImportPriceMultiplier(savedStoreMultiplier);
+        setPriceRefreshMultiplier(savedStoreMultiplier);
         setCommissionRate(result.settings.commissionRate);
         setPlatformTransactions(result.platformTransactions || []);
         setEscrowTransactions(result.escrowTransactions || []);
@@ -441,6 +445,14 @@ export default function AdminDashboardClient({
 
   const updatePlatformFinanceField = (key: string, value: unknown) => {
     setPlatformFinance((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateStorePriceMultiplier = (value: unknown) => {
+    const multiplier = normalizedImportPriceMultiplier(value);
+    setProductImportPriceMultiplier(multiplier);
+    setPriceRefreshMultiplier(multiplier);
+    setPriceRefreshOffset(0);
+    setPlatformFinance((current) => ({ ...current, storePriceMultiplier: multiplier }));
   };
 
   const updateComputerPartSource = (
@@ -668,6 +680,7 @@ export default function AdminDashboardClient({
           storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
           storeComputerPartsCatalogEnabled: Boolean(platformFinance.storeComputerPartsCatalogEnabled),
           storeComputerPartsSourceUrl: serializeComputerPartSourceEntries(computerPartSources),
+          storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
         }),
       });
       const result = await response.json();
@@ -972,6 +985,7 @@ export default function AdminDashboardClient({
           storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
           storeComputerPartsCatalogEnabled: true,
           storeComputerPartsSourceUrl: sourceText,
+          storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
         }),
       });
 
@@ -1069,6 +1083,7 @@ export default function AdminDashboardClient({
         ...current,
         storeComputerPartsCatalogEnabled: true,
         storeComputerPartsSourceUrl: sourceText,
+        storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
       }));
       setProductImportWarnings([...new Set(warnings)].slice(0, 30));
       setProductImportPreview([]);
@@ -2645,18 +2660,18 @@ export default function AdminDashboardClient({
                       />
                     </label>
                     <label className="block text-sm font-bold text-gray-700">
-                      ضریب قیمت
+                      ضریب سراسری قیمت
                       <input
                         type="number"
                         min="0.1"
                         max="10"
                         step="0.01"
                         value={productImportPriceMultiplier}
-                        onChange={(e) => setProductImportPriceMultiplier(Math.max(0.1, Math.min(10, Number(e.target.value || 1))))}
+                        onChange={(e) => updateStorePriceMultiplier(e.target.value)}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <span className="mt-1 block text-[11px] leading-5 text-gray-500">
-                        ۱ بدون تغییر، ۱.۱۵ یعنی ۱۵٪ افزایش، ۰.۹ یعنی ۱۰٪ کاهش.
+                        قیمت نهایی سایت = کمترین قیمت معتبر ترب، دیجی‌کالا و مراجع انتخابی × این ضریب. ۱.۱۵ یعنی ۱۵٪ افزایش.
                       </span>
                     </label>
                     <label className="block text-sm font-bold text-gray-700">
@@ -2778,7 +2793,7 @@ export default function AdminDashboardClient({
                           🤖 ربات به‌روزرسانی قیمت محصولات موجود
                         </h3>
                         <p className="mt-1 text-sm leading-7 text-emerald-700">
-                          منابع را انتخاب کنید و ربات را اجرا کنید. هر اجرا دستهٔ امن بعدی از محصولات قبلی را بررسی می‌کند و قیمت معتبر را همراه تاریخ در نمودار ذخیره می‌کند.
+                          منابع را انتخاب کنید و ربات را اجرا کنید. برای هر مدل دقیق، کمترین قیمت معتبر بین ترب، دیجی‌کالا و سایر مراجع انتخابی پیدا می‌شود، ضریب سراسری روی آن اعمال و همان قیمت در کارت، محصول و نمودار ذخیره می‌شود.
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -2858,17 +2873,14 @@ export default function AdminDashboardClient({
                       </div>
                       <div className="grid gap-3">
                         <label className="block text-sm font-bold text-gray-700">
-                          ضریب قیمت
+                          ضریب سراسری قیمت
                           <input
                             type="number"
                             min="0.1"
                             max="10"
                             step="0.01"
                             value={priceRefreshMultiplier}
-                            onChange={(e) => {
-                              setPriceRefreshMultiplier(Math.max(0.1, Math.min(10, Number(e.target.value || 1))));
-                              setPriceRefreshOffset(0);
-                            }}
+                            onChange={(e) => updateStorePriceMultiplier(e.target.value)}
                             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </label>

@@ -5,6 +5,11 @@ import {
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { mergeStorePriceHistory } from "@/lib/store-price-history";
+import {
+  applyStorePriceFormula,
+  normalizeStorePriceMultiplier,
+  storedProductMarketPrice,
+} from "@/lib/store-pricing";
 import { parseSourceLinks } from "@/lib/source-link-parser";
 import {
   importedDraftToStoreProduct,
@@ -17,18 +22,11 @@ import {
 export const dynamic = "force-dynamic";
 
 function normalizeMultiplier(value: unknown) {
-  const number = Number(value || 1);
-  return Number.isFinite(number) ? Math.max(0.1, Math.min(10, number)) : 1;
+  return normalizeStorePriceMultiplier(value, 1);
 }
 
 function applyMultiplier(product: JsonStoreProduct, multiplier: number) {
-  if (multiplier === 1) return product;
-  const round = (value: number) => Math.max(0, Math.round(value / 10_000) * 10_000);
-  return {
-    ...product,
-    price: round(product.price * multiplier),
-    originalPrice: product.originalPrice ? round(product.originalPrice * multiplier) : undefined,
-  };
+  return applyStorePriceFormula(product, storedProductMarketPrice(product), multiplier);
 }
 
 function modelTokens(title: string) {
@@ -108,13 +106,16 @@ function validSaleOriginalPrice(price: number, originalPrice: number | undefined
 }
 
 function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduct) {
-  const candidateIsCheaper = candidate.price > 0 && (existing.price <= 0 || candidate.price < existing.price);
-  const chosen = candidateIsCheaper ? candidate : existing;
-  const price = Math.min(
-    ...[existing.price, candidate.price].filter((value) => Number.isFinite(value) && value > 0),
+  const existingMarketPrice = storedProductMarketPrice(existing);
+  const candidateMarketPrice = storedProductMarketPrice(candidate);
+  const candidateIsCheaper = candidateMarketPrice > 0 && (
+    existingMarketPrice <= 0 || candidateMarketPrice < existingMarketPrice
   );
-  const originalPrice = validSaleOriginalPrice(price, chosen.originalPrice);
-  return {
+  const chosen = candidateIsCheaper ? candidate : existing;
+  const marketPrice = Math.min(
+    ...[existingMarketPrice, candidateMarketPrice].filter((value) => Number.isFinite(value) && value > 0),
+  );
+  const merged = {
     ...existing,
     title: candidate.title.length > existing.title.length ? candidate.title : existing.title,
     brand: existing.brand && existing.brand !== "OptiBid" && existing.brand !== "Torob" && existing.brand !== "Digikala"
@@ -123,8 +124,10 @@ function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduc
     category: candidate.category !== "نامشخص" ? candidate.category : existing.category,
     summary: candidate.summary.length > existing.summary.length ? candidate.summary : existing.summary,
     description: candidate.description.length > existing.description.length ? candidate.description : existing.description,
-    price,
-    originalPrice,
+    price: chosen.price,
+    marketPrice,
+    priceMultiplier: chosen.priceMultiplier,
+    originalPrice: validSaleOriginalPrice(chosen.price, chosen.originalPrice),
     stock: Math.max(existing.stock || 0, candidate.stock || 0),
     specs: { ...existing.specs, ...candidate.specs },
     badges: Array.from(new Set([...(existing.badges || []), ...(candidate.badges || [])])).slice(0, 6),
@@ -137,6 +140,11 @@ function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduc
     priceHistory: mergeStorePriceHistory(existing.priceHistory, candidate.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;
+  return applyStorePriceFormula(
+    merged,
+    marketPrice,
+    normalizeMultiplier(candidate.priceMultiplier || existing.priceMultiplier),
+  );
 }
 
 function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: JsonStoreProduct) {
@@ -144,6 +152,8 @@ function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: Json
   return {
     ...merged,
     price: candidate.price,
+    marketPrice: candidate.marketPrice,
+    priceMultiplier: candidate.priceMultiplier,
     originalPrice: validSaleOriginalPrice(candidate.price, candidate.originalPrice),
     priceUpdatedAt: candidate.priceUpdatedAt,
     marketReferenceNote: candidate.marketReferenceNote,
@@ -261,6 +271,7 @@ export async function POST(request: Request) {
     }
 
     const data = await getOptiBidData();
+    data.settings.storePriceMultiplier = multiplier;
     let created = 0;
     let updated = 0;
     const existingSlugs = new Set(data.storeProducts.map((product) => product.slug));

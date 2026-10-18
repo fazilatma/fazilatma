@@ -108,6 +108,8 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
         : existing.description,
     price: importedIsNewer ? imported.price : existing.price,
     originalPrice: importedIsNewer ? imported.originalPrice : existing.originalPrice,
+    marketPrice: importedIsNewer ? imported.marketPrice : existing.marketPrice,
+    priceMultiplier: importedIsNewer ? imported.priceMultiplier : existing.priceMultiplier,
     stock: Math.max(existing.stock || 0, imported.stock || 0),
     specs: { ...existing.specs, ...imported.specs },
     badges: Array.from(
@@ -208,9 +210,10 @@ export async function POST(request: Request) {
     }
 
     const importedProducts = filteredDrafts
-      .map((draft) => applyPriceMultiplier(draft, priceMultiplier))
       .map((draft) => {
-        const product = importedDraftToStoreProduct(draft);
+        const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, priceMultiplier));
+        product.marketPrice = Math.round(draft.price);
+        product.priceMultiplier = priceMultiplier;
         if (priceMultiplier !== 1) {
           product.marketReferenceNote = `${product.marketReferenceNote}؛ اعمال ضریب قیمت ${priceMultiplier.toLocaleString("fa-IR")}`;
           product.badges = Array.from(
@@ -270,6 +273,7 @@ export async function POST(request: Request) {
     }
 
     const data = await getOptiBidData();
+    data.settings.storePriceMultiplier = priceMultiplier;
     let created = 0;
     let updated = 0;
     const changedProducts: ReturnType<typeof publicProduct>[] = [];

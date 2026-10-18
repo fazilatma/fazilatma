@@ -65,6 +65,10 @@ export async function POST(request: Request) {
     const productIdFilter = Array.isArray(body.productIds) ? new Set(body.productIds.map(String)) : null;
     const requestedOffset = productIdFilter ? 0 : Math.max(0, Math.floor(Number(body.offset || 0)));
     const data = await getOptiBidData();
+    const multiplierSettingChanged = Math.abs(
+      Number(data.settings.storePriceMultiplier || 1) - multiplier,
+    ) > 0.0001;
+    data.settings.storePriceMultiplier = multiplier;
     const matchingProducts = data.storeProducts
       .map((product, index) => ({ product, index }))
       .filter(({ product }) => (onlyActive ? product.isActive !== false : true))
@@ -142,7 +146,9 @@ export async function POST(request: Request) {
       }
     }
 
-    if (updated > 0 || historyRecorded > 0) await writeOptiBidData(data);
+    if (updated > 0 || historyRecorded > 0 || multiplierSettingChanged) {
+      await writeOptiBidData(data);
+    }
 
     return NextResponse.json({
       success: true,

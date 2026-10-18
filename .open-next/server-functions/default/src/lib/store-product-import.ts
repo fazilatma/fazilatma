@@ -1370,6 +1370,8 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
     summary: draft.summary || draft.title,
     description: draft.description || draft.summary || draft.title,
     price: draft.price,
+    marketPrice: draft.price,
+    priceMultiplier: 1,
     originalPrice:
       draft.originalPrice &&
       draft.originalPrice > draft.price &&

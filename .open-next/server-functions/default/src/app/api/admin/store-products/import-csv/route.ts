@@ -4,6 +4,11 @@ import { getOptiBidData, writeOptiBidData, type JsonStoreProduct } from "@/lib/j
 import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
 import { mergeStorePriceHistory } from "@/lib/store-price-history";
 import {
+  applyStorePriceFormula,
+  normalizeStorePriceMultiplier,
+  storedProductMarketPrice,
+} from "@/lib/store-pricing";
+import {
   importedDraftToStoreProduct,
   normalizeProductImportCategories,
   productImportCategoryKey,
@@ -17,9 +22,7 @@ export const dynamic = "force-dynamic";
 type ImportAction = "preview" | "import";
 
 function normalizePriceMultiplier(value: unknown) {
-  const number = Number(value || 1);
-  if (!Number.isFinite(number) || number <= 0) return 1;
-  return Math.max(0.1, Math.min(10, number));
+  return normalizeStorePriceMultiplier(value, 1);
 }
 
 function roundToman(value: number) {
@@ -195,25 +198,31 @@ function publicProduct(product: JsonStoreProduct, index: number) {
 }
 
 function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
-  const importedIsCheaper = imported.price > 0 && (existing.price <= 0 || imported.price < existing.price);
-  const chosen = importedIsCheaper ? imported : existing;
-  const price = Math.min(
-    ...[existing.price, imported.price].filter((value) => Number.isFinite(value) && value > 0),
+  const existingMarketPrice = storedProductMarketPrice(existing);
+  const importedMarketPrice = storedProductMarketPrice(imported);
+  const importedIsCheaper = importedMarketPrice > 0 && (
+    existingMarketPrice <= 0 || importedMarketPrice < existingMarketPrice
   );
+  const chosen = importedIsCheaper ? imported : existing;
+  const marketPrice = Math.min(
+    ...[existingMarketPrice, importedMarketPrice].filter((value) => Number.isFinite(value) && value > 0),
+  );
+  const targetMultiplier = normalizePriceMultiplier(imported.priceMultiplier || existing.priceMultiplier);
   const chosenOriginal = Number(chosen.originalPrice || 0);
-  const originalPrice = chosenOriginal > price && chosenOriginal <= price * 1.8
-    ? chosenOriginal
-    : undefined;
   const existingBrandIsGeneric = !existing.brand || /^(?:optibid|digikala|torob|نامشخص)$/i.test(existing.brand);
-  return {
+  const merged = {
     ...existing,
     title: imported.title.length > existing.title.length ? imported.title : existing.title,
     brand: existingBrandIsGeneric && imported.brand ? imported.brand : existing.brand,
     category: imported.category && imported.category !== "نامشخص" ? imported.category : existing.category,
     summary: imported.summary.length > existing.summary.length ? imported.summary : existing.summary,
     description: imported.description.length > existing.description.length ? imported.description : existing.description,
-    price,
-    originalPrice,
+    price: chosen.price,
+    marketPrice,
+    priceMultiplier: chosen.priceMultiplier,
+    originalPrice: chosenOriginal > chosen.price && chosenOriginal <= chosen.price * 1.8
+      ? chosenOriginal
+      : undefined,
     stock: Math.max(existing.stock || 0, imported.stock || 0),
     specs: { ...existing.specs, ...imported.specs },
     badges: Array.from(new Set([
@@ -229,6 +238,7 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
     priceHistory: mergeStorePriceHistory(existing.priceHistory, imported.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;
+  return applyStorePriceFormula(merged, marketPrice, targetMultiplier);
 }
 
 function activeStoreProductCount(products: JsonStoreProduct[]) {
@@ -335,8 +345,10 @@ async function importPreparedCsvBatch(request: Request) {
     }
 
     const sourceLabel = String(payload.sourceLabel || "digikala-easy-scraper").slice(0, 160);
-    const importedProducts = filteredDrafts.map((draft) => applyPriceMultiplier(draft, multiplier)).map((draft) => {
-      const product = importedDraftToStoreProduct(draft);
+    const importedProducts = filteredDrafts.map((draft) => {
+      const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, multiplier));
+      product.marketPrice = Math.round(draft.price);
+      product.priceMultiplier = multiplier;
       if (multiplier !== 1) {
         product.marketReferenceNote = `${product.marketReferenceNote}؛ اعمال ضریب قیمت ${multiplier.toLocaleString("fa-IR")}`;
         product.badges = Array.from(new Set([...(product.badges || []), `ضریب ${multiplier.toLocaleString("fa-IR")}`])).slice(0, 6);
@@ -345,6 +357,7 @@ async function importPreparedCsvBatch(request: Request) {
     });
 
     const data = await getOptiBidData();
+    data.settings.storePriceMultiplier = multiplier;
     let created = 0;
     let updated = 0;
     let skipped = incoming.length - filteredDrafts.length;
@@ -440,8 +453,10 @@ export async function POST(request: Request) {
       warnings.push(`${(parsed.products.length - filteredDrafts.length).toLocaleString("fa-IR")} محصول CSV به دلیل عدم تطابق با دسته‌های انتخابی نادیده گرفته شد.`);
     }
 
-    const importedProducts = filteredDrafts.map((draft) => applyPriceMultiplier(draft, multiplier)).map((draft) => {
-      const product = importedDraftToStoreProduct(draft);
+    const importedProducts = filteredDrafts.map((draft) => {
+      const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, multiplier));
+      product.marketPrice = Math.round(draft.price);
+      product.priceMultiplier = multiplier;
       if (multiplier !== 1) {
         product.marketReferenceNote = `${product.marketReferenceNote}؛ اعمال ضریب قیمت ${multiplier.toLocaleString("fa-IR")}`;
         product.badges = Array.from(new Set([...(product.badges || []), `ضریب ${multiplier.toLocaleString("fa-IR")}`])).slice(0, 6);
@@ -489,6 +504,7 @@ export async function POST(request: Request) {
     }
 
     const data = await getOptiBidData();
+    data.settings.storePriceMultiplier = multiplier;
     let created = 0;
     let updated = 0;
     const changedProducts: ReturnType<typeof publicProduct>[] = [];

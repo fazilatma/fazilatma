@@ -7,7 +7,8 @@ import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
 import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import {
   getJsonStoreProductBySlug,
-  getJsonStoreProducts,
+  getOptiBidData,
+  writeOptiBidData,
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
@@ -109,14 +110,34 @@ export default async function StoreProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const storedProduct = await getJsonStoreProductBySlug(slug);
+  const data = await getOptiBidData();
+  const storedProduct = data.storeProducts.find((item) => item.slug === slug);
   if (!storedProduct) notFound();
-  const liveSnapshot = await getLiveStoreProductSnapshot(storedProduct);
+  const liveSnapshot = await getLiveStoreProductSnapshot(
+    storedProduct,
+    data.settings.storePriceMultiplier,
+  );
   const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
+  const shouldPersistLivePrice = Boolean(
+    liveSnapshot?.price && (
+      Number(storedProduct.price || 0) !== Number(product.price || 0) ||
+      Number(storedProduct.marketPrice || 0) !== Number(product.marketPrice || 0) ||
+      Number(storedProduct.priceMultiplier || 1) !== Number(product.priceMultiplier || 1)
+    ),
+  );
+  if (shouldPersistLivePrice) {
+    const storedIndex = data.storeProducts.findIndex((item) => item.id === storedProduct.id);
+    if (storedIndex >= 0) {
+      data.storeProducts[storedIndex] = product;
+      // قیمت زندهٔ تأییدشده فقط هنگام تغییر ذخیره می‌شود تا کارت‌ها، صفحهٔ محصول
+      // و سبد خرید همگی همان «کمترین قیمت × ضریب» را نمایش دهند.
+      await writeOptiBidData(data).catch(() => undefined);
+    }
+  }
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
-  const allProducts = await getJsonStoreProducts();
+  const allProducts = data.storeProducts;
   const priceHistoryAsOf = new Date().toISOString();
   const completeSpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 24);
   const liveComments = liveSnapshot?.comments || [];

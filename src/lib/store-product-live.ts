@@ -1,6 +1,11 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
 import { technicalSpecsFromText } from "@/lib/store-product-specs";
+import {
+  normalizeStorePriceMultiplier,
+  roundStorePrice,
+  storedProductMarketPrice,
+} from "@/lib/store-pricing";
 
 export type LiveStoreProductComment = {
   id: string;
@@ -12,7 +17,11 @@ export type LiveStoreProductComment = {
 };
 
 export type LiveStoreProductSnapshot = {
+  /** قیمت نهایی پس از اعمال ضریب فروشگاه. */
   price?: number;
+  /** کمترین قیمت معتبر بازار پیش از اعمال ضریب. */
+  marketPrice?: number;
+  priceMultiplier?: number;
   originalPrice?: number;
   imageUrl?: string;
   brand?: string;
@@ -79,6 +88,8 @@ function firstTorobPrice(html: string) {
   if (/مشاهده\s+در[\s\S]{0,160}?ناموجود[\s\S]{0,100}?آخرین\s+فروشنده/i.test(headerText)) return 0;
   if (/ناموجود/i.test(headerText) && !/ارزان[‌\s-]*ترین/i.test(headerText)) return 0;
   const priorityPatterns = [
+    /تمام\s+ایران[\s\S]{0,160}?از\s+([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i,
+    /خرید\s+اینترنتی[\s\S]{0,160}?از\s+([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i,
     /خرید\s+از[\s\S]{0,240}?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان[\s\S]{0,80}?ارزان[‌\s-]*ترین/i,
     /ارزان[‌\s-]*ترین[\s\S]{0,120}?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i,
     /از\s+([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i,
@@ -101,9 +112,17 @@ function strongModelTokens(value: string) {
     .filter((token) => !/^\d+(?:gb|tb|w|mhz|rpm)$/.test(token));
 }
 
+function packageKind(value: string) {
+  const normalized = toEnglishDigits(value).toLowerCase().replace(/[‌\s]+/g, " ");
+  if (/\btray\b|بدون جعبه/.test(normalized)) return "tray";
+  if (/\bbox\b|با جعبه/.test(normalized)) return "box";
+  return "";
+}
+
 function torobComparablePrice(html: string, productTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return 0;
+  const requiredPackage = packageKind(productTitle);
   const anchorPattern = /<a\b[^>]*href=["'][^"']*\/p\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/gi;
   const prices: number[] = [];
   for (const match of html.matchAll(anchorPattern)) {
@@ -113,6 +132,8 @@ function torobComparablePrice(html: string, productTitle: string) {
       .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
       .replace(/[^a-z0-9آ-ی]+/g, " ");
     if (!requiredTokens.every((token) => normalized.includes(token))) continue;
+    const candidatePackage = packageKind(text);
+    if (requiredPackage && candidatePackage !== requiredPackage) continue;
     const rawPrice = text.match(/(?:از\s*)?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i)?.[1] || "";
     const price = formattedToman(rawPrice);
     if (price) prices.push(price);
@@ -248,6 +269,39 @@ function digikalaDetailSnapshot(payload: Record<string, any>) {
   };
 }
 
+function digikalaComparablePrice(payload: Record<string, any>, productTitle: string) {
+  const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
+  if (!requiredTokens.length) return 0;
+  const requiredPackage = packageKind(productTitle);
+  const products = Array.isArray(payload?.data?.products)
+    ? payload.data.products
+    : Array.isArray(payload?.products)
+      ? payload.products
+      : [];
+  const prices: number[] = [];
+  for (const candidate of products) {
+    const title = String(
+      candidate?.title_fa || candidate?.title_en || candidate?.title || candidate?.name || "",
+    ).trim();
+    const normalized = toEnglishDigits(title)
+      .toLowerCase()
+      .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+      .replace(/[^a-z0-9آ-ی]+/g, " ");
+    if (!requiredTokens.every((token) => normalized.includes(token))) continue;
+    const candidatePackage = packageKind(title);
+    if (requiredPackage && candidatePackage !== requiredPackage) continue;
+    const rawPrice = Number(
+      candidate?.default_variant?.price?.selling_price ||
+      candidate?.price?.selling_price ||
+      candidate?.selling_price ||
+      0,
+    );
+    const price = Math.round(rawPrice / 10);
+    if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
+  }
+  return prices.length ? Math.min(...prices) : 0;
+}
+
 function digikalaComments(payload: Record<string, any>): LiveStoreProductComment[] {
   const comments = Array.isArray(payload?.data?.comments) ? payload.data.comments : [];
   return comments
@@ -285,6 +339,7 @@ async function fetchSourceHtml(url: string) {
 
 export async function getLiveStoreProductSnapshot(
   product: JsonStoreProduct,
+  configuredPriceMultiplier?: number,
 ): Promise<LiveStoreProductSnapshot | null> {
   const sourceUrl = String(product.externalSourceUrl || "").trim();
   if (!sourceUrl) return null;
@@ -300,7 +355,12 @@ export async function getLiveStoreProductSnapshot(
   const isDigikalaProduct = host === "digikala.com" && /\/product\/dkp-/i.test(parsed.pathname);
   if (!isTorobProduct && !isDigikalaProduct) return null;
 
-  const cached = snapshotCache.get(sourceUrl);
+  const priceMultiplier = normalizeStorePriceMultiplier(
+    configuredPriceMultiplier ?? product.priceMultiplier,
+    1,
+  );
+  const cacheKey = `${sourceUrl}|${product.title}|${priceMultiplier}`;
+  const cached = snapshotCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
   try {
@@ -313,7 +373,7 @@ export async function getLiveStoreProductSnapshot(
       : "";
     let detailData: ReturnType<typeof digikalaDetailSnapshot> | null = null;
     let comments: LiveStoreProductComment[] = [];
-    let trustedCurrentPrice = false;
+    let trustedCurrentPrice = extractedPrice > 0;
 
     if (isDigikalaProduct) {
       const productId = parsed.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
@@ -346,27 +406,50 @@ export async function getLiveStoreProductSnapshot(
       }
     }
 
-    const storedPrice = Number(product.price || 0);
-    // قیمت ذخیره‌شده ممکن است کمترین قیمت معتبر منبع دیگری (مثلاً CSV ترب) باشد.
-    // اگر اختلاف آن با قیمت زنده منطقی است، قیمت پایین‌تر را حفظ می‌کنیم؛ اما قیمت‌های
-    // خراب و چندبرابر ارزان‌ترِ قدیمی (مثل ۸۰۰ هزار به‌جای ۵ میلیون) کنار گذاشته می‌شوند.
+    // اگر لینک اصلی محصول ترب است، دیجی‌کالا هم با مدل دقیق جستجو می‌شود تا
+    // جهت مقایسه وابسته به منبع اولیهٔ محصول نباشد.
+    if (isTorobProduct) {
+      try {
+        const digikalaSearch = await fetchDigikalaJson(
+          `https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`,
+        );
+        const digikalaMarketPrice = digikalaComparablePrice(digikalaSearch, product.title);
+        if (digikalaMarketPrice > 0 && (!extractedPrice || digikalaMarketPrice < extractedPrice)) {
+          extractedPrice = digikalaMarketPrice;
+          trustedCurrentPrice = true;
+        }
+      } catch {
+        // قیمت دقیق صفحهٔ ترب همچنان قابل استفاده است.
+      }
+    }
+
+    const storedMarketPrice = storedProductMarketPrice(product);
+    // قیمت ذخیره‌شده ممکن است کمترین قیمت معتبر مرجع دیگری (مثلاً CSV فروشگاه دیگر) باشد.
+    // اختلاف منطقی حفظ می‌شود، اما دادهٔ خرابِ چندبرابر ارزان کنار گذاشته می‌شود.
     if (
-      storedPrice > 0 &&
-      extractedPrice > storedPrice &&
-      storedPrice >= extractedPrice * 0.45
+      storedMarketPrice > 0 &&
+      extractedPrice > storedMarketPrice &&
+      storedMarketPrice >= extractedPrice * 0.45
     ) {
-      extractedPrice = storedPrice;
+      extractedPrice = storedMarketPrice;
     }
     const priceIsSane =
       extractedPrice > 0 &&
-      (trustedCurrentPrice || !storedPrice || (extractedPrice >= storedPrice * 0.4 && extractedPrice <= storedPrice * 2.5));
+      (trustedCurrentPrice || !storedMarketPrice || (
+        extractedPrice >= storedMarketPrice * 0.4 && extractedPrice <= storedMarketPrice * 2.5
+      ));
+    const finalPrice = priceIsSane
+      ? roundStorePrice(extractedPrice * priceMultiplier)
+      : 0;
     const hasDetails = Boolean(detailData && (Object.keys(detailData.specs).length || detailData.description));
     const value = priceIsSane || imageUrl || hasDetails || comments.length
       ? {
-          price: priceIsSane ? extractedPrice : undefined,
+          price: finalPrice || undefined,
+          marketPrice: priceIsSane ? extractedPrice : undefined,
+          priceMultiplier: priceIsSane ? priceMultiplier : undefined,
           originalPrice:
-            priceIsSane && detailData?.price === extractedPrice
-              ? detailData.originalPrice
+            priceIsSane && detailData?.price === extractedPrice && detailData.originalPrice
+              ? roundStorePrice(detailData.originalPrice * priceMultiplier)
               : undefined,
           imageUrl: imageUrl || undefined,
           brand: detailData?.brand,
@@ -378,10 +461,10 @@ export async function getLiveStoreProductSnapshot(
           checkedAt: new Date().toISOString(),
         }
       : null;
-    snapshotCache.set(sourceUrl, { value, expiresAt: Date.now() + cacheTtlMs });
+    snapshotCache.set(cacheKey, { value, expiresAt: Date.now() + cacheTtlMs });
     return value;
   } catch {
-    snapshotCache.set(sourceUrl, { value: null, expiresAt: Date.now() + 60_000 });
+    snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
     return null;
   }
 }
@@ -452,6 +535,8 @@ export function applyLiveStoreProductSnapshot(
   return {
     ...product,
     price,
+    marketPrice: snapshot.marketPrice || product.marketPrice,
+    priceMultiplier: snapshot.priceMultiplier || product.priceMultiplier,
     originalPrice:
       snapshot.originalPrice && snapshot.originalPrice > price
         ? snapshot.originalPrice

@@ -1,5 +1,9 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
+import {
+  applyStorePriceFormula,
+  normalizeStorePriceMultiplier,
+} from "@/lib/store-pricing";
 
 export type PriceReferenceKey = "torob" | "digikala" | "instagram" | "telegram" | "google";
 
@@ -81,10 +85,6 @@ function normalizePriceToToman(rawPrice: unknown, currency?: string) {
   return Math.round(price);
 }
 
-function roundToman(value: number) {
-  return Math.max(0, Math.round(Number(value || 0) / 10_000) * 10_000);
-}
-
 function normalizeText(value: string) {
   return toEnglishDigits(value)
     .toLowerCase()
@@ -118,6 +118,43 @@ function tokens(value: string) {
           "inch",
         ].includes(token),
     );
+}
+
+function exactModelText(value: string) {
+  return toEnglishDigits(value)
+    .toLowerCase()
+    .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+    .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
+    .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+    .replace(/[^a-z0-9آ-ی.+-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function exactModelTokens(value: string) {
+  return exactModelText(value)
+    .split(" ")
+    .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
+    .filter((token) => !/^(?:ddr\d|gddr\d|sata\d*|pcie\d*|usb\d*|lga\d+|am\d+|\d+(?:gb|tb|w|mhz|rpm))$/.test(token))
+    .slice(0, 5);
+}
+
+function packageKind(value: string) {
+  const text = exactModelText(value);
+  if (/\btray\b|بدون جعبه/.test(text)) return "tray";
+  if (/\bbox\b|با جعبه/.test(text)) return "box";
+  return "";
+}
+
+function candidateMatchesExactModel(product: JsonStoreProduct, candidateTitle: string) {
+  const requiredModels = exactModelTokens(`${product.title} ${product.specs?.مدل || ""}`);
+  if (requiredModels.length) {
+    const candidateText = exactModelText(candidateTitle);
+    if (!requiredModels.every((model) => candidateText.includes(model))) return false;
+  }
+  const requiredPackage = packageKind(`${product.title} ${product.specs?.["نوع پکیج پردازنده"] || ""}`);
+  const candidatePackage = packageKind(candidateTitle);
+  return !requiredPackage || requiredPackage === candidatePackage;
 }
 
 function candidateScore(product: JsonStoreProduct, title: string) {
@@ -238,7 +275,10 @@ function candidatesFromJson(value: unknown, source: PriceReferenceKey, baseUrl: 
       record?.offers?.priceCurrency,
       record?.default_variant?.price?.currency,
     );
-    const price = normalizePriceToToman(priceRaw, currency);
+    const price = normalizePriceToToman(
+      priceRaw,
+      currency || (source === "digikala" ? "IRR" : undefined),
+    );
     if (!title || price < 100_000 || price > 1_500_000_000) continue;
     const url = firstText(record.url, record.web_url, record.absolute_url, record?.url?.uri);
     candidates.push({
@@ -280,11 +320,28 @@ function priceValuesFromText(text: string) {
   return [...values].sort((a, b) => a - b);
 }
 
+function torobPageLowestPrice(text: string) {
+  const patterns = [
+    /تمام\s+ایران[\s\S]{0,160}?از\s+([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬٫\s]{4,})\s*تومان/i,
+    /خرید\s+اینترنتی[\s\S]{0,160}?از\s+([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬٫\s]{4,})\s*تومان/i,
+    /ارزان[‌\s-]*ترین[\s\S]{0,140}?([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬٫\s]{4,})\s*تومان/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern)?.[1];
+    const price = normalizePriceToToman(match, "IRT");
+    if (price >= 100_000 && price <= 1_500_000_000) return price;
+  }
+  return 0;
+}
+
 function candidatesFromHtml(html: string, source: PriceReferenceKey, baseUrl: string) {
   const candidates = candidatesFromJson(extractJsonLdObjects(html), source, baseUrl);
   const title = extractTitle(html);
-  const prices = priceValuesFromText(stripTags(html));
-  if (title && prices[0]) candidates.push({ source, title, price: prices[0], url: baseUrl });
+  const text = stripTags(html);
+  const prices = priceValuesFromText(text);
+  const preferredPrice = source === "torob" ? torobPageLowestPrice(text) : 0;
+  const price = preferredPrice || prices[0];
+  if (title && price) candidates.push({ source, title, price, url: baseUrl });
   return candidates;
 }
 
@@ -415,9 +472,11 @@ export async function findProductPriceCandidates(
     }
   }
 
+  const requiresExactModel = exactModelTokens(`${product.title} ${product.specs?.مدل || ""}`).length > 0;
   const scored = rawCandidates
+    .filter((candidate) => candidateMatchesExactModel(product, candidate.title))
     .map((candidate) => ({ ...candidate, score: candidateScore(product, candidate.title) }))
-    .filter((candidate) => candidate.score >= 4)
+    .filter((candidate) => candidate.score >= (requiresExactModel ? 3 : 5))
     .sort((a, b) => b.score - a.score || a.price - b.price);
 
   return { candidates: scored, errors };
@@ -425,9 +484,11 @@ export async function findProductPriceCandidates(
 
 export function chooseBestPriceCandidate(candidates: PriceCandidate[]) {
   if (!candidates.length) return null;
-  const topScore = candidates[0].score;
-  const top = candidates.filter((candidate) => candidate.score >= topScore - 1).slice(0, 5);
-  return [...top].sort((a, b) => a.price - b.price)[Math.floor(top.length / 2)] || top[0];
+  const topScore = Math.max(...candidates.map((candidate) => candidate.score));
+  // پس از تطبیق سخت‌گیرانهٔ مدل/نوع بسته‌بندی، کمترین قیمت معتبر انتخاب می‌شود؛
+  // میانگین یا میانه باعث می‌شد قیمت ارزان‌تر ترب/دیجی‌کالا نادیده گرفته شود.
+  const trustworthy = candidates.filter((candidate) => candidate.score >= topScore - 2);
+  return [...trustworthy].sort((a, b) => a.price - b.price || b.score - a.score)[0] || null;
 }
 
 export function applyRefreshedPrice(
@@ -435,14 +496,15 @@ export function applyRefreshedPrice(
   candidate: PriceCandidate,
   multiplier = 1,
 ): JsonStoreProduct {
-  const price = roundToman(candidate.price * Math.max(0.1, Math.min(10, multiplier || 1)));
-  const previousPrice = Number(product.price || 0);
-  const originalPrice = Math.max(Number(product.originalPrice || 0), previousPrice, price);
+  const pricedProduct = applyStorePriceFormula(
+    product,
+    candidate.price,
+    normalizeStorePriceMultiplier(multiplier, 1),
+  );
+  const price = pricedProduct.price;
   const checkedAt = new Date().toISOString();
   return {
-    ...product,
-    price,
-    originalPrice: originalPrice > price ? originalPrice : product.originalPrice,
+    ...pricedProduct,
     priceUpdatedAt: checkedAt.slice(0, 10),
     priceHistory: appendStorePriceHistory(product.priceHistory, {
       recordedAt: checkedAt,
