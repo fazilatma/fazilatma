@@ -538,11 +538,11 @@ export default async function ShopPage({
   const currentPage = Math.min(requestedPage, totalPages);
   const pageStart = (currentPage - 1) * pageSize;
   const storedVisibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
-  const visibleProducts = await repairSuspiciousVisiblePrices(
+  const checkedVisibleProducts = await repairSuspiciousVisiblePrices(
     storedVisibleProducts,
     data.settings.storePriceMultiplier,
   );
-  const verifiedRepairs = visibleProducts.filter((product, index) =>
+  const verifiedRepairs = checkedVisibleProducts.filter((product, index) =>
     isSuspiciousStoreProductPrice(storedVisibleProducts[index]) &&
     !isSuspiciousStoreProductPrice(product),
   );
@@ -566,6 +566,11 @@ export default async function ShopPage({
     // دیگر برای این کالاها اسکن خارجی یا نمایش قیمت قدیمی نخواهد داشت.
     await writeOptiBidData(data).catch(() => undefined);
   }
+  // کالایی که هنوز قیمت معتبر نگرفته، به‌جای عدد عجیب یا وضعیت نیمه‌کاره
+  // موقتاً از لیست خرید کنار می‌رود و پس از ثبت قیمت معتبر دوباره ظاهر می‌شود.
+  const visibleProducts = checkedVisibleProducts.filter(
+    (product) => !isSuspiciousStoreProductPrice(product),
+  );
   const paginationStart = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
   const paginationPages = Array.from(
     { length: Math.min(5, totalPages) },
