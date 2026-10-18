@@ -26,16 +26,61 @@ export function isComputerPartsCatalogProduct(
   return key === "components" || key === "storage";
 }
 
+function storefrontTitleKey(product: JsonStoreProduct) {
+  return product.title
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .toLowerCase()
+    .replace(/[‌\s]+/g, " ")
+    .replace(/[^a-z0-9آ-ی]+/g, " ")
+    .trim();
+}
+
+export function dedupeStorefrontCatalogProducts(products: JsonStoreProduct[]) {
+  const output: JsonStoreProduct[] = [];
+  const indexByTitle = new Map<string, number>();
+  for (const product of products) {
+    const key = storefrontTitleKey(product);
+    const existingIndex = indexByTitle.get(key);
+    if (existingIndex === undefined) {
+      indexByTitle.set(key, output.length);
+      output.push(product);
+      continue;
+    }
+    const existing = output[existingIndex];
+    const cheaper = product.price > 0 && product.price < existing.price ? product : existing;
+    const richer = Object.keys(product.specs || {}).length > Object.keys(existing.specs || {}).length
+      ? product
+      : existing;
+    output[existingIndex] = {
+      ...richer,
+      price: cheaper.price,
+      marketPrice: cheaper.marketPrice,
+      priceMultiplier: cheaper.priceMultiplier,
+      originalPrice: cheaper.originalPrice,
+      priceUpdatedAt: cheaper.priceUpdatedAt,
+      shippingNote: cheaper.shippingNote,
+      externalSourceUrl: cheaper.externalSourceUrl || richer.externalSourceUrl,
+      imageUrl: richer.imageUrl || cheaper.imageUrl,
+      stock: Math.max(existing.stock || 0, product.stock || 0),
+    };
+  }
+  return output;
+}
+
 export function filterProductsByCatalogSections(
   products: JsonStoreProduct[],
   settings: { laptopEnabled: boolean; computerPartsEnabled: boolean },
 ) {
   const visibleComputerPart = (product: JsonStoreProduct) =>
     isComputerPartsCatalogProduct(product) && isStorefrontEligibleComputerPart(product);
+  let filtered: JsonStoreProduct[] = [];
   if (settings.laptopEnabled && settings.computerPartsEnabled) {
-    return products.filter((product) => isLaptopCatalogProduct(product) || visibleComputerPart(product));
+    filtered = products.filter((product) => isLaptopCatalogProduct(product) || visibleComputerPart(product));
+  } else if (settings.laptopEnabled) {
+    filtered = products.filter(isLaptopCatalogProduct);
+  } else if (settings.computerPartsEnabled) {
+    filtered = products.filter(visibleComputerPart);
   }
-  if (settings.laptopEnabled) return products.filter(isLaptopCatalogProduct);
-  if (settings.computerPartsEnabled) return products.filter(visibleComputerPart);
-  return [];
+  return dedupeStorefrontCatalogProducts(filtered);
 }
