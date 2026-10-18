@@ -133,7 +133,7 @@ function torobComparablePrice(html: string, productTitle: string) {
       .replace(/[^a-z0-9آ-ی]+/g, " ");
     if (!requiredTokens.every((token) => normalized.includes(token))) continue;
     const candidatePackage = packageKind(text);
-    if (requiredPackage && candidatePackage !== requiredPackage) continue;
+    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
     const rawPrice = text.match(/(?:از\s*)?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i)?.[1] || "";
     const price = formattedToman(rawPrice);
     if (price) prices.push(price);
@@ -289,7 +289,7 @@ function digikalaComparablePrice(payload: Record<string, any>, productTitle: str
       .replace(/[^a-z0-9آ-ی]+/g, " ");
     if (!requiredTokens.every((token) => normalized.includes(token))) continue;
     const candidatePackage = packageKind(title);
-    if (requiredPackage && candidatePackage !== requiredPackage) continue;
+    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
     const rawPrice = Number(
       candidate?.default_variant?.price?.selling_price ||
       candidate?.price?.selling_price ||

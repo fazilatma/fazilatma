@@ -154,7 +154,7 @@ function candidateMatchesExactModel(product: JsonStoreProduct, candidateTitle: s
   }
   const requiredPackage = packageKind(`${product.title} ${product.specs?.["نوع پکیج پردازنده"] || ""}`);
   const candidatePackage = packageKind(candidateTitle);
-  return !requiredPackage || requiredPackage === candidatePackage;
+  return !requiredPackage || !candidatePackage || requiredPackage === candidatePackage;
 }
 
 function candidateScore(product: JsonStoreProduct, title: string) {
