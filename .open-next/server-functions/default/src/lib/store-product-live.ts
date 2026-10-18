@@ -160,6 +160,28 @@ function torobComparablePrice(html: string, productTitle: string) {
   return prices.length ? Math.min(...prices) : 0;
 }
 
+function torobComparableJsonPrice(payload: Record<string, any>, productTitle: string) {
+  const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
+  if (!requiredTokens.length) return 0;
+  const requiredPackage = packageKind(productTitle);
+  const results = Array.isArray(payload?.results)
+    ? payload.results
+    : Array.isArray(payload?.data?.results)
+      ? payload.data.results
+      : [];
+  const prices: number[] = [];
+  for (const result of results) {
+    const title = `${String(result?.name1 || "")} ${String(result?.name2 || "")}`.trim();
+    const normalized = normalizedComparableModelText(title);
+    if (!requiredTokens.every((token) => normalized.includes(token))) continue;
+    const candidatePackage = packageKind(title);
+    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
+    const price = Math.round(Number(result?.price || 0));
+    if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
+  }
+  return prices.length ? Math.min(...prices) : 0;
+}
+
 function torobImage(html: string, pageUrl: string) {
   const normalized = decodeHtml(html)
     .replace(/\\\//g, "/")
@@ -252,6 +274,29 @@ async function fetchDigikalaJson(url: string) {
   const jsonStart = text.indexOf("{");
   if (jsonStart < 0) throw new Error("پاسخ جزئیات کالا JSON نداشت.");
   return JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
+}
+
+async function fetchTorobSearchJson(productTitle: string) {
+  const url = new URL("https://api-torob-com.translate.goog/v4/base-product/search/");
+  url.searchParams.set("page", "0");
+  url.searchParams.set("sort", "popularity");
+  url.searchParams.set("size", "20");
+  url.searchParams.set("q", productTitle);
+  url.searchParams.set("_x_tr_sl", "auto");
+  url.searchParams.set("_x_tr_tl", "en");
+  url.searchParams.set("_x_tr_hl", "en");
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+      ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(9000)
+      : undefined;
+  const response = await fetch(url.toString(), {
+    redirect: "follow",
+    cache: "no-store",
+    headers: { accept: "application/json, text/plain, */*" },
+    signal: timeoutSignal,
+  });
+  if (!response.ok) throw new Error(`Torob proxy HTTP ${response.status}`);
+  return await response.json() as Record<string, any>;
 }
 
 function digikalaDetailSnapshot(payload: Record<string, any>) {
@@ -416,7 +461,7 @@ export async function getLiveStoreProductPriceSnapshot(
       if (!productId) return null;
       const [detailResult, torobResult] = await Promise.allSettled([
         fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
-        fetchTorobPublicPage(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
+        fetchTorobSearchJson(product.title),
       ]);
       if (detailResult.status === "fulfilled") {
         detailData = digikalaDetailSnapshot(detailResult.value);
@@ -428,15 +473,17 @@ export async function getLiveStoreProductPriceSnapshot(
         try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
       }
       if (torobResult.status === "fulfilled") {
-        const torobPrice = torobComparablePrice(torobResult.value, product.title);
+        const torobPrice = torobComparableJsonPrice(torobResult.value, product.title);
         if (torobPrice > 0 && (!extractedPrice || torobPrice < extractedPrice)) extractedPrice = torobPrice;
       }
     } else if (isTorobProduct) {
       const [torobResult, digikalaResult] = await Promise.allSettled([
-        fetchTorobPublicPage(sourceUrl),
+        fetchTorobSearchJson(product.title),
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
-      if (torobResult.status === "fulfilled") extractedPrice = firstTorobPrice(torobResult.value);
+      if (torobResult.status === "fulfilled") {
+        extractedPrice = torobComparableJsonPrice(torobResult.value, product.title);
+      }
       if (digikalaResult.status === "fulfilled") {
         const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
         if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
@@ -447,11 +494,11 @@ export async function getLiveStoreProductPriceSnapshot(
       // CSVها و ورودی‌های قدیمی ممکن است لینک مستقیم dkp یا /p/ نداشته باشند.
       // در این حالت نیز مدل دقیق به‌طور مستقل در هر دو مرجع جستجو می‌شود.
       const [torobResult, digikalaResult] = await Promise.allSettled([
-        fetchTorobPublicPage(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
+        fetchTorobSearchJson(product.title),
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (torobResult.status === "fulfilled") {
-        extractedPrice = torobComparablePrice(torobResult.value, product.title);
+        extractedPrice = torobComparableJsonPrice(torobResult.value, product.title);
       }
       if (digikalaResult.status === "fulfilled") {
         const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
