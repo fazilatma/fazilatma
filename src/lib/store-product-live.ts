@@ -361,10 +361,16 @@ async function fetchSourceHtml(url: string) {
 async function fetchTorobPublicPage(url: string) {
   const target = new URL(url);
   const readerUrl = `https://r.jina.ai/http://torob.com${target.pathname}${target.search}`;
+  const usableTorobPayload = (value: string) => {
+    if (!/(?:تومان|tomans?)/i.test(value) || !/\/p\//i.test(value)) {
+      throw new Error("پاسخ ترب کارت قیمت‌دار نداشت.");
+    }
+    return value;
+  };
   try {
     return await Promise.any([
-      fetchSourceHtml(url),
-      fetchSourceHtml(readerUrl),
+      fetchSourceHtml(url).then(usableTorobPayload),
+      fetchSourceHtml(readerUrl).then(usableTorobPayload),
     ]);
   } catch {
     throw new Error("صفحه عمومی ترب قابل دریافت نبود.");
@@ -376,18 +382,16 @@ export async function getLiveStoreProductPriceSnapshot(
   configuredPriceMultiplier?: number,
 ): Promise<LiveStoreProductSnapshot | null> {
   const sourceUrl = String(product.externalSourceUrl || "").trim();
-  if (!sourceUrl) return null;
-
-  let parsed: URL;
+  let parsed: URL | null = null;
   try {
-    parsed = new URL(sourceUrl);
+    parsed = sourceUrl ? new URL(sourceUrl) : null;
   } catch {
-    return null;
+    parsed = null;
   }
-  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
-  const isTorobProduct = host === "torob.com" && /^\/p\//i.test(parsed.pathname);
-  const isDigikalaProduct = host === "digikala.com" && /\/product\/dkp-/i.test(parsed.pathname);
-  if (!isTorobProduct && !isDigikalaProduct) return null;
+  const host = parsed?.hostname.replace(/^www\./i, "").toLowerCase() || "";
+  const isTorobProduct = host === "torob.com" && /^\/p\//i.test(parsed?.pathname || "");
+  const isDigikalaProduct = host === "digikala.com" && /\/product\/dkp-/i.test(parsed?.pathname || "");
+  if (!isTorobProduct && !isDigikalaProduct && !strongModelTokens(product.title).length) return null;
 
   const priceMultiplier = normalizeStorePriceMultiplier(
     configuredPriceMultiplier ?? product.priceMultiplier,
@@ -405,7 +409,7 @@ export async function getLiveStoreProductPriceSnapshot(
     let imageUrl = "";
 
     if (isDigikalaProduct) {
-      const productId = parsed.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
+      const productId = parsed?.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
       if (!productId) return null;
       const [detailResult, torobResult] = await Promise.allSettled([
         fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
@@ -424,12 +428,28 @@ export async function getLiveStoreProductPriceSnapshot(
         const torobPrice = torobComparablePrice(torobResult.value, product.title);
         if (torobPrice > 0 && (!extractedPrice || torobPrice < extractedPrice)) extractedPrice = torobPrice;
       }
-    } else {
+    } else if (isTorobProduct) {
       const [torobResult, digikalaResult] = await Promise.allSettled([
         fetchTorobPublicPage(sourceUrl),
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (torobResult.status === "fulfilled") extractedPrice = firstTorobPrice(torobResult.value);
+      if (digikalaResult.status === "fulfilled") {
+        const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
+        if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
+          extractedPrice = digikalaPriceValue;
+        }
+      }
+    } else {
+      // CSVها و ورودی‌های قدیمی ممکن است لینک مستقیم dkp یا /p/ نداشته باشند.
+      // در این حالت نیز مدل دقیق به‌طور مستقل در هر دو مرجع جستجو می‌شود.
+      const [torobResult, digikalaResult] = await Promise.allSettled([
+        fetchTorobPublicPage(`https://torob.com/search/?query=${encodeURIComponent(product.title)}`),
+        fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
+      ]);
+      if (torobResult.status === "fulfilled") {
+        extractedPrice = torobComparablePrice(torobResult.value, product.title);
+      }
       if (digikalaResult.status === "fulfilled") {
         const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
         if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
