@@ -4,7 +4,7 @@ import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/Laptop
 import StoreProductCard from "@/components/StoreProductCard";
 import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
-import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
+import { getOptiBidData, writeOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import {
   filterProductsByCatalogSections,
   isComputerPartsCatalogProduct,
@@ -546,11 +546,35 @@ export default async function ShopPage({
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
   const pageStart = (currentPage - 1) * pageSize;
-  let visibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
-  visibleProducts = await repairSuspiciousVisiblePrices(
-    visibleProducts,
+  const storedVisibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
+  const visibleProducts = await repairSuspiciousVisiblePrices(
+    storedVisibleProducts,
     data.settings.storePriceMultiplier,
   );
+  const verifiedRepairs = visibleProducts.filter((product, index) =>
+    isSuspiciousStoreProductPrice(storedVisibleProducts[index]) &&
+    !isSuspiciousStoreProductPrice(product),
+  );
+  if (verifiedRepairs.length) {
+    const repairById = new Map(verifiedRepairs.map((product) => [product.id, product]));
+    data.storeProducts = data.storeProducts.map((product) => {
+      const repaired = repairById.get(product.id);
+      return repaired
+        ? {
+            ...product,
+            price: repaired.price,
+            marketPrice: repaired.marketPrice,
+            priceMultiplier: repaired.priceMultiplier,
+            originalPrice: repaired.originalPrice,
+            priceUpdatedAt: repaired.priceUpdatedAt,
+            shippingNote: repaired.shippingNote,
+          }
+        : product;
+    });
+    // همه قیمت‌های خراب همین صفحه با یک بار نوشتن ذخیره می‌شوند؛ درخواست بعدی
+    // دیگر برای این کالاها اسکن خارجی یا نمایش قیمت قدیمی نخواهد داشت.
+    await writeOptiBidData(data).catch(() => undefined);
+  }
   const paginationStart = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
   const paginationPages = Array.from(
     { length: Math.min(5, totalPages) },
