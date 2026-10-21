@@ -8,8 +8,20 @@ export const dynamic = "force-dynamic";
 const asFile = (value: FormDataEntryValue | null) =>
   value instanceof File && value.size > 0 ? value : null;
 
+function decodeEmbedHtml(value: unknown) {
+  return String(value || "")
+    .trim()
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;/gi, "'")
+    .replace(/&amp;/gi, "&");
+}
+
 function safeHttpUrl(value: unknown) {
-  const raw = String(value || "").trim();
+  const raw = decodeEmbedHtml(value)
+    .replace(/^\[|\]$/g, "")
+    .trim();
   if (!raw) return "";
   try {
     const url = new URL(raw);
@@ -17,6 +29,37 @@ function safeHttpUrl(value: unknown) {
   } catch {
     return "";
   }
+}
+
+function urlFromAttribute(html: string, attribute: "href" | "src") {
+  const match = html.match(new RegExp(`${attribute}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, "i"));
+  if (!match?.[2]) return "";
+  const embeddedUrl = match[2].match(/https?:\/\/[^\s"'<>\])]+/i)?.[0] || match[2];
+  return safeHttpUrl(embeddedUrl);
+}
+
+function urlsFromText(value: string) {
+  return [...value.matchAll(/https?:\/\/[^\s"'<>\])]+/gi)]
+    .map((match) => safeHttpUrl(match[0]))
+    .filter(Boolean);
+}
+
+function parseEnamadInputs(verificationInput: string, logoInput: string) {
+  const combined = decodeEmbedHtml(`${verificationInput}\n${logoInput}`);
+  const urls = urlsFromText(combined);
+  const verificationUrl =
+    safeHttpUrl(verificationInput) ||
+    urlFromAttribute(decodeEmbedHtml(verificationInput), "href") ||
+    urlFromAttribute(combined, "href") ||
+    urls.find((url) => !/logo\.aspx/i.test(url)) ||
+    "";
+  const logoUrl =
+    safeHttpUrl(logoInput) ||
+    urlFromAttribute(decodeEmbedHtml(logoInput), "src") ||
+    urlFromAttribute(combined, "src") ||
+    urls.find((url) => /logo\.aspx/i.test(url)) ||
+    "";
+  return { verificationUrl, logoUrl };
 }
 
 export async function GET() {
@@ -29,13 +72,18 @@ export async function POST(request: Request) {
     const current = await getEnamadSettings();
     const verificationInput = String(form.get("verificationUrl") || "").trim();
     const logoUrlInput = String(form.get("logoUrl") || "").trim();
-    const verificationUrl = safeHttpUrl(verificationInput);
-    const logoUrl = safeHttpUrl(logoUrlInput);
-    if (verificationInput && !verificationUrl) {
-      return NextResponse.json({ success: false, message: "لینک اعتبارسنجی اینماد معتبر نیست." }, { status: 400 });
-    }
-    if (logoUrlInput && !logoUrl) {
-      return NextResponse.json({ success: false, message: "آدرس اینترنتی لوگوی اینماد معتبر نیست." }, { status: 400 });
+    const { verificationUrl, logoUrl } = parseEnamadInputs(
+      verificationInput,
+      logoUrlInput,
+    );
+    if ((verificationInput || logoUrlInput) && !verificationUrl && !logoUrl) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "کد اینماد قابل تشخیص نیست. کد کامل <a><img></a> یا لینک‌های رسمی را وارد کنید.",
+        },
+        { status: 400 },
+      );
     }
 
     let logoImage = current.logoImage;

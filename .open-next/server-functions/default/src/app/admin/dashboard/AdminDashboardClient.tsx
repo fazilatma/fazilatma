@@ -2484,7 +2484,7 @@ export default function AdminDashboardClient({
                   <div className="mb-5 border-b border-blue-100 pb-4">
                     <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">اعتماد و مجوزها</span>
                     <h2 className="mt-3 text-2xl font-black text-slate-900">لوگوی نماد اعتماد الکترونیکی</h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-600">لوگوی اینماد را آپلود کنید یا آدرس رسمی تصویر را وارد کنید. با ثبت لینک اعتبارسنجی، کلیک روی لوگو کاربر را به صفحه رسمی اعتبار نماد هدایت می‌کند.</p>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">می‌توانید کد کامل دریافتی از اینماد به شکل &lt;a&gt;&lt;img&gt;&lt;/a&gt; را مستقیماً در کادر لینک اعتبارسنجی بچسبانید؛ سیستم لینک اعتبار و تصویر لوگو را خودکار استخراج می‌کند. ورود جداگانه لینک‌ها یا آپلود فایل نیز ممکن است.</p>
                   </div>
 
                   <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 p-4">
@@ -2496,12 +2496,12 @@ export default function AdminDashboardClient({
                     <label className="text-sm font-black text-slate-700">عنوان نمایشی
                       <input value={platformFinance.enamadTitle || ""} onChange={(event) => updatePlatformFinanceField("enamadTitle", event.target.value)} placeholder="نماد اعتماد الکترونیکی" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal" />
                     </label>
-                    <label className="text-sm font-black text-slate-700">لینک رسمی اعتبارسنجی اینماد
-                      <input type="url" dir="ltr" value={platformFinance.enamadVerificationUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadVerificationUrl", event.target.value)} placeholder="https://trustseal.enamad.ir/..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
+                    <label className="text-sm font-black text-slate-700">لینک اعتبارسنجی یا کد کامل اینماد
+                      <textarea dir="ltr" rows={3} value={platformFinance.enamadVerificationUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadVerificationUrl", event.target.value)} placeholder="کد کامل <a ...><img ...></a> یا https://trustseal.enamad.ir/..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
                     </label>
                     <label className="text-sm font-black text-slate-700 md:col-span-2">آدرس رسمی تصویر لوگو (اختیاری)
-                      <input type="url" dir="ltr" value={platformFinance.enamadLogoUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadLogoUrl", event.target.value)} placeholder="https://trustseal.enamad.ir/logo.aspx?..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
-                      <span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">اگر فایل لوگو آپلود شود، فایل آپلودی نسبت به این آدرس اولویت دارد.</span>
+                      <textarea dir="ltr" rows={2} value={platformFinance.enamadLogoUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadLogoUrl", event.target.value)} placeholder="https://trustseal.enamad.ir/logo.aspx?... یا همان کد کامل اینماد" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
+                      <span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">اگر کد کامل را در کادر بالا وارد کرده‌اید، این کادر می‌تواند خالی باشد. فایل آپلودی نسبت به آدرس تصویر اولویت دارد.</span>
                     </label>
                     <label className="text-sm font-black text-slate-700 md:col-span-2">آپلود فایل لوگو
                       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setEnamadLogoFile(event.target.files?.[0] || null); setRemoveUploadedEnamadLogo(false); }} className="mt-2 block w-full rounded-xl border border-dashed border-blue-300 bg-blue-50 px-4 py-4 text-sm font-normal" />
