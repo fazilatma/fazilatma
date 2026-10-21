@@ -100,9 +100,11 @@ const sellerPartsHealthFromPercent = (value: number) => {
 export default function OfferFormClient({
   request,
   existingOffers,
+  freeOfferPilotEnabled = false,
 }: {
   request: any;
   existingOffers: SellerOffer[];
+  freeOfferPilotEnabled?: boolean;
 }) {
   const [sellerId, setSellerId] = useState(0);
   const [sellerRole, setSellerRole] = useState<string | null>(null);
@@ -266,6 +268,12 @@ export default function OfferFormClient({
           <span className="mx-2">/</span>
           مشخصات کالای پیشنهادی
         </nav>
+
+        {freeOfferPilotEnabled && (
+          <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900">
+            <b>پایلوت ماه اول فعال است:</b> ثبت و ویرایش پیشنهاد برای فروشنده رایگان است و فقط در صورت موفقیت معامله، شرایط مالی فعال سایت اعمال می‌شود.
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-12">
           <aside className="lg:col-span-4">

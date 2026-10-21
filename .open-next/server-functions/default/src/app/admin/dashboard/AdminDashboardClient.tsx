@@ -317,6 +317,12 @@ export default function AdminDashboardClient({
     storeComputerPartsCatalogEnabled: true,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
+    reverseAuctionProductCtaEnabled: false,
+    reverseAuctionQuickRequestEnabled: false,
+    reverseAuctionFreeSellerOffersEnabled: false,
+    reverseAuctionManualDispatchEnabled: false,
+    reverseAuctionMinimumOffersEnabled: false,
+    reverseAuctionMinimumOffersCount: 3,
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
@@ -414,6 +420,11 @@ export default function AdminDashboardClient({
   const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
   const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
   const [priceRefreshWarnings, setPriceRefreshWarnings] = useState<string[]>([]);
+  const [savingReverseAuctionPilot, setSavingReverseAuctionPilot] = useState(false);
+  const [dispatchData, setDispatchData] = useState<{ requests: any[]; sellers: any[] }>({ requests: [], sellers: [] });
+  const [dispatchRequestId, setDispatchRequestId] = useState(0);
+  const [dispatchSellerIds, setDispatchSellerIds] = useState<number[]>([]);
+  const [dispatchingRequest, setDispatchingRequest] = useState(false);
   const [withdrawalNotes, setWithdrawalNotes] = useState<
     Record<string, string>
   >({});
@@ -442,6 +453,7 @@ export default function AdminDashboardClient({
   useEffect(() => {
     setContactAddress(liveContent.contactAddressFa);
   }, [liveContent.contactAddressFa]);
+
 
   const updatePlatformFinanceField = (key: string, value: unknown) => {
     setPlatformFinance((current) => ({ ...current, [key]: value }));
@@ -660,6 +672,69 @@ export default function AdminDashboardClient({
           ? error.message
           : "ذخیره تنظیمات مالی ناموفق بود.",
       );
+    }
+  };
+
+  const loadReverseAuctionDispatch = async () => {
+    try {
+      const response = await fetch("/api/admin/reverse-auction/dispatch", { cache: "no-store" });
+      const result = await response.json();
+      if (result.success) {
+        setDispatchData({ requests: result.requests || [], sellers: result.sellers || [] });
+        if (!dispatchRequestId && result.requests?.[0]) setDispatchRequestId(Number(result.requests[0].id));
+      }
+    } catch {
+      // پنل ارجاع در اجرای بعدی دوباره تلاش می‌کند.
+    }
+  };
+
+  const saveReverseAuctionPilot = async () => {
+    setSavingReverseAuctionPilot(true);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reverseAuctionProductCtaEnabled: Boolean(platformFinance.reverseAuctionProductCtaEnabled),
+          reverseAuctionQuickRequestEnabled: Boolean(platformFinance.reverseAuctionQuickRequestEnabled),
+          reverseAuctionFreeSellerOffersEnabled: Boolean(platformFinance.reverseAuctionFreeSellerOffersEnabled),
+          reverseAuctionManualDispatchEnabled: Boolean(platformFinance.reverseAuctionManualDispatchEnabled),
+          reverseAuctionMinimumOffersEnabled: Boolean(platformFinance.reverseAuctionMinimumOffersEnabled),
+          reverseAuctionMinimumOffersCount: Math.max(1, Math.min(10, Number(platformFinance.reverseAuctionMinimumOffersCount || 3))),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات پایلوت ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      await loadReverseAuctionDispatch();
+      alert("تنظیمات ماه اول مزایده معکوس ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات پایلوت ناموفق بود.");
+    } finally {
+      setSavingReverseAuctionPilot(false);
+    }
+  };
+
+  const dispatchRequestToSellers = async () => {
+    if (!dispatchRequestId || !dispatchSellerIds.length) {
+      alert("یک درخواست و حداقل یک فروشنده انتخاب کنید.");
+      return;
+    }
+    setDispatchingRequest(true);
+    try {
+      const response = await fetch("/api/admin/reverse-auction/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: dispatchRequestId, sellerIds: dispatchSellerIds }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ارجاع درخواست ناموفق بود.");
+      alert(result.message);
+      await loadReverseAuctionDispatch();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ارجاع درخواست ناموفق بود.");
+    } finally {
+      setDispatchingRequest(false);
     }
   };
 
@@ -1589,6 +1664,15 @@ export default function AdminDashboardClient({
                   🏠 مدیریت صفحه اصلی
                 </button>
                 <button
+                  onClick={() => {
+                    setActiveTab("reverseAuctionPilot");
+                    void loadReverseAuctionDispatch();
+                  }}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "reverseAuctionPilot" ? "bg-emerald-50 text-emerald-700 border-r-4 border-r-emerald-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🚀 پایلوت ماه اول مزایده معکوس
+                </button>
+                <button
                   onClick={() => setActiveTab("storeImport")}
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "storeImport" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
@@ -2352,6 +2436,83 @@ export default function AdminDashboardClient({
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "reverseAuctionPilot" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
+                  <div className="mb-5 border-b border-emerald-100 pb-4">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">برنامه ماه اول</span>
+                    <h2 className="mt-3 text-2xl font-black text-slate-900">راه‌اندازی مرحله‌ای مزایده معکوس</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">هر قابلیت مستقل است. ابتدا گزینه دلخواه را فعال کنید و سپس دکمه ذخیره را بزنید.</p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {[
+                      ["reverseAuctionProductCtaEnabled", "دکمه دریافت پیشنهاد در صفحه محصول", "خریدار از صفحات سئوشده فروشگاه وارد مسیر درخواست قیمت می‌شود."],
+                      ["reverseAuctionQuickRequestEnabled", "فرم سریع و ازپیش‌پرشده", "مدل، بودجه و توضیح محصول به فرم درخواست خرید منتقل می‌شود."],
+                      ["reverseAuctionFreeSellerOffersEnabled", "پیشنهاد رایگان فروشندگان", "در دوره پایلوت، ثبت و ویرایش پیشنهاد برای فروشنده رایگان اعلام می‌شود."],
+                      ["reverseAuctionManualDispatchEnabled", "ارجاع دستی درخواست به فروشندگان", "ادمین درخواست‌های مهم را مستقیماً برای فروشندگان منتخب ارسال می‌کند."],
+                      ["reverseAuctionMinimumOffersEnabled", "هدف حداقل پیشنهاد برای هر درخواست", "پیشرفت رسیدن هر درخواست معتبر به تعداد هدف پیشنهادها کنترل می‌شود."],
+                    ].map(([key, title, description]) => {
+                      const enabled = Boolean((platformFinance as any)[key]);
+                      return (
+                        <label key={key} className={`flex cursor-pointer items-start justify-between gap-4 rounded-2xl border p-4 ${enabled ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+                          <span>
+                            <b className="block text-sm text-slate-900">{title}</b>
+                            <span className="mt-1 block text-xs leading-6 text-slate-500">{description}</span>
+                          </span>
+                          <input type="checkbox" checked={enabled} onChange={(event) => updatePlatformFinanceField(key, event.target.checked)} className="mt-1 h-5 w-5" />
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {platformFinance.reverseAuctionMinimumOffersEnabled && (
+                    <label className="mt-4 block max-w-xs text-sm font-black text-slate-700">
+                      تعداد هدف پیشنهاد برای هر درخواست
+                      <input type="number" min="1" max="10" value={platformFinance.reverseAuctionMinimumOffersCount} onChange={(event) => updatePlatformFinanceField("reverseAuctionMinimumOffersCount", Math.max(1, Math.min(10, Number(event.target.value || 3))))} className="mt-2 w-full rounded-xl border border-emerald-200 px-4 py-3" />
+                    </label>
+                  )}
+                  <button type="button" disabled={savingReverseAuctionPilot} onClick={saveReverseAuctionPilot} className="mt-5 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:bg-slate-300">
+                    {savingReverseAuctionPilot ? "در حال ذخیره..." : "ذخیره تنظیمات ماه اول"}
+                  </button>
+                </section>
+
+                {platformFinance.reverseAuctionManualDispatchEnabled && (
+                  <section className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+                    <h3 className="text-lg font-black text-slate-900">ارجاع دستی درخواست به فروشندگان منتخب</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-500">یک درخواست باز را انتخاب کنید، فروشندگان مناسب را تیک بزنید و اعلان مستقیم بفرستید.</p>
+                    <select value={dispatchRequestId} onChange={(event) => { setDispatchRequestId(Number(event.target.value)); const selected = dispatchData.requests.find((item) => item.id === Number(event.target.value)); setDispatchSellerIds(selected?.manualSellerIds || []); }} className="mt-4 w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm">
+                      <option value={0}>انتخاب درخواست باز</option>
+                      {dispatchData.requests.map((request) => <option key={request.id} value={request.id}>{request.title} — {request.offersCount.toLocaleString("fa-IR")} پیشنهاد</option>)}
+                    </select>
+                    <div className="mt-4 grid max-h-72 gap-2 overflow-y-auto md:grid-cols-2">
+                      {dispatchData.sellers.map((seller) => {
+                        const checked = dispatchSellerIds.includes(seller.id);
+                        return (
+                          <label key={seller.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${checked ? "border-blue-300 bg-blue-50" : "border-slate-200"}`}>
+                            <input type="checkbox" checked={checked} onChange={() => setDispatchSellerIds((current) => checked ? current.filter((id) => id !== seller.id) : [...current, seller.id])} className="mt-1" />
+                            <span><b className="block text-sm">{seller.fullName}</b><span className="text-[11px] text-slate-500">{seller.categories?.join("، ") || "بدون دسته"} {seller.city ? `· ${seller.city}` : ""}</span></span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <button type="button" disabled={dispatchingRequest} onClick={dispatchRequestToSellers} className="mt-4 rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white disabled:bg-slate-300">{dispatchingRequest ? "در حال ارسال..." : "ارسال درخواست برای فروشندگان منتخب"}</button>
+                  </section>
+                )}
+
+                {platformFinance.reverseAuctionMinimumOffersEnabled && dispatchData.requests.length > 0 && (
+                  <section className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
+                    <h3 className="text-lg font-black text-slate-900">پایش هدف پیشنهادها</h3>
+                    <div className="mt-4 space-y-2">
+                      {dispatchData.requests.slice(0, 20).map((request) => {
+                        const target = Number(request.targetOffers || platformFinance.reverseAuctionMinimumOffersCount || 3);
+                        const complete = request.offersCount >= target;
+                        return <div key={request.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 text-sm"><span className="truncate font-bold">{request.title}</span><span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${complete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{request.offersCount.toLocaleString("fa-IR")} از {target.toLocaleString("fa-IR")}</span></div>;
+                      })}
+                    </div>
+                  </section>
+                )}
               </div>
             )}
 

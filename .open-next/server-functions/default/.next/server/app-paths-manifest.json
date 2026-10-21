@@ -9,6 +9,7 @@
   "/api/admin/homepage-slider/route": "app/api/admin/homepage-slider/route.js",
   "/api/admin/kyc-document/route": "app/api/admin/kyc-document/route.js",
   "/api/admin/kyc/route": "app/api/admin/kyc/route.js",
+  "/api/admin/reverse-auction/dispatch/route": "app/api/admin/reverse-auction/dispatch/route.js",
   "/api/admin/seller-metrics/route": "app/api/admin/seller-metrics/route.js",
   "/api/admin/store-products/clear/route": "app/api/admin/store-products/clear/route.js",
   "/api/admin/store-products/digikala-page/route": "app/api/admin/store-products/digikala-page/route.js",

@@ -13,6 +13,7 @@ export async function GET() {
     siteMode,
     storeLaptopCatalogEnabled: catalog.laptopEnabled,
     storeComputerPartsCatalogEnabled: catalog.computerPartsEnabled,
+    reverseAuction: catalog.reverseAuction,
     label: siteMode === "store" ? "فروشگاه اینترنتی" : "درخواست خرید",
   });
 }

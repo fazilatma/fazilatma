@@ -172,6 +172,19 @@ export default async function StoreProductPage({
     (item) => item.category === product.category,
   ).length;
   const productStructuredData = productJsonLd(product);
+  const reverseAuctionSettings = data.settings;
+  const requestPriceHref = (() => {
+    if (!reverseAuctionSettings.reverseAuctionQuickRequestEnabled) return "/request-purchase";
+    const query = new URLSearchParams({
+      title: `خرید ${product.title}`,
+      category: "کالای دیجیتال",
+      description: `درخواست دریافت پیشنهاد رقابتی برای ${product.title}؛ مدل و مشخصات مطابق همین صفحه باشد.`,
+      budget: String(product.price),
+      sourceProductId: product.id,
+      sourceProductSlug: product.slug,
+    });
+    return `/request-purchase?${query.toString()}`;
+  })();
   const breadcrumbStructuredData = breadcrumbJsonLd([
     { name: "خانه", url: "/" },
     {
@@ -259,6 +272,31 @@ export default async function StoreProductPage({
                   </Link>
                 </div>
               </div>
+
+              {reverseAuctionSettings.reverseAuctionProductCtaEnabled && (
+                <div className="mt-4 rounded-[1.5rem] border border-emerald-200 bg-gradient-to-l from-emerald-50 to-white p-5">
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black text-emerald-800">
+                    خرید رقابتی
+                  </span>
+                  <h2 className="mt-3 text-lg font-black text-slate-900">
+                    از چند فروشنده برای همین کالا قیمت بگیرید
+                  </h2>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    درخواست شما با مدل و بودجه همین محصول ثبت می‌شود و فروشندگان مرتبط می‌توانند قیمت، زمان تحویل و شرایط خود را پیشنهاد دهند.
+                  </p>
+                  {reverseAuctionSettings.reverseAuctionMinimumOffersEnabled && (
+                    <p className="mt-2 text-xs font-bold text-emerald-800">
+                      هدف پایلوت: دریافت حداقل {reverseAuctionSettings.reverseAuctionMinimumOffersCount.toLocaleString("fa-IR")} پیشنهاد برای هر درخواست معتبر
+                    </p>
+                  )}
+                  <Link
+                    href={requestPriceHref}
+                    className="mt-4 block rounded-2xl bg-emerald-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-emerald-700"
+                  >
+                    دریافت پیشنهاد رقابتی فروشندگان
+                  </Link>
+                </div>
+              )}
 
               <div className="mt-6 rounded-[1.5rem] border border-blue-100 bg-blue-50/40 p-5">
                 <div className="flex items-center justify-between gap-3">

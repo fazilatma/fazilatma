@@ -79,6 +79,8 @@ export async function POST(request: Request) {
         buyerName: String(form.get("buyerName") || ""),
         buyerId: Number(form.get("buyerId")) || undefined,
         valuationFactors: parseJsonObject(form.get("valuationFactors")),
+        sourceProductId: String(form.get("sourceProductId") || ""),
+        sourceProductSlug: String(form.get("sourceProductSlug") || ""),
       });
 
       revalidatePath("/");
@@ -119,6 +121,8 @@ export async function POST(request: Request) {
         data.valuationFactors && typeof data.valuationFactors === "object"
           ? data.valuationFactors
           : undefined,
+      sourceProductId: String(data.sourceProductId || ""),
+      sourceProductSlug: String(data.sourceProductSlug || ""),
     });
 
     revalidatePath("/");

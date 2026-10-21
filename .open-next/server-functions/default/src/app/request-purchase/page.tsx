@@ -119,6 +119,7 @@ export default function RequestPurchasePage() {
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [sourceProductContext, setSourceProductContext] = useState({ id: "", slug: "" });
 
   const updateValuationFactor = (
     key: keyof typeof formData.valuationFactors,
@@ -190,13 +191,46 @@ export default function RequestPurchasePage() {
     const savedData = sessionStorage.getItem("pendingRequestData");
     if (savedData) {
       try {
-        setFormData(JSON.parse(savedData));
-        // پاک کردن حافظه پس از بازیابی موفق
+        const parsed = JSON.parse(savedData);
+        if (parsed?.formData) {
+          setFormData(parsed.formData);
+          setSourceProductContext(parsed.sourceProductContext || { id: "", slug: "" });
+        } else {
+          setFormData(parsed);
+        }
         sessionStorage.removeItem("pendingRequestData");
-      } catch (e) {
+        return;
+      } catch {
         console.error("Error parsing saved form data");
       }
     }
+
+    fetch("/api/site-mode", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (!result?.reverseAuction?.quickRequestEnabled) return;
+        const params = new URLSearchParams(window.location.search);
+        const title = params.get("title") || "";
+        if (!title) return;
+        const budget = params.get("budget") || "";
+        setSourceProductContext({
+          id: params.get("sourceProductId") || "",
+          slug: params.get("sourceProductSlug") || "",
+        });
+        setFormData((current) => ({
+          ...current,
+          title: title.slice(0, 180),
+          category: (params.get("category") || "کالای دیجیتال").slice(0, 80),
+          description: (params.get("description") || `درخواست قیمت رقابتی برای ${title}`).slice(0, 1200),
+          budget: budget ? Number(budget).toLocaleString("en-US") : current.budget,
+          valuationFactors: {
+            ...current.valuationFactors,
+            sameNewProductPrice: budget ? Number(budget).toLocaleString("en-US") : current.valuationFactors.sameNewProductPrice,
+            productCondition: "new",
+          },
+        }));
+      })
+      .catch(() => undefined);
   }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -211,7 +245,10 @@ export default function RequestPurchasePage() {
     const userRole = localStorage.getItem("userRole");
     if (!userRole) {
       // ذخیره اطلاعات متنی فرم در حافظه
-      sessionStorage.setItem("pendingRequestData", JSON.stringify(formData));
+      sessionStorage.setItem(
+        "pendingRequestData",
+        JSON.stringify({ formData, sourceProductContext }),
+      );
       // تعیین مسیر بازگشت پس از لاگین
       sessionStorage.setItem("redirectAfterAuth", "/request-purchase");
 
@@ -242,6 +279,8 @@ export default function RequestPurchasePage() {
       );
       const buyerId = Number(localStorage.getItem("userId")) || 0;
       if (buyerId) payload.append("buyerId", String(buyerId));
+      if (sourceProductContext.id) payload.append("sourceProductId", sourceProductContext.id);
+      if (sourceProductContext.slug) payload.append("sourceProductSlug", sourceProductContext.slug);
       uploadedFiles.forEach((file) => payload.append("productImages", file));
 
       const response = await fetch("/api/submit-request", {

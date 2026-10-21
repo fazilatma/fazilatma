@@ -75,6 +75,10 @@ export type JsonRequest = {
     | "cancelled"
     | "returned";
   offersCount: number;
+  targetOffers?: number;
+  manualSellerIds?: number[];
+  sourceProductId?: string;
+  sourceProductSlug?: string;
   createdAt: string;
 };
 
@@ -837,6 +841,12 @@ export type OptiBidJsonData = {
     storeComputerPartsSourceUrl: string;
     /** ضریب سراسری قیمت: قیمت نهایی = کمترین قیمت معتبر بازار × این ضریب. */
     storePriceMultiplier: number;
+    reverseAuctionProductCtaEnabled: boolean;
+    reverseAuctionQuickRequestEnabled: boolean;
+    reverseAuctionFreeSellerOffersEnabled: boolean;
+    reverseAuctionManualDispatchEnabled: boolean;
+    reverseAuctionMinimumOffersEnabled: boolean;
+    reverseAuctionMinimumOffersCount: number;
     storeHeroSliderEnabled: boolean;
     storeHeroSliderDurationSeconds: number;
     storeHeroSliderSlides: HomepageImageSliderSlide[];
@@ -957,6 +967,12 @@ const emptyData = (): OptiBidJsonData => ({
     storeComputerPartsCatalogEnabled: true,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
+    reverseAuctionProductCtaEnabled: false,
+    reverseAuctionQuickRequestEnabled: false,
+    reverseAuctionFreeSellerOffersEnabled: false,
+    reverseAuctionManualDispatchEnabled: false,
+    reverseAuctionMinimumOffersEnabled: false,
+    reverseAuctionMinimumOffersCount: 3,
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: defaultStoreHeroSliderSlides,
@@ -1408,6 +1424,14 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
               ? normalizeProductValuationFactors(request.valuationFactors)
               : undefined,
             aiPriceEstimate: request.aiPriceEstimate,
+            targetOffers: request.targetOffers
+              ? Math.max(1, Math.min(10, Math.floor(Number(request.targetOffers))))
+              : undefined,
+            manualSellerIds: Array.isArray(request.manualSellerIds)
+              ? [...new Set(request.manualSellerIds.map(Number).filter((id) => Number.isFinite(id) && id > 0))]
+              : [],
+            sourceProductId: request.sourceProductId ? String(request.sourceProductId) : undefined,
+            sourceProductSlug: request.sourceProductSlug ? String(request.sourceProductSlug) : undefined,
           };
         }) as JsonRequest[])
       : [],
@@ -1508,6 +1532,31 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       storePriceMultiplier: normalizeStorePriceMultiplier(
         (parsed.settings as { storePriceMultiplier?: number } | undefined)?.storePriceMultiplier,
         1,
+      ),
+      reverseAuctionProductCtaEnabled:
+        (parsed.settings as { reverseAuctionProductCtaEnabled?: boolean } | undefined)
+          ?.reverseAuctionProductCtaEnabled === true,
+      reverseAuctionQuickRequestEnabled:
+        (parsed.settings as { reverseAuctionQuickRequestEnabled?: boolean } | undefined)
+          ?.reverseAuctionQuickRequestEnabled === true,
+      reverseAuctionFreeSellerOffersEnabled:
+        (parsed.settings as { reverseAuctionFreeSellerOffersEnabled?: boolean } | undefined)
+          ?.reverseAuctionFreeSellerOffersEnabled === true,
+      reverseAuctionManualDispatchEnabled:
+        (parsed.settings as { reverseAuctionManualDispatchEnabled?: boolean } | undefined)
+          ?.reverseAuctionManualDispatchEnabled === true,
+      reverseAuctionMinimumOffersEnabled:
+        (parsed.settings as { reverseAuctionMinimumOffersEnabled?: boolean } | undefined)
+          ?.reverseAuctionMinimumOffersEnabled === true,
+      reverseAuctionMinimumOffersCount: Math.max(
+        1,
+        Math.min(
+          10,
+          Math.round(Number(
+            (parsed.settings as { reverseAuctionMinimumOffersCount?: number } | undefined)
+              ?.reverseAuctionMinimumOffersCount || 3,
+          )),
+        ),
       ),
       storeHeroSliderEnabled:
         (parsed.settings as { storeHeroSliderEnabled?: boolean } | undefined)
@@ -2336,6 +2385,8 @@ export async function createJsonPurchaseRequest(input: {
   buyerName?: string;
   buyerId?: number;
   valuationFactors?: Partial<ProductValuationFactors>;
+  sourceProductId?: string;
+  sourceProductSlug?: string;
 }) {
   const data = await getOptiBidData();
   let buyer: JsonUser | undefined;
@@ -2392,6 +2443,12 @@ export async function createJsonPurchaseRequest(input: {
     aiPriceEstimate,
     status: "open",
     offersCount: 0,
+    targetOffers: data.settings.reverseAuctionMinimumOffersEnabled
+      ? data.settings.reverseAuctionMinimumOffersCount
+      : undefined,
+    manualSellerIds: [],
+    sourceProductId: input.sourceProductId?.trim() || undefined,
+    sourceProductSlug: input.sourceProductSlug?.trim() || undefined,
     createdAt: new Date().toISOString(),
   };
 
@@ -2994,7 +3051,6 @@ export async function getJsonMatchingRequestsForSeller(
   const data = await getOptiBidData();
   const seller = getUserOrThrow(data, sellerId, "seller");
   const categories = new Set(seller.categories || []);
-  if (categories.size === 0) return [];
   const excluded = new Set(
     data.sellerRequestActions
       .filter((item) => item.sellerId === sellerId)
@@ -3005,7 +3061,10 @@ export async function getJsonMatchingRequestsForSeller(
       (item) =>
         item.status === "open" &&
         item.buyerId !== seller.id &&
-        categories.has(item.category) &&
+        (
+          categories.has(item.category) ||
+          (data.settings.reverseAuctionManualDispatchEnabled && item.manualSellerIds?.includes(seller.id))
+        ) &&
         !excluded.has(item.id),
     )
     .map((item) => ({
@@ -3018,6 +3077,60 @@ export async function getJsonMatchingRequestsForSeller(
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, Math.max(1, Math.min(10, limit)));
+}
+
+export async function getJsonReverseAuctionDispatchData() {
+  const data = await getOptiBidData();
+  return {
+    enabled: data.settings.reverseAuctionManualDispatchEnabled,
+    requests: data.requests
+      .filter((request) => request.status === "open")
+      .map((request) => ({
+        id: request.id,
+        title: request.title,
+        category: request.category,
+        offersCount: request.offersCount,
+        targetOffers: request.targetOffers || data.settings.reverseAuctionMinimumOffersCount,
+        manualSellerIds: request.manualSellerIds || [],
+        createdAt: request.createdAt,
+      }))
+      .slice(0, 100),
+    sellers: data.users
+      .filter((user) => canActAsSeller(user) && user.isActive)
+      .map((seller) => ({
+        id: seller.id,
+        fullName: seller.fullName,
+        city: seller.city || "",
+        categories: seller.categories || [],
+      })),
+  };
+}
+
+export async function assignJsonRequestToSellers(requestId: number, sellerIds: number[]) {
+  const data = await getOptiBidData();
+  if (!data.settings.reverseAuctionManualDispatchEnabled)
+    throw new Error("Manual dispatch is disabled");
+  const request = data.requests.find((item) => item.id === requestId && item.status === "open");
+  if (!request) throw new Error("Open request not found");
+  const validSellerIds = new Set(
+    data.users
+      .filter((user) => canActAsSeller(user) && user.isActive)
+      .map((seller) => seller.id),
+  );
+  const selected = [...new Set(sellerIds.map(Number))]
+    .filter((sellerId) => validSellerIds.has(sellerId));
+  request.manualSellerIds = selected;
+  for (const sellerId of selected) {
+    addNotification(data, {
+      userId: sellerId,
+      type: "request",
+      title: "درخواست خرید مستقیم برای شما",
+      body: `ادمین درخواست «${request.title}» را برای بررسی و ثبت پیشنهاد به شما ارجاع داد.`,
+      href: `/requests/${request.id}`,
+    });
+  }
+  await writeOptiBidData(data);
+  return { requestId: request.id, sellerIds: selected };
 }
 
 export async function rejectJsonSellerRequest(
@@ -3194,7 +3307,10 @@ export async function createJsonSellerOffer(input: {
   if (!request) throw new Error("Open request not found");
   if (request.buyerId === seller.id)
     throw new Error("Seller cannot offer on own request");
-  if (!(seller.categories || []).includes(request.category))
+  const manuallyAssigned =
+    data.settings.reverseAuctionManualDispatchEnabled &&
+    request.manualSellerIds?.includes(seller.id);
+  if (!(seller.categories || []).includes(request.category) && !manuallyAssigned)
     throw new Error("Seller category does not match request category");
   const existingOffer = data.offers.find(
     (offer) => offer.sellerId === seller.id && offer.requestId === request.id,
@@ -4414,11 +4530,22 @@ export async function updateJsonPlatformFinanceSettings(
       data.settings.storePriceMultiplier,
     );
   }
+  if (typeof updates.reverseAuctionMinimumOffersCount === "number") {
+    data.settings.reverseAuctionMinimumOffersCount = Math.max(
+      1,
+      Math.min(10, Math.round(updates.reverseAuctionMinimumOffersCount)),
+    );
+  }
 
   const booleanHomepageKeys = [
     "storeLaptopCatalogEnabled",
     "storeComputerPartsCatalogEnabled",
     "storeHeroSliderEnabled",
+    "reverseAuctionProductCtaEnabled",
+    "reverseAuctionQuickRequestEnabled",
+    "reverseAuctionFreeSellerOffersEnabled",
+    "reverseAuctionManualDispatchEnabled",
+    "reverseAuctionMinimumOffersEnabled",
     "homepageShowStats",
     "homepageShowCategories",
     "homepageShowCategorySection",
@@ -4527,6 +4654,14 @@ export async function getJsonStoreCatalogSettings() {
     laptopEnabled: data.settings.storeLaptopCatalogEnabled,
     computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
     computerPartsSourceUrl: data.settings.storeComputerPartsSourceUrl,
+    reverseAuction: {
+      productCtaEnabled: data.settings.reverseAuctionProductCtaEnabled,
+      quickRequestEnabled: data.settings.reverseAuctionQuickRequestEnabled,
+      freeSellerOffersEnabled: data.settings.reverseAuctionFreeSellerOffersEnabled,
+      manualDispatchEnabled: data.settings.reverseAuctionManualDispatchEnabled,
+      minimumOffersEnabled: data.settings.reverseAuctionMinimumOffersEnabled,
+      minimumOffersCount: data.settings.reverseAuctionMinimumOffersCount,
+    },
   };
 }
 

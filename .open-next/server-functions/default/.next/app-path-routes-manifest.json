@@ -9,6 +9,7 @@
   "/api/admin/homepage-slider/route": "/api/admin/homepage-slider",
   "/api/admin/kyc-document/route": "/api/admin/kyc-document",
   "/api/admin/kyc/route": "/api/admin/kyc",
+  "/api/admin/reverse-auction/dispatch/route": "/api/admin/reverse-auction/dispatch",
   "/api/admin/seller-metrics/route": "/api/admin/seller-metrics",
   "/api/admin/store-products/clear/route": "/api/admin/store-products/clear",
   "/api/admin/store-products/digikala-page/route": "/api/admin/store-products/digikala-page",

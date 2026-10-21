@@ -200,6 +200,12 @@
       "namedRegex": "^/api/admin/kyc\\-document(?:/)?$"
     },
     {
+      "page": "/api/admin/reverse-auction/dispatch",
+      "regex": "^/api/admin/reverse\\-auction/dispatch(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/reverse\\-auction/dispatch(?:/)?$"
+    },
+    {
       "page": "/api/admin/seller-metrics",
       "regex": "^/api/admin/seller\\-metrics(?:/)?$",
       "routeKeys": {},

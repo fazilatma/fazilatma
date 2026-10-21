@@ -25,5 +25,11 @@ export default async function SellerOfferPage({ params }: { params: Promise<{ id
       productImages: offer.productImages || [],
     }));
 
-  return <OfferFormClient request={request} existingOffers={offers} />;
+  return (
+    <OfferFormClient
+      request={request}
+      existingOffers={offers}
+      freeOfferPilotEnabled={data.settings.reverseAuctionFreeSellerOffersEnabled}
+    />
+  );
 }
