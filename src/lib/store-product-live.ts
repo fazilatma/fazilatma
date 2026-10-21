@@ -137,6 +137,20 @@ function isDefectiveMarketListing(value: string) {
   return /خراب|معیوب|اوراق|برای تعمیر|قطعاتی|صفحه\s*سیاه|شطرنجی|کرش|بدون تصویر|no\s*display|defective|for\s*parts/i.test(value);
 }
 
+function marketBrandKey(value: string) {
+  const text = String(value || "").toLowerCase();
+  if (/\bxfx\b|ایکس\s*اف\s*ایکس/.test(text)) return "xfx";
+  if (/sapphire|سافایر/.test(text)) return "sapphire";
+  if (/\basus\b|ایسوس/.test(text)) return "asus";
+  if (/\bmsi\b|ام\s*اس\s*آی/.test(text)) return "msi";
+  if (/gigabyte|گیگابایت/.test(text)) return "gigabyte";
+  if (/zotac|زوتک/.test(text)) return "zotac";
+  if (/palit|پالیت/.test(text)) return "palit";
+  if (/powercolor|پاورکالر/.test(text)) return "powercolor";
+  if (/\bpny\b/.test(text)) return "pny";
+  return "";
+}
+
 function torobComparablePrice(html: string, productTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return 0;
@@ -166,7 +180,11 @@ function torobComparablePrice(html: string, productTitle: string) {
   return prices.length ? Math.min(...prices) : 0;
 }
 
-function torobComparableJsonPrice(payload: Record<string, any>, productTitle: string) {
+function torobComparableJsonPrice(
+  payload: Record<string, any>,
+  productTitle: string,
+  requiredBrand = "",
+) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return 0;
   const requiredPackage = packageKind(productTitle);
@@ -180,6 +198,7 @@ function torobComparableJsonPrice(payload: Record<string, any>, productTitle: st
   for (const result of results) {
     const title = `${String(result?.name1 || "")} ${String(result?.name2 || "")}`.trim();
     if (isDefectiveMarketListing(title)) continue;
+    if (requiredBrand && marketBrandKey(title) !== requiredBrand) continue;
     const candidateTokens = new Set(strongModelTokens(title));
     if (!requiredTokens.every((token) => candidateTokens.has(token))) continue;
     const candidatePackage = packageKind(title);
@@ -481,7 +500,14 @@ export async function getLiveStoreProductPriceSnapshot(
         try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
       }
       if (torobResult.status === "fulfilled") {
-        const torobPrice = torobComparableJsonPrice(torobResult.value, product.title);
+        const requiredBrand = marketBrandKey(
+          `${product.brand} ${product.title} ${product.description} ${detailData?.description || ""}`,
+        );
+        const torobPrice = torobComparableJsonPrice(
+          torobResult.value,
+          product.title,
+          requiredBrand,
+        );
         if (torobPrice > 0 && (!extractedPrice || torobPrice < extractedPrice)) extractedPrice = torobPrice;
       }
     } else if (isTorobProduct) {
@@ -490,7 +516,11 @@ export async function getLiveStoreProductPriceSnapshot(
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (torobResult.status === "fulfilled") {
-        extractedPrice = torobComparableJsonPrice(torobResult.value, product.title);
+        extractedPrice = torobComparableJsonPrice(
+          torobResult.value,
+          product.title,
+          marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
+        );
       }
       if (digikalaResult.status === "fulfilled") {
         const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
@@ -506,7 +536,11 @@ export async function getLiveStoreProductPriceSnapshot(
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (torobResult.status === "fulfilled") {
-        extractedPrice = torobComparableJsonPrice(torobResult.value, product.title);
+        extractedPrice = torobComparableJsonPrice(
+          torobResult.value,
+          product.title,
+          marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
+        );
       }
       if (digikalaResult.status === "fulfilled") {
         const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
