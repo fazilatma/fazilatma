@@ -8,6 +8,7 @@ import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import {
   getJsonStoreProductBySlug,
   getOptiBidData,
+  writeOptiBidData,
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
@@ -134,6 +135,23 @@ export default async function StoreProductPage({
       priceMultiplier: liveSnapshot.priceMultiplier,
       updatedAt: liveSnapshot.checkedAt,
     }).catch(() => undefined);
+    if (
+      Number(baseProduct.price || 0) !== liveSnapshot.price ||
+      Number(baseProduct.marketPrice || 0) !== liveSnapshot.marketPrice
+    ) {
+      const index = data.storeProducts.findIndex((item) => item.id === baseProduct.id);
+      if (index >= 0) {
+        data.storeProducts[index] = {
+          ...baseProduct,
+          price: liveSnapshot.price,
+          marketPrice: liveSnapshot.marketPrice,
+          priceMultiplier: liveSnapshot.priceMultiplier,
+          priceUpdatedAt: liveSnapshot.checkedAt.slice(0, 10),
+          shippingNote: "قیمت هنگام نمایش دوباره بررسی شد",
+        };
+        await writeOptiBidData(data).catch(() => undefined);
+      }
+    }
   }
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();

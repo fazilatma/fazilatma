@@ -4946,7 +4946,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_lib_192m98p._.js": {
-      "bytes": 81678,
+      "bytes": 81701,
       "imports": [],
       "format": "cjs"
     },
@@ -6733,7 +6733,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2221278,
+      "bytes": 2222045,
       "imports": [],
       "format": "cjs"
     },
@@ -9422,7 +9422,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_0c6sgbx._.js": {
-      "bytes": 29453,
+      "bytes": 29850,
       "imports": [],
       "format": "cjs"
     },
@@ -18267,7 +18267,7 @@
           "bytesInOutput": 41566
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_lib_192m98p._.js": {
-          "bytesInOutput": 118721
+          "bytesInOutput": 118744
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0f90i_z._.js": {
           "bytesInOutput": 7495
@@ -18513,7 +18513,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2705388
+          "bytesInOutput": 2706263
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__16j9orb._.js": {
           "bytesInOutput": 8309
@@ -19056,7 +19056,7 @@
           "bytesInOutput": 23339
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_0c6sgbx._.js": {
-          "bytesInOutput": 36111
+          "bytesInOutput": 36629
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_1wh07qe._.js": {
           "bytesInOutput": 30667
@@ -19599,7 +19599,7 @@
           "bytesInOutput": 74619
         }
       },
-      "bytes": 10058429
+      "bytes": 10059845
     }
   }
 }
