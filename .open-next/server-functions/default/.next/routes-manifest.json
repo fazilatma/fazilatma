@@ -320,6 +320,12 @@
       "namedRegex": "^/api/download\\-source(?:/)?$"
     },
     {
+      "page": "/api/enamad",
+      "regex": "^/api/enamad(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/enamad(?:/)?$"
+    },
+    {
       "page": "/api/external-link",
       "regex": "^/api/external\\-link(?:/)?$",
       "routeKeys": {},

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getOptiBidData, writeOptiBidData } from "@/lib/json-store";
+import { getEnamadSettings, saveEnamadSettings } from "@/lib/enamad-settings";
 import { removeProductImageFile, saveProductImageFile } from "@/lib/product-image-storage";
+import { normalizeProductImageAttachments } from "@/lib/product-image-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -19,23 +20,13 @@ function safeHttpUrl(value: unknown) {
 }
 
 export async function GET() {
-  const data = await getOptiBidData();
-  return NextResponse.json({
-    success: true,
-    settings: {
-      enamadEnabled: data.settings.enamadEnabled,
-      enamadTitle: data.settings.enamadTitle,
-      enamadVerificationUrl: data.settings.enamadVerificationUrl,
-      enamadLogoUrl: data.settings.enamadLogoUrl,
-      enamadLogoImage: data.settings.enamadLogoImage,
-    },
-  });
+  return NextResponse.json({ success: true, settings: await getEnamadSettings() });
 }
 
 export async function POST(request: Request) {
   try {
     const form = await request.formData();
-    const data = await getOptiBidData();
+    const current = await getEnamadSettings();
     const verificationInput = String(form.get("verificationUrl") || "").trim();
     const logoUrlInput = String(form.get("logoUrl") || "").trim();
     const verificationUrl = safeHttpUrl(verificationInput);
@@ -47,27 +38,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "آدرس اینترنتی لوگوی اینماد معتبر نیست." }, { status: 400 });
     }
 
+    let logoImage = current.logoImage;
+    if (!logoImage) {
+      try {
+        const existing = JSON.parse(String(form.get("existingLogoImage") || "null"));
+        logoImage = normalizeProductImageAttachments(existing ? [existing] : [])[0];
+      } catch {
+        logoImage = undefined;
+      }
+    }
     const logoFile = asFile(form.get("logoFile"));
     if (logoFile) {
-      const previous = data.settings.enamadLogoImage;
-      data.settings.enamadLogoImage = await saveProductImageFile(logoFile, "seller");
+      const previous = logoImage;
+      logoImage = await saveProductImageFile(logoFile, "seller");
       if (previous?.storedName) await removeProductImageFile(previous.storedName);
     }
     if (String(form.get("removeUploadedLogo") || "") === "true") {
-      const previous = data.settings.enamadLogoImage;
-      data.settings.enamadLogoImage = undefined;
+      const previous = logoImage;
+      logoImage = undefined;
       if (previous?.storedName) await removeProductImageFile(previous.storedName);
     }
 
-    data.settings.enamadEnabled = String(form.get("enabled") || "") === "true";
-    data.settings.enamadTitle = String(form.get("title") || "نماد اعتماد الکترونیکی").trim().slice(0, 100) || "نماد اعتماد الکترونیکی";
-    data.settings.enamadVerificationUrl = verificationUrl;
-    data.settings.enamadLogoUrl = logoUrl;
-    await writeOptiBidData(data);
+    const settings = await saveEnamadSettings({
+      enabled: String(form.get("enabled") || "") === "true",
+      title: String(form.get("title") || "نماد اعتماد الکترونیکی").trim().slice(0, 100) || "نماد اعتماد الکترونیکی",
+      verificationUrl,
+      logoUrl,
+      ...(logoImage ? { logoImage } : {}),
+    });
 
     return NextResponse.json({
       success: true,
-      settings: data.settings,
+      settings: {
+        enamadEnabled: settings.enabled,
+        enamadTitle: settings.title,
+        enamadVerificationUrl: settings.verificationUrl,
+        enamadLogoUrl: settings.logoUrl,
+        enamadLogoImage: settings.logoImage,
+      },
       message: "تنظیمات لوگو و لینک اینماد ذخیره شد.",
     });
   } catch (error) {

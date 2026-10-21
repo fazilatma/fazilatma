@@ -31,6 +31,7 @@
   "/api/dashboard/seller/route": "/api/dashboard/seller",
   "/api/database-status/route": "/api/database-status",
   "/api/download-source/route": "/api/download-source",
+  "/api/enamad/route": "/api/enamad",
   "/api/external-link/route": "/api/external-link",
   "/api/health/route": "/api/health",
   "/api/live-content/route": "/api/live-content",

@@ -31,6 +31,7 @@
   "/api/dashboard/seller/route": "app/api/dashboard/seller/route.js",
   "/api/database-status/route": "app/api/database-status/route.js",
   "/api/download-source/route": "app/api/download-source/route.js",
+  "/api/enamad/route": "app/api/enamad/route.js",
   "/api/external-link/route": "app/api/external-link/route.js",
   "/api/health/route": "app/api/health/route.js",
   "/api/live-content/route": "app/api/live-content/route.js",

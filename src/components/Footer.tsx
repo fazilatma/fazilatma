@@ -18,7 +18,7 @@ export default function Footer() {
   const [enamad, setEnamad] = useState<EnamadSettings | null>(null);
 
   useEffect(() => {
-    fetch("/api/site-mode", { cache: "no-store" })
+    fetch("/api/enamad", { cache: "no-store" })
       .then((response) => response.json())
       .then((result) => setEnamad(result?.enamad || null))
       .catch(() => undefined);

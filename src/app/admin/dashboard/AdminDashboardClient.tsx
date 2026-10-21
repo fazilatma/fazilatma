@@ -755,11 +755,12 @@ export default function AdminDashboardClient({
       payload.append("verificationUrl", String(platformFinance.enamadVerificationUrl || ""));
       payload.append("logoUrl", String(platformFinance.enamadLogoUrl || ""));
       payload.append("removeUploadedLogo", String(removeUploadedEnamadLogo));
+      if (platformFinance.enamadLogoImage) payload.append("existingLogoImage", JSON.stringify(platformFinance.enamadLogoImage));
       if (enamadLogoFile) payload.append("logoFile", enamadLogoFile);
       const response = await fetch("/api/admin/enamad", { method: "POST", body: payload });
       const result = await response.json();
       if (!result.success) throw new Error(result.message || "ذخیره اینماد ناموفق بود.");
-      setPlatformFinance(result.settings);
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
       setEnamadLogoFile(null);
       setRemoveUploadedEnamadLogo(false);
       alert(result.message || "تنظیمات اینماد ذخیره شد.");
