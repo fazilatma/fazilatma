@@ -19,12 +19,21 @@ export default function StorefrontHome({
   heroDurationSeconds,
   laptopCatalogEnabled = true,
   computerPartsCatalogEnabled = false,
+  reverseAuctionPilot,
 }: {
   products: JsonStoreProduct[];
   heroSlides?: HomepageImageSliderSlide[];
   heroDurationSeconds?: number;
   laptopCatalogEnabled?: boolean;
   computerPartsCatalogEnabled?: boolean;
+  reverseAuctionPilot?: {
+    productCtaEnabled: boolean;
+    quickRequestEnabled: boolean;
+    freeSellerOffersEnabled: boolean;
+    manualDispatchEnabled: boolean;
+    minimumOffersEnabled: boolean;
+    minimumOffersCount: number;
+  };
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
   const bannerProducts = products.filter((product) => Boolean(product.imageUrl)).slice(0, 2);
@@ -101,6 +110,40 @@ export default function StorefrontHome({
           </div>
         </div>
       </section>
+
+      {reverseAuctionPilot?.productCtaEnabled && (
+        <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-gradient-to-l from-[#003b5c] via-[#005f78] to-[#0b9c56] p-6 text-white shadow-lg md:p-8">
+            <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-black text-emerald-50">
+                  پایلوت مزایده معکوس OptiBid
+                </span>
+                <h2 className="mt-4 text-2xl font-black md:text-3xl">
+                  کالا را پیدا کردی؟ از چند فروشنده قیمت رقابتی بگیر
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-8 text-emerald-50/90">
+                  درخواست خریدت را ثبت کن تا فروشندگان مرتبط برای قیمت، گارانتی و زمان تحویل با هم رقابت کنند. انتخاب نهایی همیشه با شماست.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+                  {reverseAuctionPilot.quickRequestEnabled && <span className="rounded-full bg-white/15 px-3 py-2">فرم سریع درخواست</span>}
+                  {reverseAuctionPilot.minimumOffersEnabled && <span className="rounded-full bg-white/15 px-3 py-2">هدف حداقل {reverseAuctionPilot.minimumOffersCount.toLocaleString("fa-IR")} پیشنهاد</span>}
+                  {reverseAuctionPilot.freeSellerOffersEnabled && <span className="rounded-full bg-white/15 px-3 py-2">پیشنهاد رایگان برای فروشندگان</span>}
+                  {reverseAuctionPilot.manualDispatchEnabled && <span className="rounded-full bg-white/15 px-3 py-2">ارجاع هوشمند و دستی</span>}
+                </div>
+              </div>
+              <div className="flex min-w-56 flex-col gap-3">
+                <Link href="/request-purchase" className="rounded-2xl bg-white px-6 py-4 text-center text-sm font-black text-[#003b5c] transition hover:-translate-y-0.5 hover:bg-emerald-50">
+                  ثبت درخواست و دریافت قیمت
+                </Link>
+                <Link href="/become-seller" className="rounded-2xl border border-white/40 bg-white/10 px-6 py-3 text-center text-sm font-black text-white transition hover:bg-white/20">
+                  عضویت فروشندگان
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">

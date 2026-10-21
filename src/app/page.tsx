@@ -110,6 +110,14 @@ export default async function HomePage() {
   let storeHeroDurationSeconds = 5;
   let storeLaptopCatalogEnabled = false;
   let storeComputerPartsCatalogEnabled = true;
+  let reverseAuctionPilot = {
+    productCtaEnabled: false,
+    quickRequestEnabled: false,
+    freeSellerOffersEnabled: false,
+    manualDispatchEnabled: false,
+    minimumOffersEnabled: false,
+    minimumOffersCount: 3,
+  };
   let amazingSettings = {
     enabled: true,
     durationHours: 6,
@@ -200,6 +208,14 @@ export default async function HomePage() {
     siteMode = data.settings.siteMode === "request" ? "request" : "store";
     storeLaptopCatalogEnabled = data.settings.storeLaptopCatalogEnabled;
     storeComputerPartsCatalogEnabled = data.settings.storeComputerPartsCatalogEnabled;
+    reverseAuctionPilot = {
+      productCtaEnabled: data.settings.reverseAuctionProductCtaEnabled,
+      quickRequestEnabled: data.settings.reverseAuctionQuickRequestEnabled,
+      freeSellerOffersEnabled: data.settings.reverseAuctionFreeSellerOffersEnabled,
+      manualDispatchEnabled: data.settings.reverseAuctionManualDispatchEnabled,
+      minimumOffersEnabled: data.settings.reverseAuctionMinimumOffersEnabled,
+      minimumOffersCount: data.settings.reverseAuctionMinimumOffersCount,
+    };
     storeProducts = filterProductsByCatalogSections(
       (data.storeProducts || []).filter(
         (product) => product.isActive && product.stock > 0,
@@ -392,6 +408,7 @@ export default async function HomePage() {
         heroDurationSeconds={storeHeroDurationSeconds}
         laptopCatalogEnabled={storeLaptopCatalogEnabled}
         computerPartsCatalogEnabled={storeComputerPartsCatalogEnabled}
+        reverseAuctionPilot={reverseAuctionPilot}
       />
     );
   }

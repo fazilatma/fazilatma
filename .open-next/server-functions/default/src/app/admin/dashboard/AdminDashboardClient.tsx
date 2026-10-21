@@ -2544,7 +2544,7 @@ export default function AdminDashboardClient({
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     {[
-                      ["reverseAuctionProductCtaEnabled", "دکمه دریافت پیشنهاد در صفحه محصول", "خریدار از صفحات سئوشده فروشگاه وارد مسیر درخواست قیمت می‌شود."],
+                      ["reverseAuctionProductCtaEnabled", "ورودی مزایده در صفحه اصلی و صفحه محصول", "بنر مزایده در صفحه اصلی و دکمه دریافت پیشنهاد در صفحات محصول نمایش داده می‌شود."],
                       ["reverseAuctionQuickRequestEnabled", "فرم سریع و ازپیش‌پرشده", "مدل، بودجه و توضیح محصول به فرم درخواست خرید منتقل می‌شود."],
                       ["reverseAuctionFreeSellerOffersEnabled", "پیشنهاد رایگان فروشندگان", "در دوره پایلوت، ثبت و ویرایش پیشنهاد برای فروشنده رایگان اعلام می‌شود."],
                       ["reverseAuctionManualDispatchEnabled", "ارجاع دستی درخواست به فروشندگان", "ادمین درخواست‌های مهم را مستقیماً برای فروشندگان منتخب ارسال می‌کند."],
