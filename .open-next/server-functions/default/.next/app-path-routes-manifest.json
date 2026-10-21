@@ -5,6 +5,7 @@
   "/admin/dashboard/page": "/admin/dashboard",
   "/api/account/seller-mode/route": "/api/account/seller-mode",
   "/api/admin/categories/route": "/api/admin/categories",
+  "/api/admin/enamad/route": "/api/admin/enamad",
   "/api/admin/finance/route": "/api/admin/finance",
   "/api/admin/homepage-slider/route": "/api/admin/homepage-slider",
   "/api/admin/kyc-document/route": "/api/admin/kyc-document",

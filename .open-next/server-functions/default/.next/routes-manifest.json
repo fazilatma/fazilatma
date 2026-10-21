@@ -176,6 +176,12 @@
       "namedRegex": "^/api/admin/categories(?:/)?$"
     },
     {
+      "page": "/api/admin/enamad",
+      "regex": "^/api/admin/enamad(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/enamad(?:/)?$"
+    },
+    {
       "page": "/api/admin/finance",
       "regex": "^/api/admin/finance(?:/)?$",
       "routeKeys": {},

@@ -847,6 +847,11 @@ export type OptiBidJsonData = {
     reverseAuctionManualDispatchEnabled: boolean;
     reverseAuctionMinimumOffersEnabled: boolean;
     reverseAuctionMinimumOffersCount: number;
+    enamadEnabled: boolean;
+    enamadTitle: string;
+    enamadVerificationUrl: string;
+    enamadLogoUrl: string;
+    enamadLogoImage?: ProductImageAttachment;
     storeHeroSliderEnabled: boolean;
     storeHeroSliderDurationSeconds: number;
     storeHeroSliderSlides: HomepageImageSliderSlide[];
@@ -973,6 +978,10 @@ const emptyData = (): OptiBidJsonData => ({
     reverseAuctionManualDispatchEnabled: false,
     reverseAuctionMinimumOffersEnabled: false,
     reverseAuctionMinimumOffersCount: 3,
+    enamadEnabled: false,
+    enamadTitle: "نماد اعتماد الکترونیکی",
+    enamadVerificationUrl: "",
+    enamadLogoUrl: "",
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: defaultStoreHeroSliderSlides,
@@ -1558,6 +1567,24 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           )),
         ),
       ),
+      enamadEnabled:
+        (parsed.settings as { enamadEnabled?: boolean } | undefined)?.enamadEnabled === true,
+      enamadTitle: String(
+        (parsed.settings as { enamadTitle?: string } | undefined)?.enamadTitle ||
+          "نماد اعتماد الکترونیکی",
+      ).trim().slice(0, 100),
+      enamadVerificationUrl: String(
+        (parsed.settings as { enamadVerificationUrl?: string } | undefined)
+          ?.enamadVerificationUrl || "",
+      ).trim().slice(0, 1000),
+      enamadLogoUrl: String(
+        (parsed.settings as { enamadLogoUrl?: string } | undefined)?.enamadLogoUrl || "",
+      ).trim().slice(0, 1000),
+      enamadLogoImage: normalizeProductImageAttachments(
+        (parsed.settings as { enamadLogoImage?: unknown } | undefined)?.enamadLogoImage
+          ? [(parsed.settings as { enamadLogoImage?: unknown }).enamadLogoImage]
+          : [],
+      )[0],
       storeHeroSliderEnabled:
         (parsed.settings as { storeHeroSliderEnabled?: boolean } | undefined)
           ?.storeHeroSliderEnabled !== false,
@@ -4661,6 +4688,13 @@ export async function getJsonStoreCatalogSettings() {
       manualDispatchEnabled: data.settings.reverseAuctionManualDispatchEnabled,
       minimumOffersEnabled: data.settings.reverseAuctionMinimumOffersEnabled,
       minimumOffersCount: data.settings.reverseAuctionMinimumOffersCount,
+    },
+    enamad: {
+      enabled: data.settings.enamadEnabled,
+      title: data.settings.enamadTitle,
+      verificationUrl: data.settings.enamadVerificationUrl,
+      logoUrl: data.settings.enamadLogoUrl,
+      logoImage: data.settings.enamadLogoImage,
     },
   };
 }

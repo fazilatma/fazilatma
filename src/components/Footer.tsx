@@ -1,13 +1,33 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { DEFAULT_LIVE_CONTENT } from "@/lib/live-content";
+import { productImageUrl, type ProductImageAttachment } from "@/lib/product-image-shared";
+
+type EnamadSettings = {
+  enabled: boolean;
+  title: string;
+  verificationUrl: string;
+  logoUrl: string;
+  logoImage?: ProductImageAttachment;
+};
 
 export default function Footer() {
   const liveContent = DEFAULT_LIVE_CONTENT;
+  const [enamad, setEnamad] = useState<EnamadSettings | null>(null);
+
+  useEffect(() => {
+    fetch("/api/site-mode", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => setEnamad(result?.enamad || null))
+      .catch(() => undefined);
+  }, []);
 
   return (
     <footer className="bg-gray-900 text-white" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
           {/* About */}
           <div>
             <div className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
@@ -240,6 +260,32 @@ export default function Footer() {
               </li>
             </ul>
           </div>
+
+          {enamad?.enabled && (
+            <div>
+              <div className="mb-4 font-bold">اعتماد و مجوزها</div>
+              <a
+                href={enamad.verificationUrl || "#"}
+                target={enamad.verificationUrl ? "_blank" : undefined}
+                rel="noopener noreferrer"
+                aria-label={enamad.title || "نماد اعتماد الکترونیکی"}
+                className="inline-flex min-h-32 w-32 items-center justify-center rounded-2xl bg-white p-3 text-center text-xs font-black text-slate-700 shadow-lg transition hover:-translate-y-1"
+              >
+                {enamad.logoImage || enamad.logoUrl ? (
+                  <img
+                    src={enamad.logoImage ? productImageUrl(enamad.logoImage) : enamad.logoUrl}
+                    alt={enamad.title || "لوگوی نماد اعتماد الکترونیکی"}
+                    className="max-h-28 max-w-full object-contain"
+                  />
+                ) : (
+                  <span>نماد اعتماد الکترونیکی</span>
+                )}
+              </a>
+              <p className="mt-3 text-xs leading-6 text-gray-400">
+                {enamad.title || "نماد اعتماد الکترونیکی"}
+              </p>
+            </div>
+          )}
         </div>
 
 

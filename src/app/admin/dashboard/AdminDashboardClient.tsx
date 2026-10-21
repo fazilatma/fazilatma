@@ -323,6 +323,11 @@ export default function AdminDashboardClient({
     reverseAuctionManualDispatchEnabled: false,
     reverseAuctionMinimumOffersEnabled: false,
     reverseAuctionMinimumOffersCount: 3,
+    enamadEnabled: false,
+    enamadTitle: "نماد اعتماد الکترونیکی",
+    enamadVerificationUrl: "",
+    enamadLogoUrl: "",
+    enamadLogoImage: undefined as any,
     storeHeroSliderEnabled: true,
     storeHeroSliderDurationSeconds: 5,
     storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
@@ -421,6 +426,9 @@ export default function AdminDashboardClient({
   const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
   const [priceRefreshWarnings, setPriceRefreshWarnings] = useState<string[]>([]);
   const [savingReverseAuctionPilot, setSavingReverseAuctionPilot] = useState(false);
+  const [enamadLogoFile, setEnamadLogoFile] = useState<File | null>(null);
+  const [removeUploadedEnamadLogo, setRemoveUploadedEnamadLogo] = useState(false);
+  const [savingEnamad, setSavingEnamad] = useState(false);
   const [dispatchData, setDispatchData] = useState<{ requests: any[]; sellers: any[] }>({ requests: [], sellers: [] });
   const [dispatchRequestId, setDispatchRequestId] = useState(0);
   const [dispatchSellerIds, setDispatchSellerIds] = useState<number[]>([]);
@@ -735,6 +743,30 @@ export default function AdminDashboardClient({
       alert(error instanceof Error ? error.message : "ارجاع درخواست ناموفق بود.");
     } finally {
       setDispatchingRequest(false);
+    }
+  };
+
+  const saveEnamadSettings = async () => {
+    setSavingEnamad(true);
+    try {
+      const payload = new FormData();
+      payload.append("enabled", String(Boolean(platformFinance.enamadEnabled)));
+      payload.append("title", String(platformFinance.enamadTitle || ""));
+      payload.append("verificationUrl", String(platformFinance.enamadVerificationUrl || ""));
+      payload.append("logoUrl", String(platformFinance.enamadLogoUrl || ""));
+      payload.append("removeUploadedLogo", String(removeUploadedEnamadLogo));
+      if (enamadLogoFile) payload.append("logoFile", enamadLogoFile);
+      const response = await fetch("/api/admin/enamad", { method: "POST", body: payload });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره اینماد ناموفق بود.");
+      setPlatformFinance(result.settings);
+      setEnamadLogoFile(null);
+      setRemoveUploadedEnamadLogo(false);
+      alert(result.message || "تنظیمات اینماد ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره اینماد ناموفق بود.");
+    } finally {
+      setSavingEnamad(false);
     }
   };
 
@@ -1697,6 +1729,12 @@ export default function AdminDashboardClient({
                   💵 تنظیمات مالی و کمیسیون
                 </button>
                 <button
+                  onClick={() => setActiveTab("enamad")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "enamad" ? "bg-blue-50 text-blue-700 border-r-4 border-r-blue-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🛡️ اینماد و مجوزها
+                </button>
+                <button
                   onClick={() => setActiveTab("socialAuth")}
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "socialAuth" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
@@ -2436,6 +2474,62 @@ export default function AdminDashboardClient({
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "enamad" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <section className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+                  <div className="mb-5 border-b border-blue-100 pb-4">
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">اعتماد و مجوزها</span>
+                    <h2 className="mt-3 text-2xl font-black text-slate-900">لوگوی نماد اعتماد الکترونیکی</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">لوگوی اینماد را آپلود کنید یا آدرس رسمی تصویر را وارد کنید. با ثبت لینک اعتبارسنجی، کلیک روی لوگو کاربر را به صفحه رسمی اعتبار نماد هدایت می‌کند.</p>
+                  </div>
+
+                  <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                    <span><b className="block text-sm text-slate-900">نمایش اینماد در فوتر سایت</b><span className="mt-1 block text-xs text-slate-500">تا قبل از تکمیل لوگو و لینک می‌توانید این گزینه را خاموش نگه دارید.</span></span>
+                    <input type="checkbox" checked={Boolean(platformFinance.enamadEnabled)} onChange={(event) => updatePlatformFinanceField("enamadEnabled", event.target.checked)} className="h-5 w-5" />
+                  </label>
+
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <label className="text-sm font-black text-slate-700">عنوان نمایشی
+                      <input value={platformFinance.enamadTitle || ""} onChange={(event) => updatePlatformFinanceField("enamadTitle", event.target.value)} placeholder="نماد اعتماد الکترونیکی" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal" />
+                    </label>
+                    <label className="text-sm font-black text-slate-700">لینک رسمی اعتبارسنجی اینماد
+                      <input type="url" dir="ltr" value={platformFinance.enamadVerificationUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadVerificationUrl", event.target.value)} placeholder="https://trustseal.enamad.ir/..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
+                    </label>
+                    <label className="text-sm font-black text-slate-700 md:col-span-2">آدرس رسمی تصویر لوگو (اختیاری)
+                      <input type="url" dir="ltr" value={platformFinance.enamadLogoUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadLogoUrl", event.target.value)} placeholder="https://trustseal.enamad.ir/logo.aspx?..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
+                      <span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">اگر فایل لوگو آپلود شود، فایل آپلودی نسبت به این آدرس اولویت دارد.</span>
+                    </label>
+                    <label className="text-sm font-black text-slate-700 md:col-span-2">آپلود فایل لوگو
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setEnamadLogoFile(event.target.files?.[0] || null); setRemoveUploadedEnamadLogo(false); }} className="mt-2 block w-full rounded-xl border border-dashed border-blue-300 bg-blue-50 px-4 py-4 text-sm font-normal" />
+                    </label>
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-4 rounded-2xl bg-slate-50 p-4 sm:flex-row sm:items-center">
+                    <div className="grid h-36 w-36 shrink-0 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-3">
+                      {enamadLogoFile ? (
+                        <span className="text-center text-xs font-bold text-blue-700">فایل جدید: {enamadLogoFile.name}</span>
+                      ) : platformFinance.enamadLogoImage && !removeUploadedEnamadLogo ? (
+                        <img src={productImageUrl(platformFinance.enamadLogoImage)} alt="پیش‌نمایش لوگوی اینماد" className="max-h-full max-w-full object-contain" />
+                      ) : platformFinance.enamadLogoUrl ? (
+                        <img src={platformFinance.enamadLogoUrl} alt="پیش‌نمایش لوگوی اینماد" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <span className="text-center text-xs text-slate-400">هنوز لوگویی ثبت نشده است</span>
+                      )}
+                    </div>
+                    <div className="text-xs leading-6 text-slate-600">
+                      <b className="block text-sm text-slate-900">پیش‌نمایش فوتر</b>
+                      <span>فرمت‌های مجاز: JPG، PNG و WebP؛ حداکثر ۵ مگابایت.</span>
+                      {platformFinance.enamadLogoImage && (
+                        <label className="mt-3 flex items-center gap-2 font-bold text-red-600"><input type="checkbox" checked={removeUploadedEnamadLogo} onChange={(event) => setRemoveUploadedEnamadLogo(event.target.checked)} /> حذف فایل آپلودشده فعلی</label>
+                      )}
+                    </div>
+                  </div>
+
+                  <button type="button" disabled={savingEnamad} onClick={saveEnamadSettings} className="mt-5 rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:bg-slate-300">{savingEnamad ? "در حال ذخیره..." : "ذخیره و نمایش اینماد"}</button>
+                </section>
               </div>
             )}
 

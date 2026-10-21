@@ -14,6 +14,7 @@ export async function GET() {
     storeLaptopCatalogEnabled: catalog.laptopEnabled,
     storeComputerPartsCatalogEnabled: catalog.computerPartsEnabled,
     reverseAuction: catalog.reverseAuction,
+    enamad: catalog.enamad,
     label: siteMode === "store" ? "فروشگاه اینترنتی" : "درخواست خرید",
   });
 }
