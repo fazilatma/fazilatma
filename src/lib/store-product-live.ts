@@ -112,7 +112,8 @@ function strongModelTokens(value: string) {
     .replace(/[^a-z0-9آ-ی-]+/g, " ")
     .split(/\s+/)
     .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
-    .filter((token) => !/^\d+(?:gb|tb|w|mhz|rpm)$/.test(token));
+    .filter((token) => !/^\d+(?:gb|tb|w|mhz|rpm)$/.test(token))
+    .filter((token) => !/^(?:gddr\d+x?|ddr\d|pcie\d*|sata\d*|usb\d*)$/.test(token));
 }
 
 function packageKind(value: string) {
@@ -120,6 +121,20 @@ function packageKind(value: string) {
   if (/\btray\b|بدون جعبه/.test(normalized)) return "tray";
   if (/\bbox\b|با جعبه/.test(normalized)) return "box";
   return "";
+}
+
+function capacityTokens(value: string) {
+  const normalized = toEnglishDigits(value)
+    .toLowerCase()
+    .replace(/(\d+)\s*گیگابایت/g, "$1gb")
+    .replace(/(\d+)\s*ترابایت/g, "$1tb");
+  return [...normalized.matchAll(/\b(\d+(?:\.\d+)?)\s*(gb|tb)\b/g)]
+    .map((match) => `${match[1]}${match[2]}`)
+    .filter((token, index, items) => items.indexOf(token) === index);
+}
+
+function isDefectiveMarketListing(value: string) {
+  return /خراب|معیوب|اوراق|برای تعمیر|قطعاتی|صفحه\s*سیاه|شطرنجی|کرش|بدون تصویر|no\s*display|defective|for\s*parts/i.test(value);
 }
 
 function torobComparablePrice(html: string, productTitle: string) {
@@ -155,6 +170,7 @@ function torobComparableJsonPrice(payload: Record<string, any>, productTitle: st
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return 0;
   const requiredPackage = packageKind(productTitle);
+  const requiredCapacities = capacityTokens(productTitle);
   const results = Array.isArray(payload?.results)
     ? payload.results
     : Array.isArray(payload?.data?.results)
@@ -163,10 +179,13 @@ function torobComparableJsonPrice(payload: Record<string, any>, productTitle: st
   const prices: number[] = [];
   for (const result of results) {
     const title = `${String(result?.name1 || "")} ${String(result?.name2 || "")}`.trim();
+    if (isDefectiveMarketListing(title)) continue;
     const candidateTokens = new Set(strongModelTokens(title));
     if (!requiredTokens.every((token) => candidateTokens.has(token))) continue;
     const candidatePackage = packageKind(title);
     if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
+    const candidateCapacities = new Set(capacityTokens(title));
+    if (requiredCapacities.length && !requiredCapacities.every((token) => candidateCapacities.has(token))) continue;
     const price = Math.round(Number(result?.price || 0));
     if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
   }
@@ -328,6 +347,7 @@ function digikalaComparablePrice(payload: Record<string, any>, productTitle: str
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return 0;
   const requiredPackage = packageKind(productTitle);
+  const requiredCapacities = capacityTokens(productTitle);
   const products = Array.isArray(payload?.data?.products)
     ? payload.data.products
     : Array.isArray(payload?.products)
@@ -342,6 +362,8 @@ function digikalaComparablePrice(payload: Record<string, any>, productTitle: str
     if (!requiredTokens.every((token) => candidateTokens.has(token))) continue;
     const candidatePackage = packageKind(title);
     if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
+    const candidateCapacities = new Set(capacityTokens(title));
+    if (requiredCapacities.length && !requiredCapacities.every((token) => candidateCapacities.has(token))) continue;
     const rawPrice = Number(
       candidate?.default_variant?.price?.selling_price ||
       candidate?.price?.selling_price ||

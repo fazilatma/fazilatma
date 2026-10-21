@@ -8,7 +8,6 @@ import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import {
   getJsonStoreProductBySlug,
   getOptiBidData,
-  writeOptiBidData,
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
@@ -119,22 +118,6 @@ export default async function StoreProductPage({
     data.settings.storePriceMultiplier,
   );
   const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
-  const shouldPersistLivePrice = Boolean(
-    liveSnapshot?.price && (
-      Number(storedProduct.price || 0) !== Number(product.price || 0) ||
-      Number(storedProduct.marketPrice || 0) !== Number(product.marketPrice || 0) ||
-      Number(storedProduct.priceMultiplier || 1) !== Number(product.priceMultiplier || 1)
-    ),
-  );
-  if (shouldPersistLivePrice) {
-    const storedIndex = data.storeProducts.findIndex((item) => item.id === storedProduct.id);
-    if (storedIndex >= 0) {
-      data.storeProducts[storedIndex] = product;
-      // قیمت زندهٔ تأییدشده فقط هنگام تغییر ذخیره می‌شود تا کارت‌ها، صفحهٔ محصول
-      // و سبد خرید همگی همان «کمترین قیمت × ضریب» را نمایش دهند.
-      await writeOptiBidData(data).catch(() => undefined);
-    }
-  }
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";

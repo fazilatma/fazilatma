@@ -1197,7 +1197,6 @@ module.exports = (sourcePath)=>({
       case "server/chunks/ssr/src_0c6sgbx._.js": return require("/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/src_0c6sgbx._.js");
       case "server/chunks/ssr/src_1wh07qe._.js": return require("/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/src_1wh07qe._.js");
       case "server/chunks/ssr/src_components_0z6b3rr._.js": return require("/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/src_components_0z6b3rr._.js");
-      case "server/chunks/ssr/src_lib_store-product-live_ts_0ew6wnc._.js": return require("/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/src_lib_store-product-live_ts_0ew6wnc._.js");
       case "server/chunks/ssr/[root-of-the-server]__209vhr9._.js": return require("/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__209vhr9._.js");
       case "server/chunks/ssr/_next-internal_server_app_shop_collections_[slug]_page_actions_0aq9van.js": return require("/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/_next-internal_server_app_shop_collections_[slug]_page_actions_0aq9van.js");
       case "server/chunks/ssr/node_modules_next_dist_esm_build_templates_app-page_1uqmh74.js": return require("/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/node_modules_next_dist_esm_build_templates_app-page_1uqmh74.js");

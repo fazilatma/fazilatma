@@ -4,7 +4,7 @@ import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/Laptop
 import StoreProductCard from "@/components/StoreProductCard";
 import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
-import { getOptiBidData, writeOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
+import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import {
   filterProductsByCatalogSections,
   isComputerPartsCatalogProduct,
@@ -14,7 +14,6 @@ import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
-import { getLiveStoreProductPriceSnapshot } from "@/lib/store-product-live";
 
 export const dynamic = "force-dynamic";
 
@@ -480,42 +479,6 @@ export async function generateMetadata({
   });
 }
 
-async function repairSuspiciousVisiblePrices(
-  products: JsonStoreProduct[],
-  multiplier: number,
-) {
-  const repaired = [...products];
-  const targets = products
-    .map((product, index) => ({ product, index }))
-    .filter(({ product }) => isSuspiciousStoreProductPrice(product))
-    .slice(0, 2);
-
-  // در هر لحظه فقط دو محصول بررسی می‌شوند تا سقف subrequest ورکر Cloudflare رد نشود.
-  for (let offset = 0; offset < targets.length; offset += 2) {
-    const batch = targets.slice(offset, offset + 2);
-    const snapshots = await Promise.all(
-      batch.map(({ product }) => getLiveStoreProductPriceSnapshot(product, multiplier)),
-    );
-    snapshots.forEach((snapshot, batchIndex) => {
-      if (!snapshot?.price) return;
-      const target = batch[batchIndex];
-      repaired[target.index] = {
-        ...target.product,
-        price: snapshot.price,
-        marketPrice: snapshot.marketPrice || target.product.marketPrice,
-        priceMultiplier: snapshot.priceMultiplier || target.product.priceMultiplier,
-        originalPrice:
-          snapshot.originalPrice && snapshot.originalPrice > snapshot.price
-            ? snapshot.originalPrice
-            : undefined,
-        priceUpdatedAt: snapshot.checkedAt.slice(0, 10),
-        shippingNote: "قیمت هنگام نمایش دوباره بررسی شد",
-      };
-    });
-  }
-  return repaired;
-}
-
 export default async function ShopPage({
   searchParams,
 }: {
@@ -530,47 +493,18 @@ export default async function ShopPage({
       computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
     },
   );
-  const filteredProducts = products.filter((product) => matchesFilter(product, params));
+  // صفحه فهرست هیچ درخواست خارجی یا نوشتن KV انجام نمی‌دهد؛ قیمت‌های مشکوک تا
+  // زمان تأیید توسط ربات مدیریت نمایش داده نمی‌شوند تا ورکر سبک و پایدار بماند.
+  const filteredProducts = products.filter(
+    (product) => matchesFilter(product, params) && !isSuspiciousStoreProductPrice(product),
+  );
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
   const pageSize = 60;
   const requestedPage = Math.max(1, Math.floor(Number(getParam(params, "page") || 1)));
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
   const pageStart = (currentPage - 1) * pageSize;
-  const storedVisibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
-  const checkedVisibleProducts = await repairSuspiciousVisiblePrices(
-    storedVisibleProducts,
-    data.settings.storePriceMultiplier,
-  );
-  const verifiedRepairs = checkedVisibleProducts.filter((product, index) =>
-    isSuspiciousStoreProductPrice(storedVisibleProducts[index]) &&
-    !isSuspiciousStoreProductPrice(product),
-  );
-  if (verifiedRepairs.length) {
-    const repairById = new Map(verifiedRepairs.map((product) => [product.id, product]));
-    data.storeProducts = data.storeProducts.map((product) => {
-      const repaired = repairById.get(product.id);
-      return repaired
-        ? {
-            ...product,
-            price: repaired.price,
-            marketPrice: repaired.marketPrice,
-            priceMultiplier: repaired.priceMultiplier,
-            originalPrice: repaired.originalPrice,
-            priceUpdatedAt: repaired.priceUpdatedAt,
-            shippingNote: repaired.shippingNote,
-          }
-        : product;
-    });
-    // همه قیمت‌های خراب همین صفحه با یک بار نوشتن ذخیره می‌شوند؛ درخواست بعدی
-    // دیگر برای این کالاها اسکن خارجی یا نمایش قیمت قدیمی نخواهد داشت.
-    await writeOptiBidData(data).catch(() => undefined);
-  }
-  // کالایی که هنوز قیمت معتبر نگرفته، به‌جای عدد عجیب یا وضعیت نیمه‌کاره
-  // موقتاً از لیست خرید کنار می‌رود و پس از ثبت قیمت معتبر دوباره ظاهر می‌شود.
-  const visibleProducts = checkedVisibleProducts.filter(
-    (product) => !isSuspiciousStoreProductPrice(product),
-  );
+  const visibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize);
   const paginationStart = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
   const paginationPages = Array.from(
     { length: Math.min(5, totalPages) },
