@@ -15,6 +15,11 @@ import { isStorefrontEligibleComputerPart } from "@/lib/store-computer-part-kind
 import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
+  applyStorePriceOverrides,
+  getStorePriceOverrides,
+  saveStorePriceOverride,
+} from "@/lib/store-price-overrides";
+import {
   applyLiveStoreProductSnapshot,
   getLiveStoreProductPriceSnapshot,
 } from "@/lib/store-product-live";
@@ -110,18 +115,31 @@ export default async function StoreProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const data = await getOptiBidData();
-  const storedProduct = data.storeProducts.find((item) => item.slug === slug);
-  if (!storedProduct || !isStorefrontEligibleComputerPart(storedProduct)) notFound();
+  const [data, priceOverrides] = await Promise.all([
+    getOptiBidData(),
+    getStorePriceOverrides(),
+  ]);
+  const baseProduct = data.storeProducts.find((item) => item.slug === slug);
+  if (!baseProduct || !isStorefrontEligibleComputerPart(baseProduct)) notFound();
+  const storedProduct = applyStorePriceOverrides([baseProduct], priceOverrides)[0];
   const liveSnapshot = await getLiveStoreProductPriceSnapshot(
     storedProduct,
     data.settings.storePriceMultiplier,
   );
   const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
+  if (liveSnapshot?.price && liveSnapshot.marketPrice && liveSnapshot.priceMultiplier) {
+    await saveStorePriceOverride(product.id, {
+      price: liveSnapshot.price,
+      marketPrice: liveSnapshot.marketPrice,
+      priceMultiplier: liveSnapshot.priceMultiplier,
+      updatedAt: liveSnapshot.checkedAt,
+    }).catch(() => undefined);
+  }
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
-  const allProducts = data.storeProducts.filter(isStorefrontEligibleComputerPart);
+  const allProducts = applyStorePriceOverrides(data.storeProducts, priceOverrides)
+    .filter(isStorefrontEligibleComputerPart);
   const priceHistoryAsOf = new Date().toISOString();
   const completeSpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 24);
   const liveComments = liveSnapshot?.comments || [];

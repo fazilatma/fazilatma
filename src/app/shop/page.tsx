@@ -14,6 +14,7 @@ import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
+import { applyStorePriceOverrides, getStorePriceOverrides } from "@/lib/store-price-overrides";
 
 export const dynamic = "force-dynamic";
 
@@ -485,9 +486,13 @@ export default async function ShopPage({
   searchParams: Promise<ShopSearchParams>;
 }) {
   const params = await searchParams;
-  const data = await getOptiBidData();
+  const [data, priceOverrides] = await Promise.all([
+    getOptiBidData(),
+    getStorePriceOverrides(),
+  ]);
   const products = filterProductsByCatalogSections(
-    data.storeProducts.filter((product) => product.isActive && product.stock > 0),
+    applyStorePriceOverrides(data.storeProducts, priceOverrides)
+      .filter((product) => product.isActive && product.stock > 0),
     {
       laptopEnabled: data.settings.storeLaptopCatalogEnabled,
       computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
