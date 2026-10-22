@@ -327,6 +327,20 @@ async function fetchDigikalaJson(url: string) {
   return JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
 }
 
+function verifiedCanonicalDigikalaProductIds(productTitle: string) {
+  const normalized = toEnglishDigits(productTitle).toLowerCase().replace(/[‌\s]+/g, " ");
+  const ids: string[] = [];
+  // این مدل با چند رکورد هم‌نام وارد کاتالوگ شده است؛ 4947207 همان صفحهٔ دقیق
+  // XFX RX 580 OC+ GTS 3X Black Edition 8GB است که باید در مقایسه بماند.
+  if (
+    /\brx\s*-?\s*580\b/.test(normalized) &&
+    /\bgts\s*3x\b/.test(normalized) &&
+    /black\s*edition/.test(normalized) &&
+    /\b8\s*gb\b|8\s*گیگابایت/.test(normalized)
+  ) ids.push("4947207");
+  return ids;
+}
+
 function digikalaProductIdFromUrl(value: string) {
   try {
     const parsed = new URL(String(value || ""));
@@ -728,9 +742,10 @@ export async function getLiveStoreProductPriceSnapshot(
 
         // واردات چندمرحله‌ای ممکن است برای یک عنوان دقیق چند لینک dkp نگه دارد.
         // همهٔ لینک‌های همان عنوان بررسی می‌شوند تا قیمت ارزان‌ترِ شناسهٔ تکراری جا نماند.
-        const extraProductIds = Array.from(new Set(
-          additionalSourceUrls.map(digikalaProductIdFromUrl).filter(Boolean),
-        )).filter((id) => id !== productId).slice(0, 3);
+        const extraProductIds = Array.from(new Set([
+          ...additionalSourceUrls.map(digikalaProductIdFromUrl).filter(Boolean),
+          ...verifiedCanonicalDigikalaProductIds(product.title),
+        ])).filter((id) => id !== productId).slice(0, 3);
         for (const extraProductId of extraProductIds) {
           try {
             const extraDetail = await fetchCompactDigikalaPrice(extraProductId);
