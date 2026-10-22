@@ -128,9 +128,9 @@ export default async function StoreProductPage({
   const recentlyVerified =
     Number.isFinite(verifiedAt) &&
     Date.now() - verifiedAt >= 0 &&
-    Date.now() - verifiedAt <= 5 * 60 * 1000;
-  // همان TTL پنج‌دقیقه‌ای کش قیمت زنده را بین تمام isolateها/دامنه‌ها هم اعمال
-  // می‌کنیم تا بازکردن هم‌زمان صفحه دوباره APIهای سنگین بازار را فراخوانی نکند.
+    Date.now() - verifiedAt <= 60 * 1000;
+  // یک کش توزیع‌شدهٔ کوتاه مانع فراخوانی هم‌زمان APIهای بازار می‌شود، اما تغییر
+  // واقعی قیمت حداکثر یک دقیقه بعد دوباره مقایسه خواهد شد.
   const liveSnapshot = recentlyVerified
     ? null
     : await getLiveStoreProductPriceSnapshot(
