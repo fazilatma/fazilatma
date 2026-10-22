@@ -705,6 +705,8 @@ export async function getLiveStoreProductPriceSnapshot(
     let extractedPrice = 0;
     let sourceOriginalPrice = 0;
     let sourcePrice = 0;
+    let torobCurrentPrice = 0;
+    let digikalaCurrentPrice = 0;
     const storedMarketPrice = storedProductMarketPrice(product);
 
     if (isDigikalaProduct) {
@@ -722,7 +724,10 @@ export async function getLiveStoreProductPriceSnapshot(
           product.title,
           marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
         );
-        if (torobPrice > 0) extractedPrice = torobPrice;
+        if (torobPrice > 0) {
+          torobCurrentPrice = torobPrice;
+          extractedPrice = torobPrice;
+        }
       } catch {
         // در ادامه دیجی‌کالا مستقلاً بررسی می‌شود.
       }
@@ -739,6 +744,7 @@ export async function getLiveStoreProductPriceSnapshot(
           const compactDetail = await fetchCompactDigikalaPrice(productId);
           if (marketVariantMatches(product.title, compactDetail.title)) {
             sourcePrice = compactDetail.price;
+            digikalaCurrentPrice = compactDetail.price;
             sourceOriginalPrice = compactDetail.originalPrice;
             if (!extractedPrice || sourcePrice < extractedPrice) extractedPrice = sourcePrice;
           }
@@ -761,6 +767,7 @@ export async function getLiveStoreProductPriceSnapshot(
             ) {
               extractedPrice = extraDetail.price;
               sourcePrice = extraDetail.price;
+              digikalaCurrentPrice = extraDetail.price;
               sourceOriginalPrice = extraDetail.originalPrice;
             }
           } catch {
@@ -771,8 +778,11 @@ export async function getLiveStoreProductPriceSnapshot(
         // ممکن است یک مدل دقیق با چند شناسهٔ dkp ثبت شده باشد؛ کمترین buy-box همهٔ
         // نتایج دقیق صفحهٔ اول نیز به‌صورت stream بررسی می‌شود (بدون parse پاسخ عظیم).
         const digikalaSearchPrice = await fetchCompactDigikalaSearchPrice(product.title);
-        if (digikalaSearchPrice > 0 && (!extractedPrice || digikalaSearchPrice < extractedPrice)) {
-          extractedPrice = digikalaSearchPrice;
+        if (digikalaSearchPrice > 0) {
+          digikalaCurrentPrice = !digikalaCurrentPrice
+            ? digikalaSearchPrice
+            : Math.min(digikalaCurrentPrice, digikalaSearchPrice);
+          if (!extractedPrice || digikalaSearchPrice < extractedPrice) extractedPrice = digikalaSearchPrice;
         }
       }
     } else if (isTorobProduct) {
@@ -781,16 +791,18 @@ export async function getLiveStoreProductPriceSnapshot(
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (torobResult.status === "fulfilled") {
-        extractedPrice = torobComparableJsonPrice(
+        torobCurrentPrice = torobComparableJsonPrice(
           torobResult.value,
           product.title,
           marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
         );
+        extractedPrice = torobCurrentPrice;
       }
       if (digikalaResult.status === "fulfilled") {
         const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
-        if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
-          extractedPrice = digikalaPriceValue;
+        if (digikalaPriceValue > 0) {
+          digikalaCurrentPrice = digikalaPriceValue;
+          if (!extractedPrice || digikalaPriceValue < extractedPrice) extractedPrice = digikalaPriceValue;
         }
       }
     } else {
@@ -801,16 +813,18 @@ export async function getLiveStoreProductPriceSnapshot(
         fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (torobResult.status === "fulfilled") {
-        extractedPrice = torobComparableJsonPrice(
+        torobCurrentPrice = torobComparableJsonPrice(
           torobResult.value,
           product.title,
           marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
         );
+        extractedPrice = torobCurrentPrice;
       }
       if (digikalaResult.status === "fulfilled") {
         const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
-        if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
-          extractedPrice = digikalaPriceValue;
+        if (digikalaPriceValue > 0) {
+          digikalaCurrentPrice = digikalaPriceValue;
+          if (!extractedPrice || digikalaPriceValue < extractedPrice) extractedPrice = digikalaPriceValue;
         }
       }
     }
@@ -820,13 +834,15 @@ export async function getLiveStoreProductPriceSnapshot(
     for (const canonicalProductId of verifiedCanonicalDigikalaProductIds(product.title)) {
       try {
         const canonicalDetail = await fetchCompactDigikalaPrice(canonicalProductId);
-        if (
-          marketVariantMatches(product.title, canonicalDetail.title) &&
-          (!extractedPrice || canonicalDetail.price < extractedPrice)
-        ) {
-          extractedPrice = canonicalDetail.price;
-          sourcePrice = canonicalDetail.price;
-          sourceOriginalPrice = canonicalDetail.originalPrice;
+        if (marketVariantMatches(product.title, canonicalDetail.title)) {
+          digikalaCurrentPrice = !digikalaCurrentPrice
+            ? canonicalDetail.price
+            : Math.min(digikalaCurrentPrice, canonicalDetail.price);
+          if (!extractedPrice || canonicalDetail.price < extractedPrice) {
+            extractedPrice = canonicalDetail.price;
+            sourcePrice = canonicalDetail.price;
+            sourceOriginalPrice = canonicalDetail.originalPrice;
+          }
         }
       } catch {
         // سایر مراجع معتبر همچنان قابل استفاده‌اند.
@@ -841,7 +857,9 @@ export async function getLiveStoreProductPriceSnapshot(
     // با قیمت بالاتر مرجع دیگر جایگزین نمی‌کنیم. دادهٔ صرفاً واردشده همچنان باید
     // حداقل ۸۵٪ قیمت جاری باشد؛ فقط قیمت زندهٔ تأییدشده بازهٔ ۵۵٪ دارد.
     const minimumPreviousRatio = hasRecentVerifiedMarketPrice(product) ? 0.55 : 0.85;
+    const bothMarketsVerified = torobCurrentPrice > 0 && digikalaCurrentPrice > 0;
     if (
+      !bothMarketsVerified &&
       storedMarketPrice > 0 &&
       storedMarketPrice < extractedPrice &&
       storedMarketPrice >= extractedPrice * minimumPreviousRatio
