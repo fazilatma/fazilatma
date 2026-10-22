@@ -3979,7 +3979,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 266383,
+      "bytes": 266361,
       "imports": [
         {
           "path": "path",
@@ -4837,8 +4837,8 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1142hem._.js": {
-      "bytes": 15896,
+    ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1il2qug._.js": {
+      "bytes": 15767,
       "imports": [
         {
           "path": "node:fs",
@@ -4971,7 +4971,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_Header_tsx_1w4ulh9._.js": {
-      "bytes": 28856,
+      "bytes": 28719,
       "imports": [],
       "format": "cjs"
     },
@@ -6875,7 +6875,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2273958,
+      "bytes": 2271982,
       "imports": [],
       "format": "cjs"
     },
@@ -9067,7 +9067,7 @@
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0bir-_y._.js": {
+    ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1k27rjd._.js": {
       "bytes": 13977,
       "imports": [
         {
@@ -9938,9 +9938,9 @@
           "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0mbvfee._.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1142hem._.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1il2qug._.js",
           "kind": "require-call",
-          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1142hem._.js"
+          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1il2qug._.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1lv9u9o._.js",
@@ -11023,9 +11023,9 @@
           "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_manifest_webmanifest_route_actions_08hcpz0.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0bir-_y._.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1k27rjd._.js",
           "kind": "require-call",
-          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0bir-_y._.js"
+          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1k27rjd._.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/chunks/ssr/_next-internal_server_app_page_actions_0hhsz1j.js",
@@ -11584,9 +11584,9 @@
           "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0mbvfee._.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1142hem._.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1il2qug._.js",
           "kind": "require-call",
-          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1142hem._.js"
+          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1il2qug._.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1lv9u9o._.js",
@@ -12669,9 +12669,9 @@
           "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_manifest_webmanifest_route_actions_08hcpz0.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0bir-_y._.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1k27rjd._.js",
           "kind": "require-call",
-          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0bir-_y._.js"
+          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1k27rjd._.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/chunks/ssr/_next-internal_server_app_page_actions_0hhsz1j.js",
@@ -18465,7 +18465,7 @@
           "bytesInOutput": 461
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 223248
+          "bytesInOutput": 223226
         },
         ".open-next/cloudflare-templates/shims/throw.js": {
           "bytesInOutput": 215
@@ -18545,8 +18545,8 @@
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0mbvfee._.js": {
           "bytesInOutput": 229670
         },
-        ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1142hem._.js": {
-          "bytesInOutput": 18026
+        ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1il2qug._.js": {
+          "bytesInOutput": 17931
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1lv9u9o._.js": {
           "bytesInOutput": 33115
@@ -18594,7 +18594,7 @@
           "bytesInOutput": 1165
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_Header_tsx_1w4ulh9._.js": {
-          "bytesInOutput": 41566
+          "bytesInOutput": 41463
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_lib_192m98p._.js": {
           "bytesInOutput": 121245
@@ -18855,7 +18855,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2769803
+          "bytesInOutput": 2767859
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__0dx3i76._.js": {
           "bytesInOutput": 9977
@@ -19193,8 +19193,8 @@
         ".open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_manifest_webmanifest_route_actions_08hcpz0.js": {
           "bytesInOutput": 289
         },
-        ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__0bir-_y._.js": {
-          "bytesInOutput": 25961
+        ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1k27rjd._.js": {
+          "bytesInOutput": 25962
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/_next-internal_server_app_page_actions_0hhsz1j.js": {
           "bytesInOutput": 249
@@ -19497,10 +19497,10 @@
           "bytesInOutput": 5798
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[turbopack]_runtime.js": {
-          "bytesInOutput": 59823
+          "bytesInOutput": 59824
         },
         ".open-next/server-functions/default/.next/server/chunks/[turbopack]_runtime.js": {
-          "bytesInOutput": 59775
+          "bytesInOutput": 59776
         },
         ".open-next/server-functions/default/.next/server/app/api/admin/store-products/import-multiple/route.js": {
           "bytesInOutput": 733
@@ -19956,7 +19956,7 @@
           "bytesInOutput": 75160
         }
       },
-      "bytes": 10246024
+      "bytes": 10243863
     }
   }
 }

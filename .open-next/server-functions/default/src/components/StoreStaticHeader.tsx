@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OptiBidLogo from "@/components/OptiBidLogo";
 import { getJsonStoreCatalogSettings } from "@/lib/json-store";
 
 const laptopQuickLinks = [
@@ -20,58 +21,6 @@ const computerPartsQuickLinks = [
   { href: "/shop?category=computer-parts&part=ssd", label: "SSD" },
   { href: "/support?ref=static-header", label: "پشتیبانی" },
 ];
-
-function Logo() {
-  return (
-    <Link href="/" className="flex items-center gap-3" aria-label="OptiBid">
-      <span className="text-2xl font-black text-[#003b5c]">
-        Opti<span className="text-[#00a8e8]">Bid</span>
-      </span>
-      <svg
-        width="40"
-        height="40"
-        viewBox="0 0 100 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <path
-          d="M40 20 C20 20 15 35 15 50 C15 65 20 80 40 80 C60 80 65 65 65 50"
-          stroke="url(#staticBlueGrad)"
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <path
-          d="M45 50 C45 50 60 50 70 50 C80 50 85 60 85 65 C85 75 75 80 60 80 L45 80"
-          stroke="#003b5c"
-          strokeWidth="16"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M60 50 L85 20 M85 20 L65 20 M85 20 L85 40"
-          stroke="#00a8e8"
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <defs>
-          <linearGradient
-            id="staticBlueGrad"
-            x1="15"
-            y1="20"
-            x2="65"
-            y2="80"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#003b5c" />
-            <stop offset="1" stopColor="#00a8e8" />
-          </linearGradient>
-        </defs>
-      </svg>
-    </Link>
-  );
-}
 
 export default async function StoreStaticHeader() {
   const catalog = await getJsonStoreCatalogSettings();
@@ -107,7 +56,7 @@ export default async function StoreStaticHeader() {
           </details>
         </div>
 
-        <Logo />
+        <OptiBidLogo />
 
         <nav className="hidden items-center gap-5 text-sm font-bold text-slate-700 md:flex">
           {quickLinks.map((link) => (
