@@ -80,7 +80,9 @@ export default function StoreCardPrice({
     price: product.price,
     updatedAt: initialUpdatedAt,
   });
-  const [synced, setSynced] = useState(Boolean(product.priceVerifiedAt));
+  // حتی نقشهٔ مشترک SSR ممکن است در اثر هم‌زمانی KV قدیمی باشد؛ تا پاسخ کلید
+  // مستقل محصول نرسیده، قیمت/دکمهٔ خرید را قطعی نمایش نمی‌دهیم.
+  const [synced, setSynced] = useState(false);
 
   useEffect(() => {
     const local = readBrowserStorePrice(product.id);
