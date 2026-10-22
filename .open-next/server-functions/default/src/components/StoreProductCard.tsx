@@ -1,14 +1,11 @@
 import Link from "next/link";
-import StoreAddToCartButton from "@/components/StoreAddToCartButton";
+import StoreCardPrice from "@/components/StoreCardPrice";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import type { ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
-
-const money = (value: number | string) =>
-  `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
 
 function discountPercent(product: JsonStoreProduct) {
   if (isSuspiciousStoreProductPrice(product)) return 0;
@@ -82,7 +79,6 @@ export function LaptopVisual({ product, compact = false }: { product: JsonStoreP
 
 export default function StoreProductCard({ product }: { product: JsonStoreProduct }) {
   const priceNeedsReview = isSuspiciousStoreProductPrice(product);
-  const discount = discountPercent(product);
   const keySpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 3);
 
   return (
@@ -110,46 +106,21 @@ export default function StoreProductCard({ product }: { product: JsonStoreProduc
             </p>
           ))}
         </div>
-        <div className="mt-4 flex items-end justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-1 text-xs text-amber-500">
-              ★ {product.rating.toLocaleString("fa-IR")} <span className="text-slate-400">({product.reviewsCount.toLocaleString("fa-IR")})</span>
-            </div>
-            {discount > 0 && (
-              <p className="mt-1 text-xs text-slate-400 line-through">{money(product.originalPrice || 0)}</p>
-            )}
-            {priceNeedsReview ? (
-              <p className="mt-1 text-sm font-black text-amber-700">در حال بررسی قیمت روز</p>
-            ) : (
-              <p className="mt-1 text-lg font-black text-slate-900">{money(product.price)}</p>
-            )}
-          </div>
-          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
-            موجود
-          </span>
-        </div>
-        <div className="mt-4">
-          {priceNeedsReview ? (
-            <Link
-              href={`/shop/${product.slug}`}
-              className="block rounded-2xl bg-amber-50 px-4 py-3 text-center text-xs font-black text-amber-800 ring-1 ring-amber-200"
-            >
-              بررسی قیمت معتبر
-            </Link>
-          ) : (
-            <StoreAddToCartButton
-              product={{
-                id: product.id,
-                title: product.title,
-                slug: product.slug,
-                price: product.price,
-                originalPrice: product.originalPrice,
-                brand: product.brand,
-                warranty: product.warranty,
-              }}
-            />
-          )}
-        </div>
+        <StoreCardPrice
+          product={{
+            id: product.id,
+            title: product.title,
+            slug: product.slug,
+            price: product.price,
+            originalPrice: product.originalPrice,
+            brand: product.brand,
+            warranty: product.warranty,
+            rating: product.rating,
+            reviewsCount: product.reviewsCount,
+            priceVerifiedAt: product.priceVerifiedAt,
+          }}
+          priceNeedsReview={priceNeedsReview}
+        />
       </div>
     </article>
   );

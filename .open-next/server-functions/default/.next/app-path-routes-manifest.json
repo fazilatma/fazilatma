@@ -57,6 +57,7 @@
   "/api/seller/profile/route": "/api/seller/profile",
   "/api/shop/orders/pay/route": "/api/shop/orders/pay",
   "/api/shop/orders/route": "/api/shop/orders",
+  "/api/shop/prices/route": "/api/shop/prices",
   "/api/site-mode/route": "/api/site-mode",
   "/api/source-files/route": "/api/source-files",
   "/api/submit-offer/route": "/api/submit-offer",

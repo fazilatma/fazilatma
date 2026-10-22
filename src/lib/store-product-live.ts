@@ -329,7 +329,9 @@ async function fetchTorobSearchJson(productTitle: string) {
   const url = new URL("https://api-torob-com.translate.goog/v4/base-product/search/");
   url.searchParams.set("page", "0");
   url.searchParams.set("sort", "popularity");
-  url.searchParams.set("size", "20");
+  // پاسخ‌های بزرگ ترجمهٔ ترب روی Worker مصرف CPU/حافظه را بالا می‌برد؛ نتایج دقیق
+  // معمولاً در رتبه‌های نخست هستند و ۱۲ کارت برای مقایسهٔ مدل کافی است.
+  url.searchParams.set("size", "12");
   url.searchParams.set("q", productTitle);
   url.searchParams.set("_x_tr_sl", "auto");
   url.searchParams.set("_x_tr_tl", "en");
@@ -464,6 +466,11 @@ async function fetchTorobPublicPage(url: string) {
   }
 }
 
+function hasRecentVerifiedMarketPrice(product: JsonStoreProduct) {
+  const verifiedAt = Date.parse(String(product.priceVerifiedAt || ""));
+  return Number.isFinite(verifiedAt) && Date.now() - verifiedAt >= 0 && Date.now() - verifiedAt <= 6 * 60 * 60 * 1000;
+}
+
 export async function getLiveStoreProductPriceSnapshot(
   product: JsonStoreProduct,
   configuredPriceMultiplier?: number,
@@ -498,15 +505,19 @@ export async function getLiveStoreProductPriceSnapshot(
     if (isDigikalaProduct) {
       const productId = parsed?.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
       if (!productId) return null;
-      const [detailResult, torobResult, digikalaSearchResult] = await Promise.allSettled([
+      // در حالت عادی دو مرجع کافی‌اند. جستجوی دوم دیجی‌کالا فقط وقتی اجرا می‌شود
+      // که لینک مستقیم مدل دیگری باشد یا یکی از دو پاسخ اصلی قیمت معتبر ندهد.
+      const [detailResult, torobResult] = await Promise.allSettled([
         fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
         fetchTorobSearchJson(product.title),
-        fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
+      let directDetailMatches = false;
+      let torobPrice = 0;
       if (detailResult.status === "fulfilled") {
         const detail = detailResult.value?.data?.product || detailResult.value?.product || {};
         const detailTitle = String(detail?.title_fa || detail?.title_en || detail?.title || "").trim();
         if (detailTitle && marketVariantMatches(product.title, detailTitle)) {
+          directDetailMatches = true;
           detailData = digikalaDetailSnapshot(detailResult.value);
           sourcePrice = Number(detailData.price || 0);
           sourceOriginalPrice = Number(detailData.originalPrice || 0);
@@ -515,22 +526,29 @@ export async function getLiveStoreProductPriceSnapshot(
           try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
         }
       }
-      if (digikalaSearchResult.status === "fulfilled") {
-        const digikalaPriceValue = digikalaComparablePrice(digikalaSearchResult.value, product.title);
-        if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
-          extractedPrice = digikalaPriceValue;
-        }
-      }
       if (torobResult.status === "fulfilled") {
         const requiredBrand = marketBrandKey(
           `${product.brand} ${product.title} ${product.description} ${detailData?.description || ""}`,
         );
-        const torobPrice = torobComparableJsonPrice(
+        torobPrice = torobComparableJsonPrice(
           torobResult.value,
           product.title,
           requiredBrand,
         );
         if (torobPrice > 0 && (!extractedPrice || torobPrice < extractedPrice)) extractedPrice = torobPrice;
+      }
+      if (!directDetailMatches || !sourcePrice || !torobPrice) {
+        try {
+          const digikalaSearchResult = await fetchDigikalaJson(
+            `https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`,
+          );
+          const digikalaPriceValue = digikalaComparablePrice(digikalaSearchResult, product.title);
+          if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
+            extractedPrice = digikalaPriceValue;
+          }
+        } catch {
+          // قیمت معتبر لینک مستقیم یا ترب همچنان قابل استفاده است.
+        }
       }
     } else if (isTorobProduct) {
       const [torobResult, digikalaResult] = await Promise.allSettled([
@@ -576,14 +594,15 @@ export async function getLiveStoreProductPriceSnapshot(
       snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
       return null;
     }
-    // اگر یکی از دو مرجع موقتاً پاسخ نداد، آخرین قیمت تأییدشدهٔ نزدیک را نگه می‌داریم.
-    // کف ۸۵٪ اجازه نمی‌دهد قیمت‌های اشتباهِ مدل مشابه (مثل 265KF به‌جای 265K)
-    // جای قیمت دقیق را بگیرند، اما افت معتبر ترب نسبت به دیجی‌کالا از بین نمی‌رود.
+    // اگر یک مرجع موقتاً پاسخ نداد، قیمت تأییدشدهٔ چند ساعت اخیر را بی‌دلیل
+    // با قیمت بالاتر مرجع دیگر جایگزین نمی‌کنیم. دادهٔ صرفاً واردشده همچنان باید
+    // حداقل ۸۵٪ قیمت جاری باشد؛ فقط قیمت زندهٔ تأییدشده بازهٔ ۵۵٪ دارد.
     const storedMarketPrice = storedProductMarketPrice(product);
+    const minimumPreviousRatio = hasRecentVerifiedMarketPrice(product) ? 0.55 : 0.85;
     if (
       storedMarketPrice > 0 &&
       storedMarketPrice < extractedPrice &&
-      storedMarketPrice >= extractedPrice * 0.85
+      storedMarketPrice >= extractedPrice * minimumPreviousRatio
     ) {
       extractedPrice = storedMarketPrice;
     }

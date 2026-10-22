@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CART_KEY, type StoreCartProduct } from "@/components/StoreAddToCartButton";
+import {
+  fetchBrowserStorePrices,
+  readBrowserStorePrice,
+  STORE_PRICE_SYNC_EVENT,
+} from "@/lib/browser-store-prices";
 
 type CartItem = StoreCartProduct & { quantity: number };
 
@@ -16,6 +21,14 @@ function readCart(): CartItem[] {
   } catch {
     return [];
   }
+}
+
+function applyRememberedPrices(items: CartItem[]) {
+  return items.map((item) => {
+    const verified = readBrowserStorePrice(item.id);
+    if (!verified || verified.price === item.price) return item;
+    return { ...item, price: verified.price, originalPrice: undefined };
+  });
 }
 
 function CartLaptopVisual({ item }: { item: CartItem }) {
@@ -60,14 +73,37 @@ export default function StoreCartClient() {
   });
 
   useEffect(() => {
-    setItems(readCart());
+    const initialItems = applyRememberedPrices(readCart());
+    setItems(initialItems);
+    localStorage.setItem(CART_KEY, JSON.stringify(initialItems));
     setForm((current) => ({
       ...current,
       receiverName: localStorage.getItem("userDisplayName") || "",
     }));
-    const refresh = () => setItems(readCart());
+
+    void (async () => {
+      const ids = initialItems.map((item) => item.id);
+      for (let offset = 0; offset < ids.length; offset += 30) {
+        try {
+          await fetchBrowserStorePrices(ids.slice(offset, offset + 30));
+        } catch {
+          // قیمت ذخیره‌شدهٔ سبد حفظ می‌شود و سرور هنگام سفارش دوباره کنترل می‌کند.
+        }
+      }
+      setItems((current) => {
+        const next = applyRememberedPrices(current);
+        localStorage.setItem(CART_KEY, JSON.stringify(next));
+        return next;
+      });
+    })();
+
+    const refresh = () => setItems(applyRememberedPrices(readCart()));
     window.addEventListener("optibid-store-cart-updated", refresh);
-    return () => window.removeEventListener("optibid-store-cart-updated", refresh);
+    window.addEventListener(STORE_PRICE_SYNC_EVENT, refresh);
+    return () => {
+      window.removeEventListener("optibid-store-cart-updated", refresh);
+      window.removeEventListener(STORE_PRICE_SYNC_EVENT, refresh);
+    };
   }, []);
 
   const total = useMemo(

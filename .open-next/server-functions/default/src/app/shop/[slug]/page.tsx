@@ -5,10 +5,10 @@ import { cookies } from "next/headers";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
 import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
+import StoreVerifiedPriceSync from "@/components/StoreVerifiedPriceSync";
 import {
   getJsonStoreProductBySlug,
   getOptiBidData,
-  writeOptiBidData,
   type JsonStoreProduct,
 } from "@/lib/json-store";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
@@ -135,24 +135,12 @@ export default async function StoreProductPage({
       priceMultiplier: liveSnapshot.priceMultiplier,
       updatedAt: liveSnapshot.checkedAt,
     }).catch(() => undefined);
-    if (
-      Number(baseProduct.price || 0) !== liveSnapshot.price ||
-      Number(baseProduct.marketPrice || 0) !== liveSnapshot.marketPrice
-    ) {
-      const index = data.storeProducts.findIndex((item) => item.id === baseProduct.id);
-      if (index >= 0) {
-        data.storeProducts[index] = {
-          ...baseProduct,
-          price: liveSnapshot.price,
-          marketPrice: liveSnapshot.marketPrice,
-          priceMultiplier: liveSnapshot.priceMultiplier,
-          priceUpdatedAt: liveSnapshot.checkedAt.slice(0, 10),
-          shippingNote: "قیمت هنگام نمایش دوباره بررسی شد",
-        };
-        await writeOptiBidData(data).catch(() => undefined);
-      }
-    }
   }
+  // صفحهٔ عمومی دیگر کل دیتاست KV را بازنویسی نمی‌کند. قیمت تأییدشده در کلید
+  // سبک و مستقل ذخیره می‌شود و کارت/سبد خرید همان کلید را مصرف می‌کنند.
+  const verifiedPriceAt = liveSnapshot?.price
+    ? liveSnapshot.checkedAt
+    : storedProduct.priceVerifiedAt || "";
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
@@ -196,6 +184,13 @@ export default async function StoreProductPage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      {verifiedPriceAt ? (
+        <StoreVerifiedPriceSync
+          productId={product.id}
+          price={product.price}
+          verifiedAt={verifiedPriceAt}
+        />
+      ) : null}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(productStructuredData) }}

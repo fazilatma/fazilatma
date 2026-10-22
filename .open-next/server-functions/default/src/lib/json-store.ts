@@ -38,6 +38,7 @@ import {
   storedProductPriceMultiplier,
 } from "@/lib/store-pricing";
 import { isStorefrontEligibleComputerPart } from "@/lib/store-computer-part-kind";
+import { applyStorePriceOverrides, getStorePriceOverridesByIds } from "@/lib/store-price-overrides";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -415,6 +416,8 @@ export type JsonStoreProduct = {
   warranty: string;
   shippingNote: string;
   priceUpdatedAt?: string;
+  /** زمان کامل آخرین قیمت تأییدشده؛ فقط برای جلوگیری از نوسان ناشی از قطع موقت مرجع. */
+  priceVerifiedAt?: string;
   marketReferenceNote?: string;
   externalSourceUrl?: string;
   isActive: boolean;
@@ -4731,11 +4734,17 @@ export async function createJsonStoreOrder(input: {
   const data = await getOptiBidData();
   const buyer = getStoreBuyerUserOrThrow(data, input.buyerId);
   if (!input.items.length) throw new Error("Store cart is empty");
+  if (input.items.length > 20) throw new Error("Store cart has too many items");
   if (!input.receiverName.trim() || !input.receiverPhone.trim() || !input.shippingAddress.trim())
     throw new Error("Store order receiver info is incomplete");
 
+  // مبلغ سفارش باید دقیقاً همان قیمت تأییدشده‌ای باشد که صفحه و سبد خرید از
+  // کلید سبک قیمت می‌خوانند، نه قیمت قدیمی داخل دیتاست اصلی.
+  const priceOverrides = await getStorePriceOverridesByIds(
+    input.items.map((item) => item.productId),
+  );
   const activeProducts = new Map(
-    data.storeProducts
+    applyStorePriceOverrides(data.storeProducts, priceOverrides)
       .filter((product) => product.isActive && isStorefrontEligibleComputerPart(product))
       .map((product) => [product.id, product]),
   );
