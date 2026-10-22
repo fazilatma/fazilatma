@@ -3898,12 +3898,12 @@
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js": {
+    ".open-next/server-functions/default/.next/server/app/api/shop/prices/route_client-reference-manifest.js": {
       "bytes": 320,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/shop/prices/route_client-reference-manifest.js": {
+    ".open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js": {
       "bytes": 320,
       "imports": [],
       "format": "cjs"
@@ -4247,14 +4247,14 @@
           "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/app/api/admin/enamad/route_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js",
-          "kind": "require-call",
-          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js"
-        },
-        {
           "path": ".open-next/server-functions/default/.next/server/app/api/shop/prices/route_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/app/api/shop/prices/route_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/home/user/fazilatma/.open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/api/orders/ship/route_client-reference-manifest.js",
@@ -6885,7 +6885,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2303759,
+      "bytes": 2303905,
       "imports": [],
       "format": "cjs"
     },
@@ -9661,7 +9661,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_0dxhtrl._.js": {
-      "bytes": 37601,
+      "bytes": 37535,
       "imports": [],
       "format": "cjs"
     },
@@ -18488,10 +18488,10 @@
         ".open-next/server-functions/default/.next/server/app/api/admin/enamad/route_client-reference-manifest.js": {
           "bytesInOutput": 475
         },
-        ".open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js": {
+        ".open-next/server-functions/default/.next/server/app/api/shop/prices/route_client-reference-manifest.js": {
           "bytesInOutput": 473
         },
-        ".open-next/server-functions/default/.next/server/app/api/shop/prices/route_client-reference-manifest.js": {
+        ".open-next/server-functions/default/.next/server/app/api/shop/orders/route_client-reference-manifest.js": {
           "bytesInOutput": 473
         },
         ".open-next/server-functions/default/.next/server/app/api/orders/ship/route_client-reference-manifest.js": {
@@ -18930,7 +18930,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2809360
+          "bytesInOutput": 2809843
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__0dx3i76._.js": {
           "bytesInOutput": 9977
@@ -19488,7 +19488,7 @@
           "bytesInOutput": 17953
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_0dxhtrl._.js": {
-          "bytesInOutput": 45606
+          "bytesInOutput": 45540
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__1umupx-._.js": {
           "bytesInOutput": 44993
@@ -20037,7 +20037,7 @@
           "bytesInOutput": 75314
         }
       },
-      "bytes": 10480119
+      "bytes": 10480536
     }
   }
 }

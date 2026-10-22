@@ -369,12 +369,14 @@ function compactDigikalaPriceFromText(text: string): CompactDigikalaPrice | null
   }
   const variantIndex = text.indexOf('"default_variant"');
   if (!title || variantIndex < 0) return null;
-  const variantText = text.slice(variantIndex, variantIndex + 32_000);
+  const variantText = text.slice(variantIndex, variantIndex + 96_000);
+  // اولین selling_price بعد از default_variant همان buy-box است؛ وابستگی به فاصلهٔ
+  // دقیق شیء price باعث می‌شد بعضی پاسخ‌های ترجمه‌شده نادیده گرفته شوند.
   const sellingRial = Number(
-    variantText.match(/"price"\s*:\s*\{[\s\S]{0,12_000}?"selling_price"\s*:\s*(\d+)/)?.[1] || 0,
+    variantText.match(/"selling_price"\s*:\s*(\d+)/)?.[1] || 0,
   );
   const rrpRial = Number(
-    variantText.match(/"price"\s*:\s*\{[\s\S]{0,12_000}?"rrp_price"\s*:\s*(\d+)/)?.[1] || 0,
+    variantText.match(/"rrp_price"\s*:\s*(\d+)/)?.[1] || 0,
   );
   const price = Math.round(sellingRial / 10);
   const originalPrice = Math.round(rrpRial / 10);
