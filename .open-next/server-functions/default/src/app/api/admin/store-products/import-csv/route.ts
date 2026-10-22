@@ -77,8 +77,14 @@ function crossSourceProductKey(product: Pick<JsonStoreProduct, "title" | "brand"
 
   const gpu = text.match(/\b(rtx\d{3,4}|gtx\d{3,4}|rx\d{3,4})\b/)?.[1];
   if (gpu) {
-    const family = text.match(/\b(dual|prime|tuf|strix|aorus|ventus|gaming|eagle|windforce|nitro|pulse|mech)\b/)?.[1] || "";
-    return usefulBrand ? `gpu:${usefulBrand}:${gpu}:${family}` : "";
+    const suffix = text.match(new RegExp(`\\b${gpu}\\s*(ti|super|xtx|xt)\\b`))?.[1] || "";
+    const family = text.match(/\b(dual|prime|tuf|rog|strix|aorus|ventus|gaming|eagle|windforce|nitro|pulse|mech)\b/)?.[1] || "";
+    const capacity = capacityKey(text);
+    const revision = /\bv2\b/.test(text) ? "v2" : "";
+    const overclocked = /\boc\b|اورکلاک/.test(text) ? "oc" : "";
+    return usefulBrand
+      ? `gpu:${usefulBrand}:${gpu}${suffix}:${capacity}:${family}:${revision}:${overclocked}`
+      : "";
   }
 
   const tokens = text

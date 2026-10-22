@@ -38,6 +38,18 @@ function modelTokens(title: string) {
     .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,2})\b/g, "$1-$2")
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${family.replace(/\s+/g, "")}-${model}`)
     .replace(/[^a-z0-9آ-ی-]+/g, " ");
+  const gpu = normalized.match(/\b(rtx\d{3,4}|gtx\d{3,4}|rx\d{3,4})\b/)?.[1];
+  if (gpu) {
+    const suffix = normalized.match(new RegExp(`\\b${gpu}\\s*(ti|super|xtx|xt)\\b`))?.[1] || "";
+    const capacityMatch = normalized.match(/(\d+(?:\.\d+)?)\s*(gb|tb|گیگابایت|ترابایت)/i);
+    const capacity = capacityMatch
+      ? `${capacityMatch[1]}${/tb|ترابایت/i.test(capacityMatch[2]) ? "tb" : "gb"}`
+      : "";
+    const family = normalized.match(/\b(dual|prime|tuf|rog|strix|aorus|ventus|gaming|eagle|windforce|nitro|pulse|mech)\b/)?.[1] || "";
+    const revision = /\bv2\b/.test(normalized) ? "v2" : "";
+    const overclocked = /\boc\b|اورکلاک/.test(normalized) ? "oc" : "";
+    return new Set([`gpu:${gpu}${suffix}:${capacity}:${family}:${revision}:${overclocked}`]);
+  }
   const tokens = normalized
     .split(/\s+/)
     .filter((token) => /\d/.test(token) && token.length >= 4)

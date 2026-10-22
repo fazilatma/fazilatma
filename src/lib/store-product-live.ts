@@ -105,7 +105,8 @@ function firstTorobPrice(html: string) {
 function strongModelTokens(value: string) {
   return toEnglishDigits(value)
     .toLowerCase()
-    .replace(/\b(rtx|gtx|rx)\s*-?\s*(\d{3,4})\b/g, "$1$2")
+    .replace(/\b(rtx|gtx)\s*-?\s*(\d{3,4})\s*(ti|super)?\b/g, (_, family, model, suffix) => `${family}${model}${suffix || ""}`)
+    .replace(/\b(rx)\s*-?\s*(\d{3,4})\s*(xtx|xt)?\b/g, (_, family, model, suffix) => `${family}${model}${suffix || ""}`)
     .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
     .replace(/\b([a-z]*\d[a-z0-9]*)-(tray|box)\b/g, "$1 $2")
@@ -131,6 +132,30 @@ function capacityTokens(value: string) {
   return [...normalized.matchAll(/\b(\d+(?:\.\d+)?)\s*(gb|tb)\b/g)]
     .map((match) => `${match[1]}${match[2]}`)
     .filter((token, index, items) => items.indexOf(token) === index);
+}
+
+function marketQualifierTokens(value: string) {
+  const text = toEnglishDigits(value).toLowerCase();
+  const qualifiers = ["dual", "tuf", "prime", "rog", "strix", "ventus", "gaming", "eagle", "pulse", "nitro", "aorus", "windforce", "v2"];
+  const result = qualifiers.filter((token) => new RegExp(`\\b${token}\\b`, "i").test(text));
+  if (/\boc\b|اورکلاک/.test(text)) result.push("oc");
+  return result;
+}
+
+function marketVariantMatches(productTitle: string, candidateTitle: string) {
+  const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
+  if (!requiredTokens.length) return false;
+  const candidateTokens = new Set(strongModelTokens(candidateTitle));
+  if (!requiredTokens.every((token) => candidateTokens.has(token))) return false;
+  const requiredPackage = packageKind(productTitle);
+  const candidatePackage = packageKind(candidateTitle);
+  if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) return false;
+  const requiredCapacities = capacityTokens(productTitle);
+  const candidateCapacities = new Set(capacityTokens(candidateTitle));
+  if (requiredCapacities.length && !requiredCapacities.every((token) => candidateCapacities.has(token))) return false;
+  const requiredQualifiers = marketQualifierTokens(productTitle);
+  const candidateQualifiers = new Set(marketQualifierTokens(candidateTitle));
+  return requiredQualifiers.every((token) => candidateQualifiers.has(token));
 }
 
 function isDefectiveMarketListing(value: string) {
@@ -185,10 +210,8 @@ function torobComparableJsonPrice(
   productTitle: string,
   requiredBrand = "",
 ) {
-  const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
-  if (!requiredTokens.length) return 0;
-  const requiredPackage = packageKind(productTitle);
-  const requiredCapacities = capacityTokens(productTitle);
+  if (!strongModelTokens(productTitle).length) return 0;
+  const modernGpuRequiresNew = /\b(?:rtx|gtx)\s*\d{4}|\brx\s*[6-9]\d{3}/i.test(productTitle) && !/استوک|کارکرده|used/i.test(productTitle);
   const results = Array.isArray(payload?.results)
     ? payload.results
     : Array.isArray(payload?.data?.results)
@@ -199,12 +222,9 @@ function torobComparableJsonPrice(
     const title = `${String(result?.name1 || "")} ${String(result?.name2 || "")}`.trim();
     if (isDefectiveMarketListing(title)) continue;
     if (requiredBrand && marketBrandKey(title) !== requiredBrand) continue;
-    const candidateTokens = new Set(strongModelTokens(title));
-    if (!requiredTokens.every((token) => candidateTokens.has(token))) continue;
-    const candidatePackage = packageKind(title);
-    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
-    const candidateCapacities = new Set(capacityTokens(title));
-    if (requiredCapacities.length && !requiredCapacities.every((token) => candidateCapacities.has(token))) continue;
+    const listingIsUsed = /استوک|کارکرده|used/i.test(title) || String(result?.stock_status || "").trim().length > 0;
+    if (modernGpuRequiresNew && listingIsUsed) continue;
+    if (!marketVariantMatches(productTitle, title)) continue;
     const price = Math.round(Number(result?.price || 0));
     if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
   }
@@ -363,10 +383,7 @@ function digikalaDetailSnapshot(payload: Record<string, any>) {
 }
 
 function digikalaComparablePrice(payload: Record<string, any>, productTitle: string) {
-  const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
-  if (!requiredTokens.length) return 0;
-  const requiredPackage = packageKind(productTitle);
-  const requiredCapacities = capacityTokens(productTitle);
+  if (!strongModelTokens(productTitle).length) return 0;
   const products = Array.isArray(payload?.data?.products)
     ? payload.data.products
     : Array.isArray(payload?.products)
@@ -377,12 +394,7 @@ function digikalaComparablePrice(payload: Record<string, any>, productTitle: str
     const title = String(
       candidate?.title_fa || candidate?.title_en || candidate?.title || candidate?.name || "",
     ).trim();
-    const candidateTokens = new Set(strongModelTokens(title));
-    if (!requiredTokens.every((token) => candidateTokens.has(token))) continue;
-    const candidatePackage = packageKind(title);
-    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) continue;
-    const candidateCapacities = new Set(capacityTokens(title));
-    if (requiredCapacities.length && !requiredCapacities.every((token) => candidateCapacities.has(token))) continue;
+    if (!marketVariantMatches(productTitle, title)) continue;
     const rawPrice = Number(
       candidate?.default_variant?.price?.selling_price ||
       candidate?.price?.selling_price ||
@@ -486,18 +498,28 @@ export async function getLiveStoreProductPriceSnapshot(
     if (isDigikalaProduct) {
       const productId = parsed?.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
       if (!productId) return null;
-      const [detailResult, torobResult] = await Promise.allSettled([
+      const [detailResult, torobResult, digikalaSearchResult] = await Promise.allSettled([
         fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
         fetchTorobSearchJson(product.title),
+        fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
       ]);
       if (detailResult.status === "fulfilled") {
-        detailData = digikalaDetailSnapshot(detailResult.value);
-        sourcePrice = Number(detailData.price || 0);
-        sourceOriginalPrice = Number(detailData.originalPrice || 0);
-        extractedPrice = sourcePrice;
-        const detail = detailResult.value?.data?.product;
-        const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
-        try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
+        const detail = detailResult.value?.data?.product || detailResult.value?.product || {};
+        const detailTitle = String(detail?.title_fa || detail?.title_en || detail?.title || "").trim();
+        if (detailTitle && marketVariantMatches(product.title, detailTitle)) {
+          detailData = digikalaDetailSnapshot(detailResult.value);
+          sourcePrice = Number(detailData.price || 0);
+          sourceOriginalPrice = Number(detailData.originalPrice || 0);
+          extractedPrice = sourcePrice;
+          const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
+          try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
+        }
+      }
+      if (digikalaSearchResult.status === "fulfilled") {
+        const digikalaPriceValue = digikalaComparablePrice(digikalaSearchResult.value, product.title);
+        if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
+          extractedPrice = digikalaPriceValue;
+        }
       }
       if (torobResult.status === "fulfilled") {
         const requiredBrand = marketBrandKey(
