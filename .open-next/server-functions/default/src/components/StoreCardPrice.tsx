@@ -75,10 +75,11 @@ export default function StoreCardPrice({
   product: CardPriceProduct;
   priceNeedsReview: boolean;
 }) {
-  const initialUpdatedAt = product.priceVerifiedAt || "1970-01-01T00:00:00.000Z";
+  // زمان نقشهٔ مشترک SSR معیار اعتبار نیست؛ ممکن است یک نوشتن هم‌زمان، قیمت
+  // قدیمی را با timestamp جدیدتر در آن گذاشته باشد. پاسخ کلید مستقل باید برنده شود.
   const [current, setCurrent] = useState<BrowserStorePrice>({
     price: product.price,
-    updatedAt: initialUpdatedAt,
+    updatedAt: "1970-01-01T00:00:00.000Z",
   });
   // حتی نقشهٔ مشترک SSR ممکن است در اثر هم‌زمانی KV قدیمی باشد؛ تا پاسخ کلید
   // مستقل محصول نرسیده، قیمت/دکمهٔ خرید را قطعی نمایش نمی‌دهیم.
@@ -91,7 +92,8 @@ export default function StoreCardPrice({
       setSynced(true);
     }
     const stopRequest = requestStorePrice(product.id, (value) => {
-      if (value) setCurrent((existing) => newerPrice(existing, value));
+      // endpoint از کلید مستقل محصول می‌خواند و از نقشهٔ مشترک/قیمت اولیه معتبرتر است.
+      if (value) setCurrent(value);
       setSynced(true);
     });
     const handlePriceSync = (event: Event) => {
