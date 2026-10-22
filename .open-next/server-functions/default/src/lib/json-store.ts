@@ -418,6 +418,8 @@ export type JsonStoreProduct = {
   priceUpdatedAt?: string;
   /** زمان کامل آخرین قیمت تأییدشده؛ فقط برای جلوگیری از نوسان ناشی از قطع موقت مرجع. */
   priceVerifiedAt?: string;
+  /** نتیجهٔ آخرین بررسی موجودی قیمت دقیق در منابع بازار. */
+  priceAvailable?: boolean;
   marketReferenceNote?: string;
   externalSourceUrl?: string;
   isActive: boolean;
@@ -4745,7 +4747,11 @@ export async function createJsonStoreOrder(input: {
   );
   const activeProducts = new Map(
     applyStorePriceOverrides(data.storeProducts, priceOverrides)
-      .filter((product) => product.isActive && isStorefrontEligibleComputerPart(product))
+      .filter((product) =>
+        product.isActive &&
+        product.priceAvailable !== false &&
+        isStorefrontEligibleComputerPart(product),
+      )
       .map((product) => [product.id, product]),
   );
   const orderItems = input.items.map((item) => {

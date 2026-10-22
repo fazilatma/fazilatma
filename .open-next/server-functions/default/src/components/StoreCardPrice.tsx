@@ -24,6 +24,7 @@ type CardPriceProduct = {
   rating: number;
   reviewsCount: number;
   priceVerifiedAt?: string;
+  priceAvailable?: boolean;
 };
 
 type PriceListener = (value: BrowserStorePrice | null) => void;
@@ -80,6 +81,7 @@ export default function StoreCardPrice({
   const [current, setCurrent] = useState<BrowserStorePrice>({
     price: product.price,
     updatedAt: "1970-01-01T00:00:00.000Z",
+    available: product.priceAvailable !== false,
   });
   // حتی نقشهٔ مشترک SSR ممکن است در اثر هم‌زمانی KV قدیمی باشد؛ تا پاسخ کلید
   // مستقل محصول نرسیده، قیمت/دکمهٔ خرید را قطعی نمایش نمی‌دهیم.
@@ -125,19 +127,21 @@ export default function StoreCardPrice({
           <div className="flex items-center gap-1 text-xs text-amber-500">
             ★ {product.rating.toLocaleString("fa-IR")} <span className="text-slate-400">({product.reviewsCount.toLocaleString("fa-IR")})</span>
           </div>
-          {discount > 0 && (
+          {current.available && discount > 0 && (
             <p className="mt-1 text-xs text-slate-400 line-through">{money(originalPrice || 0)}</p>
           )}
           {!synced ? (
             <p className="mt-1 text-sm font-black text-sky-700">در حال همگام‌سازی قیمت…</p>
+          ) : !current.available ? (
+            <p className="mt-1 text-sm font-black text-slate-600">قیمت فعال موجود نیست</p>
           ) : reviewRequired ? (
             <p className="mt-1 text-sm font-black text-amber-700">در حال بررسی قیمت روز</p>
           ) : (
             <p className="mt-1 text-lg font-black text-slate-900">{money(current.price)}</p>
           )}
         </div>
-        <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
-          موجود
+        <span className={`rounded-full px-2 py-1 text-[11px] font-black ${synced && !current.available ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-700"}`}>
+          {synced && !current.available ? "ناموجود" : "موجود"}
         </span>
       </div>
       <div className="mt-4">
@@ -145,6 +149,13 @@ export default function StoreCardPrice({
           <span className="block rounded-2xl bg-slate-100 px-4 py-3 text-center text-xs font-black text-slate-500">
             بررسی آخرین قیمت
           </span>
+        ) : !current.available ? (
+          <Link
+            href={`/shop/${product.slug}`}
+            className="block rounded-2xl bg-slate-100 px-4 py-3 text-center text-xs font-black text-slate-600 ring-1 ring-slate-200"
+          >
+            مشاهده وضعیت موجودی
+          </Link>
         ) : reviewRequired ? (
           <Link
             href={`/shop/${product.slug}`}

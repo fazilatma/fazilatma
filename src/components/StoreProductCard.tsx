@@ -118,6 +118,7 @@ export default function StoreProductCard({ product }: { product: JsonStoreProduc
             rating: product.rating,
             reviewsCount: product.reviewsCount,
             priceVerifiedAt: product.priceVerifiedAt,
+            priceAvailable: product.priceAvailable,
           }}
           priceNeedsReview={priceNeedsReview}
         />

@@ -27,7 +27,11 @@ export async function GET(request: Request) {
     ids.flatMap((productId) => {
       const value = overrides[productId];
       return value
-        ? [[productId, { price: value.price, updatedAt: value.updatedAt }]]
+        ? [[productId, {
+            price: value.price,
+            updatedAt: value.updatedAt,
+            available: value.available !== false,
+          }]]
         : [];
     }),
   );

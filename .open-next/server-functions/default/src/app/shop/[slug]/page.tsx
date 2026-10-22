@@ -157,13 +157,34 @@ export default async function StoreProductPage({
         data.settings.storePriceMultiplier,
         duplicateSourceUrls,
       );
-  const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
+  const currentPriceAvailable = liveSnapshot?.price
+    ? true
+    : recentlyVerified
+      ? storedProduct.priceAvailable !== false
+      : false;
+  const product = {
+    ...applyLiveStoreProductSnapshot(storedProduct, liveSnapshot),
+    priceAvailable: currentPriceAvailable,
+  };
   if (liveSnapshot?.price && liveSnapshot.marketPrice && liveSnapshot.priceMultiplier) {
     await saveStorePriceOverride(product.id, {
       price: liveSnapshot.price,
       marketPrice: liveSnapshot.marketPrice,
       priceMultiplier: liveSnapshot.priceMultiplier,
       updatedAt: liveSnapshot.checkedAt,
+      available: true,
+    }).catch(() => undefined);
+  } else if (!recentlyVerified) {
+    const fallbackMultiplier = Number(storedProduct.priceMultiplier || 1);
+    const fallbackMarketPrice = Number(storedProduct.marketPrice || 0) >= 100_000
+      ? Number(storedProduct.marketPrice)
+      : Math.max(100_000, Math.round(Number(storedProduct.price || 0) / fallbackMultiplier));
+    await saveStorePriceOverride(product.id, {
+      price: Number(storedProduct.price),
+      marketPrice: fallbackMarketPrice,
+      priceMultiplier: fallbackMultiplier,
+      updatedAt: new Date().toISOString(),
+      available: false,
     }).catch(() => undefined);
   }
   // صفحهٔ عمومی دیگر کل دیتاست KV را بازنویسی نمی‌کند. قیمت تأییدشده در کلید
@@ -219,6 +240,7 @@ export default async function StoreProductPage({
           productId={product.id}
           price={product.price}
           verifiedAt={verifiedPriceAt}
+          available={product.priceAvailable !== false}
         />
       ) : null}
       <script
@@ -267,35 +289,52 @@ export default async function StoreProductPage({
                 <span className="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-600">
                   {product.reviewsCount.toLocaleString("fa-IR")} دیدگاه کاربران
                 </span>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 font-bold text-emerald-700">
-                  موجود در انبار فروشگاه
+                <span className={`rounded-full px-3 py-1 font-bold ${product.priceAvailable !== false ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                  {product.priceAvailable !== false ? "موجود در منابع بازار" : "فعلاً ناموجود در منابع بازار"}
                 </span>
               </div>
 
               <div className="mt-7 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                {product.originalPrice && product.originalPrice > product.price && (
-                  <p className="text-sm text-slate-400 line-through">{money(product.originalPrice)}</p>
+                {product.priceAvailable !== false ? (
+                  <>
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <p className="text-sm text-slate-400 line-through">{money(product.originalPrice)}</p>
+                    )}
+                    <p className="text-3xl font-black text-rose-600">{money(product.price)}</p>
+                    <p className="mt-2 text-xs leading-6 text-slate-500">
+                      {product.warranty} · قیمت روز از منابع فعال تأیید شد
+                    </p>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      <StoreAddToCartButton
+                        product={{
+                          id: product.id,
+                          title: product.title,
+                          slug: product.slug,
+                          price: product.price,
+                          originalPrice: product.originalPrice,
+                          brand: product.brand,
+                          warranty: product.warranty,
+                        }}
+                      />
+                      <Link href="/cart" className="rounded-2xl border border-rose-200 bg-white px-5 py-3 text-center text-sm font-black text-rose-600 transition hover:bg-rose-50">
+                        مشاهده سبد خرید
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-black text-slate-700">قیمت فعال موجود نیست</p>
+                    <p className="mt-2 text-sm leading-7 text-slate-500">
+                      در آخرین بررسی، برای این مدل دقیق قیمت فعال و قابل خرید پیدا نشد؛ قیمت قدیمی نمایش داده نمی‌شود و خرید مستقیم موقتاً غیرفعال است.
+                    </p>
+                    <Link
+                      href={requestPriceHref}
+                      className="mt-5 block rounded-2xl bg-emerald-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-emerald-700"
+                    >
+                      درخواست قیمت از فروشندگان
+                    </Link>
+                  </>
                 )}
-                <p className="text-3xl font-black text-rose-600">{money(product.price)}</p>
-                <p className="mt-2 text-xs leading-6 text-slate-500">
-                  {product.warranty} · {product.shippingNote}
-                </p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <StoreAddToCartButton
-                    product={{
-                      id: product.id,
-                      title: product.title,
-                      slug: product.slug,
-                      price: product.price,
-                      originalPrice: product.originalPrice,
-                      brand: product.brand,
-                      warranty: product.warranty,
-                    }}
-                  />
-                  <Link href="/cart" className="rounded-2xl border border-rose-200 bg-white px-5 py-3 text-center text-sm font-black text-rose-600 transition hover:bg-rose-50">
-                    مشاهده سبد خرید
-                  </Link>
-                </div>
               </div>
 
               {reverseAuctionSettings.reverseAuctionProductCtaEnabled && (

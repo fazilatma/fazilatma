@@ -151,6 +151,9 @@ function marketQualifierTokens(value: string) {
 function marketVariantMatches(productTitle: string, candidateTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   if (!requiredTokens.length) return false;
+  const requiredBrand = marketBrandKey(productTitle);
+  const candidateBrand = marketBrandKey(candidateTitle);
+  if (requiredBrand && candidateBrand !== requiredBrand) return false;
   const candidateTokens = new Set(strongModelTokens(candidateTitle));
   if (!requiredTokens.every((token) => candidateTokens.has(token))) return false;
   const requiredPackage = packageKind(productTitle);
@@ -175,7 +178,7 @@ function marketBrandKey(value: string) {
   if (/\basus\b|ایسوس/.test(text)) return "asus";
   if (/\bmsi\b|ام\s*اس\s*آی/.test(text)) return "msi";
   if (/gigabyte|گیگابایت/.test(text)) return "gigabyte";
-  if (/zotac|زوتک/.test(text)) return "zotac";
+  if (/zotac|زوتاک|زوتک/.test(text)) return "zotac";
   if (/palit|پالیت/.test(text)) return "palit";
   if (/powercolor|پاورکالر/.test(text)) return "powercolor";
   if (/\bpny\b/.test(text)) return "pny";

@@ -4,6 +4,7 @@ export const STORE_PRICE_SYNC_EVENT = "optibid-store-price-synced";
 export type BrowserStorePrice = {
   price: number;
   updatedAt: string;
+  available: boolean;
 };
 
 type BrowserStorePriceMap = Record<string, BrowserStorePrice>;
@@ -13,13 +14,14 @@ function normalizePrice(value: unknown): BrowserStorePrice | null {
   const record = value as Partial<BrowserStorePrice>;
   const price = Math.round(Number(record.price || 0));
   const updatedAt = String(record.updatedAt || "");
+  const available = record.available !== false;
   if (
     !Number.isFinite(price) ||
     price < 100_000 ||
     price > 1_500_000_000 ||
     !Number.isFinite(Date.parse(updatedAt))
   ) return null;
-  return { price, updatedAt };
+  return { price, updatedAt, available };
 }
 
 function readAllBrowserStorePrices(): BrowserStorePriceMap {

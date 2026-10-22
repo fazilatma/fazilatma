@@ -9,6 +9,8 @@ export type StorePriceOverride = {
   marketPrice: number;
   priceMultiplier: number;
   updatedAt: string;
+  /** آیا در آخرین بررسی حداقل یک قیمت فعالِ دقیق پیدا شد؟ */
+  available?: boolean;
 };
 
 type PriceOverrideMap = Record<string, StorePriceOverride>;
@@ -29,13 +31,14 @@ function normalizeOverride(value: unknown): StorePriceOverride | null {
   const marketPrice = Number(record.marketPrice || 0);
   const priceMultiplier = Number(record.priceMultiplier || 1);
   const updatedAt = String(record.updatedAt || "");
+  const available = record.available !== false;
   if (
     !Number.isFinite(price) || price < 100_000 || price > 1_500_000_000 ||
     !Number.isFinite(marketPrice) || marketPrice < 100_000 || marketPrice > 1_500_000_000 ||
     !Number.isFinite(priceMultiplier) || priceMultiplier < 0.1 || priceMultiplier > 10 ||
     !Number.isFinite(Date.parse(updatedAt))
   ) return null;
-  return { price: Math.round(price), marketPrice: Math.round(marketPrice), priceMultiplier, updatedAt };
+  return { price: Math.round(price), marketPrice: Math.round(marketPrice), priceMultiplier, updatedAt, available };
 }
 
 function parseOverride(raw: string | null) {
@@ -105,6 +108,7 @@ export function applyStorePriceOverrides<T extends {
   priceMultiplier?: number;
   priceUpdatedAt?: string;
   priceVerifiedAt?: string;
+  priceAvailable?: boolean;
 }>(
   products: T[],
   overrides: PriceOverrideMap,
@@ -119,6 +123,7 @@ export function applyStorePriceOverrides<T extends {
       priceMultiplier: override.priceMultiplier,
       priceUpdatedAt: override.updatedAt.slice(0, 10),
       priceVerifiedAt: override.updatedAt,
+      priceAvailable: override.available !== false,
     };
   });
 }
