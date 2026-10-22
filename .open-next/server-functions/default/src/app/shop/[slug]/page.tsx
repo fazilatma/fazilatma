@@ -37,6 +37,15 @@ export const dynamic = "force-dynamic";
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
 
+function normalizedProductTitle(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/ي/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/[^a-z0-9آ-ی]+/g, "")
+    .trim();
+}
+
 const computerPartCategoryItems = [
   { title: "پردازنده", badge: "CPU", href: "/shop?category=computer-parts&part=cpu" },
   { title: "کارت گرافیک", badge: "GPU", href: "/shop?category=computer-parts&part=gpu" },
@@ -124,6 +133,16 @@ export default async function StoreProductPage({
   // اثر نوشتن هم‌زمان چند محصول موقتاً قدیمی باشد.
   const productPriceOverrides = await getStorePriceOverridesByIds([baseProduct.id]);
   const storedProduct = applyStorePriceOverrides([baseProduct], productPriceOverrides)[0];
+  const titleKey = normalizedProductTitle(baseProduct.title);
+  const duplicateSourceUrls = data.storeProducts
+    .filter((item) =>
+      item.id !== baseProduct.id &&
+      normalizedProductTitle(item.title) === titleKey &&
+      Boolean(item.externalSourceUrl),
+    )
+    .map((item) => String(item.externalSourceUrl))
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .slice(0, 3);
   const verifiedAt = Date.parse(String(storedProduct.priceVerifiedAt || ""));
   const recentlyVerified =
     Number.isFinite(verifiedAt) &&
@@ -136,6 +155,7 @@ export default async function StoreProductPage({
     : await getLiveStoreProductPriceSnapshot(
         storedProduct,
         data.settings.storePriceMultiplier,
+        duplicateSourceUrls,
       );
   const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
   if (liveSnapshot?.price && liveSnapshot.marketPrice && liveSnapshot.priceMultiplier) {

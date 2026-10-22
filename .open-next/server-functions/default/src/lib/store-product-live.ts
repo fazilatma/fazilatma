@@ -327,6 +327,18 @@ async function fetchDigikalaJson(url: string) {
   return JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
 }
 
+function digikalaProductIdFromUrl(value: string) {
+  try {
+    const parsed = new URL(String(value || ""));
+    if (!/(?:^|\.)digikala\.com$/i.test(parsed.hostname)) return "";
+    return parsed.pathname.match(/\/product\/dkp-(\d+)/i)?.[1]
+      || parsed.pathname.match(/\/v\d+\/product\/(\d+)/i)?.[1]
+      || "";
+  } catch {
+    return "";
+  }
+}
+
 type CompactDigikalaPrice = {
   title: string;
   price: number;
@@ -646,6 +658,7 @@ function hasRecentVerifiedMarketPrice(product: JsonStoreProduct) {
 export async function getLiveStoreProductPriceSnapshot(
   product: JsonStoreProduct,
   configuredPriceMultiplier?: number,
+  additionalSourceUrls: string[] = [],
 ): Promise<LiveStoreProductSnapshot | null> {
   const sourceUrl = String(product.externalSourceUrl || "").trim();
   let parsed: URL | null = null;
@@ -663,7 +676,8 @@ export async function getLiveStoreProductPriceSnapshot(
     configuredPriceMultiplier ?? product.priceMultiplier,
     1,
   );
-  const cacheKey = `price-only|${sourceUrl}|${product.title}|${priceMultiplier}`;
+  const extraSourceKey = additionalSourceUrls.slice(0, 3).sort().join("|");
+  const cacheKey = `price-only|${sourceUrl}|${extraSourceKey}|${product.title}|${priceMultiplier}`;
   const cached = snapshotCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
@@ -710,6 +724,27 @@ export async function getLiveStoreProductPriceSnapshot(
           }
         } catch {
           // جستجوی دقیق دیجی‌کالا در ادامه مسیر جایگزین است.
+        }
+
+        // واردات چندمرحله‌ای ممکن است برای یک عنوان دقیق چند لینک dkp نگه دارد.
+        // همهٔ لینک‌های همان عنوان بررسی می‌شوند تا قیمت ارزان‌ترِ شناسهٔ تکراری جا نماند.
+        const extraProductIds = Array.from(new Set(
+          additionalSourceUrls.map(digikalaProductIdFromUrl).filter(Boolean),
+        )).filter((id) => id !== productId).slice(0, 3);
+        for (const extraProductId of extraProductIds) {
+          try {
+            const extraDetail = await fetchCompactDigikalaPrice(extraProductId);
+            if (
+              marketVariantMatches(product.title, extraDetail.title) &&
+              (!extractedPrice || extraDetail.price < extractedPrice)
+            ) {
+              extractedPrice = extraDetail.price;
+              sourcePrice = extraDetail.price;
+              sourceOriginalPrice = extraDetail.originalPrice;
+            }
+          } catch {
+            // لینک اصلی و ترب همچنان قابل استفاده‌اند.
+          }
         }
 
         // ممکن است یک مدل دقیق با چند شناسهٔ dkp ثبت شده باشد؛ کمترین buy-box همهٔ
