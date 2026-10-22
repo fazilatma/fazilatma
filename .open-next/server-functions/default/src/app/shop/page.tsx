@@ -480,6 +480,16 @@ export async function generateMetadata({
   });
 }
 
+function uniqueStoreProductsBySlug(products: JsonStoreProduct[]) {
+  const seenSlugs = new Set<string>();
+  return products.filter((product) => {
+    const slug = String(product.slug || "").trim();
+    if (!slug || seenSlugs.has(slug)) return false;
+    seenSlugs.add(slug);
+    return true;
+  });
+}
+
 export default async function ShopPage({
   searchParams,
 }: {
@@ -490,14 +500,17 @@ export default async function ShopPage({
     getOptiBidData(),
     getStorePriceOverrides(),
   ]);
-  const products = filterProductsByCatalogSections(
+  // اگر واردات هم‌زمان چند رکورد با slug یکسان ساخته باشد، کارت باید دقیقاً همان
+  // اولین رکوردی را نمایش دهد که صفحهٔ /shop/[slug] با find باز می‌کند؛ در غیر این
+  // صورت کارت و جزئیات شناسه و کلید قیمت متفاوت خواهند داشت.
+  const products = uniqueStoreProductsBySlug(filterProductsByCatalogSections(
     applyStorePriceOverrides(data.storeProducts, priceOverrides)
       .filter((product) => product.isActive && product.stock > 0),
     {
       laptopEnabled: data.settings.storeLaptopCatalogEnabled,
       computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
     },
-  );
+  ));
   // صفحه فهرست هیچ درخواست خارجی یا نوشتن KV انجام نمی‌دهد؛ قیمت‌های مشکوک تا
   // زمان تأیید توسط ربات مدیریت نمایش داده نمی‌شوند تا ورکر سبک و پایدار بماند.
   const filteredProducts = products.filter(
