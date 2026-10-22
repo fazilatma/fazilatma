@@ -327,6 +327,93 @@ async function fetchDigikalaJson(url: string) {
   return JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
 }
 
+type CompactDigikalaPrice = {
+  title: string;
+  price: number;
+  originalPrice: number;
+};
+
+function compactDigikalaPriceFromText(text: string): CompactDigikalaPrice | null {
+  const titleLiteral = text.match(/"title_fa"\s*:\s*("(?:\\.|[^"\\])*")/)?.[1] || "";
+  let title = "";
+  try {
+    title = titleLiteral ? String(JSON.parse(titleLiteral)) : "";
+  } catch {
+    title = "";
+  }
+  const variantIndex = text.indexOf('"default_variant"');
+  if (!title || variantIndex < 0) return null;
+  const variantText = text.slice(variantIndex, variantIndex + 32_000);
+  const sellingRial = Number(
+    variantText.match(/"price"\s*:\s*\{[\s\S]{0,12_000}?"selling_price"\s*:\s*(\d+)/)?.[1] || 0,
+  );
+  const rrpRial = Number(
+    variantText.match(/"price"\s*:\s*\{[\s\S]{0,12_000}?"rrp_price"\s*:\s*(\d+)/)?.[1] || 0,
+  );
+  const price = Math.round(sellingRial / 10);
+  const originalPrice = Math.round(rrpRial / 10);
+  if (!Number.isFinite(price) || price < 100_000 || price > 1_500_000_000) return null;
+  return {
+    title,
+    price,
+    originalPrice: originalPrice > price && originalPrice <= price * 1.8 ? originalPrice : 0,
+  };
+}
+
+async function readResponsePrefix(response: Response, maxBytes = 256_000) {
+  if (!response.body) return (await response.text()).slice(0, maxBytes);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+  try {
+    while (received < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      text += decoder.decode(value, { stream: true });
+      if (
+        text.includes('"default_variant"') &&
+        /"selling_price"\s*:\s*\d+/.test(text.slice(text.indexOf('"default_variant"')))
+      ) break;
+    }
+    text += decoder.decode();
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+  return text.slice(0, maxBytes);
+}
+
+/** فقط عنوان و قیمت buy-box دیجی‌کالا را از ابتدای stream می‌خواند. */
+async function fetchCompactDigikalaPrice(productId: string) {
+  const path = `/v2/product/${productId}/`;
+  const translated = new URL(`https://api-digikala-com.translate.goog${path}`);
+  translated.searchParams.set("_x_tr_sl", "auto");
+  translated.searchParams.set("_x_tr_tl", "en");
+  translated.searchParams.set("_x_tr_hl", "en");
+  const urls = [`https://api.digikala.com${path}`, translated.toString()];
+  for (const url of urls) {
+    const timeoutSignal =
+      typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+        ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(10_000)
+        : undefined;
+    try {
+      const response = await fetch(url, {
+        redirect: "follow",
+        cache: "no-store",
+        headers: { accept: "application/json, text/plain, */*" },
+        signal: timeoutSignal,
+      });
+      if (!response.ok) continue;
+      const compact = compactDigikalaPriceFromText(await readResponsePrefix(response));
+      if (compact) return compact;
+    } catch {
+      // پروکسی ترجمه در تلاش بعدی امتحان می‌شود.
+    }
+  }
+  throw new Error("Digikala compact price unavailable");
+}
+
 async function fetchTorobSearchJson(productTitle: string) {
   const url = new URL("https://api-torob-com.translate.goog/v4/base-product/search/");
   url.searchParams.set("page", "0");
@@ -501,8 +588,6 @@ export async function getLiveStoreProductPriceSnapshot(
     let extractedPrice = 0;
     let sourceOriginalPrice = 0;
     let sourcePrice = 0;
-    let detailData: ReturnType<typeof digikalaDetailSnapshot> | null = null;
-    let imageUrl = "";
     const storedMarketPrice = storedProductMarketPrice(product);
 
     if (isDigikalaProduct) {
@@ -533,19 +618,14 @@ export async function getLiveStoreProductPriceSnapshot(
       if (!torobProvesCurrentMinimum) {
         let directDetailMatches = false;
         try {
-          const detailResult = await fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`);
-          const detail = detailResult?.data?.product || detailResult?.product || {};
-          const detailTitle = String(detail?.title_fa || detail?.title_en || detail?.title || "").trim();
-          if (detailTitle && marketVariantMatches(product.title, detailTitle)) {
+          // پاسخ کامل جزئیات بعضی GPUها چند صد کیلوبایت است. فقط ابتدای stream تا
+          // buy-box خوانده می‌شود تا مقایسهٔ قیمت باعث خطای CPU/حافظهٔ Worker نشود.
+          const compactDetail = await fetchCompactDigikalaPrice(productId);
+          if (marketVariantMatches(product.title, compactDetail.title)) {
             directDetailMatches = true;
-            detailData = digikalaDetailSnapshot(detailResult);
-            sourcePrice = Number(detailData.price || 0);
-            sourceOriginalPrice = Number(detailData.originalPrice || 0);
-            if (sourcePrice > 0 && (!extractedPrice || sourcePrice < extractedPrice)) {
-              extractedPrice = sourcePrice;
-            }
-            const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
-            try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
+            sourcePrice = compactDetail.price;
+            sourceOriginalPrice = compactDetail.originalPrice;
+            if (!extractedPrice || sourcePrice < extractedPrice) extractedPrice = sourcePrice;
           }
         } catch {
           // جستجوی دقیق دیجی‌کالا در ادامه مسیر جایگزین است.
@@ -629,12 +709,6 @@ export async function getLiveStoreProductPriceSnapshot(
         sourcePrice === extractedPrice && sourceOriginalPrice > sourcePrice
           ? roundStorePrice(sourceOriginalPrice * priceMultiplier)
           : undefined,
-      imageUrl: imageUrl || undefined,
-      brand: detailData?.brand,
-      specs: detailData?.specs,
-      description: detailData?.description || undefined,
-      rating: detailData?.rating,
-      reviewsCount: detailData?.reviewsCount,
       checkedAt: new Date().toISOString(),
     };
     snapshotCache.set(cacheKey, { value, expiresAt: Date.now() + cacheTtlMs });
