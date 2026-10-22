@@ -17,7 +17,7 @@ import { isComputerPartsCatalogProduct } from "@/lib/store-catalog-sections";
 import { publicStoreProductBadges, publicStoreProductSpecs } from "@/lib/store-product-public";
 import {
   applyStorePriceOverrides,
-  getStorePriceOverrides,
+  getStorePriceOverridesByIds,
   saveStorePriceOverride,
 } from "@/lib/store-price-overrides";
 import {
@@ -116,17 +116,27 @@ export default async function StoreProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [data, priceOverrides] = await Promise.all([
-    getOptiBidData(),
-    getStorePriceOverrides(),
-  ]);
+  const data = await getOptiBidData();
   const baseProduct = data.storeProducts.find((item) => item.slug === slug);
   if (!baseProduct || !isStorefrontEligibleComputerPart(baseProduct)) notFound();
-  const storedProduct = applyStorePriceOverrides([baseProduct], priceOverrides)[0];
-  const liveSnapshot = await getLiveStoreProductPriceSnapshot(
-    storedProduct,
-    data.settings.storePriceMultiplier,
-  );
+
+  // صفحهٔ جزئیات باید کلید مستقل همین محصول را بخواند؛ نقشهٔ مشترک ممکن است در
+  // اثر نوشتن هم‌زمان چند محصول موقتاً قدیمی باشد.
+  const productPriceOverrides = await getStorePriceOverridesByIds([baseProduct.id]);
+  const storedProduct = applyStorePriceOverrides([baseProduct], productPriceOverrides)[0];
+  const verifiedAt = Date.parse(String(storedProduct.priceVerifiedAt || ""));
+  const recentlyVerified =
+    Number.isFinite(verifiedAt) &&
+    Date.now() - verifiedAt >= 0 &&
+    Date.now() - verifiedAt <= 5 * 60 * 1000;
+  // همان TTL پنج‌دقیقه‌ای کش قیمت زنده را بین تمام isolateها/دامنه‌ها هم اعمال
+  // می‌کنیم تا بازکردن هم‌زمان صفحه دوباره APIهای سنگین بازار را فراخوانی نکند.
+  const liveSnapshot = recentlyVerified
+    ? null
+    : await getLiveStoreProductPriceSnapshot(
+        storedProduct,
+        data.settings.storePriceMultiplier,
+      );
   const product = applyLiveStoreProductSnapshot(storedProduct, liveSnapshot);
   if (liveSnapshot?.price && liveSnapshot.marketPrice && liveSnapshot.priceMultiplier) {
     await saveStorePriceOverride(product.id, {
@@ -144,7 +154,7 @@ export default async function StoreProductPage({
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
-  const allProducts = applyStorePriceOverrides(data.storeProducts, priceOverrides)
+  const allProducts = applyStorePriceOverrides(data.storeProducts, productPriceOverrides)
     .filter(isStorefrontEligibleComputerPart);
   const priceHistoryAsOf = new Date().toISOString();
   const completeSpecs = publicStoreProductSpecs(product.specs || {}).slice(0, 24);
