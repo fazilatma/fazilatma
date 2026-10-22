@@ -384,6 +384,89 @@ async function readResponsePrefix(response: Response, maxBytes = 256_000) {
   return text.slice(0, maxBytes);
 }
 
+async function readResponseLimited(response: Response, maxBytes: number) {
+  if (!response.body) return (await response.text()).slice(0, maxBytes);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+  try {
+    while (received < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+  return text.slice(0, maxBytes);
+}
+
+function compactDigikalaSearchPriceFromText(text: string, productTitle: string) {
+  const productsIndex = text.indexOf('"products"');
+  if (productsIndex < 0) return 0;
+  const productText = text.slice(productsIndex);
+  const titlePattern = /"title_fa"\s*:\s*("(?:\\.|[^"\\])*")/g;
+  const prices: number[] = [];
+  for (const match of productText.matchAll(titlePattern)) {
+    let title = "";
+    try {
+      title = String(JSON.parse(match[1] || '""'));
+    } catch {
+      continue;
+    }
+    if (!marketVariantMatches(productTitle, title)) continue;
+    const offset = match.index || 0;
+    const tail = productText.slice(offset, offset + 96_000);
+    const variantIndex = tail.indexOf('"default_variant"');
+    if (variantIndex < 0) continue;
+    const variantText = tail.slice(variantIndex, variantIndex + 40_000);
+    const sellingRial = Number(
+      variantText.match(/"price"\s*:\s*\{[\s\S]{0,16_000}?"selling_price"\s*:\s*(\d+)/)?.[1] || 0,
+    );
+    const price = Math.round(sellingRial / 10);
+    if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
+  }
+  return prices.length ? Math.min(...prices) : 0;
+}
+
+/** جستجوی دستهٔ کارت گرافیک را بدون JSON.parse کل پاسخ بزرگ بررسی می‌کند. */
+async function fetchCompactDigikalaSearchPrice(productTitle: string) {
+  const direct = new URL("https://api.digikala.com/v1/search/");
+  direct.searchParams.set("q", productTitle);
+  direct.searchParams.set("categories[0]", "208");
+  direct.searchParams.set("page", "1");
+  const translated = new URL(`https://api-digikala-com.translate.goog${direct.pathname}${direct.search}`);
+  translated.searchParams.set("_x_tr_sl", "auto");
+  translated.searchParams.set("_x_tr_tl", "en");
+  translated.searchParams.set("_x_tr_hl", "en");
+  for (const url of [direct.toString(), translated.toString()]) {
+    const timeoutSignal =
+      typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+        ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(12_000)
+        : undefined;
+    try {
+      const response = await fetch(url, {
+        redirect: "follow",
+        cache: "no-store",
+        headers: { accept: "application/json, text/plain, */*" },
+        signal: timeoutSignal,
+      });
+      if (!response.ok) continue;
+      const price = compactDigikalaSearchPriceFromText(
+        await readResponseLimited(response, 1_500_000),
+        productTitle,
+      );
+      if (price > 0) return price;
+    } catch {
+      // پروکسی ترجمه در تلاش بعدی امتحان می‌شود.
+    }
+  }
+  return 0;
+}
+
 /** فقط عنوان و قیمت buy-box دیجی‌کالا را از ابتدای stream می‌خواند. */
 async function fetchCompactDigikalaPrice(productId: string) {
   const path = `/v2/product/${productId}/`;
@@ -616,13 +699,11 @@ export async function getLiveStoreProductPriceSnapshot(
         torobPrice <= storedMarketPrice;
 
       if (!torobProvesCurrentMinimum) {
-        let directDetailMatches = false;
         try {
           // پاسخ کامل جزئیات بعضی GPUها چند صد کیلوبایت است. فقط ابتدای stream تا
           // buy-box خوانده می‌شود تا مقایسهٔ قیمت باعث خطای CPU/حافظهٔ Worker نشود.
           const compactDetail = await fetchCompactDigikalaPrice(productId);
           if (marketVariantMatches(product.title, compactDetail.title)) {
-            directDetailMatches = true;
             sourcePrice = compactDetail.price;
             sourceOriginalPrice = compactDetail.originalPrice;
             if (!extractedPrice || sourcePrice < extractedPrice) extractedPrice = sourcePrice;
@@ -631,18 +712,11 @@ export async function getLiveStoreProductPriceSnapshot(
           // جستجوی دقیق دیجی‌کالا در ادامه مسیر جایگزین است.
         }
 
-        if (!directDetailMatches || !sourcePrice) {
-          try {
-            const digikalaSearchResult = await fetchDigikalaJson(
-              `https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`,
-            );
-            const digikalaPriceValue = digikalaComparablePrice(digikalaSearchResult, product.title);
-            if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
-              extractedPrice = digikalaPriceValue;
-            }
-          } catch {
-            // قیمت معتبر ترب همچنان قابل استفاده است.
-          }
+        // ممکن است یک مدل دقیق با چند شناسهٔ dkp ثبت شده باشد؛ کمترین buy-box همهٔ
+        // نتایج دقیق صفحهٔ اول نیز به‌صورت stream بررسی می‌شود (بدون parse پاسخ عظیم).
+        const digikalaSearchPrice = await fetchCompactDigikalaSearchPrice(product.title);
+        if (digikalaSearchPrice > 0 && (!extractedPrice || digikalaSearchPrice < extractedPrice)) {
+          extractedPrice = digikalaSearchPrice;
         }
       }
     } else if (isTorobProduct) {
