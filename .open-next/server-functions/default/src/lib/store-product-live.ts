@@ -501,53 +501,66 @@ export async function getLiveStoreProductPriceSnapshot(
     let sourcePrice = 0;
     let detailData: ReturnType<typeof digikalaDetailSnapshot> | null = null;
     let imageUrl = "";
+    const storedMarketPrice = storedProductMarketPrice(product);
 
     if (isDigikalaProduct) {
       const productId = parsed?.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
       if (!productId) return null;
-      // در حالت عادی دو مرجع کافی‌اند. جستجوی دوم دیجی‌کالا فقط وقتی اجرا می‌شود
-      // که لینک مستقیم مدل دیگری باشد یا یکی از دو پاسخ اصلی قیمت معتبر ندهد.
-      const [detailResult, torobResult] = await Promise.allSettled([
-        fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`),
-        fetchTorobSearchJson(product.title),
-      ]);
-      let directDetailMatches = false;
+
+      // ابتدا پاسخ سبک‌تر ترب خوانده می‌شود. اگر قیمت دقیق ترب از آخرین کف معتبر
+      // کمتر شده باشد، همان به‌تنهایی کف جدید را ثابت می‌کند و دانلود/JSON.parse
+      // پاسخ بسیار بزرگ جزئیات دیجی‌کالا فقط منابع Worker را هدر می‌دهد.
       let torobPrice = 0;
-      if (detailResult.status === "fulfilled") {
-        const detail = detailResult.value?.data?.product || detailResult.value?.product || {};
-        const detailTitle = String(detail?.title_fa || detail?.title_en || detail?.title || "").trim();
-        if (detailTitle && marketVariantMatches(product.title, detailTitle)) {
-          directDetailMatches = true;
-          detailData = digikalaDetailSnapshot(detailResult.value);
-          sourcePrice = Number(detailData.price || 0);
-          sourceOriginalPrice = Number(detailData.originalPrice || 0);
-          extractedPrice = sourcePrice;
-          const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
-          try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
-        }
-      }
-      if (torobResult.status === "fulfilled") {
-        const requiredBrand = marketBrandKey(
-          `${product.brand} ${product.title} ${product.description} ${detailData?.description || ""}`,
-        );
+      try {
+        const torobResult = await fetchTorobSearchJson(product.title);
         torobPrice = torobComparableJsonPrice(
-          torobResult.value,
+          torobResult,
           product.title,
-          requiredBrand,
+          marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
         );
-        if (torobPrice > 0 && (!extractedPrice || torobPrice < extractedPrice)) extractedPrice = torobPrice;
+        if (torobPrice > 0) extractedPrice = torobPrice;
+      } catch {
+        // در ادامه دیجی‌کالا مستقلاً بررسی می‌شود.
       }
-      if (!directDetailMatches || !sourcePrice || !torobPrice) {
+
+      const torobProvesCurrentMinimum =
+        torobPrice > 0 &&
+        storedMarketPrice > 0 &&
+        torobPrice <= storedMarketPrice;
+
+      if (!torobProvesCurrentMinimum) {
+        let directDetailMatches = false;
         try {
-          const digikalaSearchResult = await fetchDigikalaJson(
-            `https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`,
-          );
-          const digikalaPriceValue = digikalaComparablePrice(digikalaSearchResult, product.title);
-          if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
-            extractedPrice = digikalaPriceValue;
+          const detailResult = await fetchDigikalaJson(`https://api.digikala.com/v2/product/${productId}/`);
+          const detail = detailResult?.data?.product || detailResult?.product || {};
+          const detailTitle = String(detail?.title_fa || detail?.title_en || detail?.title || "").trim();
+          if (detailTitle && marketVariantMatches(product.title, detailTitle)) {
+            directDetailMatches = true;
+            detailData = digikalaDetailSnapshot(detailResult);
+            sourcePrice = Number(detailData.price || 0);
+            sourceOriginalPrice = Number(detailData.originalPrice || 0);
+            if (sourcePrice > 0 && (!extractedPrice || sourcePrice < extractedPrice)) {
+              extractedPrice = sourcePrice;
+            }
+            const rawImage = detail?.images?.main?.url?.[0] || detail?.images?.main?.webp_url?.[0];
+            try { imageUrl = rawImage ? new URL(rawImage, sourceUrl).toString() : ""; } catch { imageUrl = ""; }
           }
         } catch {
-          // قیمت معتبر لینک مستقیم یا ترب همچنان قابل استفاده است.
+          // جستجوی دقیق دیجی‌کالا در ادامه مسیر جایگزین است.
+        }
+
+        if (!directDetailMatches || !sourcePrice) {
+          try {
+            const digikalaSearchResult = await fetchDigikalaJson(
+              `https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`,
+            );
+            const digikalaPriceValue = digikalaComparablePrice(digikalaSearchResult, product.title);
+            if (digikalaPriceValue > 0 && (!extractedPrice || digikalaPriceValue < extractedPrice)) {
+              extractedPrice = digikalaPriceValue;
+            }
+          } catch {
+            // قیمت معتبر ترب همچنان قابل استفاده است.
+          }
         }
       }
     } else if (isTorobProduct) {
@@ -597,7 +610,6 @@ export async function getLiveStoreProductPriceSnapshot(
     // اگر یک مرجع موقتاً پاسخ نداد، قیمت تأییدشدهٔ چند ساعت اخیر را بی‌دلیل
     // با قیمت بالاتر مرجع دیگر جایگزین نمی‌کنیم. دادهٔ صرفاً واردشده همچنان باید
     // حداقل ۸۵٪ قیمت جاری باشد؛ فقط قیمت زندهٔ تأییدشده بازهٔ ۵۵٪ دارد.
-    const storedMarketPrice = storedProductMarketPrice(product);
     const minimumPreviousRatio = hasRecentVerifiedMarketPrice(product) ? 0.55 : 0.85;
     if (
       storedMarketPrice > 0 &&
