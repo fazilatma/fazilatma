@@ -109,6 +109,10 @@ function strongModelTokens(value: string) {
     // RTX 5080 16GB اشتباهاً به توکن rtx508016gb تبدیل می‌شود.
     .replace(/\b(rtx|gtx)\s*-?\s*(\d{3,4})(?:\s*(ti|super))?\b/g, (_, family, model, suffix) => `${family}${model}${suffix || ""}`)
     .replace(/\b(rx)\s*-?\s*(\d{3,4})(?:\s*(xtx|xt))?\b/g, (_, family, model, suffix) => `${family}${model}${suffix || ""}`)
+    // مدل‌های قدیمی GeForce با GT (نه GTX) نیز باید مستقل از خط‌تیرهٔ کد برد
+    // شناسایی شوند؛ 2GD3 و 2GD5 سپس به‌عنوان توکن‌های متفاوت باقی می‌مانند.
+    .replace(/\b(gt)\s*-?\s*(\d{3,4})\b/g, (_, family, model) => ` ${family}${model}`)
+    .replace(/\b(gt\d{3,4})((?:-[a-z0-9]+)+)/g, (_, model, boardCode) => `${model} ${String(boardCode).replace(/-/g, " ")}`)
     .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
     .replace(/\b([a-z]*\d[a-z0-9]*)-(tray|box)\b/g, "$1 $2")
