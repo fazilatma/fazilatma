@@ -809,6 +809,24 @@ export async function getLiveStoreProductPriceSnapshot(
       }
     }
 
+    // رکوردهای canonical تأییدشده مستقل از نوع لینک اولیه بررسی می‌شوند؛ برخی
+    // محصولات قدیمی لینک easy-scraper یا منبع غیر dkp دارند اما مدل دقیق روشن است.
+    for (const canonicalProductId of verifiedCanonicalDigikalaProductIds(product.title)) {
+      try {
+        const canonicalDetail = await fetchCompactDigikalaPrice(canonicalProductId);
+        if (
+          marketVariantMatches(product.title, canonicalDetail.title) &&
+          (!extractedPrice || canonicalDetail.price < extractedPrice)
+        ) {
+          extractedPrice = canonicalDetail.price;
+          sourcePrice = canonicalDetail.price;
+          sourceOriginalPrice = canonicalDetail.originalPrice;
+        }
+      } catch {
+        // سایر مراجع معتبر همچنان قابل استفاده‌اند.
+      }
+    }
+
     if (extractedPrice <= 0) {
       snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
       return null;
