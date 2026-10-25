@@ -390,7 +390,7 @@ export type HomepageImageSliderSlide = {
   image?: ProductImageAttachment;
 };
 
-export type SiteMode = "store" | "request";
+export type SiteMode = "store" | "request" | "hybrid";
 
 export type JsonStoreProduct = {
   id: string;
@@ -1529,10 +1529,10 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       (parsed as { supportChatMessages?: unknown }).supportChatMessages,
     ),
     settings: {
-      siteMode:
-        (parsed.settings as { siteMode?: SiteMode } | undefined)?.siteMode === "request"
-          ? "request"
-          : "store",
+      siteMode: (() => {
+        const mode = (parsed.settings as { siteMode?: SiteMode } | undefined)?.siteMode;
+        return mode === "request" || mode === "hybrid" ? mode : "store";
+      })(),
       storeLaptopCatalogEnabled:
         (parsed.settings as { storeLaptopCatalogEnabled?: boolean } | undefined)
           ?.storeLaptopCatalogEnabled === true,
@@ -3934,7 +3934,7 @@ export async function getJsonBuyerDashboard(buyerId: number) {
   const orders = data.orders.filter((item) => item.buyerId === buyer.id);
   const { password: _buyerPassword, ...safeBuyer } = buyer;
   return {
-    siteMode: data.settings.siteMode === "request" ? "request" : "store",
+    siteMode: data.settings.siteMode,
     buyer: safeBuyer,
     requests: enrichedRequests,
     offers: offers.map((offer) => ({
@@ -4487,7 +4487,11 @@ export async function updateJsonPlatformFinanceSettings(
   updates: Partial<OptiBidJsonData["settings"]>,
 ) {
   const data = await getOptiBidData();
-  if (updates.siteMode === "store" || updates.siteMode === "request") {
+  if (
+    updates.siteMode === "store" ||
+    updates.siteMode === "request" ||
+    updates.siteMode === "hybrid"
+  ) {
     data.settings.siteMode = updates.siteMode;
   }
   if (typeof updates.commissionRate === "number") {
@@ -4677,7 +4681,7 @@ export async function updateJsonPlatformFinanceSettings(
 
 export async function getJsonSiteMode(): Promise<SiteMode> {
   const data = await getOptiBidData();
-  return data.settings.siteMode === "request" ? "request" : "store";
+  return data.settings.siteMode;
 }
 
 export async function getJsonStoreCatalogSettings() {

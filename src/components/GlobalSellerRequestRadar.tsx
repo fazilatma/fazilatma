@@ -22,7 +22,7 @@ const money = (value: string | number) =>
 export default function GlobalSellerRequestRadar() {
   const pathname = usePathname();
   const [sellerId, setSellerId] = useState(0);
-  const [siteMode, setSiteMode] = useState<"store" | "request">("store");
+  const [siteMode, setSiteMode] = useState<"store" | "request" | "hybrid">("store");
   const [requests, setRequests] = useState<SellerRadarRequest[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [minimized, setMinimized] = useState(false);
@@ -37,7 +37,7 @@ export default function GlobalSellerRequestRadar() {
     fetch("/api/site-mode")
       .then((response) => response.json())
       .then((result) => {
-        if (result.success && (result.siteMode === "store" || result.siteMode === "request")) {
+        if (result.success && ["store", "request", "hybrid"].includes(result.siteMode)) {
           setSiteMode(result.siteMode);
         }
       })
@@ -45,7 +45,7 @@ export default function GlobalSellerRequestRadar() {
   }, []);
 
   const loadRequests = useCallback(async () => {
-    if (!sellerId || siteMode !== "request" || shouldHideOnThisPage) return;
+    if (!sellerId || siteMode === "store" || shouldHideOnThisPage) return;
     try {
       const response = await fetch(
         `/api/seller-matching-requests?sellerId=${sellerId}&limit=10`,
@@ -64,7 +64,7 @@ export default function GlobalSellerRequestRadar() {
   }, [sellerId, siteMode, shouldHideOnThisPage]);
 
   useEffect(() => {
-    if (!sellerId || siteMode !== "request" || shouldHideOnThisPage) return;
+    if (!sellerId || siteMode === "store" || shouldHideOnThisPage) return;
     void loadRequests();
     const interval = window.setInterval(() => void loadRequests(), 25000);
     return () => window.clearInterval(interval);
@@ -97,7 +97,7 @@ export default function GlobalSellerRequestRadar() {
     }
   };
 
-  if (!sellerId || siteMode !== "request" || shouldHideOnThisPage || requests.length === 0 || !activeRequest) {
+  if (!sellerId || siteMode === "store" || shouldHideOnThisPage || requests.length === 0 || !activeRequest) {
     return null;
   }
 

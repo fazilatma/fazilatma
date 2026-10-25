@@ -265,7 +265,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [previousUserRole, setPreviousUserRole] = useState<string | null>(null);
-  const [siteMode, setSiteMode] = useState<"store" | "request">("store");
+  const [siteMode, setSiteMode] = useState<"store" | "request" | "hybrid">("store");
   const [laptopCatalogEnabled, setLaptopCatalogEnabled] = useState(false);
   const [computerPartsCatalogEnabled, setComputerPartsCatalogEnabled] = useState(true);
   const [cartCount, setCartCount] = useState(0);
@@ -291,7 +291,7 @@ export default function Header() {
     fetch("/api/site-mode")
       .then((response) => response.json())
       .then((result) => {
-        if (result.success && (result.siteMode === "store" || result.siteMode === "request")) {
+        if (result.success && ["store", "request", "hybrid"].includes(result.siteMode)) {
           setSiteMode(result.siteMode);
           setLaptopCatalogEnabled(result.storeLaptopCatalogEnabled === true);
           setComputerPartsCatalogEnabled(result.storeComputerPartsCatalogEnabled !== false);
@@ -362,8 +362,10 @@ export default function Header() {
     if (menu.title === "قطعات کامپیوتر") return computerPartsCatalogEnabled;
     return true;
   });
+  const storeExperienceEnabled = siteMode !== "request";
+  const requestExperienceEnabled = siteMode !== "store";
   const visibleHeaderCategories = (
-    siteMode === "store" ? storeLaptopCategories : headerCategories
+    storeExperienceEnabled ? storeLaptopCategories : headerCategories
   ).filter((category) => category.isActive !== false);
   const activeHeaderCategory =
     visibleHeaderCategories.find(
@@ -371,7 +373,7 @@ export default function Header() {
     ) || visibleHeaderCategories[0];
   const effectiveUserRole =
     siteMode === "store" && userRole === "seller" ? "buyer" : userRole;
-  const showRoleSwitchButtons = siteMode !== "store";
+  const showRoleSwitchButtons = requestExperienceEnabled;
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -381,11 +383,11 @@ export default function Header() {
           {/* Logo */}
           <OptiBidLogo />            <div className="group relative hidden py-5 md:block">
               <Link
-                href={siteMode === "store" ? (computerPartsCatalogEnabled && !laptopCatalogEnabled ? "/shop?category=computer-parts" : "/shop#store-categories") : "/categories"}
+                href={storeExperienceEnabled ? (computerPartsCatalogEnabled && !laptopCatalogEnabled ? "/shop?category=computer-parts" : "/shop#store-categories") : "/categories"}
                 className="flex items-center gap-1 text-gray-900 hover:text-green-600 transition font-black"
               >
                 <span className="text-lg leading-none">☰</span>{" "}
-                {siteMode === "store"
+                {storeExperienceEnabled
                   ? computerPartsCatalogEnabled && !laptopCatalogEnabled
                     ? "دسته‌بندی قطعات"
                     : "دسته‌بندی لپ‌تاپ‌ها"
@@ -399,7 +401,7 @@ export default function Header() {
                       return (
                         <Link
                           key={category.id}
-                          href={siteMode === "store" ? storeLaptopHref(category.name) : categoryHref(category)}
+                          href={storeExperienceEnabled ? storeLaptopHref(category.name) : categoryHref(category)}
                           onMouseEnter={() => setActiveHeaderCategoryId(category.id)}
                           className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition ${
                             active
@@ -417,10 +419,10 @@ export default function Header() {
                     {activeHeaderCategory && (
                       <>
                         <Link
-                          href={siteMode === "store" ? "/shop#all-laptops" : categoryHref(activeHeaderCategory)}
+                          href={storeExperienceEnabled ? "/shop#all-laptops" : categoryHref(activeHeaderCategory)}
                           className="mb-5 inline-flex items-center gap-2 text-sm font-black text-[#003b5c] hover:text-[#00a8e8]"
                         >
-                          {siteMode === "store"
+                          {storeExperienceEnabled
                             ? "همه لپ‌تاپ‌ها"
                             : `همه محصولات ${activeHeaderCategory.name}`}
                           <span>‹</span>
@@ -429,7 +431,7 @@ export default function Header() {
                           {activeHeaderCategory.subcategories.map((group) => (
                             <div key={group.id}>
                               <Link
-                                href={siteMode === "store" ? storeLaptopHref(group.title) : categoryHref(activeHeaderCategory)}
+                                href={storeExperienceEnabled ? storeLaptopHref(group.title) : categoryHref(activeHeaderCategory)}
                                 className="mb-3 block border-r-2 border-red-500 pr-2 text-sm font-black text-gray-900 hover:text-[#00a8e8]"
                               >
                                 {group.title}
@@ -438,7 +440,7 @@ export default function Header() {
                                 {group.items.map((item) => (
                                   <Link
                                     key={item}
-                                    href={siteMode === "store" ? storeLaptopHref(item) : categoryHref(activeHeaderCategory)}
+                                    href={storeExperienceEnabled ? storeLaptopHref(item) : categoryHref(activeHeaderCategory)}
                                     className="block text-xs text-gray-500 hover:text-[#00a8e8]"
                                   >
                                     {item}
@@ -458,11 +460,19 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-5 space-x-reverse">
-            {siteMode === "store" ? (
+            {storeExperienceEnabled ? (
               <>
                 {visibleStoreTopNavMenus.map((menu) => (
                   <StoreTopNavItem key={menu.title} menu={menu} />
                 ))}
+                {requestExperienceEnabled && (
+                  <Link
+                    href="/requests"
+                    className="text-emerald-700 hover:text-emerald-800 transition font-black"
+                  >
+                    درخواست‌های خرید
+                  </Link>
+                )}
                 <Link
                   href="/support"
                   className="text-gray-700 hover:text-rose-600 transition font-medium"
@@ -515,12 +525,20 @@ export default function Header() {
             >
               🌐 arena.site
             </Link>
+            {siteMode === "hybrid" && (
+              <Link
+                href="/request-purchase"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-700"
+              >
+                ثبت درخواست
+              </Link>
+            )}
             <Link
-              href={siteMode === "store" ? "/cart" : "/request-purchase"}
-              className={`${siteMode === "store" ? "bg-rose-600 hover:bg-rose-700" : "bg-orange-500 hover:bg-orange-600"} relative inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition`}
+              href={storeExperienceEnabled ? "/cart" : "/request-purchase"}
+              className={`${storeExperienceEnabled ? "bg-rose-600 hover:bg-rose-700" : "bg-orange-500 hover:bg-orange-600"} relative inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition`}
             >
-              <span>{siteMode === "store" ? "سبد خرید" : "ثبت درخواست خرید"}</span>
-              {siteMode === "store" && cartCount > 0 && (
+              <span>{storeExperienceEnabled ? "سبد خرید" : "ثبت درخواست خرید"}</span>
+              {storeExperienceEnabled && cartCount > 0 && (
                 <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1.5 text-xs font-black text-rose-600 shadow-sm">
                   {cartCount.toLocaleString("fa-IR")}
                 </span>
@@ -657,7 +675,7 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-3 space-y-reverse">
-              {siteMode === "store" ? (
+              {storeExperienceEnabled ? (
                 <>
                   <Link
                     href="/shop#mobile-store"
@@ -701,6 +719,22 @@ export default function Header() {
                   >
                     🎧 پشتیبانی
                   </Link>
+                  {requestExperienceEnabled && (
+                    <>
+                      <Link
+                        href="/requests"
+                        className="py-2 font-black text-emerald-700 hover:text-emerald-800"
+                      >
+                        📋 درخواست‌های خرید
+                      </Link>
+                      <Link
+                        href="/request-purchase"
+                        className="rounded-lg bg-emerald-600 px-6 py-2 text-center font-bold text-white transition hover:bg-emerald-700"
+                      >
+                        ثبت درخواست خرید جدید
+                      </Link>
+                    </>
+                  )}
                   <Link
                     href="/cart"
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-6 py-2 text-center font-bold text-white transition hover:bg-rose-700"
@@ -766,7 +800,7 @@ export default function Header() {
                 >
                   <span>👤</span> داشبورد خریدار
                 </Link>
-                {siteMode !== "store" && (
+                {requestExperienceEnabled && (
                   <>
                     <Link
                       href="/seller/dashboard"

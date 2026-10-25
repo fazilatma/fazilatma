@@ -205,7 +205,7 @@ export default async function HomePage() {
     ]);
 
     realStats = stats;
-    siteMode = data.settings.siteMode === "request" ? "request" : "store";
+    siteMode = data.settings.siteMode;
     storeLaptopCatalogEnabled = data.settings.storeLaptopCatalogEnabled;
     storeComputerPartsCatalogEnabled = data.settings.storeComputerPartsCatalogEnabled;
     reverseAuctionPilot = {
@@ -400,7 +400,7 @@ export default async function HomePage() {
     console.error("JSON home data error:", error);
   }
 
-  if (siteMode === "store") {
+  if (siteMode !== "request") {
     return (
       <StorefrontHome
         products={storeProducts}

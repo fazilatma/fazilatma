@@ -9,7 +9,7 @@ import { ProductImageStrip, ProductThumb } from "@/components/ProductImages";
 import { generateInvoiceHTML } from "@/utils/invoiceGenerator";
 
 type BuyerDashboardData = {
-  siteMode?: "store" | "request";
+  siteMode?: "store" | "request" | "hybrid";
   buyer: {
     id: number;
     fullName: string;

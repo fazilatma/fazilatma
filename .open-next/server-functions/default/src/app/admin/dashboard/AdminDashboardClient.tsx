@@ -268,7 +268,7 @@ export default function AdminDashboardClient({
   );
   const [workingHours, setWorkingHours] = useState("شنبه تا چهارشنبه ۹ تا ۱۷");
   const [platformFinance, setPlatformFinance] = useState({
-    siteMode: "store" as "store" | "request",
+    siteMode: "store" as "store" | "request" | "hybrid",
     platformWalletBalance: realStats.platformWalletBalance || 0,
     adminAccountHolder: "",
     adminBankName: "",
@@ -3324,17 +3324,17 @@ export default function AdminDashboardClient({
                     <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
                       <div>
                         <h3 className="text-lg font-black text-purple-900">
-                          تغییر فاز سایت فقط برای ادمین
+                          مدل فعالیت سایت
                         </h3>
                         <p className="mt-1 text-sm leading-7 text-purple-700">
-                          فاز فروشگاه اینترنتی برای شروع عمومی سایت فعال است؛ هر زمان خواستید می‌توانید سایت را به فاز درخواست خرید و رقابت فروشنده‌ها تغییر دهید.
+                          در حالت ترکیبی، فروشگاه و سبد خرید فعال می‌مانند و هم‌زمان خریداران درخواست رقابتی ثبت می‌کنند و فروشندگان پیشنهاد می‌دهند.
                         </p>
                       </div>
                       <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-purple-700 shadow-sm">
-                        حالت فعلی: {platformFinance.siteMode === "store" ? "فروشگاه اینترنتی" : "درخواست خرید"}
+                        حالت فعلی: {platformFinance.siteMode === "hybrid" ? "ترکیبی: فروشگاه + درخواست" : platformFinance.siteMode === "store" ? "فروشگاه اینترنتی" : "درخواست خرید"}
                       </span>
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3 md:grid-cols-3">
                       <button
                         type="button"
                         onClick={() => updatePlatformFinanceField("siteMode", "store")}
@@ -3344,6 +3344,17 @@ export default function AdminDashboardClient({
                         <b className="mt-3 block">فاز فروشگاه اینترنتی</b>
                         <span className="mt-2 block text-xs leading-6">
                           صفحه اصلی فروشگاهی، لیست لپ‌تاپ‌ها، صفحه محصول، سبد خرید و ثبت سفارش.
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updatePlatformFinanceField("siteMode", "hybrid")}
+                        className={`rounded-2xl border-2 p-5 text-right transition ${platformFinance.siteMode === "hybrid" ? "border-purple-500 bg-purple-50 text-purple-900 shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:border-purple-200"}`}
+                      >
+                        <span className="text-3xl">🔄</span>
+                        <b className="mt-3 block">حالت ترکیبی پیشنهادی</b>
+                        <span className="mt-2 block text-xs leading-6">
+                          فروشگاه، سبد خرید و سئو فعال می‌مانند؛ ثبت درخواست، عضویت فروشنده و رقابت روی درخواست‌ها نیز هم‌زمان فعال است.
                         </span>
                       </button>
                       <button
@@ -3362,7 +3373,7 @@ export default function AdminDashboardClient({
                       onClick={saveFinance}
                       className="mt-4 rounded-xl bg-purple-700 px-6 py-3 text-sm font-black text-white transition hover:bg-purple-800"
                     >
-                      ذخیره فاز سایت
+                      ذخیره مدل فعالیت
                     </button>
                   </div>
 

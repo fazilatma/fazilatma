@@ -22,7 +22,7 @@ const isMobile = (value: string) => /^09\d{9}$/.test(normalizePhone(value));
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [siteMode, setSiteMode] = useState<"store" | "request">("store");
+  const [siteMode, setSiteMode] = useState<"store" | "request" | "hybrid">("store");
   const [accountType, setAccountType] = useState<"seller" | "buyer">("buyer");
   const [identifier, setIdentifier] = useState("");
   const [fullName, setFullName] = useState("");
@@ -35,7 +35,7 @@ export default function RegisterPage() {
     fetch("/api/site-mode", { cache: "no-store" })
       .then((response) => response.json())
       .then((result) => {
-        if (result.success && (result.siteMode === "store" || result.siteMode === "request")) {
+        if (result.success && ["store", "request", "hybrid"].includes(result.siteMode)) {
           setSiteMode(result.siteMode);
           if (result.siteMode === "store") setAccountType("buyer");
         }

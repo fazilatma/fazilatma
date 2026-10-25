@@ -1,6 +1,6 @@
 import Link from "next/link";
 import OptiBidLogo from "@/components/OptiBidLogo";
-import { getJsonStoreCatalogSettings } from "@/lib/json-store";
+import { getOptiBidData } from "@/lib/json-store";
 
 const laptopQuickLinks = [
   { href: "/shop?ref=brand-search#brand-search", label: "همه لپ‌تاپ‌ها" },
@@ -23,10 +23,14 @@ const computerPartsQuickLinks = [
 ];
 
 export default async function StoreStaticHeader() {
-  const catalog = await getJsonStoreCatalogSettings();
-  const quickLinks = catalog.computerPartsEnabled && !catalog.laptopEnabled
+  const data = await getOptiBidData();
+  const requestExperienceEnabled = data.settings.siteMode !== "store";
+  const catalogLinks = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled
     ? computerPartsQuickLinks
     : laptopQuickLinks;
+  const quickLinks = requestExperienceEnabled
+    ? [{ href: "/request-purchase", label: "درخواست قیمت" }, ...catalogLinks]
+    : catalogLinks;
   return (
     <header dir="rtl" className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
@@ -67,6 +71,14 @@ export default async function StoreStaticHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {requestExperienceEnabled && (
+            <Link
+              href="/request-purchase"
+              className="hidden rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700 lg:inline-flex"
+            >
+              ثبت درخواست
+            </Link>
+          )}
           <Link
             href="/login"
             className="hidden rounded-2xl border border-[#003b5c]/20 bg-white px-4 py-2 text-sm font-black text-[#003b5c] shadow-sm transition hover:bg-blue-50 sm:inline-flex"
