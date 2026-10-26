@@ -145,6 +145,73 @@ export default function StorefrontHome({
         </section>
       )}
 
+      {reverseAuctionPilot?.productCtaEnabled && (
+        <section id="seller-acquisition" className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-[2rem] border border-violet-300 bg-gradient-to-l from-[#141b34] via-[#312e81] to-[#6d28d9] p-6 text-white shadow-xl md:p-9">
+            <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
+            <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-fuchsia-400/20 blur-3xl" />
+            <div className="relative grid gap-7 xl:grid-cols-[1fr_330px] xl:items-center">
+              <div>
+                <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-violet-50">
+                  ویژه فروشندگان قطعات کامپیوتر
+                </span>
+                <h2 className="mt-4 max-w-4xl text-2xl font-black leading-10 md:text-4xl md:leading-[1.5]">
+                  فروشنده هستید؟ به‌جای انتظار برای مشتری، روی درخواست‌های واقعی پیشنهاد بدهید
+                </h2>
+                <p className="mt-3 max-w-4xl text-sm leading-8 text-violet-100 md:text-base">
+                  در OptiBid خریدار مدل، بودجه و زمان خریدش را مشخص می‌کند؛ شما درخواست‌های مرتبط را می‌بینید، پیشنهاد خصوصی خود را ثبت می‌کنید و با قیمت، گارانتی و تحویل بهتر برای فروش رقابت می‌کنید.
+                </p>
+                <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">🎯 تقاضای مرتبط</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">درخواست‌های متناسب با کالا و حوزه فعالیت شما</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">🔒 پیشنهاد خصوصی</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">قیمت پیشنهادی شما در ویترین عمومی نمایش داده نمی‌شود</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">⚡ شروع سریع</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">بدون ساخت فروشگاه پیچیده، اولین پیشنهاد را ثبت کنید</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">📈 سابقه فروش</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">با پاسخ‌گویی و معامله موفق، اعتبار و اولویت بیشتری بگیرید</span>
+                  </div>
+                </div>
+                {reverseAuctionPilot.freeSellerOffersEnabled && (
+                  <p className="mt-5 inline-flex rounded-full bg-emerald-400/15 px-4 py-2 text-xs font-black text-emerald-100 ring-1 ring-emerald-300/30">
+                    پایلوت ماه اول: ثبت و ویرایش پیشنهاد برای فروشندگان رایگان است
+                  </p>
+                )}
+              </div>
+              <div className="rounded-[1.75rem] border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-sm">
+                <div className="text-center text-5xl">🏪</div>
+                <h3 className="mt-3 text-center text-xl font-black">فروش را از یک درخواست واقعی شروع کنید</h3>
+                <p className="mt-2 text-center text-xs leading-6 text-violet-100">
+                  ثبت‌نام کنید، حوزه فعالیتتان را مشخص کنید و برای خریداران مرتبط پیشنهاد بفرستید.
+                </p>
+                <Link
+                  href="/become-seller"
+                  className="mt-5 block rounded-2xl bg-white px-6 py-4 text-center text-sm font-black text-[#312e81] shadow-lg transition hover:-translate-y-0.5 hover:bg-violet-50"
+                >
+                  همین حالا فروشنده OptiBid شوید
+                </Link>
+                <Link
+                  href="/requests"
+                  className="mt-3 block rounded-2xl border border-white/30 bg-white/10 px-6 py-3 text-center text-sm font-black text-white transition hover:bg-white/20"
+                >
+                  مشاهده درخواست‌های خرید
+                </Link>
+                <p className="mt-3 text-center text-[11px] leading-5 text-violet-200">
+                  عضویت اولیه سریع است؛ اطلاعات تکمیلی و احراز هویت را مرحله‌به‌مرحله انجام می‌دهید.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">

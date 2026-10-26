@@ -3984,7 +3984,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 267612,
+      "bytes": 267610,
       "imports": [
         {
           "path": "path",
@@ -6885,7 +6885,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2314659,
+      "bytes": 2320284,
       "imports": [],
       "format": "cjs"
     },
@@ -9151,7 +9151,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_0jr94yk._.js": {
-      "bytes": 70018,
+      "bytes": 74802,
       "imports": [],
       "format": "cjs"
     },
@@ -18540,7 +18540,7 @@
           "bytesInOutput": 461
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 224191
+          "bytesInOutput": 224189
         },
         ".open-next/cloudflare-templates/shims/throw.js": {
           "bytesInOutput": 215
@@ -18930,7 +18930,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 2824744
+          "bytesInOutput": 2833189
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__0dx3i76._.js": {
           "bytesInOutput": 9977
@@ -19287,7 +19287,7 @@
           "bytesInOutput": 7557
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_0jr94yk._.js": {
-          "bytesInOutput": 95779
+          "bytesInOutput": 103385
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_components_0gc1jve._.js": {
           "bytesInOutput": 38897
@@ -20037,7 +20037,7 @@
           "bytesInOutput": 75314
         }
       },
-      "bytes": 10504571
+      "bytes": 10520620
     }
   }
 }
