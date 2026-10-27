@@ -157,11 +157,11 @@ export default async function StoreProductPage({
         data.settings.storePriceMultiplier,
         duplicateSourceUrls,
       );
+  // خطای موقت یا timeout یکی از منابع نباید قیمت تأییدشدهٔ قبلی را ناموجود کند.
+  // وضعیت ناموجود فقط از override صریح قبلی حفظ می‌شود و قیمت زنده آن را دوباره فعال می‌کند.
   const currentPriceAvailable = liveSnapshot?.price
     ? true
-    : recentlyVerified
-      ? storedProduct.priceAvailable !== false
-      : false;
+    : storedProduct.priceAvailable !== false;
   const product = {
     ...applyLiveStoreProductSnapshot(storedProduct, liveSnapshot),
     priceAvailable: currentPriceAvailable,
@@ -173,18 +173,6 @@ export default async function StoreProductPage({
       priceMultiplier: liveSnapshot.priceMultiplier,
       updatedAt: liveSnapshot.checkedAt,
       available: true,
-    }).catch(() => undefined);
-  } else if (!recentlyVerified) {
-    const fallbackMultiplier = Number(storedProduct.priceMultiplier || 1);
-    const fallbackMarketPrice = Number(storedProduct.marketPrice || 0) >= 100_000
-      ? Number(storedProduct.marketPrice)
-      : Math.max(100_000, Math.round(Number(storedProduct.price || 0) / fallbackMultiplier));
-    await saveStorePriceOverride(product.id, {
-      price: Number(storedProduct.price),
-      marketPrice: fallbackMarketPrice,
-      priceMultiplier: fallbackMultiplier,
-      updatedAt: new Date().toISOString(),
-      available: false,
     }).catch(() => undefined);
   }
   // صفحهٔ عمومی دیگر کل دیتاست KV را بازنویسی نمی‌کند. قیمت تأییدشده در کلید
