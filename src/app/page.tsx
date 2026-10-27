@@ -52,6 +52,16 @@ function boundedOpportunity(value: number) {
   return Math.max(0, Math.min(100, Math.round(value || 0)));
 }
 
+function uniqueStoreProductsBySlug(products: JsonStoreProduct[]) {
+  const seenSlugs = new Set<string>();
+  return products.filter((product) => {
+    const slug = String(product.slug || "").trim();
+    if (!slug || seenSlugs.has(slug)) return false;
+    seenSlugs.add(slug);
+    return true;
+  });
+}
+
 function requestSpecBadges(request: {
   quantity?: number;
   description?: string;
@@ -216,7 +226,7 @@ export default async function HomePage() {
       minimumOffersEnabled: data.settings.reverseAuctionMinimumOffersEnabled,
       minimumOffersCount: data.settings.reverseAuctionMinimumOffersCount,
     };
-    storeProducts = filterProductsByCatalogSections(
+    storeProducts = uniqueStoreProductsBySlug(filterProductsByCatalogSections(
       (data.storeProducts || []).filter(
         (product) => product.isActive && product.stock > 0,
       ),
@@ -224,7 +234,7 @@ export default async function HomePage() {
         laptopEnabled: storeLaptopCatalogEnabled,
         computerPartsEnabled: storeComputerPartsCatalogEnabled,
       },
-    );
+    ));
     storeHeroSlides = data.settings.storeHeroSliderSlides || [];
     storeHeroDurationSeconds = data.settings.storeHeroSliderDurationSeconds || 5;
     amazingSettings = {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
-import StoreProductSeoCard from "@/components/StoreProductSeoCard";
+import StoreProductCard from "@/components/StoreProductCard";
 import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import {
   getLaptopCollectionProducts,
@@ -117,7 +117,7 @@ export default function StorefrontHome({
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
                 <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-black text-emerald-50">
-                  پایلوت مزایده معکوس OptiBid
+                  خرید رقابتی OptiBid
                 </span>
                 <h2 className="mt-4 text-2xl font-black md:text-3xl">
                   کالا را پیدا کردی؟ از چند فروشنده قیمت رقابتی بگیر
@@ -181,7 +181,7 @@ export default function StorefrontHome({
                 </div>
                 {reverseAuctionPilot.freeSellerOffersEnabled && (
                   <p className="mt-5 inline-flex rounded-full bg-emerald-400/15 px-4 py-2 text-xs font-black text-emerald-100 ring-1 ring-emerald-300/30">
-                    پایلوت ماه اول: ثبت و ویرایش پیشنهاد برای فروشندگان رایگان است
+                    ثبت و ویرایش پیشنهاد برای فروشندگان رایگان است
                   </p>
                 )}
               </div>
@@ -543,7 +543,7 @@ function SpecialOfferCarousel({ products }: { products: JsonStoreProduct[] }) {
       <div className="flex gap-4 overflow-x-auto scroll-smooth pb-2">
         {products.map((product) => (
           <div key={`hero-special-${product.id}`} className="w-[270px] shrink-0 md:w-[300px]">
-            <StoreProductSeoCard product={product} />
+            <StoreProductCard product={product} />
           </div>
         ))}
       </div>
@@ -682,10 +682,9 @@ function StoreCollectionRow({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {products.map((product) => (
-            <StoreProductSeoCard
+            <StoreProductCard
               key={`${collection.slug}-${product.id}`}
               product={product}
-              sectionId={`collection-${collection.slug}`}
             />
           ))}
         </div>

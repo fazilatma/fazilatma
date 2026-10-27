@@ -350,7 +350,7 @@ export default async function StoreProductPage({
                   </p>
                   {reverseAuctionSettings.reverseAuctionMinimumOffersEnabled && (
                     <p className="mt-2 text-xs font-bold text-emerald-800">
-                      هدف پایلوت: دریافت حداقل {reverseAuctionSettings.reverseAuctionMinimumOffersCount.toLocaleString("fa-IR")} پیشنهاد برای هر درخواست معتبر
+                      هدف: دریافت حداقل {reverseAuctionSettings.reverseAuctionMinimumOffersCount.toLocaleString("fa-IR")} پیشنهاد برای هر درخواست معتبر
                     </p>
                   )}
                   <Link

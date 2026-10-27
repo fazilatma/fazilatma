@@ -518,13 +518,6 @@ export default function Header() {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center space-x-3 space-x-reverse">
-            <Link
-              href="/external-link"
-              className="bg-blue-50 hover:bg-blue-100 text-[#003b5c] text-xs font-bold px-3 py-1.5 rounded-full transition flex items-center gap-1 border border-blue-200"
-              title="لینک خارجی arena.site"
-            >
-              🌐 arena.site
-            </Link>
             {siteMode === "hybrid" && (
               <Link
                 href="/request-purchase"
@@ -787,12 +780,6 @@ export default function Header() {
                   </Link>
                 </>
               )}
-              <Link
-                href="/external-link"
-                className="text-[#003b5c] bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition font-bold"
-              >
-                🌐 لینک خارجی arena.site
-              </Link>
               <div className="border-t border-gray-200 pt-3 flex flex-col gap-2">
                 <Link
                   href="/buyer/dashboard"

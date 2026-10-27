@@ -712,12 +712,12 @@ export default function AdminDashboardClient({
         }),
       });
       const result = await response.json();
-      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات پایلوت ناموفق بود.");
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات مزایده معکوس ناموفق بود.");
       setPlatformFinance((current) => ({ ...current, ...result.settings }));
       await loadReverseAuctionDispatch();
       alert("تنظیمات ماه اول مزایده معکوس ذخیره شد.");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "ذخیره تنظیمات پایلوت ناموفق بود.");
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات مزایده معکوس ناموفق بود.");
     } finally {
       setSavingReverseAuctionPilot(false);
     }
@@ -1703,7 +1703,7 @@ export default function AdminDashboardClient({
                   }}
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "reverseAuctionPilot" ? "bg-emerald-50 text-emerald-700 border-r-4 border-r-emerald-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
-                  🚀 پایلوت ماه اول مزایده معکوس
+                  🚀 مزایده معکوس و جذب فروشنده
                 </button>
                 <button
                   onClick={() => setActiveTab("storeImport")}
@@ -2546,7 +2546,7 @@ export default function AdminDashboardClient({
                     {[
                       ["reverseAuctionProductCtaEnabled", "ورودی مزایده در صفحه اصلی و صفحه محصول", "بنر مزایده در صفحه اصلی و دکمه دریافت پیشنهاد در صفحات محصول نمایش داده می‌شود."],
                       ["reverseAuctionQuickRequestEnabled", "فرم سریع و ازپیش‌پرشده", "مدل، بودجه و توضیح محصول به فرم درخواست خرید منتقل می‌شود."],
-                      ["reverseAuctionFreeSellerOffersEnabled", "پیشنهاد رایگان فروشندگان", "در دوره پایلوت، ثبت و ویرایش پیشنهاد برای فروشنده رایگان اعلام می‌شود."],
+                      ["reverseAuctionFreeSellerOffersEnabled", "پیشنهاد رایگان فروشندگان", "ثبت و ویرایش پیشنهاد برای فروشنده رایگان اعلام می‌شود."],
                       ["reverseAuctionManualDispatchEnabled", "ارجاع دستی درخواست به فروشندگان", "ادمین درخواست‌های مهم را مستقیماً برای فروشندگان منتخب ارسال می‌کند."],
                       ["reverseAuctionMinimumOffersEnabled", "هدف حداقل پیشنهاد برای هر درخواست", "پیشرفت رسیدن هر درخواست معتبر به تعداد هدف پیشنهادها کنترل می‌شود."],
                     ].map(([key, title, description]) => {
