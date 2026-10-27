@@ -239,7 +239,9 @@ function torobComparableJsonPrice(
   requiredBrand = "",
 ) {
   if (!strongModelTokens(productTitle).length && !distinctiveNameTokens(productTitle).length) return 0;
-  const modernGpuRequiresNew = /\b(?:rtx|gtx)\s*\d{4}|\brx\s*[6-9]\d{3}/i.test(productTitle) && !/استوک|کارکرده|used/i.test(productTitle);
+  // برای هر محصولی که خود عنوان آن کارکرده/استوک نیست، آگهی‌های کارکرده نباید
+  // به‌عنوان کف قیمت کالای نو انتخاب شوند (این قاعده فقط مخصوص GPU نیست).
+  const sourceRequiresNew = !/استوک|کارکرده|used/i.test(productTitle);
   const results = Array.isArray(payload?.results)
     ? payload.results
     : Array.isArray(payload?.data?.results)
@@ -251,7 +253,7 @@ function torobComparableJsonPrice(
     if (isDefectiveMarketListing(title)) continue;
     if (requiredBrand && marketBrandKey(title) !== requiredBrand) continue;
     const listingIsUsed = /استوک|کارکرده|used/i.test(title) || String(result?.stock_status || "").trim().length > 0;
-    if (modernGpuRequiresNew && listingIsUsed) continue;
+    if (sourceRequiresNew && listingIsUsed) continue;
     if (!marketVariantMatches(productTitle, title)) continue;
     const price = Math.round(Number(result?.price || 0));
     if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
@@ -362,6 +364,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   }
   if (packageType === "tray" && modelTokens.has("i3-12100f")) {
     urls.push("https://torob.com/p/a1a69157-6d00-41b6-ac31-4e0e04651861/پردازنده-کامپیوتر-اینتل-مدل-core-i3-12100f-alder-lake-tray/");
+  }
+  if (packageType === "tray" && modelTokens.has("i3-10105f")) {
+    urls.push("https://torob.com/p/dcd67bb8-764c-4d8b-8930-09a14612ad0d/پردازنده-intel-core-i3-10105f-tray/");
   }
   return urls;
 }
