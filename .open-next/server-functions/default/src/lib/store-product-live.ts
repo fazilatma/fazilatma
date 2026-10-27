@@ -353,6 +353,19 @@ async function fetchDigikalaJson(url: string) {
   return JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
 }
 
+function verifiedCanonicalTorobProductUrls(productTitle: string) {
+  const modelTokens = new Set(strongModelTokens(productTitle));
+  const packageType = packageKind(productTitle);
+  const urls: string[] = [];
+  if (packageType === "tray" && modelTokens.has("i5-12400f")) {
+    urls.push("https://torob.com/p/165eb750-39a4-400a-abd8-92e787188438/پردازنده-مرکزی-اینتل-مدل-core-i5-12400f-tray/");
+  }
+  if (packageType === "tray" && modelTokens.has("i3-12100f")) {
+    urls.push("https://torob.com/p/a1a69157-6d00-41b6-ac31-4e0e04651861/پردازنده-کامپیوتر-اینتل-مدل-core-i3-12100f-alder-lake-tray/");
+  }
+  return urls;
+}
+
 function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   const normalized = toEnglishDigits(productTitle).toLowerCase().replace(/[‌\s]+/g, " ");
   const ids: string[] = [];
@@ -858,6 +871,22 @@ export async function getLiveStoreProductPriceSnapshot(
           digikalaCurrentPrice = digikalaPriceValue;
           if (!extractedPrice || digikalaPriceValue < extractedPrice) extractedPrice = digikalaPriceValue;
         }
+      }
+    }
+
+    // برای چند CPU با رکوردهای تکراری Tray/Box، صفحه canonical دقیق ترب نیز
+    // مستقلاً خوانده می‌شود تا قیمت دیجی‌کالا جای کمترین قیمت ترب را نگیرد.
+    for (const canonicalTorobUrl of verifiedCanonicalTorobProductUrls(product.title)) {
+      try {
+        const canonicalTorobPrice = firstTorobPrice(await fetchTorobPublicPage(canonicalTorobUrl));
+        if (canonicalTorobPrice > 0) {
+          torobCurrentPrice = !torobCurrentPrice
+            ? canonicalTorobPrice
+            : Math.min(torobCurrentPrice, canonicalTorobPrice);
+          if (!extractedPrice || canonicalTorobPrice < extractedPrice) extractedPrice = canonicalTorobPrice;
+        }
+      } catch {
+        // سایر مراجع معتبر همچنان قابل استفاده‌اند.
       }
     }
 
