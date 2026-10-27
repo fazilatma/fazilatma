@@ -364,6 +364,11 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
     /black\s*edition/.test(normalized) &&
     /\b8\s*gb\b|8\s*گیگابایت/.test(normalized)
   ) ids.push("4947207");
+  // صفحهٔ دقیق پایه نگهدارنده garli در دیجی‌کالا؛ عنوان این اکسسوری کد عددی ندارد
+  // و برای بازیابی پایدار buy-box از شناسهٔ canonical استفاده می‌شود.
+  if (/\bgarli\b/.test(normalized) && /نگهدارنده\s*کارت\s*گرافیک/.test(normalized)) {
+    ids.push("19914634");
+  }
   return ids;
 }
 
