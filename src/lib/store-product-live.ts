@@ -123,6 +123,20 @@ function strongModelTokens(value: string) {
     .filter((token) => !/^(?:gddr\d+x?|ddr\d|pcie\d*|sata\d*|usb\d*)$/.test(token));
 }
 
+function distinctiveNameTokens(value: string) {
+  const generic = new Set([
+    "card", "graphic", "graphics", "model", "holder", "support", "computer",
+    "edition", "gaming", "with", "for", "the", "کارت", "گرافیک", "مدل",
+  ]);
+  return toEnglishDigits(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9آ-ی]+/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length >= 4 && /[a-z]/.test(token) && !generic.has(token))
+    .filter((token, index, items) => items.indexOf(token) === index)
+    .slice(0, 3);
+}
+
 function packageKind(value: string) {
   const normalized = toEnglishDigits(value).toLowerCase().replace(/[‌\s]+/g, " ");
   if (/\btray\b|بدون جعبه/.test(normalized)) return "tray";
@@ -150,12 +164,17 @@ function marketQualifierTokens(value: string) {
 
 function marketVariantMatches(productTitle: string, candidateTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
-  if (!requiredTokens.length) return false;
+  const requiredNameTokens = distinctiveNameTokens(productTitle);
+  if (!requiredTokens.length && !requiredNameTokens.length) return false;
   const requiredBrand = marketBrandKey(productTitle);
   const candidateBrand = marketBrandKey(candidateTitle);
   if (requiredBrand && candidateBrand !== requiredBrand) return false;
   const candidateTokens = new Set(strongModelTokens(candidateTitle));
-  if (!requiredTokens.every((token) => candidateTokens.has(token))) return false;
+  if (requiredTokens.length && !requiredTokens.every((token) => candidateTokens.has(token))) return false;
+  if (!requiredTokens.length) {
+    const candidateNameTokens = new Set(distinctiveNameTokens(candidateTitle));
+    if (!requiredNameTokens.every((token) => candidateNameTokens.has(token))) return false;
+  }
   const requiredPackage = packageKind(productTitle);
   const candidatePackage = packageKind(candidateTitle);
   if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) return false;
@@ -219,7 +238,7 @@ function torobComparableJsonPrice(
   productTitle: string,
   requiredBrand = "",
 ) {
-  if (!strongModelTokens(productTitle).length) return 0;
+  if (!strongModelTokens(productTitle).length && !distinctiveNameTokens(productTitle).length) return 0;
   const modernGpuRequiresNew = /\b(?:rtx|gtx)\s*\d{4}|\brx\s*[6-9]\d{3}/i.test(productTitle) && !/استوک|کارکرده|used/i.test(productTitle);
   const results = Array.isArray(payload?.results)
     ? payload.results
@@ -592,7 +611,7 @@ function digikalaDetailSnapshot(payload: Record<string, any>) {
 }
 
 function digikalaComparablePrice(payload: Record<string, any>, productTitle: string) {
-  if (!strongModelTokens(productTitle).length) return 0;
+  if (!strongModelTokens(productTitle).length && !distinctiveNameTokens(productTitle).length) return 0;
   const products = Array.isArray(payload?.data?.products)
     ? payload.data.products
     : Array.isArray(payload?.products)
@@ -693,7 +712,12 @@ export async function getLiveStoreProductPriceSnapshot(
   const host = parsed?.hostname.replace(/^www\./i, "").toLowerCase() || "";
   const isTorobProduct = host === "torob.com" && /^\/p\//i.test(parsed?.pathname || "");
   const isDigikalaProduct = host === "digikala.com" && /\/product\/dkp-/i.test(parsed?.pathname || "");
-  if (!isTorobProduct && !isDigikalaProduct && !strongModelTokens(product.title).length) return null;
+  if (
+    !isTorobProduct &&
+    !isDigikalaProduct &&
+    !strongModelTokens(product.title).length &&
+    !distinctiveNameTokens(product.title).length
+  ) return null;
 
   const priceMultiplier = normalizeStorePriceMultiplier(
     configuredPriceMultiplier ?? product.priceMultiplier,

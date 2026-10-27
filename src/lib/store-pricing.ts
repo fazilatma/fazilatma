@@ -91,7 +91,8 @@ export function isSuspiciousStoreProductPrice(product: StorePriceSanityProduct) 
   if (/core\s*i5|\bi5\s*-?\s*\d{4,5}/.test(text) && price > 120_000_000) return true;
   if (/core\s*i7|\bi7\s*-?\s*\d{4,5}/.test(text) && price > 150_000_000) return true;
   if (/core\s*i9|\bi9\s*-?\s*\d{4,5}/.test(text) && price > 250_000_000) return true;
-  if (/کارت گرافیک|\bgpu\b|\brtx\s*\d|\bgtx\s*\d|radeon\s+rx/.test(text) && price < 3_000_000) return true;
+  const gpuAccessory = /پایه\s*(?:نگهدارنده)?\s*کارت\s*گرافیک|نگهدارنده\s*کارت\s*گرافیک|gpu\s*(?:support|holder|brace)/i.test(text);
+  if (!gpuAccessory && /کارت گرافیک|\bgpu\b|\brtx\s*\d|\bgtx\s*\d|radeon\s+rx/.test(text) && price < 3_000_000) return true;
   if (/مادربرد|motherboard/.test(text) && price < 1_500_000) return true;
   if (/\bssd\b|\bnvme\b|اس اس دی|هارد|hard disk|\bhdd\b/.test(text) && price < 1_000_000) return true;
   if (/منبع تغذیه|پاور|power supply|\bpsu\b/.test(text) && price < 1_000_000) return true;
