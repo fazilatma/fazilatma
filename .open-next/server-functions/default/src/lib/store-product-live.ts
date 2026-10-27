@@ -561,8 +561,8 @@ async function fetchTorobSearchJson(productTitle: string) {
   url.searchParams.set("page", "0");
   url.searchParams.set("sort", "popularity");
   // پاسخ‌های بزرگ ترجمهٔ ترب روی Worker مصرف CPU/حافظه را بالا می‌برد؛ نتایج دقیق
-  // معمولاً در رتبه‌های نخست هستند و ۱۲ کارت برای مقایسهٔ مدل کافی است.
-  url.searchParams.set("size", "12");
+  // در رتبه‌های نخست هستند و ۸ کارت برای تطبیق مدل/پکیج کافی است.
+  url.searchParams.set("size", "8");
   url.searchParams.set("q", productTitle);
   url.searchParams.set("_x_tr_sl", "auto");
   url.searchParams.set("_x_tr_tl", "en");

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
@@ -7,7 +8,6 @@ import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
 import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import StoreVerifiedPriceSync from "@/components/StoreVerifiedPriceSync";
 import {
-  getJsonStoreProductBySlug,
   getOptiBidData,
   type JsonStoreProduct,
 } from "@/lib/json-store";
@@ -33,6 +33,9 @@ import {
 } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+// generateMetadata و خود صفحه در یک درخواست، دیتاست بزرگ KV را فقط یک‌بار می‌خوانند.
+const getStorePageData = cache(getOptiBidData);
 
 const money = (value: number | string) =>
   `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
@@ -101,7 +104,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getJsonStoreProductBySlug(slug);
+  const data = await getStorePageData();
+  const product = data.storeProducts.find((item) => item.slug === slug) || null;
   if (!product) return { title: "محصول پیدا نشد | OptiBid" };
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   return buildSeoMetadata({
@@ -125,7 +129,7 @@ export default async function StoreProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const data = await getOptiBidData();
+  const data = await getStorePageData();
   const baseProduct = data.storeProducts.find((item) => item.slug === slug);
   if (!baseProduct || !isStorefrontEligibleComputerPart(baseProduct)) notFound();
 
