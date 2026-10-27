@@ -93,11 +93,15 @@ export default function StoreCardPrice({
       setCurrent((value) => newerPrice(value, local));
       setSynced(true);
     }
-    const stopRequest = requestStorePrice(product.id, (value) => {
-      // endpoint از کلید مستقل محصول می‌خواند و از نقشهٔ مشترک/قیمت اولیه معتبرتر است.
-      if (value) setCurrent(value);
-      setSynced(true);
-    });
+    const stopRequests: Array<() => void> = [];
+    const requestLatestPrice = () => {
+      stopRequests.push(requestStorePrice(product.id, (value) => {
+        // endpoint از کلید مستقل محصول می‌خواند و از نقشهٔ مشترک/قیمت اولیه معتبرتر است.
+        if (value) setCurrent(value);
+        setSynced(true);
+      }));
+    };
+    requestLatestPrice();
     const handlePriceSync = (event: Event) => {
       const detail = (event as CustomEvent<{ productId?: string; value?: BrowserStorePrice }>).detail;
       if (detail?.productId === product.id && detail.value) {
@@ -105,10 +109,22 @@ export default function StoreCardPrice({
         setSynced(true);
       }
     };
+    // بازگشت با دکمه Back ممکن است صفحهٔ فهرست را از bfcache برگرداند و state
+    // قدیمی را نگه دارد؛ در بازگشت/فوکوس دوباره کلید مستقل محصول خوانده می‌شود.
+    const handlePageShow = () => requestLatestPrice();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") requestLatestPrice();
+    };
     window.addEventListener(STORE_PRICE_SYNC_EVENT, handlePriceSync);
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("focus", handlePageShow);
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      stopRequest();
+      stopRequests.forEach((stopRequest) => stopRequest());
       window.removeEventListener(STORE_PRICE_SYNC_EVENT, handlePriceSync);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("focus", handlePageShow);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [product.id]);
 
