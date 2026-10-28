@@ -397,7 +397,7 @@ export default function AdminDashboardClient({
   const [savingStoreCatalog, setSavingStoreCatalog] = useState(false);
   const [importingComputerParts, setImportingComputerParts] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
-  const [productImportLimit, setProductImportLimit] = useState(50);
+  const [productImportLimit, setProductImportLimit] = useState(1000);
   const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
   const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("page");
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
@@ -2631,6 +2631,9 @@ export default function AdminDashboardClient({
                         <p className="mt-2 text-sm leading-7 text-blue-100">
                           ابتدا «استخراج و پیش‌نمایش» را بزنید. محصولی بدون تأیید شما ثبت نمی‌شود و موارد تکراری بر اساس لینک و مدل دقیق به‌روزرسانی می‌شوند.
                         </p>
+                        <p className="mt-2 rounded-xl bg-cyan-300/10 px-3 py-2 text-xs font-bold leading-6 text-cyan-100 ring-1 ring-cyan-200/20">
+                          پشتیبانی اختصاصی ایمالز فعال است: لینک اصلی emalls.ir، صفحهٔ لیست قیمت یا لینک مستقیم محصول را وارد کنید؛ سقف هر نوبت تا ۱٬۰۰۰ محصول است.
+                        </p>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold sm:grid-cols-4 lg:w-[390px] lg:grid-cols-2">
                         {[
@@ -2678,9 +2681,9 @@ export default function AdminDashboardClient({
                         <input
                           type="number"
                           min="1"
-                          max="50"
+                          max="1000"
                           value={productImportLimit}
-                          onChange={(event) => setProductImportLimit(Math.max(1, Math.min(50, Number(event.target.value || 1))))}
+                          onChange={(event) => setProductImportLimit(Math.max(1, Math.min(1000, Number(event.target.value || 1))))}
                           className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-bold text-slate-900 outline-none"
                         />
                       </label>
@@ -2993,9 +2996,9 @@ export default function AdminDashboardClient({
                       <input
                         type="number"
                         min="1"
-                        max="50"
+                        max="1000"
                         value={productImportLimit}
-                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(50, Number(e.target.value || 50))))}
+                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(1000, Number(e.target.value || 1000))))}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </label>
@@ -3021,7 +3024,7 @@ export default function AdminDashboardClient({
                         onChange={(e) => setProductImportScanMode(e.target.value === "page" ? "page" : "full-site")}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="full-site">جستجوی کامل دسته/سایت‌مپ و لینک‌های قابل کشف (تا سقف ۵۰)</option>
+                        <option value="full-site">جستجوی کامل دسته/سایت‌مپ و ایمالز (تا سقف ۱٬۰۰۰ محصول)</option>
                         <option value="page">همین صفحه؛ دیجی‌کالا با دسته‌های انتخابی جستجو شود</option>
                       </select>
                     </label>

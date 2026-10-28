@@ -1179,6 +1179,363 @@ function productCardDraftsFromHtml(
   return [...byUrl.values()];
 }
 
+type EmallsProductLinkMatch = {
+  url: string;
+  firstIndex: number;
+  lastIndex: number;
+};
+
+function emallsProductId(value: string) {
+  return String(value || "").match(/~id~(\d+)/i)?.[1] || "";
+}
+
+function canonicalEmallsProductUrl(value: string, baseUrl = "https://emalls.ir/") {
+  try {
+    const url = new URL(decodeHtml(value), baseUrl);
+    if (!/(^|\.)emalls\.ir$/i.test(url.hostname) || !emallsProductId(url.pathname)) return "";
+    url.protocol = "https:";
+    url.hostname = "emalls.ir";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function emallsProductLinksFromText(text: string, pageUrl: string) {
+  const matches: Array<{ url: string; index: number }> = [];
+  for (const match of text.matchAll(/\bhref\s*=\s*(["'])([^"']*~id~\d+[^"']*)\1/gi)) {
+    const url = canonicalEmallsProductUrl(match[2] || "", pageUrl);
+    if (url) matches.push({ url, index: match.index || 0 });
+  }
+  for (const match of text.matchAll(/\]\((https?:\/\/(?:www\.)?emalls\.ir\/[\s\S]*?~id~\d+)(?:\s+"[^"]*")?\)/gi)) {
+    const url = canonicalEmallsProductUrl(match[1] || "", pageUrl);
+    if (url) matches.push({ url, index: match.index || 0 });
+  }
+  matches.sort((a, b) => a.index - b.index);
+  const grouped = new Map<string, EmallsProductLinkMatch>();
+  for (const match of matches) {
+    const existing = grouped.get(match.url);
+    if (existing) existing.lastIndex = Math.max(existing.lastIndex, match.index);
+    else grouped.set(match.url, { url: match.url, firstIndex: match.index, lastIndex: match.index });
+  }
+  return [...grouped.values()].sort((a, b) => a.firstIndex - b.firstIndex);
+}
+
+function cleanMarkdownLabel(value: string) {
+  return decodeHtml(String(value || ""))
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`#\\]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function emallsTitleFromUrl(productUrl: string) {
+  try {
+    const decodedPath = decodeURIComponent(new URL(productUrl).pathname);
+    const raw = decodedPath
+      .replace(/^\/+/, "")
+      .replace(/^مشخصات_/i, "")
+      .replace(/~id~\d+[\s\S]*$/i, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return raw.slice(0, 180);
+  } catch {
+    return "";
+  }
+}
+
+function emallsImagesFromText(text: string, productId: string, baseUrl: string) {
+  if (!productId) return [];
+  const values = [...text.matchAll(new RegExp(
+    `https?:\\/\\/(?:files|service)\\.emalls\\.ir\\/[^\\s"'<>)]*\\/${productId}\\/[^\\s"'<>)]*`,
+    "gi",
+  ))].map((match) => (match[0] || "").replace(/\\+$/g, ""));
+  return uniqueImageUrls(values, baseUrl, 8);
+}
+
+function emallsTitleFromSegment(segment: string, productUrl: string, productId: string) {
+  const anchorTitles: string[] = [];
+  for (const match of segment.matchAll(/<a\b[^>]*href\s*=\s*(["'])([^"']*~id~\d+[^"']*)\1[^>]*>([\s\S]*?)<\/a>/gi)) {
+    if (canonicalEmallsProductUrl(match[2] || "", productUrl) !== productUrl) continue;
+    const title = stripTags(match[3] || "").trim();
+    if (title.length >= 5 && !/^\d+$/.test(toEnglishDigits(title))) anchorTitles.push(title);
+  }
+  for (const match of segment.matchAll(/\[([^\]]+)\]\((https?:\/\/(?:www\.)?emalls\.ir\/[\s\S]*?~id~\d+)(?:\s+"[^"]*")?\)/gi)) {
+    if (canonicalEmallsProductUrl(match[2] || "", productUrl) !== productUrl) continue;
+    const title = cleanMarkdownLabel(match[1] || "");
+    if (title.length >= 5) anchorTitles.push(title);
+  }
+  const altTitles = [...segment.matchAll(/<img\b[^>]*>/gi)]
+    .filter((match) => !productId || (match[0] || "").includes(`/${productId}/`))
+    .map((match) => htmlAttribute(match[0] || "", "alt"))
+    .filter((title) => title.length >= 5 && !/logo|loading|در حال بار/i.test(title));
+  return [...anchorTitles, ...altTitles]
+    .sort((a, b) => b.length - a.length)[0]
+    ?.slice(0, 180) || emallsTitleFromUrl(productUrl);
+}
+
+/** Extract product cards from an Emalls list/search/category page (HTML or reader Markdown). */
+export function extractEmallsListingDrafts(
+  text: string,
+  pageUrl: string,
+  limit = 50,
+): ImportedStoreProductDraft[] {
+  const links = emallsProductLinksFromText(text, pageUrl);
+  const drafts: ImportedStoreProductDraft[] = [];
+  for (let index = 0; index < links.length && drafts.length < limit; index += 1) {
+    const link = links[index];
+    const nextStart = links[index + 1]?.firstIndex ?? Math.min(text.length, link.lastIndex + 5000);
+    const segmentStart = Math.max(0, link.firstIndex - 1200);
+    const segment = text.slice(segmentStart, nextStart);
+    const afterProductLink = text.slice(link.lastIndex, nextStart);
+    const productId = emallsProductId(link.url);
+    const title = emallsTitleFromSegment(segment, link.url, productId);
+    const prices = formattedPricesFromText(
+      /<[^>]+>/.test(afterProductLink) ? stripTags(afterProductLink) : cleanMarkdownLabel(afterProductLink),
+    );
+    const price = prices[0] || 0;
+    if (!title || title.length < 5 || price < 100_000) continue;
+    const originalPrice = prices.find((value) => value > price * 1.03 && value <= price * 1.8);
+    const imageUrls = emallsImagesFromText(segment, productId, pageUrl);
+    const specs = technicalSpecsFromText(title);
+    drafts.push({
+      title,
+      brand: brandFromTitle(title, "Emalls"),
+      category: categoryFromTitle(title),
+      summary: title,
+      description: title,
+      price,
+      originalPrice,
+      imageUrls,
+      imageUrl: imageUrls[0],
+      stock: 5,
+      specs,
+      externalSourceUrl: link.url,
+      sourceHost: "emalls.ir",
+      currency: "IRT",
+    });
+  }
+  return uniqueDrafts(drafts).slice(0, limit);
+}
+
+function emallsReadableText(text: string) {
+  return /<[^>]+>/.test(text)
+    ? stripTags(text)
+    : cleanMarkdownLabel(text).replace(/\s+/g, " ").trim();
+}
+
+function emallsPriceFromProductText(text: string) {
+  const readable = emallsReadableText(text);
+  const patterns = [
+    /شروع\s*قیمت\s*از\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬،\s]{3,})/i,
+    /ارزان.?ترین\s*فروشنده\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬،\s]{3,})/i,
+    /ارزان.?ترین\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬،\s]{3,})/i,
+    /قیمت\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬،\s]{3,})\s*تومان/i,
+  ];
+  for (const pattern of patterns) {
+    const raw = readable.match(pattern)?.[1] || "";
+    const price = normalizePriceToToman(raw, "IRT");
+    if (price >= 100_000 && price <= 10_000_000_000) return price;
+  }
+  return 0;
+}
+
+function markdownSpecsFromEmalls(text: string) {
+  const specs: Record<string, string> = {};
+  const section = text.split(/##\s*مشخصات فنی/i)[1]?.split(/###\s*محصولات مشابه/i)[0] || "";
+  const knownLabels = [
+    "DirectX", "OpenGL", "ابعاد", "باس حافظه", "برند", "تعداد مانیتور قابل اتصال",
+    "حداقل توان مورد نیاز PSU", "حداکثر رزولوشن", "درگاه", "درگاه ارتباطی",
+    "فرکانس هسته گرافیکی", "کانکتور برق", "میزان حافظه", "نوع حافظه",
+    "هسته های پردازشی CUDA", "پردازنده", "سوکت", "فرکانس", "ظرفیت", "رابط",
+  ];
+  for (const rawLine of section.split(/\n+/)) {
+    const line = cleanMarkdownLabel(rawLine);
+    if (!line || /^(?:مشخصات|مشاهده بیشتر|پیشنهاد ویژه)/.test(line)) continue;
+    for (const label of knownLabels) {
+      if (!line.toLowerCase().startsWith(label.toLowerCase())) continue;
+      const value = line.slice(label.length).replace(/^\s*[:：-]?\s*/, "").trim();
+      if (value) addCleanSpec(specs, label, value);
+      break;
+    }
+  }
+  return specs;
+}
+
+/** Extract one complete Emalls product page (HTML or reader Markdown). */
+export function extractEmallsProductDraft(
+  text: string,
+  productUrl: string,
+): ImportedStoreProductDraft | null {
+  const productId = emallsProductId(productUrl);
+  if (!productId) return null;
+  const htmlTitle = /<[^>]+>/.test(text) ? titleFromHtml(text) : "";
+  const markdownTitle = cleanMarkdownLabel(text.match(/^#\s+(.+)$/m)?.[1] || "");
+  const title = (htmlTitle || markdownTitle || emallsTitleFromUrl(productUrl))
+    .replace(/^قیمت و خرید\s+/i, "")
+    .slice(0, 180)
+    .trim();
+  const price = emallsPriceFromProductText(text);
+  if (!title || !price) return null;
+  const imageUrls = emallsImagesFromText(text, productId, productUrl);
+  const htmlSpecs = /<[^>]+>/.test(text) ? specsFromHtml(text) : markdownSpecsFromEmalls(text);
+  const specs = mergeExtractedSpecs(htmlSpecs, technicalSpecsFromText(title));
+  return {
+    title,
+    brand: brandFromTitle(title, "Emalls"),
+    category: categoryFromTitle(title),
+    summary: title,
+    description: title,
+    price,
+    imageUrls,
+    imageUrl: imageUrls[0],
+    stock: 5,
+    specs,
+    externalSourceUrl: canonicalEmallsProductUrl(productUrl) || productUrl,
+    sourceHost: "emalls.ir",
+    currency: "IRT",
+  };
+}
+
+async function fetchEmallsPageText(url: string) {
+  let directError = "";
+  try {
+    const direct = await fetchText(url);
+    if (direct.length >= 1000 && /(?:~id~\d+|files\.emalls\.ir|محصولات|قیمت)/i.test(direct)) return direct;
+    directError = "پاسخ مستقیم ایمالز محتوای محصول نداشت";
+  } catch (error) {
+    directError = error instanceof Error ? error.message : "خطای دریافت مستقیم";
+  }
+  const target = new URL(url);
+  const readerUrl = `https://r.jina.ai/http://emalls.ir${target.pathname}${target.search}`;
+  try {
+    const reader = await fetchText(readerUrl);
+    if (reader.length >= 500) return reader;
+  } catch (error) {
+    const readerError = error instanceof Error ? error.message : "خطای واسط خواندن";
+    throw new Error(`Emalls direct: ${directError}; reader: ${readerError}`);
+  }
+  throw new Error(`Emalls direct: ${directError}; reader: empty response`);
+}
+
+function emallsPageUrl(value: string, page: number) {
+  const url = new URL(value);
+  url.pathname = url.pathname.replace(/~page~\d+/i, "").replace(/~+$/, "");
+  if (page > 1) url.pathname = `${url.pathname}~page~${page}`;
+  return url.toString();
+}
+
+const emallsQueriesByCategory: Partial<Record<ProductImportCategoryKey, string[]>> = {
+  laptop: ["لپ تاپ"],
+  mobile: ["گوشی موبایل"],
+  tablet: ["تبلت"],
+  desktop: ["کامپیوتر آماده"],
+  components: ["پردازنده کامپیوتر", "کارت گرافیک", "مادربرد", "رم کامپیوتر", "پاور کامپیوتر", "کیس کامپیوتر", "خنک کننده پردازنده"],
+  storage: ["اس اس دی", "هارد دیسک"],
+  accessories: ["لوازم جانبی کامپیوتر"],
+  monitor: ["مانیتور"],
+  gaming: ["تجهیزات گیمینگ"],
+  console: ["کنسول بازی"],
+  network: ["مودم روتر"],
+  "office-machines": ["ماشین اداری"],
+  printer: ["پرینتر"],
+  camera: ["دوربین"],
+  audio: ["هدفون اسپیکر"],
+  "smart-watch": ["ساعت هوشمند"],
+  server: ["سرور ورک استیشن"],
+};
+
+function emallsListingSources(sourceUrl: string, selectedCategories: ProductImportCategoryKey[]) {
+  const source = new URL(sourceUrl);
+  const directList = source.pathname !== "/" && !emallsProductId(source.pathname);
+  if (directList) return [emallsPageUrl(source.toString(), 1)];
+  const categories = selectedCategories.length
+    ? selectedCategories
+    : (["components", "storage", "laptop", "desktop", "monitor"] as ProductImportCategoryKey[]);
+  const queries = categories.flatMap((category) => emallsQueriesByCategory[category] || []);
+  const uniqueQueries = [...new Set(queries)].slice(0, 30);
+  return uniqueQueries.map((query) =>
+    new URL(`/لیست-قیمت~skey~${encodeURIComponent(query)}`, source.origin).toString(),
+  );
+}
+
+async function scanEmallsRobot(
+  sourceUrl: string,
+  selectedCategories: ProductImportCategoryKey[],
+  partFilters: string[],
+  limit: number,
+  warnings: string[],
+) {
+  if (emallsProductId(new URL(sourceUrl).pathname)) {
+    try {
+      const text = await fetchEmallsPageText(sourceUrl);
+      const draft = extractEmallsProductDraft(text, sourceUrl);
+      const accepted = draft &&
+        (selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories)) &&
+        productMatchesComputerPartFilters(draft, partFilters);
+      return {
+        drafts: accepted && draft ? [draft] : [],
+        scannedUrls: [sourceUrl],
+      };
+    } catch (error) {
+      warnings.push(`صفحه محصول ایمالز خوانده نشد: ${error instanceof Error ? error.message : "خطا"}`);
+      return { drafts: [] as ImportedStoreProductDraft[], scannedUrls: [sourceUrl] };
+    }
+  }
+
+  const sources = emallsListingSources(sourceUrl, selectedCategories);
+  if (new URL(sourceUrl).pathname === "/") {
+    warnings.push(`لینک اصلی ایمالز به ${sources.length.toLocaleString("fa-IR")} جستجوی کالایی مرتبط تبدیل شد.`);
+  }
+  const drafts: ImportedStoreProductDraft[] = [];
+  const scannedUrls: string[] = [];
+  const active = new Set(sources);
+  const maxRequests = Math.min(50, Math.max(sources.length, Math.ceil(limit / 35) + 4));
+  let requests = 0;
+
+  for (let page = 1; active.size > 0 && requests < maxRequests && uniqueDrafts(drafts).length < limit; page += 1) {
+    const currentSources = [...active];
+    for (let offset = 0; offset < currentSources.length && requests < maxRequests; offset += 4) {
+      const batchSources = currentSources.slice(offset, offset + Math.min(4, maxRequests - requests));
+      const pageUrls = batchSources.map((source) => emallsPageUrl(source, page));
+      requests += pageUrls.length;
+      const results = await Promise.allSettled(pageUrls.map(fetchEmallsPageText));
+      for (let index = 0; index < results.length; index += 1) {
+        const source = batchSources[index];
+        const pageUrl = pageUrls[index];
+        scannedUrls.push(pageUrl);
+        const result = results[index];
+        if (result.status === "rejected") {
+          active.delete(source);
+          if (warnings.length < 12) warnings.push(`خواندن ${pageUrl} ناموفق بود: ${result.reason instanceof Error ? result.reason.message : "خطا"}`);
+          continue;
+        }
+        const pageDrafts = extractEmallsListingDrafts(result.value, pageUrl, Math.max(1, limit - uniqueDrafts(drafts).length))
+          .filter((draft) =>
+            (selectedCategories.length === 0 || productMatchesImportCategories(draft, selectedCategories)) &&
+            productMatchesComputerPartFilters(draft, partFilters),
+          );
+        if (!pageDrafts.length) {
+          active.delete(source);
+          continue;
+        }
+        drafts.push(...pageDrafts);
+        if (uniqueDrafts(drafts).length >= limit) break;
+      }
+      if (uniqueDrafts(drafts).length >= limit) break;
+    }
+  }
+  const products = uniqueDrafts(drafts).slice(0, limit);
+  if (!products.length) warnings.push("از صفحه‌های ایمالز کارت محصول قیمت‌دار قابل استفاده‌ای استخراج نشد.");
+  if (products.length < limit && requests >= maxRequests) {
+    warnings.push(`در این نوبت ${products.length.toLocaleString("fa-IR")} محصول از ایمالز استخراج شد؛ برای حفظ پایداری Worker تعداد صفحه‌های خوانده‌شده به ${maxRequests.toLocaleString("fa-IR")} محدود بود.`);
+  }
+  return { drafts: products, scannedUrls };
+}
+
 async function fetchDigikalaApi(url: string) {
   const timeoutSignal =
     typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
@@ -1453,7 +1810,8 @@ export async function scanStoreProductsFromUrl(
   const sourceHost = parsedSource.hostname.replace(/^www\./, "");
   const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
   const isTorobBrowseSource = /(^|\.)torob\.com$/i.test(sourceHost) && /\/browse\/\d+/i.test(parsedSource.pathname);
-  const specializedLimit = isDigikalaSource || isTorobBrowseSource ? 500 : 50;
+  const isEmallsSource = /(^|\.)emalls\.ir$/i.test(sourceHost);
+  const specializedLimit = isEmallsSource ? 1000 : isDigikalaSource || isTorobBrowseSource ? 500 : 50;
   const defaultLimit = options.fullSite ? specializedLimit : 20;
   const limit = Math.max(1, Math.min(specializedLimit, Number(options.limit || defaultLimit)));
   const maxPages = Math.max(1, Math.min(100, Number(options.maxPages || Math.min(100, limit + 30))));
@@ -1462,6 +1820,24 @@ export async function scanStoreProductsFromUrl(
   const allDrafts: ImportedStoreProductDraft[] = [];
   const selectedCategories = options.categoryFilters || [];
   const selectedPartFilters = options.partFilters || [];
+
+  if (isEmallsSource) {
+    const robot = await scanEmallsRobot(
+      sourceUrl,
+      selectedCategories,
+      selectedPartFilters,
+      limit,
+      warnings,
+    );
+    scannedUrls.push(...robot.scannedUrls);
+    return {
+      sourceUrl,
+      sourceHost,
+      scannedUrls,
+      products: robot.drafts,
+      warnings,
+    };
+  }
 
   if (isTorobBrowseSource) {
     const robot = await scanTorobBrowseRobot(sourceUrl, limit, warnings);

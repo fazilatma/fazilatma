@@ -178,8 +178,8 @@ export async function POST(request: Request) {
     }
     const action: ImportAction = body.action === "import" ? "import" : "preview";
     const fullSite = body.fullSite === true || body.scanMode === "full-site";
-    const requestedLimit = Math.max(1, Number(body.limit || (fullSite ? 50 : 20)));
-    const limit = Math.max(1, Math.min(50, requestedLimit));
+    const requestedLimit = Math.max(1, Number(body.limit || (fullSite ? 1000 : 20)));
+    const limit = Math.max(1, Math.min(1000, requestedLimit));
     const strategy = body.strategy === "add-only" ? "add-only" : "merge";
     const priceMultiplier = normalizePriceMultiplier(body.priceMultiplier);
     const categoryFilters = normalizeProductImportCategories(body.categoryFilters);
@@ -206,7 +206,9 @@ export async function POST(request: Request) {
     if (filteredDrafts.length === 0) {
       const message = scan.products.length > 0
         ? "از اسکن محصولات پیدا شد، اما هیچ‌کدام با دسته‌های انتخاب‌شده مطابقت نداشتند."
-        : "از این لینک محصولی استخراج نشد. برای دیجی‌کالا، آدرس اصلی همراه دسته‌های انتخابی را بدهید یا از CSV خروجی Easy Scraper استفاده کنید.";
+        : scan.sourceHost === "emalls.ir"
+          ? "از این لینک ایمالز محصول قیمت‌دار استخراج نشد. لینک اصلی ایمالز، صفحهٔ «لیست قیمت» یا لینک مستقیم محصول را وارد کنید و دسته‌های کالای مرتبط را فعال نگه دارید."
+          : "از این لینک محصولی استخراج نشد. لینک مستقیم صفحه محصول، دسته‌بندی یا sitemap را وارد کنید؛ برای فایل‌های آماده نیز امکان ورود CSV وجود دارد.";
       const warningText = scan.warnings.slice(0, 2).join("؛ ");
       return NextResponse.json(
         {

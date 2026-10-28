@@ -2035,15 +2035,21 @@ export async function writeOptiBidData(data: OptiBidJsonData) {
     return;
   }
 
-  // حالت Node: نوشتن اتمیک روی دیسک (فایل موقت + rename)
+  // حالت Node: نوشتن اتمیک روی دیسک (فایل موقت یکتا + rename).
+  // چند Server Component ممکن است در اولین بارگذاری هم‌زمان فایل را بسازند؛
+  // نام ثابت .tmp باعث می‌شد یکی فایل موقت دیگری را rename کند و ENOENT بدهد.
   await fs.mkdir(path.dirname(dataFile), { recursive: true });
-  const temporaryFile = `${dataFile}.tmp`;
-  await fs.writeFile(
-    temporaryFile,
-    JSON.stringify(encryptedData, null, 2),
-    "utf8",
-  );
-  await fs.rename(temporaryFile, dataFile);
+  const temporaryFile = `${dataFile}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+  try {
+    await fs.writeFile(
+      temporaryFile,
+      JSON.stringify(encryptedData, null, 2),
+      "utf8",
+    );
+    await fs.rename(temporaryFile, dataFile);
+  } finally {
+    await fs.rm(temporaryFile, { force: true }).catch(() => undefined);
+  }
 }
 
 function addNotification(
