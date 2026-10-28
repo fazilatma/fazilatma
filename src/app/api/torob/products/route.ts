@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import { isStorefrontEligibleComputerPart } from "@/lib/store-computer-part-kind";
-import { applyStorePriceOverrides, getStorePriceOverrides } from "@/lib/store-price-overrides";
+import {
+  applyStorePriceOverrides,
+  getStorePriceOverrides,
+  getStorePriceOverridesByIds,
+} from "@/lib/store-price-overrides";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
 import { publicStoreProductSpecs } from "@/lib/store-product-public";
 
@@ -133,6 +137,13 @@ async function responseFor(request: Request) {
     selected = products.filter(
       (product) => normalizedPath(`/shop/${product.slug}`) === requestedPath,
     );
+  }
+
+  // در استعلام تک‌محصول، کلید مستقل همان کالا منبع نهایی قیمت/موجودی است؛ این
+  // مسیر مانع اختلاف قیمت فید با صفحه محصول در اثر هم‌زمانی نقشهٔ مشترک KV می‌شود.
+  if ((input.page_unique || input.page_url) && selected[0]) {
+    const dedicatedOverride = await getStorePriceOverridesByIds([selected[0].id]);
+    selected = applyStorePriceOverrides([selected[0]], dedicatedOverride);
   }
 
   const total = selected.length;
