@@ -512,6 +512,12 @@
       "namedRegex": "^/api/support\\-chat(?:/)?$"
     },
     {
+      "page": "/api/torob/products",
+      "regex": "^/api/torob/products(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/torob/products(?:/)?$"
+    },
+    {
       "page": "/api/wallet/topup",
       "regex": "^/api/wallet/topup(?:/)?$",
       "routeKeys": {},

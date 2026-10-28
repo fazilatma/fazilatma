@@ -22,6 +22,7 @@ const publicApiPrefixes = [
   "/api/enamad",
   "/api/support-chat",
   "/api/shop/prices",
+  "/api/torob",
   "/api/health",
 ];
 

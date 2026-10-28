@@ -63,6 +63,7 @@
   "/api/submit-offer/route": "app/api/submit-offer/route.js",
   "/api/submit-request/route": "app/api/submit-request/route.js",
   "/api/support-chat/route": "app/api/support-chat/route.js",
+  "/api/torob/products/route": "app/api/torob/products/route.js",
   "/api/wallet/topup/route": "app/api/wallet/topup/route.js",
   "/api/wallet/withdraw/route": "app/api/wallet/withdraw/route.js",
   "/become-seller/page": "app/become-seller/page.js",
