@@ -1,6 +1,7 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
+import { technicalSpecsFromText } from "@/lib/store-product-specs";
 
 export type ImportedStoreProductDraft = {
   title: string;
@@ -10,6 +11,8 @@ export type ImportedStoreProductDraft = {
   description: string;
   price: number;
   originalPrice?: number;
+  /** تصاویر محصول به ترتیب اولویت؛ imageUrl همیشه تصویر اصلی همین مجموعه است. */
+  imageUrls?: string[];
   imageUrl?: string;
   stock: number;
   specs: Record<string, string>;
@@ -189,15 +192,93 @@ function safeImageUrl(value: string, baseUrl: string) {
   return /^https?:\/\//i.test(url) ? url : "";
 }
 
-function imageUrlFromHtml(html: string, pageUrl: string) {
+function isPrivateNetworkHostname(hostname: string) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true;
+  if (host === "::1" || host === "0:0:0:0:0:0:0:1" || /^(?:fc|fd|fe8|fe9|fea|feb)[0-9a-f:]*$/i.test(host)) return true;
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!ipv4) return false;
+  const octets = ipv4.slice(1).map(Number);
+  if (octets.some((value) => value < 0 || value > 255)) return true;
+  const [a, b] = octets;
+  return a === 0 || a === 10 || a === 127 || a >= 224 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168);
+}
+
+function publicHttpUrl(value: string) {
+  const parsed = new URL(value);
+  if (!/^https?:$/i.test(parsed.protocol)) throw new Error("فقط لینک‌های عمومی http/https قابل استخراج هستند.");
+  if (parsed.username || parsed.password) throw new Error("لینک دارای نام کاربری یا رمز عبور قابل استخراج نیست.");
+  if (isPrivateNetworkHostname(parsed.hostname)) throw new Error("آدرس‌های محلی یا شبکهٔ خصوصی قابل استخراج نیستند.");
+  return parsed.toString();
+}
+
+function uniqueImageUrls(values: unknown[], baseUrl: string, limit = 8) {
+  const output: string[] = [];
+  const seen = new Set<string>();
+  const add = (raw: unknown) => {
+    if (output.length >= limit) return;
+    const value = decodeHtml(String(raw || "")).trim();
+    if (!value || /^(?:data|blob|javascript):/i.test(value)) return;
+    const url = safeImageUrl(value, baseUrl);
+    if (!url || /(?:logo|icon|sprite|avatar|badge|placeholder|favicon)(?:[._\-/]|$)/i.test(url)) return;
+    // پارامترهای اندازه و CDN را نگه می‌داریم، اما fragment هیچ کاربردی برای عکس ندارد.
+    const parsed = new URL(url);
+    parsed.hash = "";
+    const normalized = parsed.toString();
+    if (seen.has(normalized)) return;
+    seen.add(normalized);
+    output.push(normalized);
+  };
+  const visit = (value: unknown, depth = 0) => {
+    if (output.length >= limit || value == null || depth > 4) return;
+    if (typeof value === "string" || typeof value === "number") {
+      add(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, depth + 1);
+      return;
+    }
+    if (typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    for (const key of ["url", "contentUrl", "fullUrl", "webp_url", "src", "image", "thumbnailUrl"]) {
+      if (key in record) visit(record[key], depth + 1);
+    }
+  };
+  for (const value of values) visit(value);
+  return output;
+}
+
+function imageUrlsFromHtml(html: string, pageUrl: string, limit = 8) {
+  const candidates: string[] = [];
   const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => match[0] || "");
   for (const tag of metaTags) {
-    if (!/(?:property|name)=["'](?:og:image|twitter:image(?::src)?)["']/i.test(tag)) continue;
+    if (!/(?:property|name|itemprop)=["'](?:og:image(?::url)?|twitter:image(?::src)?|image)["']/i.test(tag)) continue;
     const content = tag.match(/content=["']([^"']+)["']/i)?.[1] || "";
-    const imageUrl = safeImageUrl(decodeHtml(content).trim(), pageUrl);
-    if (imageUrl) return imageUrl;
+    if (content) candidates.push(content);
   }
-  return "";
+  for (const tag of html.matchAll(/<(?:img|source)\b[^>]*>/gi)) {
+    const rawTag = tag[0] || "";
+    const alt = decodeHtml(rawTag.match(/\balt=["']([^"']*)["']/i)?.[1] || "");
+    if (/logo|icon|avatar|badge|بنر|لوگو/i.test(alt)) continue;
+    const srcset = rawTag.match(/\b(?:srcset|data-srcset)=["']([^"']+)["']/i)?.[1] || "";
+    if (srcset) {
+      const largest = srcset.split(",").map((entry) => entry.trim().split(/\s+/)[0]).filter(Boolean).at(-1);
+      if (largest) candidates.push(largest);
+    }
+    const src = rawTag.match(/\b(?:data-zoom-image|data-large-image|data-src|src)=["']([^"']+)["']/i)?.[1] || "";
+    if (src) candidates.push(src);
+    if (candidates.length >= limit * 5) break;
+  }
+  return uniqueImageUrls(candidates, pageUrl, limit);
+}
+
+function imageUrlFromHtml(html: string, pageUrl: string) {
+  return imageUrlsFromHtml(html, pageUrl, 1)[0] || "";
 }
 
 function stableHash(value: string) {
@@ -392,6 +473,17 @@ function offerFromJsonLd(product: Record<string, unknown>) {
   };
 }
 
+function addCleanSpec(specs: Record<string, string>, rawName: unknown, rawValue: unknown) {
+  if (Object.keys(specs).length >= 48) return;
+  const name = stripTags(String(rawName || "")).replace(/[:：]+$/g, "").trim();
+  const value = stripTags(String(rawValue || "")).trim();
+  if (!name || !value || name.length < 2 || name.length > 90 || value.length > 800) return;
+  if (/^(?:قیمت|price|خرید|فروشنده|موجودی|ارسال|کد کالا|شناسه محصول|اشتراک)/i.test(name)) return;
+  if (/^(?:-|—|نامشخص|ندارد|null|undefined)$/i.test(value)) return;
+  if (name === value || /https?:\/\//i.test(value)) return;
+  specs[name.slice(0, 80)] = value.replace(/\s+/g, " ").slice(0, 500);
+}
+
 function specsFromJsonLd(product: Record<string, unknown>) {
   const specs: Record<string, string> = {};
   const props = asArray(product.additionalProperty as unknown[] | undefined).flatMap((item) =>
@@ -400,11 +492,51 @@ function specsFromJsonLd(product: Record<string, unknown>) {
   for (const item of props) {
     if (!item || typeof item !== "object") continue;
     const record = item as Record<string, unknown>;
-    const name = firstText(record.name);
-    const value = firstText(record.value);
-    if (name && value) specs[name.slice(0, 40)] = value.slice(0, 90);
+    addCleanSpec(specs, firstText(record.name), firstText(record.value));
+  }
+  for (const [label, key] of [
+    ["مدل", "model"],
+    ["کد محصول", "mpn"],
+    ["شناسه جهانی", "gtin13"],
+    ["رنگ", "color"],
+    ["جنس", "material"],
+    ["اندازه", "size"],
+    ["وزن", "weight"],
+  ] as const) {
+    addCleanSpec(specs, label, firstText(product[key]));
   }
   return specs;
+}
+
+function specsFromHtml(html: string) {
+  const specs: Record<string, string> = {};
+  for (const row of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...String(row[1] || "").matchAll(/<(?:th|td)\b[^>]*>([\s\S]*?)<\/(?:th|td)>/gi)]
+      .map((cell) => stripTags(cell[1] || ""))
+      .filter(Boolean);
+    if (cells.length >= 2) addCleanSpec(specs, cells[0], cells.slice(1).join("، "));
+  }
+  for (const group of html.matchAll(/<dt\b[^>]*>([\s\S]*?)<\/dt>\s*<dd\b[^>]*>([\s\S]*?)<\/dd>/gi)) {
+    addCleanSpec(specs, group[1], group[2]);
+  }
+  // بسیاری از قالب‌های فروشگاهی مشخصات را بدون table و با دو span کنار هم می‌سازند.
+  for (const item of html.matchAll(/<(?:li|div)\b[^>]*(?:class|data-testid)=["'][^"']*(?:spec|attribute|feature)[^"']*["'][^>]*>([\s\S]*?)<\/(?:li|div)>/gi)) {
+    const fragment = item[1] || "";
+    const cells = [...fragment.matchAll(/<(?:span|div|p|strong|b)\b[^>]*>([\s\S]*?)<\/(?:span|div|p|strong|b)>/gi)]
+      .map((cell) => stripTags(cell[1] || ""))
+      .filter((value) => value.length >= 1 && value.length <= 500);
+    if (cells.length >= 2) addCleanSpec(specs, cells[0], cells.slice(1).join("، "));
+    if (Object.keys(specs).length >= 48) break;
+  }
+  return specs;
+}
+
+function mergeExtractedSpecs(...groups: Array<Record<string, string> | undefined>) {
+  const merged: Record<string, string> = {};
+  for (const group of groups) {
+    for (const [name, value] of Object.entries(group || {})) addCleanSpec(merged, name, value);
+  }
+  return merged;
 }
 
 function isProbablyProductTitle(title: string) {
@@ -418,7 +550,8 @@ function draftFromJsonLdProduct(product: Record<string, unknown>, pageUrl: strin
   const offer = offerFromJsonLd(product);
   if (!offer.price) return null;
   const brand = firstText((product.brand as Record<string, unknown> | undefined)?.name, product.brand) || brandFromTitle(title);
-  const description = firstText(product.description, title).slice(0, 900);
+  const description = firstText(product.description, title).slice(0, 5000);
+  const imageUrls = uniqueImageUrls([product.image], pageUrl, 8);
   return {
     title,
     brand: brandFromTitle(title, brand),
@@ -427,9 +560,13 @@ function draftFromJsonLdProduct(product: Record<string, unknown>, pageUrl: strin
     description: description || title,
     price: offer.price,
     originalPrice: offer.originalPrice,
-    imageUrl: safeImageUrl(firstText(product.image), pageUrl) || undefined,
+    imageUrls,
+    imageUrl: imageUrls[0],
     stock: offer.stock,
-    specs: specsFromJsonLd(product),
+    specs: mergeExtractedSpecs(
+      specsFromJsonLd(product),
+      technicalSpecsFromText(`${title} ${description}`),
+    ),
     externalSourceUrl: pageUrl,
     sourceHost,
     currency: offer.currency,
@@ -444,7 +581,20 @@ function extractProductDraftsFromJsonLd(html: string, pageUrl: string, sourceHos
     const variants = asArray((product as Record<string, unknown>).hasVariant as unknown[] | undefined);
     const variantProducts = variants.filter((item) => item && typeof item === "object") as Record<string, unknown>[];
     for (const candidate of variantProducts.length ? variantProducts : [product]) {
-      const draft = draftFromJsonLdProduct(candidate, pageUrl, sourceHost);
+      const mergedCandidate = candidate === product
+        ? product
+        : {
+            ...product,
+            ...candidate,
+            offers: candidate.offers || product.offers,
+            image: candidate.image || product.image,
+            brand: candidate.brand || product.brand,
+            additionalProperty: [
+              ...asArray(product.additionalProperty as unknown[] | undefined),
+              ...asArray(candidate.additionalProperty as unknown[] | undefined),
+            ],
+          };
+      const draft = draftFromJsonLdProduct(mergedCandidate, pageUrl, sourceHost);
       if (draft) drafts.push(draft);
     }
   }
@@ -460,15 +610,15 @@ function titleFromHtml(html: string) {
 function extractHtmlPriceCandidates(html: string) {
   const text = stripTags(html);
   const candidates: number[] = [];
-  const patterns = [
-    /([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})\s*(?:تومان|تومن|IRT)/gi,
-    /(?:تومان|تومن|IRT)\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})/gi,
-    /"price"\s*:\s*"?([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})"?/gi,
+  const patterns: Array<{ pattern: RegExp; currency?: string }> = [
+    { pattern: /([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})\s*(?:تومان|تومن|IRT)/gi, currency: "IRT" },
+    { pattern: /(?:تومان|تومن|IRT)\s*([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})/gi, currency: "IRT" },
+    { pattern: /"price"\s*:\s*"?([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})"?/gi },
   ];
-  for (const pattern of patterns) {
+  for (const { pattern, currency } of patterns) {
     for (const match of text.matchAll(pattern)) {
-      const value = normalizePriceToToman(match[1]);
-      if (value >= 1_000_000 && value <= 500_000_000) candidates.push(value);
+      const value = normalizePriceToToman(match[1], currency);
+      if (value >= 100_000 && value <= 1_500_000_000) candidates.push(value);
     }
   }
   return [...new Set(candidates)].sort((a, b) => a - b);
@@ -481,17 +631,26 @@ function fallbackDraftFromHtml(html: string, pageUrl: string, sourceHost: string
   if (!candidates.length) return null;
   const price = candidates[0];
   const originalPrice = [...candidates].reverse().find((item) => item > price * 1.03);
+  const rawDescription = html.match(/<meta\b[^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*content=["']([^"']+)["'][^>]*>/i)?.[1]
+    || html.match(/<meta\b[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*>/i)?.[1]
+    || "";
+  const description = stripTags(rawDescription).slice(0, 5000) || title;
+  const imageUrls = imageUrlsFromHtml(html, pageUrl, 8);
   return {
     title,
     brand: brandFromTitle(title),
     category: categoryFromTitle(title),
-    summary: title,
-    description: title,
+    summary: description.slice(0, 180) || title,
+    description,
     price,
     originalPrice,
-    imageUrl: imageUrlFromHtml(html, pageUrl) || undefined,
+    imageUrls,
+    imageUrl: imageUrls[0] || imageUrlFromHtml(html, pageUrl) || undefined,
     stock: /ناموجود|out of stock|sold out/i.test(stripTags(html)) ? 0 : 5,
-    specs: {},
+    specs: mergeExtractedSpecs(
+      specsFromHtml(html),
+      technicalSpecsFromText(`${title} ${description}`),
+    ),
     externalSourceUrl: pageUrl,
     sourceHost,
   } satisfies ImportedStoreProductDraft;
@@ -558,11 +717,12 @@ function uniqueDrafts(drafts: ImportedStoreProductDraft[]) {
 }
 
 async function fetchText(url: string) {
+  const safeUrl = publicHttpUrl(url);
   const timeoutSignal =
     typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
       ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(15000)
       : undefined;
-  const response = await fetch(url, {
+  const response = await fetch(safeUrl, {
     redirect: "follow",
     headers: {
       "user-agent":
@@ -651,13 +811,40 @@ async function discoverSitemapUrls(sourceUrl: string, limit: number, warnings: s
   return [...new Set(productUrls)].slice(0, limit);
 }
 
+export function extractStoreProductDraftsFromHtml(
+  html: string,
+  pageUrl: string,
+  sourceHost = new URL(pageUrl).hostname.replace(/^www\./i, ""),
+) {
+  const drafts = extractProductDraftsFromJsonLd(html, pageUrl, sourceHost);
+  const htmlSpecs = specsFromHtml(html);
+  const htmlImages = imageUrlsFromHtml(html, pageUrl, 8);
+  const enrichedDrafts = drafts.map((draft) => {
+    const imageUrls = uniqueImageUrls(
+      [...(draft.imageUrls || []), draft.imageUrl, ...htmlImages],
+      pageUrl,
+      8,
+    );
+    return {
+      ...draft,
+      imageUrls,
+      imageUrl: imageUrls[0] || draft.imageUrl,
+      specs: mergeExtractedSpecs(
+        draft.specs,
+        htmlSpecs,
+        technicalSpecsFromText(`${draft.title} ${draft.description}`),
+      ),
+    };
+  });
+  const fallback = enrichedDrafts.length ? null : fallbackDraftFromHtml(html, pageUrl, sourceHost);
+  return fallback ? [...enrichedDrafts, fallback] : enrichedDrafts;
+}
+
 async function scanOnePage(url: string, sourceHost: string) {
   const html = await fetchHtml(url);
-  const drafts = extractProductDraftsFromJsonLd(html, url, sourceHost);
-  const fallback = drafts.length ? null : fallbackDraftFromHtml(html, url, sourceHost);
   return {
     html,
-    drafts: fallback ? [...drafts, fallback] : drafts,
+    drafts: extractStoreProductDraftsFromHtml(html, url, sourceHost),
   };
 }
 
@@ -779,36 +966,54 @@ function draftFromDigikalaRecord(
   for (const item of properties) {
     if (!item || typeof item !== "object") continue;
     const prop = item as Record<string, unknown>;
-    const name = firstText(prop.title, prop.name);
-    const value = firstText(prop.values, prop.value);
-    if (name && value) specs[name.slice(0, 40)] = value.slice(0, 90);
+    addCleanSpec(specs, firstText(prop.title, prop.name), firstText(prop.values, prop.value));
+  }
+  for (const group of asArray(data.specifications as unknown[] | undefined)) {
+    if (!group || typeof group !== "object") continue;
+    const attributes = asArray((group as Record<string, unknown>).attributes as unknown[] | undefined);
+    for (const item of attributes) {
+      if (!item || typeof item !== "object") continue;
+      const attribute = item as Record<string, unknown>;
+      const rawValues = asArray(attribute.values as unknown[] | undefined)
+        .map((value) => firstText(value))
+        .filter(Boolean)
+        .join("، ");
+      addCleanSpec(specs, firstText(attribute.title, attribute.name), rawValues || firstText(attribute.value));
+    }
   }
   if (fallbackCategory) specs["گروه واردات"] = fallbackCategory;
   specs["منبع"] = "Digikala";
+  const description = firstText(
+    data.description,
+    data.review?.description,
+    data.expert_reviews?.description,
+    title,
+  ).slice(0, 5000) || title;
+  const imageUrls = uniqueImageUrls(
+    [
+      data.images?.main,
+      data.images?.list,
+      data.images,
+      data.image,
+      data.image_url,
+      data.imageUrl,
+    ],
+    url,
+    8,
+  );
 
   return {
     title,
     brand: brandFromTitle(title, brand || "Digikala"),
     category: categoryText || categoryFromTitle(`${title} ${fallbackCategory || ""}`),
-    summary: title,
-    description: firstText(data.description, data.review?.description, title).slice(0, 900) || title,
+    summary: description.slice(0, 180) || title,
+    description,
     price,
     originalPrice: originalPrice > price ? originalPrice : undefined,
-    imageUrl: safeImageUrl(
-      firstText(
-        data.images?.main?.url,
-        data.images?.main?.webp_url,
-        data.images?.list?.[0]?.url,
-        data.images?.list?.[0]?.webp_url,
-        data.images,
-        data.image,
-        data.image_url,
-        data.imageUrl,
-      ),
-      url,
-    ) || undefined,
+    imageUrls,
+    imageUrl: imageUrls[0],
     stock: firstText(data.default_variant?.status, data.status).toLowerCase().includes("out") ? 0 : 5,
-    specs,
+    specs: mergeExtractedSpecs(specs, technicalSpecsFromText(`${title} ${description}`)),
     externalSourceUrl: url,
     sourceHost,
     currency: "IRR",
@@ -960,6 +1165,7 @@ function productCardDraftsFromHtml(
       description: title,
       price,
       originalPrice,
+      imageUrls: imageUrl ? [imageUrl] : [],
       imageUrl: imageUrl || undefined,
       stock: /ناموجود|out of stock/i.test(cardText) ? 0 : 5,
       specs: { منبع: sourceHost },
@@ -1038,6 +1244,27 @@ async function fetchDigikalaApi(url: string) {
   const readerResult = parseJsonLoose(jsonText);
   if (!readerResult) throw new Error("پاسخ واسط دیجی‌کالا JSON معتبر نبود.");
   return readerResult;
+}
+
+async function fetchDigikalaProductPageDraft(sourceUrl: string, sourceHost: string) {
+  const productId = new URL(sourceUrl).pathname.match(/\/product\/dkp-(\d+)/i)?.[1] || "";
+  if (!productId) return null;
+  const apiUrl = `https://api.digikala.com/v2/product/${productId}/`;
+  const payload = await fetchDigikalaApi(apiUrl) as Record<string, any>;
+  const record = payload?.data?.product || payload?.product;
+  if (!record || typeof record !== "object") return null;
+  const draft = draftFromDigikalaRecord(record, sourceHost);
+  if (!draft) return null;
+  const canonicalUrl = new URL(sourceUrl);
+  canonicalUrl.search = "";
+  canonicalUrl.hash = "";
+  return {
+    draft: {
+      ...draft,
+      externalSourceUrl: canonicalUrl.toString(),
+    },
+    apiUrl,
+  };
 }
 
 export async function fetchDigikalaCategoryPageDrafts(slug: string, page: number) {
@@ -1221,8 +1448,7 @@ export async function scanStoreProductsFromUrl(
   inputUrl: string,
   options: StoreProductImportScanOptions = {},
 ): Promise<StoreProductImportScanResult> {
-  const sourceUrl = new URL(inputUrl).toString();
-  if (!/^https?:$/i.test(new URL(sourceUrl).protocol)) throw new Error("فقط لینک‌های http/https قابل درون‌ریزی هستند.");
+  const sourceUrl = publicHttpUrl(inputUrl);
   const parsedSource = new URL(sourceUrl);
   const sourceHost = parsedSource.hostname.replace(/^www\./, "");
   const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
@@ -1264,6 +1490,30 @@ export async function scanStoreProductsFromUrl(
   }
 
   const isDigikalaProductPage = /\/product\/dkp-/i.test(new URL(sourceUrl).pathname);
+  if (isDigikalaSource && isDigikalaProductPage) {
+    try {
+      const detail = await fetchDigikalaProductPageDraft(sourceUrl, sourceHost);
+      if (detail?.draft) {
+        scannedUrls.push(sourceUrl, detail.apiUrl);
+        const matchesCategory = selectedCategories.length === 0
+          || productMatchesImportCategories(detail.draft, selectedCategories);
+        const matchesPart = productMatchesComputerPartFilters(detail.draft, selectedPartFilters);
+        return {
+          sourceUrl,
+          sourceHost,
+          scannedUrls,
+          products: matchesCategory && matchesPart ? [detail.draft] : [],
+          warnings: matchesCategory && matchesPart
+            ? warnings
+            : [...warnings, "محصول استخراج شد اما با فیلتر دسته یا نوع قطعهٔ انتخاب‌شده مطابقت نداشت."],
+        };
+      }
+      warnings.push("API جزئیات دیجی‌کالا دادهٔ قیمت‌دار نداد؛ خود صفحه بررسی شد.");
+    } catch (error) {
+      warnings.push(`خواندن جزئیات کامل دیجی‌کالا ناموفق بود و خود صفحه بررسی شد: ${error instanceof Error ? error.message : "خطا"}`);
+    }
+  }
+
   const shouldSearchDigikalaCategories =
     isDigikalaSource && !isDigikalaProductPage && (options.fullSite || selectedCategories.length > 0);
 
@@ -1375,7 +1625,12 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
       source: draft.sourceHost || "CSV",
       sourceUrl: draft.externalSourceUrl,
     }),
-    imageUrl: draft.imageUrl,
+    imageUrls: uniqueImageUrls(
+      [...(draft.imageUrls || []), draft.imageUrl],
+      draft.externalSourceUrl,
+      8,
+    ),
+    imageUrl: draft.imageUrl || draft.imageUrls?.[0],
     stock: Math.max(0, Math.floor(Number(draft.stock || 0))),
     rating: 4.5,
     reviewsCount: 0,

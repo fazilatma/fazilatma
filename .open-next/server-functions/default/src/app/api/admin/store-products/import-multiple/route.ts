@@ -148,7 +148,11 @@ function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduc
     priceUpdatedAt: chosen.priceUpdatedAt,
     marketReferenceNote: chosen.marketReferenceNote,
     externalSourceUrl: chosen.externalSourceUrl,
-    imageUrl: existing.imageUrl || candidate.imageUrl,
+    imageUrls: Array.from(new Set([
+      ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
+      ...(candidate.imageUrls || (candidate.imageUrl ? [candidate.imageUrl] : [])),
+    ])).slice(0, 8),
+    imageUrl: existing.imageUrl || candidate.imageUrl || candidate.imageUrls?.[0],
     priceHistory: mergeStorePriceHistory(existing.priceHistory, candidate.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;

@@ -151,6 +151,14 @@ export function productJsonLd(product: JsonStoreProduct) {
   const text = `${product.title} ${product.category} ${product.summary} ${product.description} ${publicStoreProductBadges(product.badges).join(" ")}`;
   const isUsed = /استوک|کارکرده|دست.?دوم/i.test(text);
   const productUrl = absoluteUrl(`/shop/${product.slug}`);
+  const productImages = [
+    ...(product.imageUrls || []),
+    product.imageUrl,
+  ]
+    .filter((url): url is string => Boolean(url))
+    .filter((url, index, urls) => urls.indexOf(url) === index)
+    .slice(0, 8)
+    .map(absoluteUrl);
 
   return {
     "@context": "https://schema.org",
@@ -163,7 +171,7 @@ export function productJsonLd(product: JsonStoreProduct) {
       name: product.brand,
     },
     category: product.category,
-    image: [absoluteUrl(defaultOgImagePath)],
+    image: productImages.length ? productImages : [absoluteUrl(defaultOgImagePath)],
     url: productUrl,
     itemCondition: isUsed
       ? "https://schema.org/UsedCondition"

@@ -399,7 +399,7 @@ export default function AdminDashboardClient({
   const [productImportUrl, setProductImportUrl] = useState("");
   const [productImportLimit, setProductImportLimit] = useState(50);
   const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
-  const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("full-site");
+  const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("page");
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
   const [productImportCategories, setProductImportCategories] = useState<string[]>(allProductImportCategoryIds);
   const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
@@ -1709,7 +1709,7 @@ export default function AdminDashboardClient({
                   onClick={() => setActiveTab("storeImport")}
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "storeImport" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
                 >
-                  📦 درون‌ریزی محصولات فروشگاه
+                  🤖 استخراج‌گر لینک و محصولات
                 </button>
                 <button
                   onClick={() => setActiveTab("contact")}
@@ -2615,10 +2615,94 @@ export default function AdminDashboardClient({
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                   <div className="mb-6 border-b pb-4">
-                    <h2 className="text-xl font-bold">📦 درون‌ریزی محصولات و قیمت از CSV یا لینک فروشگاه</h2>
+                    <h2 className="text-xl font-bold">🤖 استخراج‌گر داخلی محصولات OptiBid</h2>
                     <p className="mt-2 text-sm leading-7 text-gray-500">
-                      از CSV خروجی Easy Scraper یا لینک صفحه محصول/دسته‌بندی استفاده کنید؛ فیلتر دسته کالا برای هر دو روش اعمال می‌شود تا فقط همان گروه‌های انتخاب‌شده وارد فروشگاه شوند.
+                      بدون افزونه و بدون Easy Scraper، لینک یک محصول، صفحهٔ دسته‌بندی یا سایت‌مپ را بدهید؛ عنوان، مشخصات فنی، قیمت، موجودی و تصاویر استخراج می‌شوند و پس از پیش‌نمایش به فروشگاه اضافه خواهند شد.
                     </p>
+                  </div>
+
+                  <div className="mb-6 overflow-hidden rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-950 via-blue-950 to-cyan-900 p-5 text-white shadow-xl sm:p-6">
+                    <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+                      <div className="max-w-2xl">
+                        <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-black text-cyan-100 ring-1 ring-white/15">
+                          استخراج مستقیم از لینک — بدون نیاز به افزونه مرورگر
+                        </span>
+                        <h3 className="mt-4 text-xl font-black sm:text-2xl">لینک را وارد کنید؛ بقیه کارها با استخراج‌گر OptiBid</h3>
+                        <p className="mt-2 text-sm leading-7 text-blue-100">
+                          ابتدا «استخراج و پیش‌نمایش» را بزنید. محصولی بدون تأیید شما ثبت نمی‌شود و موارد تکراری بر اساس لینک و مدل دقیق به‌روزرسانی می‌شوند.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold sm:grid-cols-4 lg:w-[390px] lg:grid-cols-2">
+                        {[
+                          ["🏷️", "عنوان و برند"],
+                          ["🧾", "مشخصات فنی"],
+                          ["💰", "قیمت و موجودی"],
+                          ["🖼️", "تا ۸ تصویر"],
+                        ].map(([icon, label]) => (
+                          <div key={label} className="rounded-2xl bg-white/10 px-3 py-3 ring-1 ring-white/10">
+                            <span className="block text-xl">{icon}</span>
+                            <span className="mt-1 block">{label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px_150px]">
+                      <label className="text-xs font-black text-blue-100">
+                        لینک محصول، دسته‌بندی یا sitemap
+                        <input
+                          type="url"
+                          value={productImportUrl}
+                          onChange={(event) => {
+                            setProductImportUrl(event.target.value);
+                            if (productImportPreviewSource === "link") clearProductImportPreviewState();
+                          }}
+                          placeholder="https://example.com/product/..."
+                          className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-4 text-left text-sm font-normal text-slate-900 outline-none ring-cyan-300 focus:ring-2"
+                          dir="ltr"
+                        />
+                      </label>
+                      <label className="text-xs font-black text-blue-100">
+                        محدوده استخراج
+                        <select
+                          value={productImportScanMode}
+                          onChange={(event) => setProductImportScanMode(event.target.value === "page" ? "page" : "full-site")}
+                          className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-bold text-slate-900 outline-none"
+                        >
+                          <option value="page">فقط همین صفحه</option>
+                          <option value="full-site">دسته/چند محصول</option>
+                        </select>
+                      </label>
+                      <label className="text-xs font-black text-blue-100">
+                        حداکثر محصول
+                        <input
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={productImportLimit}
+                          onChange={(event) => setProductImportLimit(Math.max(1, Math.min(50, Number(event.target.value || 1))))}
+                          className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-bold text-slate-900 outline-none"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport}
+                        onClick={() => runProductImport("preview")}
+                        className="rounded-xl bg-cyan-400 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-300 disabled:bg-slate-500 disabled:text-slate-200"
+                      >
+                        {scanningProductImport ? "در حال استخراج اطلاعات..." : "استخراج و پیش‌نمایش"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport || productImportPreviewSource !== "link" || productImportSelectedKeys.length === 0}
+                        onClick={() => runProductImport("import")}
+                        className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-400 disabled:bg-slate-600 disabled:text-slate-300"
+                      >
+                        {applyingProductImport ? "در حال افزودن به سایت..." : `افزودن ${productImportSelectedKeys.length ? productImportSelectedKeys.length.toLocaleString("fa-IR") : ""} محصول انتخابی به سایت`}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mb-5 rounded-3xl border border-cyan-200 bg-cyan-50/60 p-5">
@@ -3277,6 +3361,24 @@ export default function AdminDashboardClient({
                                     )}
                                     <b className="block text-gray-900">{product.title}</b>
                                   </div>
+                                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold">
+                                    <span className="rounded-full bg-cyan-50 px-2 py-1 text-cyan-700">
+                                      {(product.imageUrls?.length || (product.imageUrl ? 1 : 0)).toLocaleString("fa-IR")} تصویر
+                                    </span>
+                                    <span className="rounded-full bg-violet-50 px-2 py-1 text-violet-700">
+                                      {Object.keys(product.specs || {}).length.toLocaleString("fa-IR")} مشخصه
+                                    </span>
+                                  </div>
+                                  {Object.keys(product.specs || {}).length > 0 && (
+                                    <details className="mt-2 max-w-[340px] rounded-lg bg-slate-50 p-2 text-[11px] text-slate-600">
+                                      <summary className="cursor-pointer font-black text-slate-700">مشاهده مشخصات استخراج‌شده</summary>
+                                      <div className="mt-2 grid gap-1">
+                                        {Object.entries(product.specs || {}).slice(0, 12).map(([key, value]) => (
+                                          <span key={key} className="line-clamp-2"><b>{key}:</b> {String(value)}</span>
+                                        ))}
+                                      </div>
+                                    </details>
+                                  )}
                                   {product.matchedProduct && (
                                     <span className="mt-1 block text-xs text-gray-500">
                                       مشابه در سایت: {product.matchedProduct.title}

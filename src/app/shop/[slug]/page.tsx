@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
 import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
+import StoreProductGallery from "@/components/StoreProductGallery";
 import StoreVerifiedPriceSync from "@/components/StoreVerifiedPriceSync";
 import {
   getOptiBidData,
@@ -257,7 +258,15 @@ export default async function StoreProductPage({
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div dir="ltr" className="grid gap-8 p-6 lg:grid-cols-[390px_minmax(0,1fr)] lg:p-8">
             <aside dir="rtl" className="order-2 space-y-4 lg:order-1">
-              <LaptopVisual product={product} />
+              {(product.imageUrls || []).length > 1 ? (
+                <StoreProductGallery
+                  title={product.title}
+                  brand={product.brand}
+                  imageUrls={product.imageUrls || []}
+                />
+              ) : (
+                <LaptopVisual product={product} />
+              )}
               <ProductQuickSpecs product={product} />
               <StorePriceHistoryChart history={product.priceHistory} asOf={priceHistoryAsOf} productId={product.id} isAdmin={isAdmin} />
             </aside>

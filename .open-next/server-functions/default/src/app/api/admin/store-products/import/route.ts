@@ -59,6 +59,11 @@ function publicProduct(product: JsonStoreProduct, index: number) {
     stock: product.stock,
     externalSourceUrl: product.externalSourceUrl,
     imageUrl: product.imageUrl,
+    imageUrls: product.imageUrls || (product.imageUrl ? [product.imageUrl] : []),
+    specs: product.specs || {},
+    specsCount: Object.keys(product.specs || {}).length,
+    summary: product.summary,
+    description: product.description,
     marketReferenceNote: product.marketReferenceNote,
     importCategory: productImportCategoryKey({
       title: product.title,
@@ -125,7 +130,13 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
       ? imported.marketReferenceNote
       : existing.marketReferenceNote,
     externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
-    imageUrl: imported.imageUrl || existing.imageUrl,
+    imageUrls: Array.from(
+      new Set([
+        ...(imported.imageUrls || (imported.imageUrl ? [imported.imageUrl] : [])),
+        ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
+      ]),
+    ).slice(0, 8),
+    imageUrl: imported.imageUrl || imported.imageUrls?.[0] || existing.imageUrl,
     priceHistory: mergeStorePriceHistory(existing.priceHistory, imported.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;
@@ -326,14 +337,16 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown product import error";
+    const inputError = /invalid url|لینک|آدرس‌های محلی|شبکهٔ خصوصی|http\/https|نام کاربری|رمز عبور/i.test(detail);
     return NextResponse.json(
       {
         success: false,
-        message:
-          "درون‌ریزی محصولات ناموفق بود. لینک را بررسی کنید یا لینک مستقیم صفحه محصول/دسته‌بندی/sitemap را وارد کنید.",
+        message: inputError
+          ? detail
+          : "استخراج محصولات ناموفق بود. لینک را بررسی کنید یا لینک مستقیم صفحه محصول/دسته‌بندی/sitemap را وارد کنید.",
         detail,
       },
-      { status: 500 },
+      { status: inputError ? 400 : 500 },
     );
   }
 }

@@ -407,6 +407,8 @@ export type JsonStoreProduct = {
   /** ضریبی که برای تبدیل marketPrice به قیمت نهایی فروشگاه استفاده شده است. */
   priceMultiplier?: number;
   priceHistory?: StorePriceHistoryPoint[];
+  /** گالری تصاویر استخراج‌شده؛ imageUrl تصویر اصلی برای سازگاری با کارت‌های قدیمی است. */
+  imageUrls?: string[];
   imageUrl?: string;
   stock: number;
   rating: number;
@@ -1242,6 +1244,14 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
     const storedMarketPrice = repairSuspiciousPrice
       ? Math.max(0, Math.round(effectiveStoredPrice / storedMultiplier))
       : storedProductMarketPrice(product);
+    const normalizedImageUrls = [
+      product.imageUrl,
+      ...(Array.isArray(product.imageUrls) ? product.imageUrls : []),
+    ]
+      .map(normalizeRemoteProductImageUrl)
+      .filter((url): url is string => Boolean(url))
+      .filter((url, index, urls) => urls.indexOf(url) === index)
+      .slice(0, 8);
     const normalizedProduct: JsonStoreProduct = {
       id: String(product.id || slug),
       slug,
@@ -1283,7 +1293,8 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       externalSourceUrl: product.externalSourceUrl
         ? String(product.externalSourceUrl).trim()
         : undefined,
-      imageUrl: normalizeRemoteProductImageUrl(product.imageUrl),
+      imageUrls: normalizedImageUrls,
+      imageUrl: normalizedImageUrls[0],
       priceHistory: normalizeStorePriceHistory(product.priceHistory),
       isActive: product.isActive !== false,
       isFeatured: Boolean(product.isFeatured),

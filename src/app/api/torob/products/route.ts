@@ -71,7 +71,13 @@ function isAvailableForFeed(product: JsonStoreProduct) {
 
 function torobProduct(product: JsonStoreProduct) {
   const pageUrl = `${SITE_ORIGIN}/shop/${encodeURIComponent(product.slug)}?utm_source=torob&utm_medium=cpc`;
-  const imageLink = absoluteUrl(product.imageUrl, `${SITE_ORIGIN}/og-image.png`);
+  const imageLinks = [product.imageUrl, ...(product.imageUrls || [])]
+    .filter((url): url is string => Boolean(url))
+    .map((url) => absoluteUrl(url, ""))
+    .filter(Boolean)
+    .filter((url, index, urls) => urls.indexOf(url) === index)
+    .slice(0, 8);
+  const imageLink = imageLinks[0] || `${SITE_ORIGIN}/og-image.png`;
   const available = product.isActive && isAvailableForFeed(product);
   const oldPrice = Number(product.originalPrice || 0) > Number(product.price || 0)
     ? Math.round(Number(product.originalPrice))
@@ -91,7 +97,7 @@ function torobProduct(product: JsonStoreProduct) {
     availability: available ? "instock" : "outofstock",
     category_name: String(product.category || "قطعات کامپیوتر").slice(0, 200),
     image_link: imageLink.slice(0, 1000),
-    image_links: [imageLink.slice(0, 1000)],
+    image_links: (imageLinks.length ? imageLinks : [imageLink]).map((url) => url.slice(0, 1000)),
     page_url: pageUrl,
     short_desc: String(product.summary || product.title || "").slice(0, 1000),
     spec: specs,

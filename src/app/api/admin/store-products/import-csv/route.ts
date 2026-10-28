@@ -193,6 +193,11 @@ function publicProduct(product: JsonStoreProduct, index: number) {
     stock: product.stock,
     externalSourceUrl: product.externalSourceUrl,
     imageUrl: product.imageUrl,
+    imageUrls: product.imageUrls || (product.imageUrl ? [product.imageUrl] : []),
+    specs: product.specs || {},
+    specsCount: Object.keys(product.specs || {}).length,
+    summary: product.summary,
+    description: product.description,
     marketReferenceNote: product.marketReferenceNote,
     importCategory: productImportCategoryKey({
       title: product.title,
@@ -240,7 +245,11 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
     priceUpdatedAt: chosen.priceUpdatedAt,
     marketReferenceNote: chosen.marketReferenceNote,
     externalSourceUrl: chosen.externalSourceUrl || existing.externalSourceUrl,
-    imageUrl: existing.imageUrl || imported.imageUrl,
+    imageUrls: Array.from(new Set([
+      ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
+      ...(imported.imageUrls || (imported.imageUrl ? [imported.imageUrl] : [])),
+    ])).slice(0, 8),
+    imageUrl: existing.imageUrl || imported.imageUrl || imported.imageUrls?.[0],
     priceHistory: mergeStorePriceHistory(existing.priceHistory, imported.priceHistory),
     isActive: true,
   } satisfies JsonStoreProduct;
