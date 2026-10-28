@@ -47,14 +47,32 @@ function uniqueProductsBySlug(products: JsonStoreProduct[]) {
   });
 }
 
+function isCleanFeedProduct(product: JsonStoreProduct) {
+  const title = String(product.title || "").trim();
+  const category = String(product.category || "").trim();
+  return Boolean(
+    title.length >= 5 &&
+    !/^https?:\/\//i.test(title) &&
+    !/(?:image|api)\.torob\.com/i.test(title) &&
+    category &&
+    category !== "نامشخص" &&
+    product.slug &&
+    Number(product.price || 0) >= 100_000,
+  );
+}
+
+function isAvailableForFeed(product: JsonStoreProduct) {
+  return (
+    product.stock > 0 &&
+    product.priceAvailable !== false &&
+    !isSuspiciousStoreProductPrice(product)
+  );
+}
+
 function torobProduct(product: JsonStoreProduct) {
   const pageUrl = `${SITE_ORIGIN}/shop/${encodeURIComponent(product.slug)}?utm_source=torob&utm_medium=cpc`;
   const imageLink = absoluteUrl(product.imageUrl, `${SITE_ORIGIN}/og-image.png`);
-  const available =
-    product.isActive &&
-    product.stock > 0 &&
-    product.priceAvailable !== false &&
-    !isSuspiciousStoreProductPrice(product);
+  const available = product.isActive && isAvailableForFeed(product);
   const oldPrice = Number(product.originalPrice || 0) > Number(product.price || 0)
     ? Math.round(Number(product.originalPrice))
     : 0;
@@ -121,7 +139,11 @@ async function responseFor(request: Request) {
 
   const products = uniqueProductsBySlug(
     applyStorePriceOverrides(data.storeProducts || [], overrides)
-      .filter((product) => product.isActive && isStorefrontEligibleComputerPart(product))
+      .filter((product) =>
+        product.isActive &&
+        isStorefrontEligibleComputerPart(product) &&
+        isCleanFeedProduct(product),
+      )
       .sort((left, right) => {
         const leftTime = Date.parse(left.priceVerifiedAt || left.priceUpdatedAt || left.createdAt || "") || 0;
         const rightTime = Date.parse(right.priceVerifiedAt || right.priceUpdatedAt || right.createdAt || "") || 0;
@@ -129,7 +151,10 @@ async function responseFor(request: Request) {
       }),
   );
 
-  let selected = products;
+  const singleProductLookup = Boolean(input.page_unique || input.page_url);
+  let selected = singleProductLookup
+    ? products
+    : products.filter(isAvailableForFeed);
   if (input.page_unique) {
     selected = products.filter((product) => product.id === input.page_unique);
   } else if (input.page_url) {
@@ -147,7 +172,6 @@ async function responseFor(request: Request) {
   }
 
   const total = selected.length;
-  const singleProductLookup = Boolean(input.page_unique || input.page_url);
   const maxPages = singleProductLookup ? (total ? 1 : 0) : Math.ceil(total / PAGE_SIZE);
   const page = singleProductLookup
     ? 1
