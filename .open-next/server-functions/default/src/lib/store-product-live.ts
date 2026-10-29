@@ -123,6 +123,8 @@ function strongModelTokens(value: string) {
     .replace(/\b(gt\d{3,4})((?:-[a-z0-9]+)+)/g, (_, model, boardCode) => `${model} ${String(boardCode).replace(/-/g, " ")}`)
     .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
+    // مدل‌هایی مانند F 3207، F-3207 و F3207 در منابع مختلف یکسان‌اند.
+    .replace(/\b([a-z]{1,3})\s*-?\s*(\d{3,5})\b/g, "$1$2")
     .replace(/\b([a-z]*\d[a-z0-9]*)-(tray|box)\b/g, "$1 $2")
     // بعضی عناوین وارداتی بدون فاصله نوشته شده‌اند: «مدلTX500».
     .replace(/([آ-ی])([a-z0-9])/gi, "$1 $2")
@@ -479,6 +481,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   if (/\bsadata\b|سادیتا/.test(normalized) && /مدل\s+دماوند/.test(normalized)) {
     urls.push("https://torob.com/p/e0459a08-7ef3-4d49-a863-b9f28cf156c6/کیس-سادیتا-مدل-دماوند/");
   }
+  if (/\bfater\b|فاطر/.test(normalized) && /\bf\s*-?\s*3207\b/.test(normalized)) {
+    urls.push("https://torob.com/p/1234abaa-a68e-4ac1-8214-ec7042a1b150/کیس-کامپیوتر-فاطر-f-3207-mid-tower-مشکی/");
+  }
   return urls;
 }
 
@@ -515,6 +520,9 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   }
   if (/\bsadata\b|سادیتا/.test(normalized) && /مدل\s+دماوند/.test(normalized)) {
     ids.push("1035259");
+  }
+  if (/\bfater\b|فاطر/.test(normalized) && /\bf\s*-?\s*3207\b/.test(normalized)) {
+    ids.push("9072389");
   }
   return ids;
 }
