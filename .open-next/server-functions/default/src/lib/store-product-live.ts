@@ -639,13 +639,15 @@ async function readResponseLimited(response: Response, maxBytes: number) {
   return text.slice(0, maxBytes);
 }
 
-function compactDigikalaSearchPriceFromText(text: string, productTitle: string) {
+export function compactDigikalaSearchPriceFromText(text: string, productTitle: string) {
   const productsIndex = text.indexOf('"products"');
   if (productsIndex < 0) return 0;
   const productText = text.slice(productsIndex);
   const titlePattern = /"title_fa"\s*:\s*("(?:\\.|[^"\\])*")/g;
   const prices: number[] = [];
-  for (const match of productText.matchAll(titlePattern)) {
+  const titleMatches = [...productText.matchAll(titlePattern)];
+  for (let index = 0; index < titleMatches.length; index += 1) {
+    const match = titleMatches[index];
     let title = "";
     try {
       title = String(JSON.parse(match[1] || '""'));
@@ -654,12 +656,15 @@ function compactDigikalaSearchPriceFromText(text: string, productTitle: string) 
     }
     if (!marketVariantMatches(productTitle, title)) continue;
     const offset = match.index || 0;
-    const tail = productText.slice(offset, offset + 96_000);
-    const variantIndex = tail.indexOf('"default_variant"');
+    const nextOffset = titleMatches[index + 1]?.index ?? productText.length;
+    // هر قیمت فقط باید از همان رکورد محصول خوانده شود. پنجرهٔ ثابت قبلی در
+    // محصولات ناموجود از default_variant محصول بعدی استفاده می‌کرد.
+    const recordText = productText.slice(offset, Math.min(nextOffset, offset + 96_000));
+    const variantIndex = recordText.indexOf('"default_variant"');
     if (variantIndex < 0) continue;
-    const variantText = tail.slice(variantIndex, variantIndex + 40_000);
+    const variantText = recordText.slice(variantIndex, variantIndex + 40_000);
     const sellingRial = Number(
-      variantText.match(/"price"\s*:\s*\{[\s\S]{0,16_000}?"selling_price"\s*:\s*(\d+)/)?.[1] || 0,
+      variantText.match(/"price"\s*:\s*\{[\s\S]{0,16000}?"selling_price"\s*:\s*(\d+)/)?.[1] || 0,
     );
     const price = Math.round(sellingRial / 10);
     if (price >= 100_000 && price <= 10_000_000_000) prices.push(price);
