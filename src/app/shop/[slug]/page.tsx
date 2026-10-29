@@ -176,9 +176,11 @@ export default async function StoreProductPage({
       );
   // خطای موقت یا timeout یکی از منابع نباید قیمت تأییدشدهٔ قبلی را ناموجود کند.
   // وضعیت ناموجود فقط از override صریح قبلی حفظ می‌شود و قیمت زنده آن را دوباره فعال می‌کند.
-  const currentPriceAvailable = liveSnapshot?.price
-    ? true
-    : storedProduct.priceAvailable !== false;
+  const currentPriceAvailable = liveSnapshot?.available === false
+    ? false
+    : liveSnapshot?.price
+      ? true
+      : storedProduct.priceAvailable !== false;
   const product = {
     ...applyLiveStoreProductSnapshot(storedProduct, liveSnapshot),
     priceAvailable: currentPriceAvailable,
@@ -191,10 +193,18 @@ export default async function StoreProductPage({
       updatedAt: liveSnapshot.checkedAt,
       available: true,
     }).catch(() => undefined);
+  } else if (liveSnapshot?.available === false) {
+    await saveStorePriceOverride(product.id, {
+      price: storedProduct.price,
+      marketPrice: storedProduct.marketPrice || storedProduct.price,
+      priceMultiplier: storedProduct.priceMultiplier || 1,
+      updatedAt: liveSnapshot.checkedAt,
+      available: false,
+    }).catch(() => undefined);
   }
   // صفحهٔ عمومی دیگر کل دیتاست KV را بازنویسی نمی‌کند. قیمت تأییدشده در کلید
   // سبک و مستقل ذخیره می‌شود و کارت/سبد خرید همان کلید را مصرف می‌کنند.
-  const verifiedPriceAt = liveSnapshot?.price
+  const verifiedPriceAt = liveSnapshot?.price || liveSnapshot?.available === false
     ? liveSnapshot.checkedAt
     : storedProduct.priceVerifiedAt || "";
   const computerPartProduct = isComputerPartsCatalogProduct(product);

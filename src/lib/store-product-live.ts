@@ -23,6 +23,8 @@ export type LiveStoreProductSnapshot = {
   marketPrice?: number;
   priceMultiplier?: number;
   originalPrice?: number;
+  /** نتیجه قطعی بررسی موجودی در صفحه دقیق مرجع. */
+  available?: boolean;
   imageUrl?: string;
   brand?: string;
   specs?: Record<string, string>;
@@ -80,12 +82,18 @@ function formattedToman(value: string) {
     : 0;
 }
 
+function torobPageExplicitlyUnavailable(html: string) {
+  const text = stripTags(html);
+  const headerText = text.split(/فروشنده[‌\s]*ها|sellers?/i)[0] || text;
+  return /(?:ناموجود|unavailable|out\s+of\s+stock)[\s\S]{0,120}?(?:آخرین\s+فروشنده|last\s+seller)|(?:مشاهده\s+در|view\s+at)[\s\S]{0,160}?(?:ناموجود|unavailable|out\s+of\s+stock)/i.test(headerText);
+}
+
 export function firstTorobPrice(html: string) {
   const text = stripTags(html);
   const headerText = text.split(/فروشنده[‌\s]*ها/i)[0] || text;
   // بعضی مدل‌های هم‌نام به صفحه‌ای منتهی می‌شوند که فروشندهٔ آخر آن ناموجود است؛
   // قیمت چنین صفحه‌ای نباید جای قیمت فعال ذخیره‌شده را بگیرد.
-  if (/مشاهده\s+در[\s\S]{0,160}?ناموجود[\s\S]{0,100}?آخرین\s+فروشنده/i.test(headerText)) return 0;
+  if (torobPageExplicitlyUnavailable(html)) return 0;
   if (/ناموجود/i.test(headerText) && !/ارزان[‌\s-]*ترین/i.test(headerText)) return 0;
   const priorityPatterns = [
     /تمام\s+ایران[\s\S]{0,160}?از\s+([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*تومان/i,
@@ -148,6 +156,18 @@ function distinctiveNameTokens(value: string) {
     .slice(0, 3);
 }
 
+function persianModelTokens(value: string) {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .replace(/ي/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/[\u200c\s]+/g, " ");
+  return [...normalized.matchAll(/مدل\s+([آ-ی]{3,})/g)]
+    .map((match) => match[1] === "سیبلان" ? "سبلان" : match[1])
+    .filter((token, index, items) => items.indexOf(token) === index)
+    .slice(0, 2);
+}
+
 function packageKind(value: string) {
   const normalized = toEnglishDigits(value).toLowerCase().replace(/[‌\s]+/g, " ");
   if (/\btray\b|بدون جعبه/.test(normalized)) return "tray";
@@ -194,7 +214,8 @@ function marketModelTokenMatches(
 export function marketVariantMatches(productTitle: string, candidateTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   const requiredNameTokens = distinctiveNameTokens(productTitle);
-  if (!requiredTokens.length && !requiredNameTokens.length) return false;
+  const requiredPersianModels = persianModelTokens(productTitle);
+  if (!requiredTokens.length && !requiredNameTokens.length && !requiredPersianModels.length) return false;
   const requiredBrand = marketBrandKey(productTitle);
   const candidateBrand = marketBrandKey(candidateTitle);
   if (requiredBrand && candidateBrand !== requiredBrand) return false;
@@ -208,6 +229,10 @@ export function marketVariantMatches(productTitle: string, candidateTitle: strin
   if (!requiredTokens.length) {
     const candidateNameTokens = new Set(distinctiveNameTokens(candidateTitle));
     if (!requiredNameTokens.every((token) => candidateNameTokens.has(token))) return false;
+  }
+  if (requiredPersianModels.length) {
+    const candidatePersianModels = new Set(persianModelTokens(candidateTitle));
+    if (!requiredPersianModels.every((token) => candidatePersianModels.has(token))) return false;
   }
   const requiredPackage = packageKind(productTitle);
   const candidatePackage = packageKind(candidateTitle);
@@ -230,6 +255,7 @@ function marketBrandKey(value: string) {
   // باید پیش از واژه‌هایی که هم برند و هم نام مدل هستند تشخیص داده شوند.
   if (/\bhyundai\b|هیوندای|هیوندا/.test(text)) return "hyundai";
   if (/\bfater\b|فاطر/.test(text)) return "fater";
+  if (/\bsadata\b|سادیتا/.test(text)) return "sadata";
   if (/\bxfx\b|ایکس\s*اف\s*ایکس/.test(text)) return "xfx";
   if (/sapphire|saphhire|سافایر/.test(text)) return "sapphire";
   if (/\basus\b|ایسوس/.test(text)) return "asus";
@@ -417,6 +443,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   }
   if (/\bfater\b|فاطر/.test(normalized) && /\bfp\s*-?\s*w400\b/.test(normalized)) {
     urls.push("https://torob.com/p/1c88f316-bf9b-4f0f-9497-dc443fe9004e/منبع-تغذیه-کامپیوتر-فاطر-مدل-fp-w400-توان-400-وات/");
+  }
+  if (/\bsadata\b|سادیتا/.test(normalized) && /مدل\s+س(?:ی)?بلان/.test(normalized)) {
+    urls.push("https://torob.com/p/20885b4f-fba3-4a53-94d5-52d2989e84f9/کیس-کامپیوتر-سادیتا-مدل-سبلان/");
   }
   return urls;
 }
@@ -798,8 +827,10 @@ async function fetchTorobPublicPage(url: string) {
   translated.searchParams.set("_x_tr_tl", "en");
   translated.searchParams.set("_x_tr_hl", "en");
   const usableTorobPayload = (value: string) => {
-    if (!/(?:تومان|tomans?)/i.test(value) || !/\/p\//i.test(value)) {
-      throw new Error("پاسخ ترب کارت قیمت‌دار نداشت.");
+    const hasPrice = /(?:تومان|tomans?)/i.test(value);
+    const explicitlyUnavailable = torobPageExplicitlyUnavailable(value);
+    if ((!hasPrice && !explicitlyUnavailable) || !/\/p\//i.test(value)) {
+      throw new Error("پاسخ ترب وضعیت قیمت معتبری نداشت.");
     }
     return value;
   };
@@ -837,7 +868,8 @@ export async function getLiveStoreProductPriceSnapshot(
     !isTorobProduct &&
     !isDigikalaProduct &&
     !strongModelTokens(product.title).length &&
-    !distinctiveNameTokens(product.title).length
+    !distinctiveNameTokens(product.title).length &&
+    !persianModelTokens(product.title).length
   ) return null;
 
   const priceMultiplier = normalizeStorePriceMultiplier(
@@ -855,6 +887,7 @@ export async function getLiveStoreProductPriceSnapshot(
     let sourcePrice = 0;
     let torobCurrentPrice = 0;
     let digikalaCurrentPrice = 0;
+    let authoritativeUnavailable = false;
     const storedMarketPrice = storedProductMarketPrice(product);
 
     if (isDigikalaProduct) {
@@ -983,12 +1016,15 @@ export async function getLiveStoreProductPriceSnapshot(
     if (torobCurrentPrice <= 0) {
       for (const exactTorobUrl of exactTorobUrls) {
         try {
-          const exactTorobPrice = firstTorobPrice(await fetchTorobPublicPage(exactTorobUrl));
+          const exactTorobPage = await fetchTorobPublicPage(exactTorobUrl);
+          const exactTorobPrice = firstTorobPrice(exactTorobPage);
           if (exactTorobPrice > 0) {
             torobCurrentPrice = !torobCurrentPrice
               ? exactTorobPrice
               : Math.min(torobCurrentPrice, exactTorobPrice);
             if (!extractedPrice || exactTorobPrice < extractedPrice) extractedPrice = exactTorobPrice;
+          } else if (torobPageExplicitlyUnavailable(exactTorobPage)) {
+            authoritativeUnavailable = true;
           }
         } catch {
           // سایر مراجع معتبر همچنان قابل استفاده‌اند.
@@ -1024,6 +1060,14 @@ export async function getLiveStoreProductPriceSnapshot(
     }
 
     if (extractedPrice <= 0) {
+      if (authoritativeUnavailable) {
+        const unavailableValue: LiveStoreProductSnapshot = {
+          available: false,
+          checkedAt: new Date().toISOString(),
+        };
+        snapshotCache.set(cacheKey, { value: unavailableValue, expiresAt: Date.now() + cacheTtlMs });
+        return unavailableValue;
+      }
       snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
       return null;
     }
@@ -1259,6 +1303,7 @@ export function applyLiveStoreProductSnapshot(
   return {
     ...product,
     price,
+    priceAvailable: snapshot.available === false ? false : snapshot.price ? true : product.priceAvailable,
     marketPrice: snapshot.marketPrice || product.marketPrice,
     priceMultiplier: snapshot.priceMultiplier || product.priceMultiplier,
     originalPrice:
