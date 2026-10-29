@@ -295,6 +295,35 @@ function torobComparablePrice(html: string, productTitle: string) {
   return prices.length ? Math.min(...prices) : 0;
 }
 
+function torobExactListingUnavailable(
+  payload: Record<string, any>,
+  productTitle: string,
+  requiredBrand = "",
+) {
+  const sourceRequiresNew = !/استوک|کارکرده|used/i.test(productTitle);
+  const results = Array.isArray(payload?.results)
+    ? payload.results
+    : Array.isArray(payload?.data?.results)
+      ? payload.data.results
+      : [];
+  let exactUnavailable = false;
+  for (const result of results) {
+    const title = `${String(result?.name1 || "")} ${String(result?.name2 || "")}`.trim();
+    if (isDefectiveMarketListing(title)) continue;
+    if (requiredBrand && marketBrandKey(title) !== requiredBrand) continue;
+    const listingIsUsed = /استوک|کارکرده|used/i.test(title) || String(result?.stock_status || "").trim().length > 0;
+    if (sourceRequiresNew && listingIsUsed) continue;
+    if (!marketVariantMatches(productTitle, title)) continue;
+    const price = Math.round(Number(result?.price || 0));
+    if (price >= 100_000) return false;
+    if (
+      String(result?.price_text_mode || "").toLowerCase() === "disabled" ||
+      /ناموجود|unavailable|out\s+of\s+stock/i.test(String(result?.price_text || ""))
+    ) exactUnavailable = true;
+  }
+  return exactUnavailable;
+}
+
 export function torobComparableJsonPrice(
   payload: Record<string, any>,
   productTitle: string,
@@ -900,11 +929,15 @@ export async function getLiveStoreProductPriceSnapshot(
       let torobPrice = 0;
       try {
         const torobResult = await fetchTorobSearchJson(product.title);
+        const requiredBrand = marketBrandKey(`${product.brand} ${product.title} ${product.description}`);
         torobPrice = torobComparableJsonPrice(
           torobResult,
           product.title,
-          marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
+          requiredBrand,
         );
+        if (torobPrice <= 0 && torobExactListingUnavailable(torobResult, product.title, requiredBrand)) {
+          authoritativeUnavailable = true;
+        }
         if (torobPrice > 0) {
           torobCurrentPrice = torobPrice;
           extractedPrice = torobPrice;
@@ -972,11 +1005,15 @@ export async function getLiveStoreProductPriceSnapshot(
         fetchCompactDigikalaSearchPrice(product.title),
       ]);
       if (torobResult.status === "fulfilled") {
+        const requiredBrand = marketBrandKey(`${product.brand} ${product.title} ${product.description}`);
         torobCurrentPrice = torobComparableJsonPrice(
           torobResult.value,
           product.title,
-          marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
+          requiredBrand,
         );
+        if (torobCurrentPrice <= 0 && torobExactListingUnavailable(torobResult.value, product.title, requiredBrand)) {
+          authoritativeUnavailable = true;
+        }
         extractedPrice = torobCurrentPrice;
       }
       if (digikalaResult.status === "fulfilled" && digikalaResult.value > 0) {
@@ -992,11 +1029,15 @@ export async function getLiveStoreProductPriceSnapshot(
         fetchCompactDigikalaSearchPrice(product.title),
       ]);
       if (torobResult.status === "fulfilled") {
+        const requiredBrand = marketBrandKey(`${product.brand} ${product.title} ${product.description}`);
         torobCurrentPrice = torobComparableJsonPrice(
           torobResult.value,
           product.title,
-          marketBrandKey(`${product.brand} ${product.title} ${product.description}`),
+          requiredBrand,
         );
+        if (torobCurrentPrice <= 0 && torobExactListingUnavailable(torobResult.value, product.title, requiredBrand)) {
+          authoritativeUnavailable = true;
+        }
         extractedPrice = torobCurrentPrice;
       }
       if (digikalaResult.status === "fulfilled" && digikalaResult.value > 0) {
