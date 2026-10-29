@@ -768,7 +768,9 @@ async function fetchCompactDigikalaState(productId: string) {
         signal: timeoutSignal,
       });
       if (!response.ok) continue;
-      const state = compactDigikalaStateFromText(await readResponsePrefix(response));
+      // برخی کالاهای تصویردار قبل از default_variant بیش از ۲۵۶KB داده دارند.
+      // stream تا رسیدن به buy-box (حداکثر ۱.۵MB) ادامه پیدا می‌کند.
+      const state = compactDigikalaStateFromText(await readResponsePrefix(response, 1_500_000));
       if (state && (state.price || state.unavailable)) return state;
     } catch {
       // پروکسی ترجمه در تلاش بعدی امتحان می‌شود.
