@@ -789,10 +789,6 @@ async function fetchTorobCanonicalPrice(productUrl: string) {
   const direct = new URL("https://api.torob.com/v4/base-product/details/");
   direct.searchParams.set("prk", productKey);
   direct.searchParams.set("source", "torob_search");
-  const translated = new URL(`https://api-torob-com.translate.goog${direct.pathname}${direct.search}`);
-  translated.searchParams.set("_x_tr_sl", "auto");
-  translated.searchParams.set("_x_tr_tl", "en");
-  translated.searchParams.set("_x_tr_hl", "en");
   const readPrice = async (url: string) => {
     const timeoutSignal =
       typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
@@ -810,13 +806,13 @@ async function fetchTorobCanonicalPrice(productUrl: string) {
     if (price < 100_000 || price > 10_000_000_000) throw new Error("Torob detail price unavailable");
     return price;
   };
-  const [directResult, translatedResult] = await Promise.allSettled([
-    readPrice(direct.toString()),
-    readPrice(translated.toString()),
-  ]);
-  if (directResult.status === "fulfilled") return directResult.value;
-  if (translatedResult.status === "fulfilled") return translatedResult.value;
-  return 0;
+  try {
+    return await readPrice(direct.toString());
+  } catch {
+    // صفحه عمومی canonical در مرحله بعد خوانده می‌شود؛ پروکسی ترجمه برای endpoint
+    // details گاهی به رکورد تکراری دیگری اشاره می‌کرد و کف اشتباه می‌ساخت.
+    return 0;
+  }
 }
 
 async function fetchTorobSearchJson(productTitle: string) {
