@@ -452,7 +452,7 @@ async function fetchDigikalaJson(url: string) {
   return JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
 }
 
-function verifiedCanonicalTorobProductUrls(productTitle: string) {
+export function verifiedCanonicalTorobProductUrls(productTitle: string) {
   const modelTokens = new Set(strongModelTokens(productTitle));
   const packageType = packageKind(productTitle);
   const urls: string[] = [];
@@ -500,7 +500,7 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   return urls;
 }
 
-function verifiedCanonicalDigikalaProductIds(productTitle: string) {
+export function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   const normalized = toEnglishDigits(productTitle).toLowerCase().replace(/[‌\s]+/g, " ");
   const ids: string[] = [];
   // این مدل با چند رکورد هم‌نام وارد کاتالوگ شده است؛ 4947207 همان صفحهٔ دقیق
@@ -1121,6 +1121,10 @@ export async function getLiveStoreProductPriceSnapshot(
         digikalaCurrentPrice = digikalaResult.value;
         if (!extractedPrice || digikalaResult.value < extractedPrice) extractedPrice = digikalaResult.value;
       }
+    }
+
+    if (canonicalTorobUrls.length > 0 && torobCurrentPrice > 0) {
+      canonicalTorobPrice = torobCurrentPrice;
     }
 
     // لینک مستقیم دقیق ترب (لینک اصلی، لینک رکورد تکراری و canonicalهای تأییدشده)
