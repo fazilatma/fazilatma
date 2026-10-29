@@ -545,14 +545,35 @@ type CompactDigikalaPrice = {
   originalPrice: number;
 };
 
-export function compactDigikalaPriceFromText(text: string): CompactDigikalaPrice | null {
+type CompactDigikalaState = {
+  title: string;
+  price: CompactDigikalaPrice | null;
+  unavailable: boolean;
+};
+
+function compactDigikalaTitleFromText(text: string) {
   const titleLiteral = text.match(/"title_fa"\s*:\s*("(?:\\.|[^"\\])*")/)?.[1] || "";
-  let title = "";
   try {
-    title = titleLiteral ? String(JSON.parse(titleLiteral)) : "";
+    return titleLiteral ? String(JSON.parse(titleLiteral)) : "";
   } catch {
-    title = "";
+    return "";
   }
+}
+
+function compactDigikalaStateFromText(text: string): CompactDigikalaState | null {
+  const title = compactDigikalaTitleFromText(text);
+  if (!title) return null;
+  const price = compactDigikalaPriceFromText(text);
+  const unavailable = !price && (
+    /"status"\s*:\s*"(?:out_of_stock|inactive|unavailable)"/i.test(text) ||
+    /"dimension20"\s*:\s*"out_of_stock"/i.test(text) ||
+    /"default_variant"\s*:\s*null/i.test(text)
+  );
+  return { title, price, unavailable };
+}
+
+export function compactDigikalaPriceFromText(text: string): CompactDigikalaPrice | null {
+  const title = compactDigikalaTitleFromText(text);
   const variantIndex = text.indexOf('"default_variant"');
   if (!title || variantIndex < 0) return null;
   const variantText = text.slice(variantIndex, variantIndex + 96_000);
@@ -685,8 +706,8 @@ async function fetchCompactDigikalaSearchPrice(productTitle: string) {
   return 0;
 }
 
-/** فقط عنوان و قیمت buy-box دیجی‌کالا را از ابتدای stream می‌خواند. */
-async function fetchCompactDigikalaPrice(productId: string) {
+/** عنوان، buy-box و وضعیت موجودی دیجی‌کالا را از ابتدای stream می‌خواند. */
+async function fetchCompactDigikalaState(productId: string) {
   const path = `/v2/product/${productId}/`;
   const translated = new URL(`https://api-digikala-com.translate.goog${path}`);
   translated.searchParams.set("_x_tr_sl", "auto");
@@ -706,12 +727,18 @@ async function fetchCompactDigikalaPrice(productId: string) {
         signal: timeoutSignal,
       });
       if (!response.ok) continue;
-      const compact = compactDigikalaPriceFromText(await readResponsePrefix(response));
-      if (compact) return compact;
+      const state = compactDigikalaStateFromText(await readResponsePrefix(response));
+      if (state && (state.price || state.unavailable)) return state;
     } catch {
       // پروکسی ترجمه در تلاش بعدی امتحان می‌شود.
     }
   }
+  throw new Error("Digikala compact state unavailable");
+}
+
+async function fetchCompactDigikalaPrice(productId: string) {
+  const state = await fetchCompactDigikalaState(productId);
+  if (state.price) return state.price;
   throw new Error("Digikala compact price unavailable");
 }
 
@@ -917,6 +944,8 @@ export async function getLiveStoreProductPriceSnapshot(
     let torobCurrentPrice = 0;
     let digikalaCurrentPrice = 0;
     let authoritativeUnavailable = false;
+    let torobAuthoritativeUnavailable = false;
+    let digikalaAuthoritativeUnavailable = false;
     const storedMarketPrice = storedProductMarketPrice(product);
 
     if (isDigikalaProduct) {
@@ -936,6 +965,7 @@ export async function getLiveStoreProductPriceSnapshot(
           requiredBrand,
         );
         if (torobPrice <= 0 && torobExactListingUnavailable(torobResult, product.title, requiredBrand)) {
+          torobAuthoritativeUnavailable = true;
           authoritativeUnavailable = true;
         }
         if (torobPrice > 0) {
@@ -955,12 +985,17 @@ export async function getLiveStoreProductPriceSnapshot(
         try {
           // پاسخ کامل جزئیات بعضی GPUها چند صد کیلوبایت است. فقط ابتدای stream تا
           // buy-box خوانده می‌شود تا مقایسهٔ قیمت باعث خطای CPU/حافظهٔ Worker نشود.
-          const compactDetail = await fetchCompactDigikalaPrice(productId);
-          if (marketVariantMatches(product.title, compactDetail.title)) {
-            sourcePrice = compactDetail.price;
-            digikalaCurrentPrice = compactDetail.price;
-            sourceOriginalPrice = compactDetail.originalPrice;
-            if (!extractedPrice || sourcePrice < extractedPrice) extractedPrice = sourcePrice;
+          const compactState = await fetchCompactDigikalaState(productId);
+          if (marketVariantMatches(product.title, compactState.title)) {
+            if (compactState.price) {
+              sourcePrice = compactState.price.price;
+              digikalaCurrentPrice = compactState.price.price;
+              sourceOriginalPrice = compactState.price.originalPrice;
+              if (!extractedPrice || sourcePrice < extractedPrice) extractedPrice = sourcePrice;
+            } else if (compactState.unavailable) {
+              digikalaAuthoritativeUnavailable = true;
+              authoritativeUnavailable = true;
+            }
           }
         } catch {
           // جستجوی دقیق دیجی‌کالا در ادامه مسیر جایگزین است.
@@ -1012,6 +1047,7 @@ export async function getLiveStoreProductPriceSnapshot(
           requiredBrand,
         );
         if (torobCurrentPrice <= 0 && torobExactListingUnavailable(torobResult.value, product.title, requiredBrand)) {
+          torobAuthoritativeUnavailable = true;
           authoritativeUnavailable = true;
         }
         extractedPrice = torobCurrentPrice;
@@ -1036,6 +1072,7 @@ export async function getLiveStoreProductPriceSnapshot(
           requiredBrand,
         );
         if (torobCurrentPrice <= 0 && torobExactListingUnavailable(torobResult.value, product.title, requiredBrand)) {
+          torobAuthoritativeUnavailable = true;
           authoritativeUnavailable = true;
         }
         extractedPrice = torobCurrentPrice;
@@ -1065,6 +1102,7 @@ export async function getLiveStoreProductPriceSnapshot(
               : Math.min(torobCurrentPrice, exactTorobPrice);
             if (!extractedPrice || exactTorobPrice < extractedPrice) extractedPrice = exactTorobPrice;
           } else if (torobPageExplicitlyUnavailable(exactTorobPage)) {
+            torobAuthoritativeUnavailable = true;
             authoritativeUnavailable = true;
           }
         } catch {
@@ -1098,6 +1136,12 @@ export async function getLiveStoreProductPriceSnapshot(
           // سایر مراجع معتبر همچنان قابل استفاده‌اند.
         }
       }
+    }
+
+    // وقتی صفحهٔ دقیق دیجی‌کالا و نتیجهٔ دقیق ترب هر دو ناموجودند، قیمت احتمالی
+    // جستجوی عمومی/رکورد تکراری نباید قیمت تاریخی این شناسه را فعال نگه دارد.
+    if (torobAuthoritativeUnavailable && digikalaAuthoritativeUnavailable) {
+      extractedPrice = 0;
     }
 
     if (extractedPrice <= 0) {
