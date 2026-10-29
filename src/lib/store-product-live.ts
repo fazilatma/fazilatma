@@ -476,6 +476,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   if (/\bsadata\b|سادیتا/.test(normalized) && /مدل\s+س(?:ی)?بلان/.test(normalized)) {
     urls.push("https://torob.com/p/20885b4f-fba3-4a53-94d5-52d2989e84f9/کیس-کامپیوتر-سادیتا-مدل-سبلان/");
   }
+  if (/\bsadata\b|سادیتا/.test(normalized) && /مدل\s+دماوند/.test(normalized)) {
+    urls.push("https://torob.com/p/e0459a08-7ef3-4d49-a863-b9f28cf156c6/کیس-سادیتا-مدل-دماوند/");
+  }
   return urls;
 }
 
@@ -509,6 +512,9 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   }
   if (/\bfater\b|فاطر/.test(normalized) && /\bfp\s*-?\s*w400\b/.test(normalized)) {
     ids.push("19097398");
+  }
+  if (/\bsadata\b|سادیتا/.test(normalized) && /مدل\s+دماوند/.test(normalized)) {
+    ids.push("1035259");
   }
   return ids;
 }
@@ -781,10 +787,15 @@ async function fetchTorobSearchJson(productTitle: string) {
     }
     return payload;
   };
-  return Promise.any([
+  const [directResult, translatedResult] = await Promise.allSettled([
     requestJson(direct.toString()),
     requestJson(translated.toString()),
   ]);
+  // پاسخ مستقیم فارسی برای تطبیق مدل‌های فارسی (دماوند، سبلان و...) اولویت دارد؛
+  // Promise.any ممکن بود پروکسی ترجمه را زودتر انتخاب و نام مدل فارسی را حذف کند.
+  if (directResult.status === "fulfilled") return directResult.value;
+  if (translatedResult.status === "fulfilled") return translatedResult.value;
+  throw new Error("Torob search unavailable");
 }
 
 function digikalaDetailSnapshot(payload: Record<string, any>) {
@@ -1126,15 +1137,20 @@ export async function getLiveStoreProductPriceSnapshot(
     if (digikalaCurrentPrice <= 0) {
       for (const exactProductId of exactDigikalaIds) {
         try {
-          const exactDetail = await fetchCompactDigikalaPrice(exactProductId);
-          if (marketVariantMatches(product.title, exactDetail.title)) {
-            digikalaCurrentPrice = !digikalaCurrentPrice
-              ? exactDetail.price
-              : Math.min(digikalaCurrentPrice, exactDetail.price);
-            if (!extractedPrice || exactDetail.price < extractedPrice) {
-              extractedPrice = exactDetail.price;
-              sourcePrice = exactDetail.price;
-              sourceOriginalPrice = exactDetail.originalPrice;
+          const exactState = await fetchCompactDigikalaState(exactProductId);
+          if (marketVariantMatches(product.title, exactState.title)) {
+            if (exactState.price) {
+              digikalaCurrentPrice = !digikalaCurrentPrice
+                ? exactState.price.price
+                : Math.min(digikalaCurrentPrice, exactState.price.price);
+              if (!extractedPrice || exactState.price.price < extractedPrice) {
+                extractedPrice = exactState.price.price;
+                sourcePrice = exactState.price.price;
+                sourceOriginalPrice = exactState.price.originalPrice;
+              }
+            } else if (exactState.unavailable) {
+              digikalaAuthoritativeUnavailable = true;
+              authoritativeUnavailable = true;
             }
           }
         } catch {
