@@ -809,9 +809,25 @@ async function fetchTorobCanonicalPrice(productUrl: string) {
   try {
     return await readPrice(direct.toString());
   } catch {
-    // صفحه عمومی canonical در مرحله بعد خوانده می‌شود؛ پروکسی ترجمه برای endpoint
-    // details گاهی به رکورد تکراری دیگری اشاره می‌کرد و کف اشتباه می‌ساخت.
-    return 0;
+    // Reader متن JSON همان شناسه canonical را بدون ترجمه عنوان/شناسه برمی‌گرداند.
+    try {
+      const readerUrl = `https://r.jina.ai/http://api.torob.com${direct.pathname}${direct.search}`;
+      const response = await fetch(readerUrl, {
+        redirect: "follow",
+        cache: "no-store",
+        headers: { accept: "text/plain, text/markdown, */*" },
+      });
+      if (!response.ok) return 0;
+      const text = await response.text();
+      const jsonStart = text.indexOf("{");
+      if (jsonStart < 0) return 0;
+      const payload = JSON.parse(text.slice(jsonStart).trim()) as Record<string, any>;
+      const price = Math.round(Number(payload?.price || 0));
+      return price >= 100_000 && price <= 10_000_000_000 ? price : 0;
+    } catch {
+      // صفحه عمومی canonical در مرحله بعد خوانده می‌شود.
+      return 0;
+    }
   }
 }
 
