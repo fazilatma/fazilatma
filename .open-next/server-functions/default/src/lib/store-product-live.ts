@@ -1134,7 +1134,7 @@ export async function getLiveStoreProductPriceSnapshot(
       ...additionalSourceUrls.map(digikalaProductIdFromUrl),
       ...verifiedCanonicalDigikalaProductIds(product.title),
     ].filter(Boolean))).slice(0, 4);
-    if (digikalaCurrentPrice <= 0) {
+    if (digikalaCurrentPrice <= 0 || torobAuthoritativeUnavailable) {
       for (const exactProductId of exactDigikalaIds) {
         try {
           const exactState = await fetchCompactDigikalaState(exactProductId);
