@@ -79,7 +79,7 @@ function torobProduct(product: JsonStoreProduct) {
     .slice(0, 8);
   const imageLink = imageLinks[0] || `${SITE_ORIGIN}/og-image.png`;
   const available = product.isActive && isAvailableForFeed(product);
-  const oldPrice = Number(product.originalPrice || 0) > Number(product.price || 0)
+  const oldPrice = available && Number(product.originalPrice || 0) > Number(product.price || 0)
     ? Math.round(Number(product.originalPrice))
     : 0;
   const specs = Object.fromEntries(
