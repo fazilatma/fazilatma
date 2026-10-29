@@ -75,12 +75,12 @@ function formattedToman(value: string) {
       .replace(/[٬،٫,.\s]/g, "")
       .replace(/[^0-9]/g, ""),
   );
-  return Number.isFinite(number) && number >= 100_000 && number <= 1_500_000_000
+  return Number.isFinite(number) && number >= 100_000 && number <= 10_000_000_000
     ? Math.round(number)
     : 0;
 }
 
-function firstTorobPrice(html: string) {
+export function firstTorobPrice(html: string) {
   const text = stripTags(html);
   const headerText = text.split(/فروشنده[‌\s]*ها/i)[0] || text;
   // بعضی مدل‌های هم‌نام به صفحه‌ای منتهی می‌شوند که فروشندهٔ آخر آن ناموجود است؛
@@ -123,6 +123,13 @@ function strongModelTokens(value: string) {
     .filter((token) => !/^(?:gddr\d+x?|ddr\d|pcie\d*|sata\d*|usb\d*)$/.test(token));
 }
 
+function normalizeDistinctiveToken(value: string) {
+  // فروشگاه‌ها گاهی نام مدل را با حروف تکراری متفاوت ثبت می‌کنند؛ برای نمونه
+  // SAPPHIRE در یک منبع و SAPHHIRE در منبع دیگر. حذف تکرار حروف فقط برای
+  // تطبیق نام انجام می‌شود و عنوان اصلی محصول را تغییر نمی‌دهد.
+  return value.replace(/([a-z])\1+/g, "$1");
+}
+
 function distinctiveNameTokens(value: string) {
   const generic = new Set([
     "card", "graphic", "graphics", "model", "holder", "support", "computer",
@@ -132,6 +139,7 @@ function distinctiveNameTokens(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9آ-ی]+/g, " ")
     .split(/\s+/)
+    .map(normalizeDistinctiveToken)
     .filter((token) => token.length >= 4 && /[a-z]/.test(token) && !generic.has(token))
     .filter((token, index, items) => items.indexOf(token) === index)
     .slice(0, 3);
@@ -162,7 +170,7 @@ function marketQualifierTokens(value: string) {
   return result;
 }
 
-function marketVariantMatches(productTitle: string, candidateTitle: string) {
+export function marketVariantMatches(productTitle: string, candidateTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   const requiredNameTokens = distinctiveNameTokens(productTitle);
   if (!requiredTokens.length && !requiredNameTokens.length) return false;
@@ -192,8 +200,11 @@ function isDefectiveMarketListing(value: string) {
 
 function marketBrandKey(value: string) {
   const text = String(value || "").toLowerCase();
+  // Sapphire در این SSD نام مدل است، نه برند کارت گرافیک. برندهای محصول کامل
+  // باید پیش از واژه‌هایی که هم برند و هم نام مدل هستند تشخیص داده شوند.
+  if (/\bhyundai\b|هیوندای|هیوندا/.test(text)) return "hyundai";
   if (/\bxfx\b|ایکس\s*اف\s*ایکس/.test(text)) return "xfx";
-  if (/sapphire|سافایر/.test(text)) return "sapphire";
+  if (/sapphire|saphhire|سافایر/.test(text)) return "sapphire";
   if (/\basus\b|ایسوس/.test(text)) return "asus";
   if (/\bmsi\b|ام\s*اس\s*آی/.test(text)) return "msi";
   if (/gigabyte|گیگابایت/.test(text)) return "gigabyte";
@@ -205,16 +216,14 @@ function marketBrandKey(value: string) {
 }
 
 function torobComparablePrice(html: string, productTitle: string) {
-  const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
-  if (!requiredTokens.length) return 0;
-  const requiredPackage = packageKind(productTitle);
+  if (!strongModelTokens(productTitle).length && !distinctiveNameTokens(productTitle).length) return 0;
+  const sourceRequiresNew = !/استوک|کارکرده|used/i.test(productTitle);
   const prices: number[] = [];
   const inspectCandidate = (value: string) => {
     const text = stripTags(value);
-    const candidateTokens = new Set(strongModelTokens(text));
-    if (!requiredTokens.every((token) => candidateTokens.has(token))) return;
-    const candidatePackage = packageKind(text);
-    if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) return;
+    if (isDefectiveMarketListing(text)) return;
+    if (sourceRequiresNew && /استوک|کارکرده|used/i.test(text)) return;
+    if (!marketVariantMatches(productTitle, text)) return;
     const rawPrice = text.match(/(?:از\s*)?([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*(?:تومان|tomans?)/i)?.[1] || "";
     const price = formattedToman(rawPrice);
     if (price) prices.push(price);
@@ -233,7 +242,7 @@ function torobComparablePrice(html: string, productTitle: string) {
   return prices.length ? Math.min(...prices) : 0;
 }
 
-function torobComparableJsonPrice(
+export function torobComparableJsonPrice(
   payload: Record<string, any>,
   productTitle: string,
   requiredBrand = "",
@@ -256,7 +265,7 @@ function torobComparableJsonPrice(
     if (sourceRequiresNew && listingIsUsed) continue;
     if (!marketVariantMatches(productTitle, title)) continue;
     const price = Math.round(Number(result?.price || 0));
-    if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
+    if (price >= 100_000 && price <= 10_000_000_000) prices.push(price);
   }
   return prices.length ? Math.min(...prices) : 0;
 }
@@ -286,7 +295,7 @@ function digikalaPrice(html: string) {
   const normalized = html.replace(/\\"/g, '"');
   const sellingPrice = normalized.match(/"selling_price"\s*:\s*(\d{6,})/i)?.[1];
   const raw = Number(sellingPrice || 0);
-  if (raw >= 1_000_000 && raw <= 15_000_000_000) return Math.round(raw / 10);
+  if (raw >= 1_000_000 && raw <= 100_000_000_000) return Math.round(raw / 10);
   const text = stripTags(html);
   const visible = text.match(/([\d۰-۹٠-٩][\d۰-۹٠-٩٬،٫,.\s]{4,})\s*(?:تومان|تومن)/i)?.[1] || "";
   return formattedToman(visible);
@@ -368,6 +377,14 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   if (packageType === "tray" && modelTokens.has("i3-10105f")) {
     urls.push("https://torob.com/p/dcd67bb8-764c-4d8b-8930-09a14612ad0d/پردازنده-intel-core-i3-10105f-tray/");
   }
+  const normalized = toEnglishDigits(productTitle).toLowerCase().replace(/[‌\s]+/g, " ");
+  if (
+    /hyundai|هیوندای|هیوندا/.test(normalized) &&
+    /sapp?h+h?ire|sapphire|سافایر/.test(normalized) &&
+    /(?:^|\s)480\s*(?:gb\b|گیگابایت)/.test(normalized)
+  ) {
+    urls.push("https://torob.com/p/24f8d88f-23a7-42a8-8949-9c0e17354c87/حافظه-اس-اس-دی-اینترنال-هیوندای-مدل-sapphire-ظرفیت-480-گیگابایت/");
+  }
   return urls;
 }
 
@@ -387,7 +404,30 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   if (/\bgarli\b/.test(normalized) && /نگهدارنده\s*کارت\s*گرافیک/.test(normalized)) {
     ids.push("19914634");
   }
+  // دیجی‌کالا این مدل را با املای SAPHHIRE ثبت کرده، درحالی‌که ترب و کاتالوگ
+  // SAPPHIRE می‌نویسند. شناسهٔ دقیق از حذف شدن قیمت جاری جلوگیری می‌کند.
+  if (
+    /hyundai|هیوندای|هیوندا/.test(normalized) &&
+    /sapp?h+h?ire|sapphire|سافایر/.test(normalized) &&
+    /(?:^|\s)480\s*(?:gb\b|گیگابایت)/.test(normalized)
+  ) {
+    ids.push("15425573");
+  }
   return ids;
+}
+
+function torobProductUrlFromUrl(value: string) {
+  try {
+    const parsed = new URL(String(value || ""));
+    if (!/(?:^|\.)torob\.com$/i.test(parsed.hostname) || !/^\/p\//i.test(parsed.pathname)) return "";
+    parsed.protocol = "https:";
+    parsed.hostname = "torob.com";
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
 }
 
 function digikalaProductIdFromUrl(value: string) {
@@ -408,7 +448,7 @@ type CompactDigikalaPrice = {
   originalPrice: number;
 };
 
-function compactDigikalaPriceFromText(text: string): CompactDigikalaPrice | null {
+export function compactDigikalaPriceFromText(text: string): CompactDigikalaPrice | null {
   const titleLiteral = text.match(/"title_fa"\s*:\s*("(?:\\.|[^"\\])*")/)?.[1] || "";
   let title = "";
   try {
@@ -429,7 +469,7 @@ function compactDigikalaPriceFromText(text: string): CompactDigikalaPrice | null
   );
   const price = Math.round(sellingRial / 10);
   const originalPrice = Math.round(rrpRial / 10);
-  if (!Number.isFinite(price) || price < 100_000 || price > 1_500_000_000) return null;
+  if (!Number.isFinite(price) || price < 100_000 || price > 10_000_000_000) return null;
   return {
     title,
     price,
@@ -504,16 +544,20 @@ function compactDigikalaSearchPriceFromText(text: string, productTitle: string) 
       variantText.match(/"price"\s*:\s*\{[\s\S]{0,16_000}?"selling_price"\s*:\s*(\d+)/)?.[1] || 0,
     );
     const price = Math.round(sellingRial / 10);
-    if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
+    if (price >= 100_000 && price <= 10_000_000_000) prices.push(price);
   }
   return prices.length ? Math.min(...prices) : 0;
 }
 
-/** جستجوی دستهٔ کارت گرافیک را بدون JSON.parse کل پاسخ بزرگ بررسی می‌کند. */
+/** جستجوی دیجی‌کالا را بدون JSON.parse کل پاسخ بزرگ بررسی می‌کند. */
 async function fetchCompactDigikalaSearchPrice(productTitle: string) {
   const direct = new URL("https://api.digikala.com/v1/search/");
   direct.searchParams.set("q", productTitle);
-  direct.searchParams.set("categories[0]", "208");
+  // شناسهٔ ۲۰۸ فقط دستهٔ کارت گرافیک است؛ اعمال آن روی SSD/CPU باعث می‌شد
+  // جستجو همیشه صفر شود و قیمت قدیمی در سایت باقی بماند.
+  if (/کارت\s*گرافیک|\b(?:rtx|gtx|radeon\s*rx)\s*\d/i.test(productTitle)) {
+    direct.searchParams.set("categories[0]", "208");
+  }
   direct.searchParams.set("page", "1");
   const translated = new URL(`https://api-digikala-com.translate.goog${direct.pathname}${direct.search}`);
   translated.searchParams.set("_x_tr_sl", "auto");
@@ -575,28 +619,43 @@ async function fetchCompactDigikalaPrice(productId: string) {
 }
 
 async function fetchTorobSearchJson(productTitle: string) {
-  const url = new URL("https://api-torob-com.translate.goog/v4/base-product/search/");
-  url.searchParams.set("page", "0");
-  url.searchParams.set("sort", "popularity");
-  // پاسخ‌های بزرگ ترجمهٔ ترب روی Worker مصرف CPU/حافظه را بالا می‌برد؛ نتایج دقیق
-  // در رتبه‌های نخست هستند و ۸ کارت برای تطبیق مدل/پکیج کافی است.
-  url.searchParams.set("size", "8");
-  url.searchParams.set("q", productTitle);
-  url.searchParams.set("_x_tr_sl", "auto");
-  url.searchParams.set("_x_tr_tl", "en");
-  url.searchParams.set("_x_tr_hl", "en");
-  const timeoutSignal =
-    typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
-      ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(9000)
-      : undefined;
-  const response = await fetch(url.toString(), {
-    redirect: "follow",
-    cache: "no-store",
-    headers: { accept: "application/json, text/plain, */*" },
-    signal: timeoutSignal,
-  });
-  if (!response.ok) throw new Error(`Torob proxy HTTP ${response.status}`);
-  return await response.json() as Record<string, any>;
+  const direct = new URL("https://api.torob.com/v4/base-product/search/");
+  direct.searchParams.set("page", "0");
+  direct.searchParams.set("sort", "popularity");
+  // پاسخ‌های بزرگ ترب مصرف CPU/حافظه را بالا می‌برند؛ نتیجهٔ مدل دقیق معمولاً در
+  // هشت کارت نخست است. مستقیم و پروکسی ترجمه هم‌زمان امتحان می‌شوند تا بسته بودن
+  // یکی از مسیرها باعث حفظ قیمت قدیمی نشود.
+  direct.searchParams.set("size", "8");
+  direct.searchParams.set("q", productTitle);
+  const translated = new URL(`https://api-torob-com.translate.goog${direct.pathname}${direct.search}`);
+  translated.searchParams.set("_x_tr_sl", "auto");
+  translated.searchParams.set("_x_tr_tl", "en");
+  translated.searchParams.set("_x_tr_hl", "en");
+  const requestJson = async (url: string) => {
+    const timeoutSignal =
+      typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+        ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(9000)
+        : undefined;
+    const response = await fetch(url, {
+      redirect: "follow",
+      cache: "no-store",
+      headers: {
+        "user-agent": "Mozilla/5.0 (compatible; OptiBidPriceReader/1.0)",
+        accept: "application/json, text/plain, */*",
+      },
+      signal: timeoutSignal,
+    });
+    if (!response.ok) throw new Error(`Torob HTTP ${response.status}`);
+    const payload = await response.json() as Record<string, any>;
+    if (!Array.isArray(payload?.results) && !Array.isArray(payload?.data?.results)) {
+      throw new Error("Torob response has no results");
+    }
+    return payload;
+  };
+  return Promise.any([
+    requestJson(direct.toString()),
+    requestJson(translated.toString()),
+  ]);
 }
 
 function digikalaDetailSnapshot(payload: Record<string, any>) {
@@ -627,7 +686,7 @@ function digikalaDetailSnapshot(payload: Record<string, any>) {
     description: description.slice(0, 5000),
     rating: Number.isFinite(rating) && rating > 0 ? Math.min(5, rating) : undefined,
     reviewsCount: Math.max(0, Math.floor(Number(detail?.rating?.count || 0))),
-    price: sellingPrice >= 100_000 && sellingPrice <= 1_500_000_000 ? sellingPrice : undefined,
+    price: sellingPrice >= 100_000 && sellingPrice <= 10_000_000_000 ? sellingPrice : undefined,
     originalPrice: rrpPrice > sellingPrice && rrpPrice <= sellingPrice * 1.8 ? rrpPrice : undefined,
     brand: String(detail?.brand?.title_en || detail?.brand?.title_fa || detail?.data_layer?.brand || "").trim() || undefined,
   };
@@ -653,7 +712,7 @@ function digikalaComparablePrice(payload: Record<string, any>, productTitle: str
       0,
     );
     const price = Math.round(rawPrice / 10);
-    if (price >= 100_000 && price <= 1_500_000_000) prices.push(price);
+    if (price >= 100_000 && price <= 10_000_000_000) prices.push(price);
   }
   return prices.length ? Math.min(...prices) : 0;
 }
@@ -838,7 +897,7 @@ export async function getLiveStoreProductPriceSnapshot(
     } else if (isTorobProduct) {
       const [torobResult, digikalaResult] = await Promise.allSettled([
         fetchTorobSearchJson(product.title),
-        fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
+        fetchCompactDigikalaSearchPrice(product.title),
       ]);
       if (torobResult.status === "fulfilled") {
         torobCurrentPrice = torobComparableJsonPrice(
@@ -848,19 +907,17 @@ export async function getLiveStoreProductPriceSnapshot(
         );
         extractedPrice = torobCurrentPrice;
       }
-      if (digikalaResult.status === "fulfilled") {
-        const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
-        if (digikalaPriceValue > 0) {
-          digikalaCurrentPrice = digikalaPriceValue;
-          if (!extractedPrice || digikalaPriceValue < extractedPrice) extractedPrice = digikalaPriceValue;
-        }
+      if (digikalaResult.status === "fulfilled" && digikalaResult.value > 0) {
+        digikalaCurrentPrice = digikalaResult.value;
+        if (!extractedPrice || digikalaResult.value < extractedPrice) extractedPrice = digikalaResult.value;
       }
     } else {
       // CSVها و ورودی‌های قدیمی ممکن است لینک مستقیم dkp یا /p/ نداشته باشند.
-      // در این حالت نیز مدل دقیق به‌طور مستقل در هر دو مرجع جستجو می‌شود.
+      // جستجوی دیجی‌کالا به‌صورت stream خوانده می‌شود تا JSON بزرگ کل Worker را
+      // به خطای 1102 نبرد؛ ترب نیز فقط هشت نتیجهٔ نخست را برمی‌گرداند.
       const [torobResult, digikalaResult] = await Promise.allSettled([
         fetchTorobSearchJson(product.title),
-        fetchDigikalaJson(`https://api.digikala.com/v1/search/?q=${encodeURIComponent(product.title)}`),
+        fetchCompactDigikalaSearchPrice(product.title),
       ]);
       if (torobResult.status === "fulfilled") {
         torobCurrentPrice = torobComparableJsonPrice(
@@ -870,48 +927,60 @@ export async function getLiveStoreProductPriceSnapshot(
         );
         extractedPrice = torobCurrentPrice;
       }
-      if (digikalaResult.status === "fulfilled") {
-        const digikalaPriceValue = digikalaComparablePrice(digikalaResult.value, product.title);
-        if (digikalaPriceValue > 0) {
-          digikalaCurrentPrice = digikalaPriceValue;
-          if (!extractedPrice || digikalaPriceValue < extractedPrice) extractedPrice = digikalaPriceValue;
-        }
+      if (digikalaResult.status === "fulfilled" && digikalaResult.value > 0) {
+        digikalaCurrentPrice = digikalaResult.value;
+        if (!extractedPrice || digikalaResult.value < extractedPrice) extractedPrice = digikalaResult.value;
       }
     }
 
-    // برای چند CPU با رکوردهای تکراری Tray/Box، صفحه canonical دقیق ترب نیز
-    // مستقلاً خوانده می‌شود تا قیمت دیجی‌کالا جای کمترین قیمت ترب را نگیرد.
-    for (const canonicalTorobUrl of verifiedCanonicalTorobProductUrls(product.title)) {
-      try {
-        const canonicalTorobPrice = firstTorobPrice(await fetchTorobPublicPage(canonicalTorobUrl));
-        if (canonicalTorobPrice > 0) {
-          torobCurrentPrice = !torobCurrentPrice
-            ? canonicalTorobPrice
-            : Math.min(torobCurrentPrice, canonicalTorobPrice);
-          if (!extractedPrice || canonicalTorobPrice < extractedPrice) extractedPrice = canonicalTorobPrice;
-        }
-      } catch {
-        // سایر مراجع معتبر همچنان قابل استفاده‌اند.
-      }
-    }
-
-    // رکوردهای canonical تأییدشده مستقل از نوع لینک اولیه بررسی می‌شوند؛ برخی
-    // محصولات قدیمی لینک easy-scraper یا منبع غیر dkp دارند اما مدل دقیق روشن است.
-    for (const canonicalProductId of verifiedCanonicalDigikalaProductIds(product.title)) {
-      try {
-        const canonicalDetail = await fetchCompactDigikalaPrice(canonicalProductId);
-        if (marketVariantMatches(product.title, canonicalDetail.title)) {
-          digikalaCurrentPrice = !digikalaCurrentPrice
-            ? canonicalDetail.price
-            : Math.min(digikalaCurrentPrice, canonicalDetail.price);
-          if (!extractedPrice || canonicalDetail.price < extractedPrice) {
-            extractedPrice = canonicalDetail.price;
-            sourcePrice = canonicalDetail.price;
-            sourceOriginalPrice = canonicalDetail.originalPrice;
+    // لینک مستقیم دقیق ترب (لینک اصلی، لینک رکورد تکراری و canonicalهای تأییدشده)
+    // مسیر پشتیبان جستجوی API است. فقط وقتی جستجو قیمت دقیق نداده باشد صفحهٔ
+    // عمومی خوانده می‌شود تا تعداد درخواست و احتمال خطای 1102 پایین بماند.
+    const exactTorobUrls = Array.from(new Set([
+      torobProductUrlFromUrl(sourceUrl),
+      ...additionalSourceUrls.map(torobProductUrlFromUrl),
+      ...verifiedCanonicalTorobProductUrls(product.title),
+    ].filter(Boolean))).slice(0, 4);
+    if (torobCurrentPrice <= 0) {
+      for (const exactTorobUrl of exactTorobUrls) {
+        try {
+          const exactTorobPrice = firstTorobPrice(await fetchTorobPublicPage(exactTorobUrl));
+          if (exactTorobPrice > 0) {
+            torobCurrentPrice = !torobCurrentPrice
+              ? exactTorobPrice
+              : Math.min(torobCurrentPrice, exactTorobPrice);
+            if (!extractedPrice || exactTorobPrice < extractedPrice) extractedPrice = exactTorobPrice;
           }
+        } catch {
+          // سایر مراجع معتبر همچنان قابل استفاده‌اند.
         }
-      } catch {
-        // سایر مراجع معتبر همچنان قابل استفاده‌اند.
+      }
+    }
+
+    // لینک‌های مستقیم دیجی‌کالا و رکوردهای canonical مستقل از منبع اولیه بررسی
+    // می‌شوند. در صورت موفق بودن جستجوی stream، درخواست تکراری حذف می‌شود.
+    const exactDigikalaIds = Array.from(new Set([
+      digikalaProductIdFromUrl(sourceUrl),
+      ...additionalSourceUrls.map(digikalaProductIdFromUrl),
+      ...verifiedCanonicalDigikalaProductIds(product.title),
+    ].filter(Boolean))).slice(0, 4);
+    if (digikalaCurrentPrice <= 0) {
+      for (const exactProductId of exactDigikalaIds) {
+        try {
+          const exactDetail = await fetchCompactDigikalaPrice(exactProductId);
+          if (marketVariantMatches(product.title, exactDetail.title)) {
+            digikalaCurrentPrice = !digikalaCurrentPrice
+              ? exactDetail.price
+              : Math.min(digikalaCurrentPrice, exactDetail.price);
+            if (!extractedPrice || exactDetail.price < extractedPrice) {
+              extractedPrice = exactDetail.price;
+              sourcePrice = exactDetail.price;
+              sourceOriginalPrice = exactDetail.originalPrice;
+            }
+          }
+        } catch {
+          // سایر مراجع معتبر همچنان قابل استفاده‌اند.
+        }
       }
     }
 

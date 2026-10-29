@@ -618,7 +618,7 @@ function extractHtmlPriceCandidates(html: string) {
   for (const { pattern, currency } of patterns) {
     for (const match of text.matchAll(pattern)) {
       const value = normalizePriceToToman(match[1], currency);
-      if (value >= 100_000 && value <= 1_500_000_000) candidates.push(value);
+      if (value >= 100_000 && value <= 10_000_000_000) candidates.push(value);
     }
   }
   return [...new Set(candidates)].sort((a, b) => a - b);
@@ -1216,7 +1216,7 @@ function formattedPricesFromText(value: string) {
   const normalized = toEnglishDigits(decodeHtml(value));
   const prices = [...normalized.matchAll(/\d{1,3}(?:[٬،٫,.]\d{3}){1,4}/g)]
     .map((match) => Number((match[0] || "").replace(/[٬،٫,.]/g, "")))
-    .filter((price) => Number.isFinite(price) && price >= 100_000 && price <= 1_500_000_000);
+    .filter((price) => Number.isFinite(price) && price >= 100_000 && price <= 10_000_000_000);
   return [...new Set(prices)].sort((a, b) => a - b);
 }
 

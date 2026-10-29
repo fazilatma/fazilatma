@@ -33,8 +33,8 @@ function normalizeOverride(value: unknown): StorePriceOverride | null {
   const updatedAt = String(record.updatedAt || "");
   const available = record.available !== false;
   if (
-    !Number.isFinite(price) || price < 100_000 || price > 1_500_000_000 ||
-    !Number.isFinite(marketPrice) || marketPrice < 100_000 || marketPrice > 1_500_000_000 ||
+    !Number.isFinite(price) || price < 100_000 || price > 10_000_000_000 ||
+    !Number.isFinite(marketPrice) || marketPrice < 100_000 || marketPrice > 10_000_000_000 ||
     !Number.isFinite(priceMultiplier) || priceMultiplier < 0.1 || priceMultiplier > 10 ||
     !Number.isFinite(Date.parse(updatedAt))
   ) return null;

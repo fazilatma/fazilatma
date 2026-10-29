@@ -118,7 +118,7 @@ function draftFromRecord(record: Record<string, any>, source: DigikalaSource): I
       0,
   );
   const price = Math.round(sellingPriceRial / 10);
-  if (!title || !Number.isFinite(price) || price < 100_000 || price > 1_500_000_000) return null;
+  if (!title || !Number.isFinite(price) || price < 100_000 || price > 10_000_000_000) return null;
 
   const rrpRial = Number(
     record.default_variant?.price?.rrp_price ||

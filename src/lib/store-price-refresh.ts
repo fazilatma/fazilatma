@@ -1,5 +1,6 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
+import { marketVariantMatches } from "@/lib/store-product-live";
 import {
   applyStorePriceFormula,
   normalizeStorePriceMultiplier,
@@ -248,14 +249,17 @@ function extractTitle(html: string) {
 function candidatesFromJson(value: unknown, source: PriceReferenceKey, baseUrl: string) {
   const candidates: Omit<PriceCandidate, "score">[] = [];
   for (const record of flattenJson(value)) {
-    const title = firstText(
-      record.title_fa,
-      record.title_en,
-      record.title,
-      record.name,
-      record.product_title,
-      record.fa_title,
-    );
+    const torobTitle = [firstText(record.name1), firstText(record.name2)].filter(Boolean).join(" ");
+    const title = source === "torob" && torobTitle
+      ? torobTitle
+      : firstText(
+          record.title_fa,
+          record.title_en,
+          record.title,
+          record.name,
+          record.product_title,
+          record.fa_title,
+        );
     const priceRaw = firstText(
       record.price,
       record.selling_price,
@@ -277,10 +281,16 @@ function candidatesFromJson(value: unknown, source: PriceReferenceKey, baseUrl: 
     );
     const price = normalizePriceToToman(
       priceRaw,
-      currency || (source === "digikala" ? "IRR" : undefined),
+      currency || (source === "digikala" ? "IRR" : source === "torob" ? "IRT" : undefined),
     );
-    if (!title || price < 100_000 || price > 1_500_000_000) continue;
-    const url = firstText(record.url, record.web_url, record.absolute_url, record?.url?.uri);
+    if (!title || price < 100_000 || price > 10_000_000_000) continue;
+    const url = firstText(
+      record.web_client_absolute_url,
+      record.url,
+      record.web_url,
+      record.absolute_url,
+      record?.url?.uri,
+    );
     candidates.push({
       source,
       title,
@@ -304,18 +314,18 @@ function priceValuesFromText(text: string) {
   for (const pattern of explicitTomanPatterns) {
     for (const match of text.matchAll(pattern)) {
       const price = normalizePriceToToman(match[1], "IRT");
-      if (price >= 100_000 && price <= 1_500_000_000) values.add(price);
+      if (price >= 100_000 && price <= 10_000_000_000) values.add(price);
     }
   }
   for (const pattern of explicitRialPatterns) {
     for (const match of text.matchAll(pattern)) {
       const price = normalizePriceToToman(match[1], "IRR");
-      if (price >= 100_000 && price <= 1_500_000_000) values.add(price);
+      if (price >= 100_000 && price <= 10_000_000_000) values.add(price);
     }
   }
   for (const match of text.matchAll(/"price"\s*:\s*"?([\d۰-۹٠-٩][\d۰-۹٠-٩,.٬\s]{4,})"?/gi)) {
     const price = normalizePriceToToman(match[1]);
-    if (price >= 100_000 && price <= 1_500_000_000) values.add(price);
+    if (price >= 100_000 && price <= 10_000_000_000) values.add(price);
   }
   return [...values].sort((a, b) => a - b);
 }
@@ -329,7 +339,7 @@ function torobPageLowestPrice(text: string) {
   for (const pattern of patterns) {
     const match = text.match(pattern)?.[1];
     const price = normalizePriceToToman(match, "IRT");
-    if (price >= 100_000 && price <= 1_500_000_000) return price;
+    if (price >= 100_000 && price <= 10_000_000_000) return price;
   }
   return 0;
 }
@@ -472,23 +482,41 @@ export async function findProductPriceCandidates(
     }
   }
 
-  const requiresExactModel = exactModelTokens(`${product.title} ${product.specs?.مدل || ""}`).length > 0;
-  const scored = rawCandidates
-    .filter((candidate) => candidateMatchesExactModel(product, candidate.title))
+  const productIdentityText = `${product.title} ${product.specs?.مدل || ""} ${product.specs?.ظرفیت || ""}`;
+  const sourceRequiresNew = !/استوک|کارکرده|used/i.test(productIdentityText);
+  const safeCandidates = rawCandidates.filter((candidate) => {
+    if (/خراب|معیوب|اوراق|برای تعمیر|قطعاتی|defective|for\s*parts/i.test(candidate.title)) return false;
+    if (sourceRequiresNew && /استوک|کارکرده|used/i.test(candidate.title)) return false;
+    return true;
+  });
+  // برای کالاهایی مثل Hyundai SAPPHIRE 480GB که مدل عدد-حرفی کلاسیک ندارند،
+  // تطبیق برند/نام/ظرفیت مشترک با مسیر نمایش زنده استفاده می‌شود.
+  const strictVariants = safeCandidates.filter((candidate) =>
+    marketVariantMatches(productIdentityText, candidate.title),
+  );
+  const requiresExactModel = exactModelTokens(productIdentityText).length > 0;
+  const candidatePool = strictVariants.length
+    ? strictVariants
+    : safeCandidates.filter((candidate) => candidateMatchesExactModel(product, candidate.title));
+  const scored = candidatePool
     .map((candidate) => ({ ...candidate, score: candidateScore(product, candidate.title) }))
-    .filter((candidate) => candidate.score >= (requiresExactModel ? 3 : 5))
-    .sort((a, b) => b.score - a.score || a.price - b.price);
+    .filter((candidate) => strictVariants.length > 0 || candidate.score >= (requiresExactModel ? 3 : 5))
+    .sort((a, b) => a.price - b.price || b.score - a.score);
+  const unique = [...new Map(
+    scored.map((candidate) => [
+      `${candidate.source}|${normalizeText(candidate.title)}|${candidate.price}`,
+      candidate,
+    ]),
+  ).values()];
 
-  return { candidates: scored, errors };
+  return { candidates: unique, errors };
 }
 
 export function chooseBestPriceCandidate(candidates: PriceCandidate[]) {
   if (!candidates.length) return null;
-  const topScore = Math.max(...candidates.map((candidate) => candidate.score));
-  // پس از تطبیق سخت‌گیرانهٔ مدل/نوع بسته‌بندی، کمترین قیمت معتبر انتخاب می‌شود؛
-  // میانگین یا میانه باعث می‌شد قیمت ارزان‌تر ترب/دیجی‌کالا نادیده گرفته شود.
-  const trustworthy = candidates.filter((candidate) => candidate.score >= topScore - 2);
-  return [...trustworthy].sort((a, b) => a.price - b.price || b.score - a.score)[0] || null;
+  // نامزدها پیش از این مرحله از نظر مدل، برند، ظرفیت، وضعیت نو/کارکرده و خرابی
+  // اعتبارسنجی شده‌اند؛ بنابراین فرمول فروشگاه دقیقاً کمترین قیمت معتبر است.
+  return [...candidates].sort((a, b) => a.price - b.price || b.score - a.score)[0] || null;
 }
 
 export function applyRefreshedPrice(

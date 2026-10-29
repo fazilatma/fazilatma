@@ -18,7 +18,7 @@ function normalizePrice(value: unknown): BrowserStorePrice | null {
   if (
     !Number.isFinite(price) ||
     price < 100_000 ||
-    price > 1_500_000_000 ||
+    price > 10_000_000_000 ||
     !Number.isFinite(Date.parse(updatedAt))
   ) return null;
   return { price, updatedAt, available };

@@ -67,7 +67,7 @@ export function storedProductPriceMultiplier(
 
 export function storedProductMarketPrice(product: Partial<StorePricingFields>) {
   const explicit = Number(product.marketPrice);
-  if (Number.isFinite(explicit) && explicit >= 100_000 && explicit <= 1_500_000_000) {
+  if (Number.isFinite(explicit) && explicit >= 100_000 && explicit <= 10_000_000_000) {
     return Math.round(explicit);
   }
   const salePrice = Number(product.price || 0);
@@ -78,7 +78,7 @@ export function storedProductMarketPrice(product: Partial<StorePricingFields>) {
 
 export function isSuspiciousStoreProductPrice(product: StorePriceSanityProduct) {
   const price = Number(product.price || 0);
-  if (!Number.isFinite(price) || price < 100_000 || price > 1_500_000_000) return true;
+  if (!Number.isFinite(price) || price < 100_000 || price > 10_000_000_000) return true;
   const text = `${product.title || ""} ${product.category || ""} ${product.summary || ""} ${Object.values(product.specs || {}).join(" ")}`
     .toLowerCase()
     .replace(/[‌\s]+/g, " ");
