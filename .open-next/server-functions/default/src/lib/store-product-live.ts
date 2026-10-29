@@ -125,6 +125,8 @@ function strongModelTokens(value: string) {
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
     // مدل‌هایی مانند F 3207، F-3207 و F3207 در منابع مختلف یکسان‌اند.
     .replace(/\b([a-z]{1,3})\s*-?\s*(\d{3,5})\b/g, "$1$2")
+    // پسوند تجاری CSM گاهی با فاصله و گاهی با خط تیره ثبت می‌شود.
+    .replace(/\b([a-z0-9-]*\d[a-z0-9-]*)\s+(-?csm)\b/g, "$1-csm")
     .replace(/\b([a-z]*\d[a-z0-9]*)-(tray|box)\b/g, "$1 $2")
     // بعضی عناوین وارداتی بدون فاصله نوشته شده‌اند: «مدلTX500».
     .replace(/([آ-ی])([a-z0-9])/gi, "$1 $2")
@@ -484,6 +486,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   if (/\bfater\b|فاطر/.test(normalized) && /\bf\s*-?\s*3207\b/.test(normalized)) {
     urls.push("https://torob.com/p/1234abaa-a68e-4ac1-8214-ec7042a1b150/کیس-کامپیوتر-فاطر-f-3207-mid-tower-مشکی/");
   }
+  if (/\basus\b|ایسوس/.test(normalized) && /\bprime\s+h610m-a-?csm\b/.test(normalized)) {
+    urls.push("https://torob.com/p/40d828fd-6208-46b3-a9e9-ed313aeaff90/مادربرد-ایسوس-مدل-prime-h610m-a-csm-ddr5/");
+  }
   return urls;
 }
 
@@ -523,6 +528,9 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   }
   if (/\bfater\b|فاطر/.test(normalized) && /\bf\s*-?\s*3207\b/.test(normalized)) {
     ids.push("9072389");
+  }
+  if (/\basus\b|ایسوس/.test(normalized) && /\bprime\s+h610m-a-?csm\b/.test(normalized)) {
+    ids.push("14032480");
   }
   return ids;
 }
@@ -924,11 +932,6 @@ async function fetchTorobPublicPage(url: string) {
   }
 }
 
-function hasRecentVerifiedMarketPrice(product: JsonStoreProduct) {
-  const verifiedAt = Date.parse(String(product.priceVerifiedAt || ""));
-  return Number.isFinite(verifiedAt) && Date.now() - verifiedAt >= 0 && Date.now() - verifiedAt <= 6 * 60 * 60 * 1000;
-}
-
 export async function getLiveStoreProductPriceSnapshot(
   product: JsonStoreProduct,
   configuredPriceMultiplier?: number,
@@ -1171,19 +1174,10 @@ export async function getLiveStoreProductPriceSnapshot(
       snapshotCache.set(cacheKey, { value: null, expiresAt: Date.now() + 60_000 });
       return null;
     }
-    // اگر یک مرجع موقتاً پاسخ نداد، قیمت تأییدشدهٔ چند ساعت اخیر را بی‌دلیل
-    // با قیمت بالاتر مرجع دیگر جایگزین نمی‌کنیم. دادهٔ صرفاً واردشده همچنان باید
-    // حداقل ۸۵٪ قیمت جاری باشد؛ فقط قیمت زندهٔ تأییدشده بازهٔ ۵۵٪ دارد.
-    const minimumPreviousRatio = hasRecentVerifiedMarketPrice(product) ? 0.55 : 0.85;
-    const bothMarketsVerified = torobCurrentPrice > 0 && digikalaCurrentPrice > 0;
-    if (
-      !bothMarketsVerified &&
-      storedMarketPrice > 0 &&
-      storedMarketPrice < extractedPrice &&
-      storedMarketPrice >= extractedPrice * minimumPreviousRatio
-    ) {
-      extractedPrice = storedMarketPrice;
-    }
+    // وقتی حداقل یک قیمت جاری دقیق پیدا شد، قیمت ذخیره‌شدهٔ قدیمی نباید به‌عنوان
+    // کف بازار حفظ شود؛ این کار قبلاً قیمت ۱۴.۷ را با وجود قیمت جاری ۱۴.۹ برای
+    // همیشه تازه می‌کرد. فقط در شکست کامل همه منابع، snapshot=null و قیمت قبلی
+    // بدون تغییر باقی می‌ماند.
     const price = roundStorePrice(extractedPrice * priceMultiplier);
     const value: LiveStoreProductSnapshot = {
       price,
