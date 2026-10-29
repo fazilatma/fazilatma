@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SellerStars from "@/components/SellerStars";
 import type { HomepageImageSliderSlide } from "@/components/HomepageImageSlider";
 import { productImageUrl } from "@/lib/product-image-shared";
@@ -10,6 +10,7 @@ import { decodeCsvBytes } from "@/lib/store-product-csv-encoding";
 import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
 import { repairStoreProductCsvBytes, repairedCsvFileName } from "@/lib/store-product-csv-repair";
 import {
+  importedDraftIdentityKey,
   normalizeProductImportCategories,
   productImportCategoryKey,
   productMatchesImportCategories,
@@ -173,6 +174,24 @@ function applyImportPriceMultiplierForPreview(draft: ImportedStoreProductDraft, 
     price: roundToman(draft.price * multiplier),
     originalPrice: draft.originalPrice ? roundToman(draft.originalPrice * multiplier) : undefined,
   };
+}
+
+function normalizedCrawlUrl(value: string) {
+  try {
+    const url = new URL(String(value || "").trim());
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function universalDraftKey(draft: ImportedStoreProductDraft) {
+  const identity = importedDraftIdentityKey(draft);
+  if (identity) return `identity:${identity}`;
+  const sourceUrl = normalizedCrawlUrl(draft.externalSourceUrl || "");
+  if (sourceUrl) return `url:${sourceUrl}`;
+  return `title:${draft.brand}|${draft.title}`.toLowerCase().replace(/\s+/g, " ");
 }
 
 async function readJsonResponse(response: Response, fallbackMessage: string) {
@@ -397,15 +416,25 @@ export default function AdminDashboardClient({
   const [savingStoreCatalog, setSavingStoreCatalog] = useState(false);
   const [importingComputerParts, setImportingComputerParts] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
-  const [productImportLimit, setProductImportLimit] = useState(1000);
+  const [productImportLimit, setProductImportLimit] = useState(10000);
   const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
-  const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("page");
+  const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("full-site");
   const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
   const [productImportCategories, setProductImportCategories] = useState<string[]>(allProductImportCategoryIds);
   const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
   const [productImportCsvDrafts, setProductImportCsvDrafts] = useState<PreparedCsvImportDraft[]>([]);
-  const [productImportPreviewSource, setProductImportPreviewSource] = useState<"csv" | "link" | "">("");
+  const [productImportLinkDrafts, setProductImportLinkDrafts] = useState<PreparedCsvImportDraft[]>([]);
+  const [productImportPreviewSource, setProductImportPreviewSource] = useState<"csv" | "link" | "link-bulk" | "">("");
   const [productImportSelectedKeys, setProductImportSelectedKeys] = useState<string[]>([]);
+  const [universalCrawlProgress, setUniversalCrawlProgress] = useState({
+    running: false,
+    extracted: 0,
+    scannedPages: 0,
+    queuedProducts: 0,
+    queuedPages: 0,
+    message: "",
+  });
+  const universalCrawlCancelledRef = useRef(false);
   const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
   const [productImportMessage, setProductImportMessage] = useState("");
   const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
@@ -1046,10 +1075,20 @@ export default function AdminDashboardClient({
   };
 
   const clearProductImportPreviewState = () => {
+    universalCrawlCancelledRef.current = true;
     setProductImportPreview([]);
     setProductImportCsvDrafts([]);
+    setProductImportLinkDrafts([]);
     setProductImportPreviewSource("");
     setProductImportSelectedKeys([]);
+    setUniversalCrawlProgress({
+      running: false,
+      extracted: 0,
+      scannedPages: 0,
+      queuedProducts: 0,
+      queuedPages: 0,
+      message: "",
+    });
   };
 
   const useComputerPartsSource = () => {
@@ -1541,6 +1580,217 @@ export default function AdminDashboardClient({
     }
   };
 
+  const requestUniversalCrawlBatch = async (urls: string[], discoverSitemap = false) => {
+    const response = await fetch("/api/admin/store-products/crawl-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        urls,
+        discoverSitemap,
+        linkLimit: productImportLimit,
+        categoryFilters: productImportCategories,
+      }),
+    });
+    const result = await readJsonResponse(response, "خواندن این دسته از صفحات ناموفق بود.");
+    if (!result.success) throw new Error(result.message || "خواندن این دسته از صفحات ناموفق بود.");
+    return result;
+  };
+
+  const finalizeUniversalCrawlPreview = (
+    drafts: ImportedStoreProductDraft[],
+    warnings: string[],
+    scannedUrls: string[],
+  ) => {
+    const multiplier = normalizedImportPriceMultiplier(productImportPriceMultiplier);
+    const entries: PreparedCsvImportDraft[] = drafts.slice(0, productImportLimit).map((draft, index) => ({
+      selectionKey: `link-bulk-${index}|${draft.externalSourceUrl || ""}|${draft.title}`,
+      draft,
+    }));
+    const preview = entries.map((entry, index) => ({
+      ...applyImportPriceMultiplierForPreview(entry.draft, multiplier),
+      id: `link-bulk-${index}`,
+      selectionKey: entry.selectionKey,
+      action: "pending",
+      matchedProduct: null,
+      importCategory: productImportCategoryKey(entry.draft),
+    }));
+    setProductImportLinkDrafts(entries);
+    setProductImportPreview(preview);
+    setProductImportPreviewSource("link-bulk");
+    setProductImportSelectedKeys(entries.map((entry) => entry.selectionKey));
+    setProductImportWarnings(warnings.slice(0, 30));
+    setProductImportScannedUrls(scannedUrls.slice(-500));
+    return entries;
+  };
+
+  const runUniversalProductCrawl = async () => {
+    const sourceUrl = normalizedCrawlUrl(productImportUrl);
+    if (!sourceUrl) throw new Error("لینک معتبر http/https وارد کنید.");
+    universalCrawlCancelledRef.current = false;
+    setScanningProductImport(true);
+    setProductImportMessage("");
+    setProductImportWarnings([]);
+    setProductImportScannedUrls([]);
+
+    const pageQueue = [sourceUrl];
+    const productQueue: string[] = [];
+    const seenPages = new Set<string>();
+    const seenProducts = new Set<string>();
+    const draftMap = new Map<string, ImportedStoreProductDraft>();
+    const warnings: string[] = [];
+    const scannedUrls: string[] = [];
+    let initialDiscovery = true;
+    let emptySteps = 0;
+
+    try {
+      while (
+        !universalCrawlCancelledRef.current &&
+        draftMap.size < productImportLimit &&
+        (productQueue.length > 0 || pageQueue.length > 0)
+      ) {
+        const readingProducts = productQueue.length > 0;
+        const queue = readingProducts ? productQueue : pageQueue;
+        const batchSize = readingProducts ? 12 : initialDiscovery ? 1 : 4;
+        const urls: string[] = [];
+        while (queue.length > 0 && urls.length < batchSize) {
+          const candidate = normalizedCrawlUrl(queue.shift() || "");
+          if (!candidate) continue;
+          const seen = readingProducts ? seenProducts : seenPages;
+          if (seen.has(candidate)) continue;
+          seen.add(candidate);
+          urls.push(candidate);
+        }
+        if (!urls.length) continue;
+
+        const discoverSitemap = initialDiscovery && !readingProducts && productImportScanMode === "full-site";
+        const result = await requestUniversalCrawlBatch(urls, discoverSitemap);
+        initialDiscovery = false;
+        warnings.push(...(result.warnings || []));
+        scannedUrls.push(...(result.scannedUrls || urls));
+        const discoveredProductUrls = Array.isArray(result.productUrls) ? result.productUrls : [];
+        const discoveredPageUrls = Array.isArray(result.pageUrls) ? result.pageUrls : [];
+        if (!readingProducts) {
+          if (productImportScanMode === "full-site") {
+            discoveredPageUrls.forEach((url: string) => {
+              const normalized = normalizedCrawlUrl(url);
+              if (normalized && !seenPages.has(normalized) && !pageQueue.includes(normalized)) pageQueue.push(normalized);
+            });
+          }
+          discoveredProductUrls.forEach((url: string) => {
+            const normalized = normalizedCrawlUrl(url);
+            if (normalized && !seenProducts.has(normalized) && !productQueue.includes(normalized)) productQueue.push(normalized);
+          });
+        }
+
+        const batchDrafts = (Array.isArray(result.products) ? result.products : []) as ImportedStoreProductDraft[];
+        // روی صفحهٔ فهرست، نسخهٔ کامل صفحهٔ محصول اولویت دارد. اگر لینک جزئیات
+        // پیدا نشد، دادهٔ کارت فهرست به‌عنوان مسیر پشتیبان نگه داشته می‌شود.
+        const acceptPageDrafts = readingProducts || discoveredProductUrls.length === 0;
+        let added = 0;
+        if (acceptPageDrafts) {
+          for (const draft of batchDrafts) {
+            if (draftMap.size >= productImportLimit) break;
+            if (!draft?.title || Number(draft.price || 0) < 100_000) continue;
+            const key = universalDraftKey(draft);
+            const existing = draftMap.get(key);
+            if (!existing) {
+              draftMap.set(key, draft);
+              added += 1;
+              continue;
+            }
+            const richer = Object.keys(draft.specs || {}).length > Object.keys(existing.specs || {}).length
+              ? draft
+              : existing;
+            const cheaper = Number(draft.price || 0) < Number(existing.price || 0) ? draft : existing;
+            const imageUrls = [
+              ...(richer.imageUrls || (richer.imageUrl ? [richer.imageUrl] : [])),
+              ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
+              ...(draft.imageUrls || (draft.imageUrl ? [draft.imageUrl] : [])),
+            ].filter((url, imageIndex, urls) => Boolean(url) && urls.indexOf(url) === imageIndex).slice(0, 8);
+            draftMap.set(key, {
+              ...richer,
+              price: cheaper.price,
+              originalPrice: cheaper.originalPrice,
+              externalSourceUrl: cheaper.externalSourceUrl,
+              sourceHost: cheaper.sourceHost,
+              imageUrls,
+              imageUrl: imageUrls[0] || richer.imageUrl,
+              specs: { ...(existing.specs || {}), ...(draft.specs || {}) },
+            });
+          }
+        }
+        emptySteps = added === 0 && !discoveredProductUrls.length && !discoveredPageUrls.length
+          ? emptySteps + 1
+          : 0;
+        if (emptySteps >= 8 && !productQueue.length) break;
+
+        const message = `${draftMap.size.toLocaleString("fa-IR")} از ${productImportLimit.toLocaleString("fa-IR")} محصول کامل استخراج شد؛ ${productQueue.length.toLocaleString("fa-IR")} لینک محصول و ${pageQueue.length.toLocaleString("fa-IR")} صفحه در صف است.`;
+        setUniversalCrawlProgress({
+          running: true,
+          extracted: draftMap.size,
+          scannedPages: scannedUrls.length,
+          queuedProducts: productQueue.length,
+          queuedPages: pageQueue.length,
+          message,
+        });
+        setProductImportMessage(message);
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+      }
+
+      const drafts = [...draftMap.values()].slice(0, productImportLimit);
+      if (!drafts.length) {
+        throw new Error("از این منبع محصول قیمت‌دار قابل استفاده‌ای استخراج نشد. لینک مستقیم دسته‌بندی، صفحه محصول یا sitemap را امتحان کنید.");
+      }
+      const entries = finalizeUniversalCrawlPreview(drafts, warnings, scannedUrls);
+      const stoppedText = universalCrawlCancelledRef.current ? " عملیات با درخواست شما متوقف شد." : "";
+      const finalMessage = `${entries.length.toLocaleString("fa-IR")} محصول یکتا با تصویر، قیمت و مشخصات برای پیش‌نمایش آماده شد.${stoppedText}`;
+      setProductImportMessage(finalMessage);
+      setUniversalCrawlProgress((current) => ({ ...current, running: false, message: finalMessage }));
+    } finally {
+      setScanningProductImport(false);
+      setUniversalCrawlProgress((current) => ({ ...current, running: false }));
+    }
+  };
+
+  const importUniversalLinkDrafts = async () => {
+    const selectionSet = new Set(productImportSelectedKeys);
+    const selected = productImportLinkDrafts.filter((entry) => selectionSet.has(entry.selectionKey));
+    if (!selected.length) throw new Error("حداقل یک محصول از پیش‌نمایش را انتخاب کنید.");
+    setApplyingProductImport(true);
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    try {
+      for (let offset = 0; offset < selected.length; offset += 200) {
+        const batch = selected.slice(offset, offset + 200);
+        const response = await fetch("/api/admin/store-products/import-csv", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            products: batch.map((entry) => entry.draft),
+            strategy: productImportStrategy,
+            priceMultiplier: productImportPriceMultiplier,
+            categoryFilters: productImportCategories,
+            sourceLabel: "universal-link-crawler",
+          }),
+        });
+        const result = await readJsonResponse(response, "ثبت این دسته از محصولات استخراج‌شده ناموفق بود.");
+        if (!result.success) throw new Error(result.message || "ثبت این دسته ناموفق بود.");
+        created += Number(result.created || 0);
+        updated += Number(result.updated || 0);
+        skipped += Number(result.skipped || 0);
+        const completed = Math.min(selected.length, offset + batch.length);
+        setProductImportMessage(`${completed.toLocaleString("fa-IR")} از ${selected.length.toLocaleString("fa-IR")} محصول ثبت شد...`);
+      }
+      const message = `${created.toLocaleString("fa-IR")} محصول جدید اضافه شد، ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی و ${skipped.toLocaleString("fa-IR")} مورد تکراری/نامعتبر حذف شد.`;
+      setProductImportMessage(message);
+      setProductImportSelectedKeys([]);
+      alert(message);
+    } finally {
+      setApplyingProductImport(false);
+    }
+  };
+
   const runProductImport = async (action: "preview" | "import") => {
     if (!productImportUrl.trim()) {
       alert("لینک فروشگاه یا صفحه محصول را وارد کنید.");
@@ -1550,9 +1800,29 @@ export default function AdminDashboardClient({
       alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
       return;
     }
-    const hasLinkPreviewSelection = productImportPreviewSource === "link" && productImportPreview.length > 0;
+    const hasLinkPreviewSelection = (productImportPreviewSource === "link" || productImportPreviewSource === "link-bulk") && productImportPreview.length > 0;
     if (action === "import" && hasLinkPreviewSelection && productImportSelectedKeys.length === 0) {
       alert("حداقل یک محصول از پیش‌نمایش را برای ورود به سایت انتخاب کنید.");
+      return;
+    }
+    if (action === "preview" && productImportLimit > 50) {
+      try {
+        await runUniversalProductCrawl();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "استخراج مرحله‌ای ناموفق بود.";
+        setProductImportMessage(message);
+        alert(message);
+      }
+      return;
+    }
+    if (action === "import" && productImportPreviewSource === "link-bulk") {
+      try {
+        await importUniversalLinkDrafts();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "ثبت محصولات استخراج‌شده ناموفق بود.";
+        setProductImportMessage(message);
+        alert(message);
+      }
       return;
     }
     if (action === "preview") setScanningProductImport(true);
@@ -2632,7 +2902,7 @@ export default function AdminDashboardClient({
                           ابتدا «استخراج و پیش‌نمایش» را بزنید. محصولی بدون تأیید شما ثبت نمی‌شود و موارد تکراری بر اساس لینک و مدل دقیق به‌روزرسانی می‌شوند.
                         </p>
                         <p className="mt-2 rounded-xl bg-cyan-300/10 px-3 py-2 text-xs font-bold leading-6 text-cyan-100 ring-1 ring-cyan-200/20">
-                          پشتیبانی اختصاصی ایمالز فعال است: لینک اصلی emalls.ir، صفحهٔ لیست قیمت یا لینک مستقیم محصول را وارد کنید؛ سقف هر نوبت تا ۱٬۰۰۰ محصول است.
+                          استخراج‌گر عمومی فعال است: لینک هر فروشگاه، دسته‌بندی، صفحه محصول یا sitemap را وارد کنید؛ تا ۱۰٬۰۰۰ محصول به‌صورت مرحله‌ای خوانده و موارد تکراری ادغام می‌شوند. ایمالز، ترب و دیجی‌کالا نیز پردازش اختصاصی دارند.
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold sm:grid-cols-4 lg:w-[390px] lg:grid-cols-2">
@@ -2681,9 +2951,9 @@ export default function AdminDashboardClient({
                         <input
                           type="number"
                           min="1"
-                          max="1000"
+                          max="10000"
                           value={productImportLimit}
-                          onChange={(event) => setProductImportLimit(Math.max(1, Math.min(1000, Number(event.target.value || 1))))}
+                          onChange={(event) => setProductImportLimit(Math.max(1, Math.min(10000, Number(event.target.value || 1))))}
                           className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-bold text-slate-900 outline-none"
                         />
                       </label>
@@ -2699,13 +2969,44 @@ export default function AdminDashboardClient({
                       </button>
                       <button
                         type="button"
-                        disabled={scanningProductImport || applyingProductImport || productImportPreviewSource !== "link" || productImportSelectedKeys.length === 0}
+                        disabled={scanningProductImport || applyingProductImport || !["link", "link-bulk"].includes(productImportPreviewSource) || productImportSelectedKeys.length === 0}
                         onClick={() => runProductImport("import")}
                         className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-400 disabled:bg-slate-600 disabled:text-slate-300"
                       >
                         {applyingProductImport ? "در حال افزودن به سایت..." : `افزودن ${productImportSelectedKeys.length ? productImportSelectedKeys.length.toLocaleString("fa-IR") : ""} محصول انتخابی به سایت`}
                       </button>
                     </div>
+                    {(universalCrawlProgress.running || universalCrawlProgress.message) && (
+                      <div className="mt-4 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-50 ring-1 ring-white/15">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <b>{universalCrawlProgress.message}</b>
+                          {universalCrawlProgress.running && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                universalCrawlCancelledRef.current = true;
+                                setUniversalCrawlProgress((current) => ({ ...current, message: "در حال توقف امن پس از پایان این دسته..." }));
+                              }}
+                              className="rounded-lg bg-rose-500 px-3 py-2 font-black text-white"
+                            >
+                              توقف استخراج
+                            </button>
+                          )}
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/15">
+                          <div
+                            className="h-full rounded-full bg-cyan-300 transition-all"
+                            style={{ width: `${Math.min(100, (universalCrawlProgress.extracted / Math.max(1, productImportLimit)) * 100)}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-blue-100">
+                          <span>محصول کامل: {universalCrawlProgress.extracted.toLocaleString("fa-IR")}</span>
+                          <span>صفحه خوانده‌شده: {universalCrawlProgress.scannedPages.toLocaleString("fa-IR")}</span>
+                          <span>صف محصول: {universalCrawlProgress.queuedProducts.toLocaleString("fa-IR")}</span>
+                          <span>صف صفحه‌ها: {universalCrawlProgress.queuedPages.toLocaleString("fa-IR")}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-5 rounded-3xl border border-cyan-200 bg-cyan-50/60 p-5">
@@ -2996,9 +3297,9 @@ export default function AdminDashboardClient({
                       <input
                         type="number"
                         min="1"
-                        max="1000"
+                        max="10000"
                         value={productImportLimit}
-                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(1000, Number(e.target.value || 1000))))}
+                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(10000, Number(e.target.value || 10000))))}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </label>
@@ -3024,7 +3325,7 @@ export default function AdminDashboardClient({
                         onChange={(e) => setProductImportScanMode(e.target.value === "page" ? "page" : "full-site")}
                         className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="full-site">جستجوی کامل دسته/سایت‌مپ و ایمالز (تا سقف ۱٬۰۰۰ محصول)</option>
+                        <option value="full-site">خزش مرحله‌ای هر منبع و sitemap (تا سقف ۱۰٬۰۰۰ محصول)</option>
                         <option value="page">همین صفحه؛ دیجی‌کالا با دسته‌های انتخابی جستجو شود</option>
                       </select>
                     </label>
@@ -3311,6 +3612,11 @@ export default function AdminDashboardClient({
                           <span className="mr-2 rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700">
                             {productImportSelectedKeys.length.toLocaleString("fa-IR")} انتخاب‌شده از {productImportPreview.length.toLocaleString("fa-IR")}
                           </span>
+                          {productImportPreview.length > 500 && (
+                            <span className="mt-2 block text-[11px] font-normal text-slate-500">
+                              برای روان ماندن صفحه فقط ۵۰۰ ردیف اول نمایش داده می‌شود؛ انتخاب و ثبت روی همهٔ {productImportPreview.length.toLocaleString("fa-IR")} محصول اعمال می‌شود.
+                            </span>
+                          )}
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs">
                           <button type="button" onClick={selectAllProductImportPreview} className="rounded-full bg-blue-600 px-3 py-2 text-white">
@@ -3336,7 +3642,7 @@ export default function AdminDashboardClient({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 bg-white">
-                            {productImportPreview.map((product) => {
+                            {productImportPreview.slice(0, 500).map((product) => {
                               const selectionKey = productPreviewKey(product);
                               const selected = productImportSelectedKeys.includes(selectionKey);
                               return (

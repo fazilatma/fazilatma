@@ -665,7 +665,7 @@ function likelyProductUrl(url: string, sitemapUrl = "") {
     const parsed = new URL(url);
     const decoded = decodeURIComponent(`${parsed.pathname} ${parsed.search}`.toLowerCase());
     if (isBlockedPath(decoded)) return false;
-    if (/product|products|\/p\/|\/shop\/|kala|goods|item|prd|product-|prod-|\/pd\//i.test(decoded)) return true;
+    if (/product|products|\/p\/|\/shop\/|kala|goods|item|prd|product-|prod-|\/pd\/|مشخصات[_-]|~id~\d+/i.test(decoded)) return true;
     if (/product|products|kala|shop/i.test(sitemapUrl) && !/category|blog|page/i.test(decoded)) return true;
     return productKeywords.some((keyword) => decoded.includes(keyword.toLowerCase()));
   } catch {
@@ -676,17 +676,28 @@ function likelyProductUrl(url: string, sitemapUrl = "") {
 function extractProductLinks(html: string, baseUrl: string, limit: number) {
   const base = new URL(baseUrl);
   const links = new Set<string>();
-  for (const match of html.matchAll(/<a\s+[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
-    const href = absoluteUrl(match[1] || "", baseUrl);
-    if (!href) continue;
+  const addLink = (rawHref: string, rawLabel = "") => {
+    if (links.size >= limit) return;
+    const href = absoluteUrl(rawHref, baseUrl);
+    if (!href) return;
     const url = new URL(href);
-    if (url.hostname !== base.hostname) continue;
-    const label = stripTags(match[2] || "");
+    if (url.hostname !== base.hostname) return;
+    url.hash = "";
+    const label = stripTags(rawLabel);
     const haystack = `${decodeURIComponent(url.pathname)} ${label}`.toLowerCase();
-    if (isBlockedPath(haystack)) continue;
-    if (!likelyProductUrl(url.toString()) && !productKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()))) continue;
+    if (isBlockedPath(haystack)) return;
+    if (!likelyProductUrl(url.toString()) && !productKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()))) return;
     links.add(url.toString());
+  };
+  for (const match of html.matchAll(/<a\s+[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    addLink(match[1] || "", match[2] || "");
     if (links.size >= limit) break;
+  }
+  if (links.size < limit) {
+    for (const match of html.matchAll(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)(?:\s+"[^"]*")?\)/gi)) {
+      addLink(match[2] || "", match[1] || "");
+      if (links.size >= limit) break;
+    }
   }
   return [...links];
 }
@@ -790,7 +801,7 @@ async function discoverSitemapUrls(sourceUrl: string, limit: number, warnings: s
     // robots.txt اختیاری است.
   }
 
-  while (sitemapQueue.length > 0 && productUrls.length < limit && sitemapSeen.size < 60) {
+  while (sitemapQueue.length > 0 && productUrls.length < limit && sitemapSeen.size < 45) {
     const sitemapUrl = sitemapQueue.shift()!;
     try {
       const xml = await fetchText(sitemapUrl);
@@ -845,6 +856,142 @@ async function scanOnePage(url: string, sourceHost: string) {
   return {
     html,
     drafts: extractStoreProductDraftsFromHtml(html, url, sourceHost),
+  };
+}
+
+function extractPaginationLinks(text: string, pageUrl: string, limit = 30) {
+  const base = new URL(pageUrl);
+  const links = new Set<string>();
+  const add = (raw: string, attributes = "") => {
+    if (links.size >= limit) return;
+    const href = absoluteUrl(raw, pageUrl);
+    if (!href) return;
+    const url = new URL(href);
+    if (url.hostname !== base.hostname || likelyProductUrl(url.toString())) return;
+    const decoded = decodeURIComponent(`${url.pathname}${url.search}`);
+    const explicitNext = /\brel\s*=\s*["'][^"']*next/i.test(attributes);
+    if (!explicitNext && !/(?:~page~\d+|\/page\/\d+\/?|[?&](?:page|paged|pagenum)=\d+)/i.test(decoded)) return;
+    url.hash = "";
+    links.add(url.toString());
+  };
+  for (const match of text.matchAll(/<a\b([^>]*href=["']([^"'#]+)["'][^>]*)>/gi)) {
+    add(match[2] || "", match[1] || "");
+  }
+  for (const match of text.matchAll(/\[[^\]]*\]\((https?:\/\/[^\s)]+)(?:\s+"[^"]*")?\)/gi)) {
+    add(match[1] || "");
+  }
+  return [...links];
+}
+
+function markdownDraftFromProductPage(text: string, pageUrl: string, sourceHost: string) {
+  if (!likelyProductUrl(pageUrl)) return null;
+  const title = cleanMarkdownLabel(text.match(/^#\s+(.+)$/m)?.[1] || "").slice(0, 180);
+  if (!title || !isProbablyProductTitle(title)) return null;
+  const prices = formattedPricesFromText(text);
+  const price = prices[0] || 0;
+  if (price < 100_000) return null;
+  const imageCandidates = [...text.matchAll(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/gi)]
+    .map((match) => match[1] || "");
+  const imageUrls = uniqueImageUrls(imageCandidates, pageUrl, 8);
+  return {
+    title,
+    brand: brandFromTitle(title, sourceHost),
+    category: categoryFromTitle(title),
+    summary: title,
+    description: title,
+    price,
+    originalPrice: prices.find((value) => value > price * 1.03 && value <= price * 1.8),
+    imageUrls,
+    imageUrl: imageUrls[0],
+    stock: /ناموجود|out of stock|sold out/i.test(text) ? 0 : 5,
+    specs: technicalSpecsFromText(title),
+    externalSourceUrl: pageUrl,
+    sourceHost,
+    currency: "IRT",
+  } satisfies ImportedStoreProductDraft;
+}
+
+async function fetchGenericPageWithReader(url: string) {
+  try {
+    return await fetchText(url);
+  } catch (directError) {
+    const target = new URL(url);
+    const readerUrl = `https://r.jina.ai/http://${target.hostname}${target.pathname}${target.search}`;
+    try {
+      return await fetchText(readerUrl);
+    } catch (readerError) {
+      throw new Error(
+        `direct: ${directError instanceof Error ? directError.message : "fetch failed"}; reader: ${readerError instanceof Error ? readerError.message : "fetch failed"}`,
+      );
+    }
+  }
+}
+
+export type StoreProductCrawlPageResult = {
+  pageUrl: string;
+  products: ImportedStoreProductDraft[];
+  productUrls: string[];
+  pageUrls: string[];
+  warnings: string[];
+};
+
+/** One bounded crawl step used by the admin browser for large (up to 10k) imports. */
+export async function crawlStoreProductPage(
+  inputUrl: string,
+  options: { discoverSitemap?: boolean; linkLimit?: number } = {},
+): Promise<StoreProductCrawlPageResult> {
+  const pageUrl = publicHttpUrl(inputUrl);
+  const parsed = new URL(pageUrl);
+  const sourceHost = parsed.hostname.replace(/^www\./i, "");
+  const isEmalls = /(^|\.)emalls\.ir$/i.test(sourceHost);
+  const warnings: string[] = [];
+  const linkLimit = Math.max(10, Math.min(10_000, Number(options.linkLimit || 500)));
+  let text = "";
+  try {
+    text = isEmalls ? await fetchEmallsPageText(pageUrl) : await fetchGenericPageWithReader(pageUrl);
+  } catch (error) {
+    return {
+      pageUrl,
+      products: [],
+      productUrls: [],
+      pageUrls: [],
+      warnings: [`خواندن ${pageUrl} ناموفق بود: ${error instanceof Error ? error.message : "خطا"}`],
+    };
+  }
+
+  let products: ImportedStoreProductDraft[] = [];
+  if (isEmalls) {
+    const detail = emallsProductId(parsed.pathname)
+      ? extractEmallsProductDraft(text, pageUrl)
+      : null;
+    products = detail ? [detail] : extractEmallsListingDrafts(text, pageUrl, linkLimit);
+  } else if (/<[a-z][\s\S]*>/i.test(text)) {
+    products = extractStoreProductDraftsFromHtml(text, pageUrl, sourceHost);
+  } else {
+    const markdown = markdownDraftFromProductPage(text, pageUrl, sourceHost);
+    products = markdown ? [markdown] : [];
+  }
+
+  const productUrls = isEmalls
+    ? emallsProductLinksFromText(text, pageUrl).map((item) => item.url).slice(0, linkLimit)
+    : extractProductLinks(text, pageUrl, linkLimit);
+  const pageUrls = extractPaginationLinks(text, pageUrl, 40);
+  if (options.discoverSitemap) {
+    try {
+      const sitemapProducts = await discoverSitemapUrls(pageUrl, linkLimit, warnings);
+      for (const url of sitemapProducts) {
+        if (!productUrls.includes(url) && productUrls.length < linkLimit) productUrls.push(url);
+      }
+    } catch (error) {
+      warnings.push(`کشف sitemap ناموفق بود: ${error instanceof Error ? error.message : "خطا"}`);
+    }
+  }
+  return {
+    pageUrl,
+    products: uniqueDrafts(products).slice(0, linkLimit),
+    productUrls,
+    pageUrls,
+    warnings,
   };
 }
 

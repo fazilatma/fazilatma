@@ -304,28 +304,37 @@ function normalizeDraftPayload(value: unknown): ImportedStoreProductDraft | null
   const record = value as Record<string, unknown>;
   const title = String(record.title || "").trim().slice(0, 180);
   const price = Number(record.price);
-  if (!title || !Number.isFinite(price) || price < 100_000 || price > 1_500_000_000) return null;
+  if (!title || !Number.isFinite(price) || price < 100_000 || price > 10_000_000_000) return null;
   const rawSpecs = record.specs && typeof record.specs === "object" && !Array.isArray(record.specs)
     ? record.specs as Record<string, unknown>
     : {};
   const specs = Object.fromEntries(
-    Object.entries(rawSpecs).slice(0, 40).map(([key, item]) => [
-      String(key).slice(0, 60),
-      String(item ?? "").slice(0, 240),
+    Object.entries(rawSpecs).slice(0, 80).map(([key, item]) => [
+      String(key).slice(0, 80),
+      String(item ?? "").slice(0, 500),
     ]),
   );
+  const imageUrls = [
+    record.imageUrl,
+    ...(Array.isArray(record.imageUrls) ? record.imageUrls : []),
+  ]
+    .map(normalizeRemoteImageUrl)
+    .filter((url): url is string => Boolean(url))
+    .filter((url, index, urls) => urls.indexOf(url) === index)
+    .slice(0, 8);
   const stock = Number(record.stock ?? 5);
   return {
     title,
     brand: String(record.brand || "Digikala").trim().slice(0, 80),
     category: String(record.category || "نامشخص").trim().slice(0, 100),
     summary: String(record.summary || title).trim().slice(0, 240),
-    description: String(record.description || record.summary || title).trim().slice(0, 1200),
+    description: String(record.description || record.summary || title).trim().slice(0, 5000),
     price,
     originalPrice: Number.isFinite(Number(record.originalPrice)) && Number(record.originalPrice) > price
       ? Number(record.originalPrice)
       : undefined,
-    imageUrl: normalizeRemoteImageUrl(record.imageUrl),
+    imageUrls,
+    imageUrl: imageUrls[0],
     stock: Number.isFinite(stock) ? Math.max(0, Math.min(1_000_000, Math.floor(stock))) : 5,
     specs,
     externalSourceUrl: String(record.externalSourceUrl || "").trim().slice(0, 2000),

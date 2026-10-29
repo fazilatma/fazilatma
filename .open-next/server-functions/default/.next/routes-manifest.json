@@ -224,6 +224,12 @@
       "namedRegex": "^/api/admin/store\\-products/clear(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/crawl-batch",
+      "regex": "^/api/admin/store\\-products/crawl\\-batch(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/crawl\\-batch(?:/)?$"
+    },
+    {
       "page": "/api/admin/store-products/digikala-page",
       "regex": "^/api/admin/store\\-products/digikala\\-page(?:/)?$",
       "routeKeys": {},

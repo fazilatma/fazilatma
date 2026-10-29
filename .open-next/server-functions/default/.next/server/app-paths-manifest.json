@@ -13,6 +13,7 @@
   "/api/admin/reverse-auction/dispatch/route": "app/api/admin/reverse-auction/dispatch/route.js",
   "/api/admin/seller-metrics/route": "app/api/admin/seller-metrics/route.js",
   "/api/admin/store-products/clear/route": "app/api/admin/store-products/clear/route.js",
+  "/api/admin/store-products/crawl-batch/route": "app/api/admin/store-products/crawl-batch/route.js",
   "/api/admin/store-products/digikala-page/route": "app/api/admin/store-products/digikala-page/route.js",
   "/api/admin/store-products/import-csv/route": "app/api/admin/store-products/import-csv/route.js",
   "/api/admin/store-products/import-multiple/route": "app/api/admin/store-products/import-multiple/route.js",
