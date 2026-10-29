@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import StoreAddToCartButton from "@/components/StoreAddToCartButton";
 import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
@@ -48,6 +48,17 @@ function normalizedProductTitle(value: string) {
     .replace(/ك/g, "ک")
     .replace(/[^a-z0-9آ-ی]+/g, "")
     .trim();
+}
+
+function productBySlugOrStableSuffix(products: JsonStoreProduct[], slug: string) {
+  const exact = products.find((item) => item.slug === slug);
+  if (exact) return exact;
+  // پیشوند slug ممکن است پس از اصلاح املای عنوان تغییر کند، اما هش شش‌کاراکتری
+  // انتهای آن ثابت است. لینک‌های قدیمی را به همان محصول برمی‌گردانیم.
+  const stableSuffix = slug.match(/-([a-z0-9]{6})$/i)?.[1] || "";
+  if (!stableSuffix) return undefined;
+  const matches = products.filter((item) => item.slug.endsWith(`-${stableSuffix}`));
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 const computerPartCategoryItems = [
@@ -106,7 +117,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const data = await getStorePageData();
-  const product = data.storeProducts.find((item) => item.slug === slug) || null;
+  const product = productBySlugOrStableSuffix(data.storeProducts, slug) || null;
   if (!product) return { title: "محصول پیدا نشد | OptiBid" };
   const computerPartProduct = isComputerPartsCatalogProduct(product);
   return buildSeoMetadata({
@@ -131,8 +142,9 @@ export default async function StoreProductPage({
 }) {
   const { slug } = await params;
   const data = await getStorePageData();
-  const baseProduct = data.storeProducts.find((item) => item.slug === slug);
+  const baseProduct = productBySlugOrStableSuffix(data.storeProducts, slug);
   if (!baseProduct || !isStorefrontEligibleComputerPart(baseProduct)) notFound();
+  if (baseProduct.slug !== slug) redirect(`/shop/${baseProduct.slug}`);
 
   // صفحهٔ جزئیات باید کلید مستقل همین محصول را بخواند؛ نقشهٔ مشترک ممکن است در
   // اثر نوشتن هم‌زمان چند محصول موقتاً قدیمی باشد.

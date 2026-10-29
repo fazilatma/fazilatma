@@ -1225,7 +1225,9 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
   for (const item of value) {
     const product = item as Partial<JsonStoreProduct>;
     if (isDefaultStoreSeedProduct(product)) continue;
-    const title = String(product.title || "").trim();
+    const title = String(product.title || "")
+      .replace(/\bSAPHHIRE\b/gi, "SAPPHIRE")
+      .trim();
     const slug = String(product.slug || product.id || "")
       .trim()
       .toLowerCase()
@@ -1256,7 +1258,9 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       id: String(product.id || slug),
       slug,
       title,
-      brand: String(product.brand || "OptiBid").trim(),
+      brand: /\bhyundai\b|هیوندای|هیوندا/i.test(title)
+        ? "Hyundai"
+        : String(product.brand || "OptiBid").trim(),
       category: String(product.category || "لپ‌تاپ").trim(),
       summary: String(product.summary || title).trim(),
       description: String(product.description || product.summary || title).trim(),

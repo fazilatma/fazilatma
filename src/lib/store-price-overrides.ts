@@ -104,6 +104,7 @@ export async function getStorePriceOverridesByIds(productIds: string[]): Promise
 export function applyStorePriceOverrides<T extends {
   id: string;
   price: number;
+  originalPrice?: number;
   marketPrice?: number;
   priceMultiplier?: number;
   priceUpdatedAt?: string;
@@ -119,6 +120,9 @@ export function applyStorePriceOverrides<T extends {
     return {
       ...product,
       price: override.price,
+      // قیمت قبل از تخفیفِ یک منبع نباید پس از انتخاب قیمت ارزان‌ترِ منبع دیگر
+      // به‌عنوان تخفیف نمایش داده شود. Override سبک منبع old_price ندارد.
+      originalPrice: override.price === product.price ? product.originalPrice : undefined,
       marketPrice: override.marketPrice,
       priceMultiplier: override.priceMultiplier,
       priceUpdatedAt: override.updatedAt.slice(0, 10),
