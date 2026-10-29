@@ -148,7 +148,8 @@ function normalizeDistinctiveToken(value: string) {
 function distinctiveNameTokens(value: string) {
   const generic = new Set([
     "card", "graphic", "graphics", "model", "holder", "support", "computer",
-    "edition", "gaming", "with", "for", "the", "کارت", "گرافیک", "مدل",
+    "edition", "gaming", "with", "for", "the", "sata", "internal", "ssd", "drive",
+    "power", "supply", "motherboard", "کارت", "گرافیک", "مدل",
   ]);
   return toEnglishDigits(value)
     .toLowerCase()
@@ -260,6 +261,7 @@ function marketBrandKey(value: string) {
   if (/\bhyundai\b|هیوندای|هیوندا/.test(text)) return "hyundai";
   if (/\bfater\b|فاطر/.test(text)) return "fater";
   if (/\bsadata\b|سادیتا/.test(text)) return "sadata";
+  if (/\bx[-\s]?energy\b|ایکس[‌\s-]*انرژی/.test(text)) return "x-energy";
   if (/\bxfx\b|ایکس\s*اف\s*ایکس/.test(text)) return "xfx";
   if (/sapphire|saphhire|سافایر/.test(text)) return "sapphire";
   if (/\basus\b|ایسوس/.test(text)) return "asus";
@@ -489,6 +491,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   if (/\basus\b|ایسوس/.test(normalized) && /\bprime\s+h610m-a-?csm\b/.test(normalized)) {
     urls.push("https://torob.com/p/40d828fd-6208-46b3-a9e9-ed313aeaff90/مادربرد-ایسوس-مدل-prime-h610m-a-csm-ddr5/");
   }
+  if (/\bx[-\s]?energy\b|ایکس[‌\s-]*انرژی/.test(normalized) && /\bfalcon\b/.test(normalized) && /(?:^|\s)120\s*(?:gb\b|گیگابایت)/.test(normalized)) {
+    urls.push("https://torob.com/p/50c279b0-3a20-46eb-8da4-61dc63f620c1/حافظه-اس-اس-دی-اینترنال-ایکس-انرژی-مدل-falcon-ظرفیت-120-گیگابایت/");
+  }
   return urls;
 }
 
@@ -531,6 +536,9 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   }
   if (/\basus\b|ایسوس/.test(normalized) && /\bprime\s+h610m-a-?csm\b/.test(normalized)) {
     ids.push("14032480");
+  }
+  if (/\bx[-\s]?energy\b|ایکس[‌\s-]*انرژی/.test(normalized) && /\bfalcon\b/.test(normalized) && /(?:^|\s)120\s*(?:gb\b|گیگابایت)/.test(normalized)) {
+    ids.push("5123095");
   }
   return ids;
 }
