@@ -783,6 +783,42 @@ async function fetchCompactDigikalaPrice(productId: string) {
   throw new Error("Digikala compact price unavailable");
 }
 
+async function fetchTorobCanonicalPrice(productUrl: string) {
+  const productKey = new URL(productUrl).pathname.match(/^\/p\/([^/]+)/i)?.[1] || "";
+  if (!productKey) return 0;
+  const direct = new URL("https://api.torob.com/v4/base-product/details/");
+  direct.searchParams.set("prk", productKey);
+  direct.searchParams.set("source", "torob_search");
+  const translated = new URL(`https://api-torob-com.translate.goog${direct.pathname}${direct.search}`);
+  translated.searchParams.set("_x_tr_sl", "auto");
+  translated.searchParams.set("_x_tr_tl", "en");
+  translated.searchParams.set("_x_tr_hl", "en");
+  const readPrice = async (url: string) => {
+    const timeoutSignal =
+      typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+        ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(9000)
+        : undefined;
+    const response = await fetch(url, {
+      redirect: "follow",
+      cache: "no-store",
+      headers: { accept: "application/json, text/plain, */*" },
+      signal: timeoutSignal,
+    });
+    if (!response.ok) throw new Error(`Torob detail HTTP ${response.status}`);
+    const payload = await response.json() as Record<string, any>;
+    const price = Math.round(Number(payload?.price || 0));
+    if (price < 100_000 || price > 10_000_000_000) throw new Error("Torob detail price unavailable");
+    return price;
+  };
+  const [directResult, translatedResult] = await Promise.allSettled([
+    readPrice(direct.toString()),
+    readPrice(translated.toString()),
+  ]);
+  if (directResult.status === "fulfilled") return directResult.value;
+  if (translatedResult.status === "fulfilled") return translatedResult.value;
+  return 0;
+}
+
 async function fetchTorobSearchJson(productTitle: string) {
   const direct = new URL("https://api.torob.com/v4/base-product/search/");
   direct.searchParams.set("page", "0");
@@ -1138,8 +1174,14 @@ export async function getLiveStoreProductPriceSnapshot(
     if (torobCurrentPrice <= 0 || canonicalTorobUrls.length > 0) {
       for (const exactTorobUrl of exactTorobUrls) {
         try {
-          const exactTorobPage = await fetchTorobPublicPage(exactTorobUrl);
-          const exactTorobPrice = firstTorobPrice(exactTorobPage);
+          let exactTorobPage = "";
+          let exactTorobPrice = canonicalTorobUrls.includes(exactTorobUrl)
+            ? await fetchTorobCanonicalPrice(exactTorobUrl)
+            : 0;
+          if (exactTorobPrice <= 0) {
+            exactTorobPage = await fetchTorobPublicPage(exactTorobUrl);
+            exactTorobPrice = firstTorobPrice(exactTorobPage);
+          }
           if (exactTorobPrice > 0) {
             if (canonicalTorobUrls.includes(exactTorobUrl)) {
               canonicalTorobPrice = !canonicalTorobPrice
