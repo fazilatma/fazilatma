@@ -1134,7 +1134,7 @@ export async function getLiveStoreProductPriceSnapshot(
       ...additionalSourceUrls.map(digikalaProductIdFromUrl),
       ...verifiedCanonicalDigikalaProductIds(product.title),
     ].filter(Boolean))).slice(0, 4);
-    if (digikalaCurrentPrice <= 0 || torobAuthoritativeUnavailable) {
+    if (exactDigikalaIds.length > 0) {
       for (const exactProductId of exactDigikalaIds) {
         try {
           const exactState = await fetchCompactDigikalaState(exactProductId);
@@ -1161,8 +1161,12 @@ export async function getLiveStoreProductPriceSnapshot(
 
     // وقتی صفحهٔ دقیق دیجی‌کالا و نتیجهٔ دقیق ترب هر دو ناموجودند، قیمت احتمالی
     // جستجوی عمومی/رکورد تکراری نباید قیمت تاریخی این شناسه را فعال نگه دارد.
-    if (torobAuthoritativeUnavailable && digikalaAuthoritativeUnavailable) {
+    if (
+      (digikalaAuthoritativeUnavailable && torobCurrentPrice <= 0) ||
+      (torobAuthoritativeUnavailable && digikalaCurrentPrice <= 0)
+    ) {
       extractedPrice = 0;
+      authoritativeUnavailable = true;
     }
 
     if (extractedPrice <= 0) {
