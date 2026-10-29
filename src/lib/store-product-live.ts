@@ -116,6 +116,9 @@ function strongModelTokens(value: string) {
     .replace(/\b(?:core\s*)?(i[3579])\s*-?\s*(\d{4,5}[a-z]{0,3})\b/g, "$1-$2")
     .replace(/\b(ryzen\s*[3579])\s*-?\s*(\d{4}[a-z0-9]*)\b/g, (_, family, model) => `${String(family).replace(/\s+/g, "")}-${model}`)
     .replace(/\b([a-z]*\d[a-z0-9]*)-(tray|box)\b/g, "$1 $2")
+    // بعضی عناوین وارداتی بدون فاصله نوشته شده‌اند: «مدلTX500».
+    .replace(/([آ-ی])([a-z0-9])/gi, "$1 $2")
+    .replace(/([a-z0-9])([آ-ی])/gi, "$1 $2")
     .replace(/[^a-z0-9آ-ی-]+/g, " ")
     .split(/\s+/)
     .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
@@ -170,6 +173,24 @@ function marketQualifierTokens(value: string) {
   return result;
 }
 
+function marketModelTokenMatches(
+  requiredToken: string,
+  candidateTokens: Set<string>,
+  productTitle: string,
+  candidateTitle: string,
+) {
+  if (candidateTokens.has(requiredToken)) return true;
+  const requiredBrand = marketBrandKey(productTitle);
+  const candidateBrand = marketBrandKey(candidateTitle);
+  // مدل پاور فاطر در دیجی‌کالا TX500 و در ترب/سایت رسمی TX500M نوشته شده است.
+  // فقط برای برند فاطر و فقط پسوند M همین خانواده معادل در نظر گرفته می‌شود.
+  if (requiredBrand === "fater" && candidateBrand === "fater") {
+    const base = requiredToken.match(/^(tx\d{3,4})m?$/i)?.[1];
+    if (base && [...candidateTokens].some((token) => token === base || token === `${base}m`)) return true;
+  }
+  return false;
+}
+
 export function marketVariantMatches(productTitle: string, candidateTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   const requiredNameTokens = distinctiveNameTokens(productTitle);
@@ -178,7 +199,12 @@ export function marketVariantMatches(productTitle: string, candidateTitle: strin
   const candidateBrand = marketBrandKey(candidateTitle);
   if (requiredBrand && candidateBrand !== requiredBrand) return false;
   const candidateTokens = new Set(strongModelTokens(candidateTitle));
-  if (requiredTokens.length && !requiredTokens.every((token) => candidateTokens.has(token))) return false;
+  if (
+    requiredTokens.length &&
+    !requiredTokens.every((token) =>
+      marketModelTokenMatches(token, candidateTokens, productTitle, candidateTitle),
+    )
+  ) return false;
   if (!requiredTokens.length) {
     const candidateNameTokens = new Set(distinctiveNameTokens(candidateTitle));
     if (!requiredNameTokens.every((token) => candidateNameTokens.has(token))) return false;
@@ -203,6 +229,7 @@ function marketBrandKey(value: string) {
   // Sapphire در این SSD نام مدل است، نه برند کارت گرافیک. برندهای محصول کامل
   // باید پیش از واژه‌هایی که هم برند و هم نام مدل هستند تشخیص داده شوند.
   if (/\bhyundai\b|هیوندای|هیوندا/.test(text)) return "hyundai";
+  if (/\bfater\b|فاطر/.test(text)) return "fater";
   if (/\bxfx\b|ایکس\s*اف\s*ایکس/.test(text)) return "xfx";
   if (/sapphire|saphhire|سافایر/.test(text)) return "sapphire";
   if (/\basus\b|ایسوس/.test(text)) return "asus";
@@ -385,6 +412,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   ) {
     urls.push("https://torob.com/p/24f8d88f-23a7-42a8-8949-9c0e17354c87/حافظه-اس-اس-دی-اینترنال-هیوندای-مدل-sapphire-ظرفیت-480-گیگابایت/");
   }
+  if (/\bfater\b|فاطر/.test(normalized) && /\btx\s*-?\s*500m?\b/.test(normalized)) {
+    urls.push("https://torob.com/p/d15472ff-8091-45c2-bae0-33599b108462/منبع-تغذیه-کامپیوتر-فاطر-مدل-tx500m-80-plus-gold-توان-500-وات/");
+  }
   return urls;
 }
 
@@ -412,6 +442,9 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
     /(?:^|\s)480\s*(?:gb\b|گیگابایت)/.test(normalized)
   ) {
     ids.push("15425573");
+  }
+  if (/\bfater\b|فاطر/.test(normalized) && /\btx\s*-?\s*500m?\b/.test(normalized)) {
+    ids.push("7985666");
   }
   return ids;
 }
