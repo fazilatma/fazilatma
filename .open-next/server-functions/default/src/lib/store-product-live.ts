@@ -960,8 +960,6 @@ export async function getLiveStoreProductPriceSnapshot(
     let torobCurrentPrice = 0;
     let digikalaCurrentPrice = 0;
     let authoritativeUnavailable = false;
-    let torobAuthoritativeUnavailable = false;
-    let digikalaAuthoritativeUnavailable = false;
     const storedMarketPrice = storedProductMarketPrice(product);
 
     if (isDigikalaProduct) {
@@ -981,7 +979,6 @@ export async function getLiveStoreProductPriceSnapshot(
           requiredBrand,
         );
         if (torobPrice <= 0 && torobExactListingUnavailable(torobResult, product.title, requiredBrand)) {
-          torobAuthoritativeUnavailable = true;
           authoritativeUnavailable = true;
         }
         if (torobPrice > 0) {
@@ -1009,7 +1006,6 @@ export async function getLiveStoreProductPriceSnapshot(
               sourceOriginalPrice = compactState.price.originalPrice;
               if (!extractedPrice || sourcePrice < extractedPrice) extractedPrice = sourcePrice;
             } else if (compactState.unavailable) {
-              digikalaAuthoritativeUnavailable = true;
               authoritativeUnavailable = true;
             }
           }
@@ -1063,7 +1059,6 @@ export async function getLiveStoreProductPriceSnapshot(
           requiredBrand,
         );
         if (torobCurrentPrice <= 0 && torobExactListingUnavailable(torobResult.value, product.title, requiredBrand)) {
-          torobAuthoritativeUnavailable = true;
           authoritativeUnavailable = true;
         }
         extractedPrice = torobCurrentPrice;
@@ -1088,7 +1083,6 @@ export async function getLiveStoreProductPriceSnapshot(
           requiredBrand,
         );
         if (torobCurrentPrice <= 0 && torobExactListingUnavailable(torobResult.value, product.title, requiredBrand)) {
-          torobAuthoritativeUnavailable = true;
           authoritativeUnavailable = true;
         }
         extractedPrice = torobCurrentPrice;
@@ -1118,8 +1112,7 @@ export async function getLiveStoreProductPriceSnapshot(
               : Math.min(torobCurrentPrice, exactTorobPrice);
             if (!extractedPrice || exactTorobPrice < extractedPrice) extractedPrice = exactTorobPrice;
           } else if (torobPageExplicitlyUnavailable(exactTorobPage)) {
-            torobAuthoritativeUnavailable = true;
-            authoritativeUnavailable = true;
+              authoritativeUnavailable = true;
           }
         } catch {
           // سایر مراجع معتبر همچنان قابل استفاده‌اند.
@@ -1149,7 +1142,6 @@ export async function getLiveStoreProductPriceSnapshot(
                 sourceOriginalPrice = exactState.price.originalPrice;
               }
             } else if (exactState.unavailable) {
-              digikalaAuthoritativeUnavailable = true;
               authoritativeUnavailable = true;
             }
           }
@@ -1157,16 +1149,6 @@ export async function getLiveStoreProductPriceSnapshot(
           // سایر مراجع معتبر همچنان قابل استفاده‌اند.
         }
       }
-    }
-
-    // وقتی صفحهٔ دقیق دیجی‌کالا و نتیجهٔ دقیق ترب هر دو ناموجودند، قیمت احتمالی
-    // جستجوی عمومی/رکورد تکراری نباید قیمت تاریخی این شناسه را فعال نگه دارد.
-    if (
-      (digikalaAuthoritativeUnavailable && torobCurrentPrice <= 0) ||
-      (torobAuthoritativeUnavailable && digikalaCurrentPrice <= 0)
-    ) {
-      extractedPrice = 0;
-      authoritativeUnavailable = true;
     }
 
     if (extractedPrice <= 0) {
