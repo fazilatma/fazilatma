@@ -123,7 +123,7 @@ function strongModelTokens(value: string) {
     .split(/\s+/)
     .filter((token) => /[a-z]/.test(token) && /\d/.test(token) && token.length >= 4)
     .filter((token) => !/^\d+(?:gb|tb|w|mhz|rpm)$/.test(token))
-    .filter((token) => !/^(?:gddr\d+x?|ddr\d|pcie\d*|sata\d*|usb\d*)$/.test(token));
+    .filter((token) => !/^(?:gddr\d+x?|ddr\d|pcie\d*|sata\d*|usb\d*|80plus(?:white|bronze|silver|gold|platinum|titanium)?)$/.test(token));
 }
 
 function normalizeDistinctiveToken(value: string) {
@@ -415,6 +415,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   if (/\bfater\b|فاطر/.test(normalized) && /\btx\s*-?\s*500m?\b/.test(normalized)) {
     urls.push("https://torob.com/p/d15472ff-8091-45c2-bae0-33599b108462/منبع-تغذیه-کامپیوتر-فاطر-مدل-tx500m-80-plus-gold-توان-500-وات/");
   }
+  if (/\bfater\b|فاطر/.test(normalized) && /\bfp\s*-?\s*w400\b/.test(normalized)) {
+    urls.push("https://torob.com/p/1c88f316-bf9b-4f0f-9497-dc443fe9004e/منبع-تغذیه-کامپیوتر-فاطر-مدل-fp-w400-توان-400-وات/");
+  }
   return urls;
 }
 
@@ -445,6 +448,9 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   }
   if (/\bfater\b|فاطر/.test(normalized) && /\btx\s*-?\s*500m?\b/.test(normalized)) {
     ids.push("7985666");
+  }
+  if (/\bfater\b|فاطر/.test(normalized) && /\bfp\s*-?\s*w400\b/.test(normalized)) {
+    ids.push("19097398");
   }
   return ids;
 }
