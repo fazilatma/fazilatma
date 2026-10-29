@@ -1262,7 +1262,9 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
         ? "Hyundai"
         : /\bx[-\s]?energy\b|ایکس[‌\s-]*انرژی/i.test(title)
           ? "X-Energy"
-          : String(product.brand || "OptiBid").trim(),
+          : /\bmsi\b|ام\s*اس\s*آی/i.test(title)
+            ? "MSI"
+            : String(product.brand || "OptiBid").trim(),
       category: String(product.category || "لپ‌تاپ").trim(),
       summary: String(product.summary || title).trim(),
       description: String(product.description || product.summary || title).trim(),

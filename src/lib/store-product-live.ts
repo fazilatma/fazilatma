@@ -494,6 +494,9 @@ function verifiedCanonicalTorobProductUrls(productTitle: string) {
   if (/\bx[-\s]?energy\b|ایکس[‌\s-]*انرژی/.test(normalized) && /\bfalcon\b/.test(normalized) && /(?:^|\s)120\s*(?:gb\b|گیگابایت)/.test(normalized)) {
     urls.push("https://torob.com/p/50c279b0-3a20-46eb-8da4-61dc63f620c1/حافظه-اس-اس-دی-اینترنال-ایکس-انرژی-مدل-falcon-ظرفیت-120-گیگابایت/");
   }
+  if (/\bmsi\b|ام\s*اس\s*آی/.test(normalized) && /\bspatium\s+s270\b/.test(normalized) && /(?:^|\s)960\s*(?:gb\b|گیگابایت)/.test(normalized)) {
+    urls.push("https://torob.com/p/d6e0bdc9-bb29-4b8a-8853-62c6ac283cdf/حافظه-اس-اس-دی-اینترنال-ام-اس-آی-مدل-spatium-s270-ظرفیت-960-گیگابایت/");
+  }
   return urls;
 }
 
@@ -539,6 +542,9 @@ function verifiedCanonicalDigikalaProductIds(productTitle: string) {
   }
   if (/\bx[-\s]?energy\b|ایکس[‌\s-]*انرژی/.test(normalized) && /\bfalcon\b/.test(normalized) && /(?:^|\s)120\s*(?:gb\b|گیگابایت)/.test(normalized)) {
     ids.push("5123095");
+  }
+  if (/\bmsi\b|ام\s*اس\s*آی/.test(normalized) && /\bspatium\s+s270\b/.test(normalized) && /(?:^|\s)960\s*(?:gb\b|گیگابایت)/.test(normalized)) {
+    ids.push("15195605");
   }
   return ids;
 }
@@ -979,7 +985,11 @@ export async function getLiveStoreProductPriceSnapshot(
     let torobCurrentPrice = 0;
     let digikalaCurrentPrice = 0;
     let authoritativeUnavailable = false;
+    let canonicalTorobPrice = 0;
+    let canonicalDigikalaPrice = 0;
     const storedMarketPrice = storedProductMarketPrice(product);
+    const canonicalTorobUrls = verifiedCanonicalTorobProductUrls(product.title);
+    const canonicalDigikalaIds = verifiedCanonicalDigikalaProductIds(product.title);
 
     if (isDigikalaProduct) {
       const productId = parsed?.pathname.match(/\/product\/dkp-(\d+)/i)?.[1];
@@ -1022,6 +1032,7 @@ export async function getLiveStoreProductPriceSnapshot(
             if (compactState.price) {
               sourcePrice = compactState.price.price;
               digikalaCurrentPrice = compactState.price.price;
+              if (canonicalDigikalaIds.includes(productId)) canonicalDigikalaPrice = compactState.price.price;
               sourceOriginalPrice = compactState.price.originalPrice;
               if (!extractedPrice || sourcePrice < extractedPrice) extractedPrice = sourcePrice;
             } else if (compactState.unavailable) {
@@ -1118,14 +1129,19 @@ export async function getLiveStoreProductPriceSnapshot(
     const exactTorobUrls = Array.from(new Set([
       torobProductUrlFromUrl(sourceUrl),
       ...additionalSourceUrls.map(torobProductUrlFromUrl),
-      ...verifiedCanonicalTorobProductUrls(product.title),
+      ...canonicalTorobUrls,
     ].filter(Boolean))).slice(0, 4);
-    if (torobCurrentPrice <= 0) {
+    if (torobCurrentPrice <= 0 || canonicalTorobUrls.length > 0) {
       for (const exactTorobUrl of exactTorobUrls) {
         try {
           const exactTorobPage = await fetchTorobPublicPage(exactTorobUrl);
           const exactTorobPrice = firstTorobPrice(exactTorobPage);
           if (exactTorobPrice > 0) {
+            if (canonicalTorobUrls.includes(exactTorobUrl)) {
+              canonicalTorobPrice = !canonicalTorobPrice
+                ? exactTorobPrice
+                : Math.min(canonicalTorobPrice, exactTorobPrice);
+            }
             torobCurrentPrice = !torobCurrentPrice
               ? exactTorobPrice
               : Math.min(torobCurrentPrice, exactTorobPrice);
@@ -1144,7 +1160,7 @@ export async function getLiveStoreProductPriceSnapshot(
     const exactDigikalaIds = Array.from(new Set([
       digikalaProductIdFromUrl(sourceUrl),
       ...additionalSourceUrls.map(digikalaProductIdFromUrl),
-      ...verifiedCanonicalDigikalaProductIds(product.title),
+      ...canonicalDigikalaIds,
     ].filter(Boolean))).slice(0, 4);
     if (exactDigikalaIds.length > 0) {
       for (const exactProductId of exactDigikalaIds) {
@@ -1152,6 +1168,11 @@ export async function getLiveStoreProductPriceSnapshot(
           const exactState = await fetchCompactDigikalaState(exactProductId);
           if (marketVariantMatches(product.title, exactState.title)) {
             if (exactState.price) {
+              if (canonicalDigikalaIds.includes(exactProductId)) {
+                canonicalDigikalaPrice = !canonicalDigikalaPrice
+                  ? exactState.price.price
+                  : Math.min(canonicalDigikalaPrice, exactState.price.price);
+              }
               digikalaCurrentPrice = !digikalaCurrentPrice
                 ? exactState.price.price
                 : Math.min(digikalaCurrentPrice, exactState.price.price);
@@ -1168,6 +1189,17 @@ export async function getLiveStoreProductPriceSnapshot(
           // سایر مراجع معتبر همچنان قابل استفاده‌اند.
         }
       }
+    }
+
+    // برای مدل‌هایی که صفحهٔ canonical دقیق در هر دو بازار تأیید شده، قیمت‌های
+    // جستجوی تکراری/قدیمی کنار گذاشته می‌شوند و فقط کمینهٔ همان دو صفحه ملاک است.
+    if (
+      canonicalTorobUrls.length > 0 &&
+      canonicalDigikalaIds.length > 0 &&
+      canonicalTorobPrice > 0 &&
+      canonicalDigikalaPrice > 0
+    ) {
+      extractedPrice = Math.min(canonicalTorobPrice, canonicalDigikalaPrice);
     }
 
     if (extractedPrice <= 0) {
