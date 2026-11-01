@@ -28,6 +28,7 @@
   "/api/avatar/route": "app/api/avatar/route.js",
   "/api/buyer/profile/route": "app/api/buyer/profile/route.js",
   "/api/catalog-categories/route": "app/api/catalog-categories/route.js",
+  "/api/cron/refresh-prices/route": "app/api/cron/refresh-prices/route.js",
   "/api/dashboard/buyer/route": "app/api/dashboard/buyer/route.js",
   "/api/dashboard/seller/route": "app/api/dashboard/seller/route.js",
   "/api/database-status/route": "app/api/database-status/route.js",

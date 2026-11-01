@@ -24,6 +24,8 @@ const publicApiPrefixes = [
   "/api/shop/prices",
   "/api/torob",
   "/api/health",
+  // مسیر کرون به‌روزرسانی خودکار قیمت؛ احراز هویت با CRON_SECRET داخل خود مسیر انجام می‌شود.
+  "/api/cron",
 ];
 
 function isPublicPath(pathname: string) {

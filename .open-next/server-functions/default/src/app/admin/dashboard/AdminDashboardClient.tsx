@@ -221,6 +221,7 @@ async function readJsonResponse(response: Response, fallbackMessage: string) {
 }
 
 const priceRefreshReferenceOptions = [
+  { id: "source", label: "لینک منبع خود محصول", hint: "قیمت از همان صفحه‌ای خوانده می‌شود که محصول با آن درون‌ریزی شده است" },
   { id: "torob", label: "ترب", hint: "جستجو در بازار ترب و قیمت‌های فروشنده‌ها" },
   { id: "digikala", label: "دیجی‌کالا", hint: "جستجو در داده‌های قابل خواندن دیجی‌کالا" },
   { id: "google", label: "گوگل و سایت‌های فروشگاهی", hint: "جستجوی قیمت محصول در نتایج وب و فروشگاه‌های ایندکس‌شده" },
@@ -336,6 +337,13 @@ export default function AdminDashboardClient({
     storeComputerPartsCatalogEnabled: true,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
+    storeAutoPriceRefreshEnabled: true,
+    storeAutoPriceRefreshReferences: ["source", "torob", "digikala"] as string[],
+    storeAutoPriceRefreshBatchSize: 20,
+    storeAutoPriceRefreshOffset: 0,
+    storeAutoPriceRefreshLastRunAt: "",
+    storeAutoPriceRefreshLastSummary: "",
+    storeAutoPriceRefreshTotalRuns: 0,
     reverseAuctionProductCtaEnabled: false,
     reverseAuctionQuickRequestEnabled: false,
     reverseAuctionFreeSellerOffersEnabled: false,
@@ -454,6 +462,48 @@ export default function AdminDashboardClient({
   const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
   const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
   const [priceRefreshWarnings, setPriceRefreshWarnings] = useState<string[]>([]);
+  const [productImportAutoScroll, setProductImportAutoScroll] = useState(true);
+  const [savingAutoPriceRefresh, setSavingAutoPriceRefresh] = useState(false);
+  const productImportProgressRef = useRef<HTMLDivElement | null>(null);
+  const productImportPreviewRef = useRef<HTMLDivElement | null>(null);
+  const productImportScannedUrlsRef = useRef<HTMLDivElement | null>(null);
+  const priceRefreshResultsRef = useRef<HTMLDivElement | null>(null);
+  const productImportPreviewLengthRef = useRef(0);
+
+  // اسکرول خودکار استخراج: با شروع خزش مرحله‌ای، پنل پیشرفت کنار لینک
+  // درون‌ریزی به‌صورت خودکار در دید قرار می‌گیرد تا نیازی به اسکرول دستی نباشد.
+  useEffect(() => {
+    if (!productImportAutoScroll || !universalCrawlProgress.running) return;
+    const timer = window.setTimeout(() => {
+      productImportProgressRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [productImportAutoScroll, universalCrawlProgress.running]);
+
+  // اسکرول خودکار به جدول پیش‌نمایش به‌محض آماده‌شدن نتایج استخراج/درون‌ریزی.
+  useEffect(() => {
+    const previous = productImportPreviewLengthRef.current;
+    productImportPreviewLengthRef.current = productImportPreview.length;
+    if (!productImportAutoScroll || previous !== 0 || productImportPreview.length === 0) return;
+    const timer = window.setTimeout(() => {
+      productImportPreviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [productImportAutoScroll, productImportPreview.length]);
+
+  // لاگ لینک‌های اسکن‌شده و نتایج ربات قیمت همیشه به آخرین ردیف اسکرول می‌شوند.
+  useEffect(() => {
+    if (!productImportAutoScroll) return;
+    const element = productImportScannedUrlsRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [productImportAutoScroll, productImportScannedUrls.length]);
+
+  useEffect(() => {
+    if (!productImportAutoScroll) return;
+    const element = priceRefreshResultsRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [productImportAutoScroll, priceRefreshResults.length]);
+
   const [savingReverseAuctionPilot, setSavingReverseAuctionPilot] = useState(false);
   const [enamadLogoFile, setEnamadLogoFile] = useState<File | null>(null);
   const [removeUploadedEnamadLogo, setRemoveUploadedEnamadLogo] = useState(false);
@@ -750,6 +800,51 @@ export default function AdminDashboardClient({
     } finally {
       setSavingReverseAuctionPilot(false);
     }
+  };
+
+  const saveAutoPriceRefreshSettings = async () => {
+    const references = Array.isArray(platformFinance.storeAutoPriceRefreshReferences)
+      ? platformFinance.storeAutoPriceRefreshReferences
+      : [];
+    if (references.length === 0) {
+      alert("حداقل یک مرجع برای به‌روزرسانی خودکار انتخاب کنید.");
+      return;
+    }
+    setSavingAutoPriceRefresh(true);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeAutoPriceRefreshEnabled: Boolean(platformFinance.storeAutoPriceRefreshEnabled),
+          storeAutoPriceRefreshReferences: references,
+          storeAutoPriceRefreshBatchSize: Math.max(
+            1,
+            Math.min(20, Number(platformFinance.storeAutoPriceRefreshBatchSize || 20)),
+          ),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات به‌روزرسانی خودکار ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      alert("تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات به‌روزرسانی خودکار ناموفق بود.");
+    } finally {
+      setSavingAutoPriceRefresh(false);
+    }
+  };
+
+  const toggleAutoPriceRefreshReference = (referenceId: string) => {
+    const current = Array.isArray(platformFinance.storeAutoPriceRefreshReferences)
+      ? platformFinance.storeAutoPriceRefreshReferences
+      : [];
+    updatePlatformFinanceField(
+      "storeAutoPriceRefreshReferences",
+      current.includes(referenceId)
+        ? current.filter((item) => item !== referenceId)
+        : [...current, referenceId],
+    );
   };
 
   const dispatchRequestToSellers = async () => {
@@ -1342,6 +1437,8 @@ export default function AdminDashboardClient({
         failed += Number(result.failed || 0);
         results.push(...(result.results || []));
         warnings.push(...(result.warnings || []));
+        // نمایش زندهٔ نتایج هر بچ تا اسکرول خودکار، پیشرفت ربات را نشان دهد.
+        setPriceRefreshResults([...results]);
         cursor = Number(result.nextOffset || 0);
         hasMore = Boolean(result.hasMore);
         if (checked === 0) break;
@@ -2975,9 +3072,18 @@ export default function AdminDashboardClient({
                       >
                         {applyingProductImport ? "در حال افزودن به سایت..." : `افزودن ${productImportSelectedKeys.length ? productImportSelectedKeys.length.toLocaleString("fa-IR") : ""} محصول انتخابی به سایت`}
                       </button>
+                      <label className="flex cursor-pointer items-center gap-2 self-center rounded-xl bg-white/10 px-4 py-3 text-xs font-black text-blue-50 ring-1 ring-white/15">
+                        <input
+                          type="checkbox"
+                          checked={productImportAutoScroll}
+                          onChange={(event) => setProductImportAutoScroll(event.target.checked)}
+                          className="h-4 w-4 accent-cyan-300"
+                        />
+                        اسکرول خودکار پیشرفت و نتایج
+                      </label>
                     </div>
                     {(universalCrawlProgress.running || universalCrawlProgress.message) && (
-                      <div className="mt-4 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-50 ring-1 ring-white/15">
+                      <div ref={productImportProgressRef} className="mt-4 scroll-mt-6 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-50 ring-1 ring-white/15">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <b>{universalCrawlProgress.message}</b>
                           {universalCrawlProgress.running && (
@@ -3562,7 +3668,7 @@ export default function AdminDashboardClient({
                         <summary className="cursor-pointer font-black text-slate-800">
                           مشاهده نتیجه به‌روزرسانی ({priceRefreshResults.length.toLocaleString("fa-IR")})
                         </summary>
-                        <div className="mt-3 max-h-64 space-y-2 overflow-auto">
+                        <div ref={priceRefreshResultsRef} className="mt-3 max-h-64 space-y-2 overflow-auto">
                           {priceRefreshResults.slice(0, 80).map((item) => (
                             <div key={`${item.productId}-${item.status}`} className="rounded-xl bg-slate-50 p-3">
                               <b>{item.title}</b>
@@ -3572,6 +3678,95 @@ export default function AdminDashboardClient({
                         </div>
                       </details>
                     )}
+
+                    <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <b className="text-sm text-gray-900">⏰ به‌روزرسانی خودکار روزانه از لینک منبع محصولات</b>
+                          <p className="mt-1 max-w-3xl text-xs leading-6 text-slate-500">
+                            بدون نیاز به باز بودن این صفحه، هر روز ساعت ۲:۳۰ بامداد (تهران) قیمت محصولات از همان لینک‌هایی که با آن‌ها درون‌ریزی شده‌اند و مراجع انتخابی خوانده می‌شود. چرخه از جایی که مانده ادامه پیدا می‌کند تا همهٔ محصولات پوشش داده شوند.
+                          </p>
+                        </div>
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700">
+                          {platformFinance.storeAutoPriceRefreshEnabled ? "فعال" : "غیرفعال"}
+                          <span className={`relative h-7 w-12 rounded-full transition ${platformFinance.storeAutoPriceRefreshEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(platformFinance.storeAutoPriceRefreshEnabled)}
+                              onChange={(event) => updatePlatformFinanceField("storeAutoPriceRefreshEnabled", event.target.checked)}
+                              className="sr-only"
+                            />
+                            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeAutoPriceRefreshEnabled ? "left-1" : "left-6"}`} />
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {priceRefreshReferenceOptions.map((reference) => {
+                          const checked = (Array.isArray(platformFinance.storeAutoPriceRefreshReferences) ? platformFinance.storeAutoPriceRefreshReferences : []).includes(reference.id);
+                          return (
+                            <label
+                              key={`auto-${reference.id}`}
+                              className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition ${checked ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-slate-500"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleAutoPriceRefreshReference(reference.id)}
+                              />
+                              {reference.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-end gap-3">
+                        <label className="block text-xs font-bold text-gray-700">
+                          محصولات در هر بچ خودکار (۱ تا ۲۰)
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={platformFinance.storeAutoPriceRefreshBatchSize}
+                            onChange={(event) => updatePlatformFinanceField("storeAutoPriceRefreshBatchSize", Math.max(1, Math.min(20, Number(event.target.value || 20))))}
+                            className="mt-2 w-32 rounded-xl border border-gray-300 bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          disabled={savingAutoPriceRefresh}
+                          onClick={saveAutoPriceRefreshSettings}
+                          className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                        >
+                          {savingAutoPriceRefresh ? "در حال ذخیره..." : "ذخیره تنظیمات به‌روزرسانی خودکار"}
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-6 text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
+                        <div>
+                          <span className="block font-black text-slate-800">آخرین اجرای خودکار</span>
+                          {platformFinance.storeAutoPriceRefreshLastRunAt
+                            ? new Date(platformFinance.storeAutoPriceRefreshLastRunAt).toLocaleString("fa-IR")
+                            : "هنوز اجرا نشده است"}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">دفعات اجرا</span>
+                          {Number(platformFinance.storeAutoPriceRefreshTotalRuns || 0).toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">موقعیت چرخهٔ بعدی</span>
+                          محصول {(Number(platformFinance.storeAutoPriceRefreshOffset || 0) + 1).toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">خلاصهٔ آخرین اجرا</span>
+                          {platformFinance.storeAutoPriceRefreshLastSummary || "—"}
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-[11px] leading-6 text-slate-400">
+                        راه‌اندازی زمان‌بند: مقدار <code dir="ltr" className="rounded bg-slate-100 px-1">CRON_SECRET</code> باید در سکرت‌های Cloudflare Worker و GitHub (برای workflow روزانه) یکسان تنظیم شود؛ آدرس فراخوانی خودکار: <code dir="ltr" className="rounded bg-slate-100 px-1">/api/cron/refresh-prices</code>
+                      </p>
+                    </div>
                   </div>
 
                   {productImportMessage && (
@@ -3596,7 +3791,7 @@ export default function AdminDashboardClient({
                       <summary className="cursor-pointer font-black text-slate-800">
                         لینک‌های اسکن‌شده ({productImportScannedUrls.length.toLocaleString("fa-IR")})
                       </summary>
-                      <div className="mt-3 max-h-44 space-y-1 overflow-auto text-left" dir="ltr">
+                      <div ref={productImportScannedUrlsRef} className="mt-3 max-h-44 space-y-1 overflow-auto text-left" dir="ltr">
                         {productImportScannedUrls.map((url) => (
                           <div key={url} className="truncate rounded-lg bg-white px-2 py-1">{url}</div>
                         ))}
@@ -3605,7 +3800,7 @@ export default function AdminDashboardClient({
                   )}
 
                   {productImportPreview.length > 0 && (
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
+                    <div ref={productImportPreviewRef} className="mt-6 scroll-mt-6 overflow-hidden rounded-2xl border border-gray-200">
                       <div className="flex flex-col justify-between gap-3 bg-gray-50 px-4 py-3 text-sm font-black text-gray-700 md:flex-row md:items-center">
                         <div>
                           پیش‌نمایش محصولات پیدا شده

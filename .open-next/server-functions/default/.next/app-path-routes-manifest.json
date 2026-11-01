@@ -28,6 +28,7 @@
   "/api/avatar/route": "/api/avatar",
   "/api/buyer/profile/route": "/api/buyer/profile",
   "/api/catalog-categories/route": "/api/catalog-categories",
+  "/api/cron/refresh-prices/route": "/api/cron/refresh-prices",
   "/api/dashboard/buyer/route": "/api/dashboard/buyer",
   "/api/dashboard/seller/route": "/api/dashboard/seller",
   "/api/database-status/route": "/api/database-status",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { AmazingDealItem } from "@/components/AmazingDealsSection";
+import HomeProductSearch from "@/components/HomeProductSearch";
 import StorefrontHome from "@/components/StorefrontHome";
 import type { PersonalizedRequestItem } from "@/components/PersonalizedRequestRows";
 import { productImageUrl, type ProductImageAttachment } from "@/lib/product-image-shared";
@@ -517,6 +518,10 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+
+      <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+        <HomeProductSearch focus="laptop" />
+      </div>
 
       {homeSettings.imageSliderEnabled && (
         <HomepageImageSlider
