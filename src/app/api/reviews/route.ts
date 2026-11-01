@@ -17,8 +17,17 @@ export async function POST(request: Request) {
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown review error";
     const duplicate = detail.includes("already submitted");
+    const invalidRating = detail.includes("Rating scores");
     return NextResponse.json(
-      { success: false, message: duplicate ? "برای این معامله قبلاً نظر ثبت کرده‌اید." : "ثبت نظرسنجی ناموفق بود.", detail },
+      {
+        success: false,
+        message: duplicate
+          ? "برای این معامله قبلاً نظر ثبت کرده‌اید."
+          : invalidRating
+            ? "لطفاً قبل از ثبت نظر، همه امتیازهای ستاره‌ای را انتخاب کنید."
+            : "ثبت نظرسنجی ناموفق بود.",
+        detail,
+      },
       { status: duplicate ? 409 : 400 }
     );
   }

@@ -1,0 +1,23 @@
+{
+  "requests": [],
+  "users": [],
+  "offers": [],
+  "sellerRequestActions": [],
+  "orders": [],
+  "walletTransactions": [],
+  "withdrawals": [],
+  "transactions": [],
+  "platformTransactions": [],
+  "messages": [],
+  "notifications": [],
+  "reviews": [],
+  "passwordResets": [],
+  "settings": {
+    "commissionRate": 5,
+    "platformWalletBalance": 0,
+    "adminAccountHolder": "مدیر پلتفرم OptiBid",
+    "adminBankName": "",
+    "adminSheba": "",
+    "adminCardNumber": ""
+  }
+}

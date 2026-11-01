@@ -1,0 +1,7483 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import SellerStars from "@/components/SellerStars";
+import type { HomepageImageSliderSlide } from "@/components/HomepageImageSlider";
+import { productImageUrl } from "@/lib/product-image-shared";
+import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
+import { decodeCsvBytes } from "@/lib/store-product-csv-encoding";
+import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
+import { repairStoreProductCsvBytes, repairedCsvFileName } from "@/lib/store-product-csv-repair";
+import {
+  importedDraftIdentityKey,
+  normalizeProductImportCategories,
+  productImportCategoryKey,
+  productMatchesImportCategories,
+  type ImportedStoreProductDraft,
+} from "@/lib/store-product-import";
+import { useLiveContent } from "@/hooks/useLiveContent";
+import type { CatalogCategory } from "@/lib/catalog-categories";
+import { parseSourceLinks } from "@/lib/source-link-parser";
+import { scanDigikalaComponentsInBrowser } from "@/lib/digikala-client-import";
+
+const indicatorOptions = [
+  { id: "sma", label: "SMA", description: "میانگین متحرک ساده ۷ و ۲۰ روزه" },
+  { id: "ema", label: "EMA", description: "میانگین متحرک نمایی ۱۲ و ۲۶ روزه" },
+  {
+    id: "bollinger",
+    label: "Bollinger Bands",
+    description: "باندهای بولینگر بر اساس نوسان قیمت",
+  },
+  { id: "rsi", label: "RSI", description: "شاخص قدرت نسبی" },
+  {
+    id: "stochRsi",
+    label: "Stoch RSI",
+    description: "اسیلاتور Stochastic RSI",
+  },
+  { id: "macd", label: "MACD", description: "MACD، سیگنال و هیستوگرام" },
+  { id: "roc", label: "ROC", description: "نرخ تغییر قیمت" },
+  { id: "momentum", label: "Momentum", description: "مومنتوم قیمت" },
+  { id: "atr", label: "ATR", description: "میانگین دامنه نوسان واقعی برآوردی" },
+  {
+    id: "demand",
+    label: "Demand Volume",
+    description: "حجم تقاضای روزانه از داده واقعی درخواست/پیشنهاد/سفارش",
+  },
+] as const;
+
+type IndicatorId = (typeof indicatorOptions)[number]["id"];
+
+const defaultIndicators: Record<IndicatorId, boolean> = {
+  sma: true,
+  ema: false,
+  bollinger: true,
+  rsi: true,
+  stochRsi: true,
+  macd: true,
+  roc: false,
+  momentum: false,
+  atr: false,
+  demand: true,
+};
+
+const productImportCategoryOptions = [
+  { id: "laptop", label: "لپ‌تاپ و نوت‌بوک", hint: "Lenovo، Dell، HP، Asus، MacBook" },
+  { id: "mobile", label: "موبایل و گوشی", hint: "آیفون، سامسونگ، شیائومی و..." },
+  { id: "tablet", label: "تبلت و آیپد", hint: "iPad، Galaxy Tab و تبلت‌ها" },
+  { id: "desktop", label: "کامپیوتر آماده و آل‌این‌وان", hint: "کیس آماده، Mini PC، All-in-One" },
+  { id: "components", label: "قطعات کامپیوتر", hint: "CPU، GPU، RAM، مادربرد، پاور" },
+  { id: "storage", label: "حافظه و ذخیره‌سازی", hint: "SSD، HDD، فلش و کارت حافظه" },
+  { id: "accessories", label: "لوازم جانبی", hint: "ماوس، کیبورد، هدست، اسپیکر" },
+  { id: "monitor", label: "مانیتور و نمایشگر", hint: "مانیتور اداری و گیمینگ" },
+  { id: "gaming", label: "وسایل گیمینگ", hint: "لپ‌تاپ/تجهیزات گیمینگ و RTX" },
+  { id: "console", label: "کنسول بازی", hint: "PlayStation، Xbox، Nintendo" },
+  { id: "network", label: "تجهیزات شبکه", hint: "مودم، روتر، سوییچ، کابل" },
+  { id: "office-machines", label: "ماشین‌های اداری", hint: "اسکنر، لیبل پرینتر و تجهیزات اداری" },
+  { id: "printer", label: "پرینتر و مواد مصرفی", hint: "پرینتر، تونر، کارتریج" },
+  { id: "camera", label: "دوربین و وب‌کم", hint: "دوربین، وب‌کم و تجهیزات تصویر" },
+  { id: "audio", label: "صوتی و تصویری", hint: "هدفون، اسپیکر، میکروفون" },
+  { id: "smart-watch", label: "ساعت هوشمند", hint: "Smart Watch و مچ‌بند" },
+  { id: "server", label: "سرور و سازمانی", hint: "سرور، ورک‌استیشن و تجهیزات سازمانی" },
+] as const;
+
+const allProductImportCategoryIds = productImportCategoryOptions.map((option) => option.id);
+
+const computerPartSourceTypeOptions = [
+  { id: "cpu", label: "پردازنده CPU" },
+  { id: "gpu", label: "کارت گرافیک GPU" },
+  { id: "ram", label: "حافظه RAM" },
+  { id: "ssd", label: "SSD و هارد" },
+  { id: "motherboard", label: "مادربرد" },
+  { id: "power", label: "پاور" },
+  { id: "case", label: "کیس" },
+  { id: "cooler", label: "خنک‌کننده" },
+] as const;
+
+const allComputerPartSourceTypeIds = computerPartSourceTypeOptions.map((option) => option.id);
+
+type ComputerPartSourceEntry = {
+  id: string;
+  url: string;
+  parts: string[];
+};
+
+function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceEntry[] {
+  const raw = String(value || "").trim();
+  let parsedEntries: Array<{ url?: unknown; parts?: unknown }> = [];
+  if (raw.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) parsedEntries = parsed;
+    } catch {
+      // Legacy plain links are parsed below.
+    }
+  }
+  if (!parsedEntries.length) {
+    parsedEntries = parseSourceLinks(raw, 8).map((url) => ({
+      url,
+      parts: allComputerPartSourceTypeIds,
+    }));
+  }
+  const entries = parsedEntries
+    .slice(0, 8)
+    .map((entry, index) => {
+      const selectedParts = Array.isArray(entry.parts)
+        ? entry.parts.map(String).filter((part) => allComputerPartSourceTypeIds.includes(part as typeof allComputerPartSourceTypeIds[number]))
+        : allComputerPartSourceTypeIds;
+      return {
+        id: `source-${index + 1}`,
+        url: String(entry.url || "").trim(),
+        parts: selectedParts.length ? [...new Set(selectedParts)] : [...allComputerPartSourceTypeIds],
+      };
+    });
+  return entries.length
+    ? entries
+    : [{ id: "source-1", url: "https://www.digikala.com/search/category-computer-devices/", parts: [...allComputerPartSourceTypeIds] }];
+}
+
+function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) {
+  return JSON.stringify(
+    entries.slice(0, 8).map((entry) => ({
+      url: entry.url.trim(),
+      parts: entry.parts,
+    })),
+  );
+}
+
+type PreparedCsvImportDraft = {
+  selectionKey: string;
+  draft: ImportedStoreProductDraft;
+};
+
+function normalizedImportPriceMultiplier(value: unknown) {
+  const number = Number(value || 1);
+  if (!Number.isFinite(number) || number <= 0) return 1;
+  return Math.max(0.1, Math.min(10, number));
+}
+
+function productImportSourceLabel(product: any) {
+  const sourceHost = String(product.sourceHost || "").trim().replace(/^www\./i, "");
+  if (sourceHost) return sourceHost;
+  try {
+    return new URL(String(product.externalSourceUrl || "")).hostname.replace(/^www\./i, "") || "—";
+  } catch {
+    return String(product.externalSourceUrl || "").startsWith("easy-scraper:") ? "CSV" : "—";
+  }
+}
+
+function applyImportPriceMultiplierForPreview(draft: ImportedStoreProductDraft, multiplier: number) {
+  if (multiplier === 1) return draft;
+  const roundToman = (value: number) => Math.max(0, Math.round(Number(value || 0) / 10_000) * 10_000);
+  return {
+    ...draft,
+    price: roundToman(draft.price * multiplier),
+    originalPrice: draft.originalPrice ? roundToman(draft.originalPrice * multiplier) : undefined,
+  };
+}
+
+function normalizedCrawlUrl(value: string) {
+  try {
+    const url = new URL(String(value || "").trim());
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function universalDraftKey(draft: ImportedStoreProductDraft) {
+  const identity = importedDraftIdentityKey(draft);
+  if (identity) return `identity:${identity}`;
+  const sourceUrl = normalizedCrawlUrl(draft.externalSourceUrl || "");
+  if (sourceUrl) return `url:${sourceUrl}`;
+  return `title:${draft.brand}|${draft.title}`.toLowerCase().replace(/\s+/g, " ");
+}
+
+async function readJsonResponse(response: Response, fallbackMessage: string) {
+  const text = await response.text();
+  if (!text.trim()) {
+    if (response.ok) return {};
+    throw new Error(fallbackMessage);
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    const plainText = text
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 260);
+    if (response.status === 413) {
+      throw new Error("حجم فایل CSV برای این درخواست زیاد است. فایل اصلاح‌شده را دانلود کنید یا با دسته‌بندی محدودتر/بخش‌بخش وارد کنید.");
+    }
+    if (response.status === 1102 || /exceeded resource|worker exceeded|1102/i.test(text)) {
+      throw new Error("سرور هنگام ثبت فهرست محصولات CSV به سقف منابع رسید. نتیجه ممکن است نامشخص باشد؛ اجرای دوباره با روش ادغام یا افزودنِ بدون تکرار امن است.");
+    }
+    throw new Error(`${fallbackMessage} پاسخ سرور JSON نبود${plainText ? `: ${plainText}` : "."}`);
+  }
+}
+
+const priceRefreshReferenceOptions = [
+  { id: "source", label: "لینک منبع خود محصول", hint: "قیمت از همان صفحه‌ای خوانده می‌شود که محصول با آن درون‌ریزی شده است" },
+  { id: "torob", label: "ترب", hint: "جستجو در بازار ترب و قیمت‌های فروشنده‌ها" },
+  { id: "digikala", label: "دیجی‌کالا", hint: "جستجو در داده‌های قابل خواندن دیجی‌کالا" },
+  { id: "google", label: "گوگل و سایت‌های فروشگاهی", hint: "جستجوی قیمت محصول در نتایج وب و فروشگاه‌های ایندکس‌شده" },
+  { id: "instagram", label: "اینستاگرام", hint: "بررسی صفحه مستقیم و نتایج عمومی ایندکس‌شده اینستاگرام" },
+  { id: "telegram", label: "تلگرام", hint: "بررسی کانال مستقیم و نتایج عمومی ایندکس‌شده تلگرام" },
+] as const;
+
+export default function AdminDashboardClient({
+  realStats,
+  sellerRankings,
+  initialKycUsers,
+  initialManagedUsers,
+  adminReports,
+  initialCatalogCategories,
+}: {
+  realStats: any;
+  sellerRankings: any[];
+  initialKycUsers: any[];
+  initialManagedUsers: { summary: any; users: any[] };
+  adminReports: any;
+  initialCatalogCategories: CatalogCategory[];
+}) {
+  const liveContent = useLiveContent();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [reportView, setReportView] = useState<
+    "products" | "buyers" | "sellers"
+  >("products");
+  const [chartMode, setChartMode] = useState<"line" | "bar" | "pie">("line");
+  const [selectedProductName, setSelectedProductName] = useState("");
+  const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
+  const [indicatorSearch, setIndicatorSearch] = useState("");
+  const [selectedIndicators, setSelectedIndicators] =
+    useState<Record<IndicatorId, boolean>>(defaultIndicators);
+  const [pendingVerifications, setPendingVerifications] =
+    useState<any[]>(initialKycUsers);
+  const [kycReasons, setKycReasons] = useState<Record<number, string>>({});
+  const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>(
+    initialCatalogCategories,
+  );
+  const [categoryDraft, setCategoryDraft] = useState<{
+    id: string;
+    legacyId: number;
+    name: string;
+    icon: string;
+    isActive: boolean;
+    subcategoriesText: string;
+  } | null>(null);
+  const [savingCategories, setSavingCategories] = useState(false);
+
+  // States for Settings
+  const [commissionRate, setCommissionRate] = useState(5);
+  const [siteSlogan, setSiteSlogan] = useState(
+    "پلتفرم درخواست خرید و تامین کالا",
+  );
+  const [siteSubSlogan, setSiteSubSlogan] = useState(
+    "درخواست خرید خود را ثبت کنید و پیشنهادهای تامین‌کنندگان معتبر را مقایسه کنید",
+  );
+  const [fontFamily, setFontFamily] = useState("Vazir");
+  const [fontSize, setFontSize] = useState("16");
+  const [contactPhone, setContactPhone] = useState("۰۲۱-۱۲۳۴۵۶۷۸");
+  const [contactEmail, setContactEmail] = useState("info@parscoders.ir");
+  const [contactAddress, setContactAddress] = useState(
+    "تبریز، خیابان ولیعصر، برج فناوری، طبقه ۱۰",
+  );
+  const [workingHours, setWorkingHours] = useState("شنبه تا چهارشنبه ۹ تا ۱۷");
+  const [platformFinance, setPlatformFinance] = useState({
+    siteMode: "store" as "store" | "request" | "hybrid",
+    platformWalletBalance: realStats.platformWalletBalance || 0,
+    adminAccountHolder: "",
+    adminBankName: "",
+    adminSheba: "",
+    adminCardNumber: "",
+    zarinpalEnabled: false,
+    zarinpalSandbox: true,
+    zarinpalMerchantId: "",
+    zarinpalCallbackBaseUrl: "https://optibid.fazilat-ma.workers.dev",
+    zarinpalDescription: "پرداخت امانی سفارش OptiBid",
+    googleOAuthEnabled: false,
+    googleOAuthClientId: "",
+    googleOAuthClientSecret: "",
+    facebookOAuthEnabled: false,
+    facebookOAuthClientId: "",
+    facebookOAuthClientSecret: "",
+    socialAuthBaseUrl: "https://optibid.fazilat-ma.workers.dev",
+    amazingDealsEnabled: true,
+    amazingDealsDurationHours: 6,
+    amazingDealsDiscountCode: "OPTIBID",
+    amazingDealsNotificationEnabled: true,
+    amazingDealsNotificationTitle: "فرصت ویژه درخواست خرید",
+    amazingDealsNotificationText:
+      "درخواست‌های خرید با بودجه جذاب و کمبود پیشنهاد فروشنده را سریع‌تر بررسی کنید.",
+    homepageHeroTitle: "پلتفرم درخواست خرید و تامین کالا",
+    homepageHeroSubtitle:
+      "درخواست خرید خود را ثبت کنید، از تامین‌کنندگان معتبر پیشنهاد قیمت دریافت کنید و برای معامله مستقیم با فروشنده هماهنگ شوید",
+    homepageShowStats: true,
+    homepageShowCategories: false,
+    homepageShowCategorySection: false,
+    homepageCategoriesTitle: "دسته‌بندی کالاها",
+    homepageCategoryFontFamily: "Vazir",
+    homepageCategoryFontSize: "18",
+    homepageShowPromoSliders: true,
+    homepagePromoSectionTitle: "جایگاه‌های ویژه و درآمدی",
+    homepagePromoSectionSubtitle:
+      "فعلاً تمرکز روی درخواست خرید لپ‌تاپ و کامپیوتر دست‌دوم است؛ این اسلایدرها برای نردبان، آگهی ویژه، اشتراک فروشنده و تبلیغات هدفمند استفاده می‌شوند.",
+    homepagePromoSlidersText: "",
+    homepageImageSliderEnabled: true,
+    homepageImageSliderTitle: "اسلایدر ویژه درخواست‌های خرید",
+    homepageImageSliderSubtitle:
+      "جایگاه تبلیغات، نردبان درخواست و کمپین‌های ویژه لپ‌تاپ و کامپیوتر دست‌دوم",
+    homepageImageSliderDurationSeconds: 5,
+    homepageImageSliderSlides: [] as HomepageImageSliderSlide[],
+    storeLaptopCatalogEnabled: false,
+    storeComputerPartsCatalogEnabled: true,
+    storeComputerPartsSourceUrl: "https://www.digikala.com/",
+    storePriceMultiplier: 1,
+    storeAutoPriceRefreshEnabled: true,
+    storeAutoPriceRefreshReferences: ["source", "torob", "digikala"] as string[],
+    storeAutoPriceRefreshBatchSize: 20,
+    storeAutoPriceRefreshOffset: 0,
+    storeAutoPriceRefreshLastRunAt: "",
+    storeAutoPriceRefreshLastSummary: "",
+    storeAutoPriceRefreshTotalRuns: 0,
+    reverseAuctionProductCtaEnabled: false,
+    reverseAuctionQuickRequestEnabled: false,
+    reverseAuctionFreeSellerOffersEnabled: false,
+    reverseAuctionManualDispatchEnabled: false,
+    reverseAuctionMinimumOffersEnabled: false,
+    reverseAuctionMinimumOffersCount: 3,
+    enamadEnabled: false,
+    enamadTitle: "نماد اعتماد الکترونیکی",
+    enamadVerificationUrl: "",
+    enamadLogoUrl: "",
+    enamadLogoImage: undefined as any,
+    storeHeroSliderEnabled: true,
+    storeHeroSliderDurationSeconds: 5,
+    storeHeroSliderSlides: [] as HomepageImageSliderSlide[],
+    supportPageTitle: "پشتیبانی فروشگاه OptiBid",
+    supportPageSubtitle:
+      "برای راهنمای خرید لپ‌تاپ، پیگیری سفارش، پرداخت، ارسال و خدمات پس از خرید با تیم پشتیبانی در ارتباط باشید.",
+    supportPhone: "۰۲۱-۱۲۳۴۵۶۷۸",
+    supportMobile: "۰۹۱۲۱۲۳۴۵۶۷",
+    supportEmail: "support@optibid.ir",
+    supportAddress: "تبریز، خیابان ولیعصر، برج فناوری، طبقه ۱۰",
+    supportWorkingHours: "شنبه تا چهارشنبه ۹ تا ۱۷، پنجشنبه ۹ تا ۱۳",
+    supportTelegram: "https://t.me/optibid_support",
+    supportWhatsapp: "https://wa.me/989121234567",
+    supportFaqText: "",
+    supportChatWelcome: "سلام، به پشتیبانی آنلاین OptiBid خوش آمدید.",
+    homepageShowOpportunityRequests: true,
+    homepageOpportunityTitle: "درخواست‌های داغ فروشندگان",
+    homepageOpportunitySubtitle:
+      "درخواست‌هایی با بودجه جذاب، تعداد بالاتر یا کمبود پیشنهاد فروشنده",
+    homepageShowBestSelling: true,
+    homepageBestSellingTitle: "پررقابت‌ترین درخواست‌ها",
+    homepageBestSellingSubtitle:
+      "آگهی‌هایی که بیشترین رقابت فروشنده‌ها را گرفته‌اند",
+    homepageShowGrowthSignals: true,
+    homepageGrowthSignalsTitle: "سیگنال واقعی رشد قیمت",
+    homepageGrowthSignalsSubtitle:
+      "بر اساس رشد تقاضا، فشار عرضه/پیشنهاد، روند قیمت، RSI، MACD و داده بیرونی در صورت دسترسی",
+    homepageShowMostRequested: true,
+    homepageMostRequestedTitle: "بیشترین درخواست‌شده",
+    homepageMostRequestedSubtitle: "درخواست‌هایی با تعداد بیشتر یا تقاضای بالاتر",
+    homepageShowPersonalizedRows: true,
+    homepagePersonalizedTitle: "بر اساس جستجوهای اخیر شما",
+    homepagePersonalizedSubtitle: "کلیدواژه‌های اخیر",
+    homepageRelatedTitle: "پیشنهادهای نزدیک به علاقه شما",
+    homepageRelatedSubtitle: "آگهی‌های هم‌دسته با جستجوهای قبلی شما",
+    homepageShowLatestRequests: true,
+    homepageLatestRequestsTitle: "آخرین درخواست‌های خرید",
+    homepageLatestRequestsSubtitle: "پیشنهاد قیمت خود را ثبت کنید",
+    homepageShowTopSellers: true,
+    homepageTopSellersTitle: "تامین‌کنندگان برتر",
+    homepageTopSellersSubtitle: "بهترین و خوش‌حساب‌ترین تامین‌کنندگان پلتفرم",
+    homepageShowTopBuyers: true,
+    homepageTopBuyersTitle: "خریداران برتر پلتفرم",
+    homepageTopBuyersSubtitle: "شرکت‌ها و خریداران عمده خوش‌حساب",
+    homepageShowFinalCta: true,
+    homepageFinalCtaTitle: "آماده شروع هستید؟",
+    homepageFinalCtaSubtitle:
+      "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
+  });
+  const [computerPartSources, setComputerPartSources] = useState<ComputerPartSourceEntry[]>(() =>
+    normalizeComputerPartSourceEntries("https://www.digikala.com/search/category-computer-devices/"),
+  );
+  const [platformTransactions, setPlatformTransactions] = useState<any[]>([]);
+  const [escrowTransactions, setEscrowTransactions] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [supportChatMessages, setSupportChatMessages] = useState<any[]>([]);
+  const [zarinpalPayments, setZarinpalPayments] = useState<any[]>([]);
+  const [zarinpalPrerequisites, setZarinpalPrerequisites] = useState<any>(null);
+  const [homepageSlideFiles, setHomepageSlideFiles] = useState<
+    Record<number, File | null>
+  >({});
+  const [storefrontSlideFiles, setStorefrontSlideFiles] = useState<
+    Record<number, File | null>
+  >({});
+  const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
+  const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
+  const [savingStoreCatalog, setSavingStoreCatalog] = useState(false);
+  const [importingComputerParts, setImportingComputerParts] = useState(false);
+  const [productImportUrl, setProductImportUrl] = useState("");
+  const [productImportLimit, setProductImportLimit] = useState(10000);
+  const [productImportPriceMultiplier, setProductImportPriceMultiplier] = useState(1);
+  const [productImportScanMode, setProductImportScanMode] = useState<"page" | "full-site">("full-site");
+  const [productImportStrategy, setProductImportStrategy] = useState<"merge" | "add-only">("merge");
+  const [productImportCategories, setProductImportCategories] = useState<string[]>(allProductImportCategoryIds);
+  const [productImportPreview, setProductImportPreview] = useState<any[]>([]);
+  const [productImportCsvDrafts, setProductImportCsvDrafts] = useState<PreparedCsvImportDraft[]>([]);
+  const [productImportLinkDrafts, setProductImportLinkDrafts] = useState<PreparedCsvImportDraft[]>([]);
+  const [productImportPreviewSource, setProductImportPreviewSource] = useState<"csv" | "link" | "link-bulk" | "">("");
+  const [productImportSelectedKeys, setProductImportSelectedKeys] = useState<string[]>([]);
+  const [universalCrawlProgress, setUniversalCrawlProgress] = useState({
+    running: false,
+    extracted: 0,
+    scannedPages: 0,
+    queuedProducts: 0,
+    queuedPages: 0,
+    message: "",
+  });
+  const universalCrawlCancelledRef = useRef(false);
+  const [productImportWarnings, setProductImportWarnings] = useState<string[]>([]);
+  const [productImportMessage, setProductImportMessage] = useState("");
+  const [productImportScannedUrls, setProductImportScannedUrls] = useState<string[]>([]);
+  const [productCsvFile, setProductCsvFile] = useState<File | null>(null);
+  const [processingProductCsv, setProcessingProductCsv] = useState(false);
+  const [repairingProductCsv, setRepairingProductCsv] = useState(false);
+  const [scanningProductImport, setScanningProductImport] = useState(false);
+  const [applyingProductImport, setApplyingProductImport] = useState(false);
+  const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
+  const [priceRefreshReferences, setPriceRefreshReferences] = useState<string[]>(
+    priceRefreshReferenceOptions.map((item) => item.id),
+  );
+  const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
+  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(20);
+  const [priceRefreshOffset, setPriceRefreshOffset] = useState(0);
+  const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
+  const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
+  const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
+  const [priceRefreshWarnings, setPriceRefreshWarnings] = useState<string[]>([]);
+  const [productImportAutoScroll, setProductImportAutoScroll] = useState(true);
+  const [savingAutoPriceRefresh, setSavingAutoPriceRefresh] = useState(false);
+  const productImportProgressRef = useRef<HTMLDivElement | null>(null);
+  const productImportPreviewRef = useRef<HTMLDivElement | null>(null);
+  const productImportScannedUrlsRef = useRef<HTMLDivElement | null>(null);
+  const priceRefreshResultsRef = useRef<HTMLDivElement | null>(null);
+  const productImportPreviewLengthRef = useRef(0);
+
+  // اسکرول خودکار استخراج: با شروع خزش مرحله‌ای، پنل پیشرفت کنار لینک
+  // درون‌ریزی به‌صورت خودکار در دید قرار می‌گیرد تا نیازی به اسکرول دستی نباشد.
+  useEffect(() => {
+    if (!productImportAutoScroll || !universalCrawlProgress.running) return;
+    const timer = window.setTimeout(() => {
+      productImportProgressRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [productImportAutoScroll, universalCrawlProgress.running]);
+
+  // اسکرول خودکار به جدول پیش‌نمایش به‌محض آماده‌شدن نتایج استخراج/درون‌ریزی.
+  useEffect(() => {
+    const previous = productImportPreviewLengthRef.current;
+    productImportPreviewLengthRef.current = productImportPreview.length;
+    if (!productImportAutoScroll || previous !== 0 || productImportPreview.length === 0) return;
+    const timer = window.setTimeout(() => {
+      productImportPreviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [productImportAutoScroll, productImportPreview.length]);
+
+  // لاگ لینک‌های اسکن‌شده و نتایج ربات قیمت همیشه به آخرین ردیف اسکرول می‌شوند.
+  useEffect(() => {
+    if (!productImportAutoScroll) return;
+    const element = productImportScannedUrlsRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [productImportAutoScroll, productImportScannedUrls.length]);
+
+  useEffect(() => {
+    if (!productImportAutoScroll) return;
+    const element = priceRefreshResultsRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [productImportAutoScroll, priceRefreshResults.length]);
+
+  const [savingReverseAuctionPilot, setSavingReverseAuctionPilot] = useState(false);
+  const [enamadLogoFile, setEnamadLogoFile] = useState<File | null>(null);
+  const [removeUploadedEnamadLogo, setRemoveUploadedEnamadLogo] = useState(false);
+  const [savingEnamad, setSavingEnamad] = useState(false);
+  const [dispatchData, setDispatchData] = useState<{ requests: any[]; sellers: any[] }>({ requests: [], sellers: [] });
+  const [dispatchRequestId, setDispatchRequestId] = useState(0);
+  const [dispatchSellerIds, setDispatchSellerIds] = useState<number[]>([]);
+  const [dispatchingRequest, setDispatchingRequest] = useState(false);
+  const [withdrawalNotes, setWithdrawalNotes] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    fetch("/api/admin/finance")
+      .then((response) => response.json())
+      .then((result) => {
+        if (!result.success) return;
+        setPlatformFinance(result.settings);
+        setComputerPartSources(normalizeComputerPartSourceEntries(result.settings.storeComputerPartsSourceUrl));
+        const savedStoreMultiplier = normalizedImportPriceMultiplier(result.settings.storePriceMultiplier);
+        setProductImportPriceMultiplier(savedStoreMultiplier);
+        setPriceRefreshMultiplier(savedStoreMultiplier);
+        setCommissionRate(result.settings.commissionRate);
+        setPlatformTransactions(result.platformTransactions || []);
+        setEscrowTransactions(result.escrowTransactions || []);
+        setWithdrawals(result.withdrawals || []);
+        setSupportChatMessages(result.supportChatMessages || []);
+        setZarinpalPayments(result.zarinpalPayments || []);
+        setZarinpalPrerequisites(result.zarinpalPrerequisites || null);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    setContactAddress(liveContent.contactAddressFa);
+  }, [liveContent.contactAddressFa]);
+
+
+  const updatePlatformFinanceField = (key: string, value: unknown) => {
+    setPlatformFinance((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateStorePriceMultiplier = (value: unknown) => {
+    const multiplier = normalizedImportPriceMultiplier(value);
+    setProductImportPriceMultiplier(multiplier);
+    setPriceRefreshMultiplier(multiplier);
+    setPriceRefreshOffset(0);
+    setPlatformFinance((current) => ({ ...current, storePriceMultiplier: multiplier }));
+  };
+
+  const updateComputerPartSource = (
+    id: string,
+    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts">>,
+  ) => {
+    setComputerPartSources((current) =>
+      current.map((entry) => entry.id === id ? { ...entry, ...updates } : entry),
+    );
+  };
+
+  const addComputerPartSource = () => {
+    setComputerPartSources((current) => {
+      if (current.length >= 8) return current;
+      return [
+        ...current,
+        {
+          id: `source-${Date.now()}-${current.length + 1}`,
+          url: "",
+          parts: [...allComputerPartSourceTypeIds],
+        },
+      ];
+    });
+  };
+
+  const removeComputerPartSource = (id: string) => {
+    setComputerPartSources((current) =>
+      current.length > 1 ? current.filter((entry) => entry.id !== id) : current,
+    );
+  };
+
+  const toggleComputerPartSourceType = (sourceId: string, partId: string) => {
+    setComputerPartSources((current) => current.map((entry) => {
+      if (entry.id !== sourceId) return entry;
+      const parts = entry.parts.includes(partId)
+        ? entry.parts.filter((part) => part !== partId)
+        : [...entry.parts, partId];
+      return { ...entry, parts };
+    }));
+  };
+
+  const ensureHomepageSlides = () => {
+    const current = platformFinance.homepageImageSliderSlides || [];
+    return Array.from({ length: 5 }).map((_, index) =>
+      current[index] || {
+        id: `slide-${index + 1}`,
+        title: `اسلاید ${index + 1}`,
+        subtitle: "",
+        cta: "مشاهده",
+        href: "/requests",
+        isActive: true,
+      },
+    );
+  };
+
+  const updateHomepageSlide = (
+    index: number,
+    updates: Partial<HomepageImageSliderSlide>,
+  ) => {
+    setPlatformFinance((current) => {
+      const slides = Array.from({ length: 5 }).map((_, slideIndex) =>
+        current.homepageImageSliderSlides?.[slideIndex] || {
+          id: `slide-${slideIndex + 1}`,
+          title: `اسلاید ${slideIndex + 1}`,
+          subtitle: "",
+          cta: "مشاهده",
+          href: "/requests",
+          isActive: true,
+        },
+      );
+      slides[index] = { ...slides[index], ...updates };
+      return { ...current, homepageImageSliderSlides: slides };
+    });
+  };
+
+  const ensureStorefrontSlides = () => {
+    const current = platformFinance.storeHeroSliderSlides || [];
+    return Array.from({ length: 4 }).map((_, index) =>
+      current[index] || {
+        id: `store-slide-${index + 1}`,
+        title: [
+          "خرید آنلاین لپ‌تاپ نو و کارکرده",
+          "لپ‌تاپ اداری و شرکتی",
+          "لپ‌تاپ گیمینگ و مهندسی",
+          "لپ‌تاپ دانشجویی و سبک",
+        ][index],
+        subtitle: "متن تبلیغاتی اسلاید فروشگاه لپ‌تاپ را اینجا وارد کنید.",
+        cta: "مشاهده لپ‌تاپ‌ها",
+        href: "/shop",
+        isActive: true,
+      },
+    );
+  };
+
+  const updateStorefrontSlide = (
+    index: number,
+    updates: Partial<HomepageImageSliderSlide>,
+  ) => {
+    setPlatformFinance((current) => {
+      const slides = Array.from({ length: 4 }).map((_, slideIndex) =>
+        current.storeHeroSliderSlides?.[slideIndex] || {
+          id: `store-slide-${slideIndex + 1}`,
+          title: `اسلاید فروشگاهی ${slideIndex + 1}`,
+          subtitle: "",
+          cta: "مشاهده لپ‌تاپ‌ها",
+          href: "/shop",
+          isActive: true,
+        },
+      );
+      slides[index] = { ...slides[index], ...updates };
+      return { ...current, storeHeroSliderSlides: slides };
+    });
+  };
+
+  const saveStorefrontSlider = async () => {
+    setSavingStorefrontSlider(true);
+    try {
+      const slides = ensureStorefrontSlides();
+      const payload = new FormData();
+      payload.append("enabled", String(platformFinance.storeHeroSliderEnabled));
+      payload.append(
+        "durationSeconds",
+        String(platformFinance.storeHeroSliderDurationSeconds || 5),
+      );
+      payload.append("slides", JSON.stringify(slides));
+      Object.entries(storefrontSlideFiles).forEach(([index, file]) => {
+        if (file) payload.append(`slideImage-${index}`, file);
+      });
+      const response = await fetch("/api/admin/storefront-slider", {
+        method: "POST",
+        body: payload,
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(
+          result.message || "ذخیره اسلایدر فروشگاه لپ‌تاپ ناموفق بود.",
+        );
+      setPlatformFinance(result.settings);
+      setStorefrontSlideFiles({});
+      alert(result.message || "اسلایدر فروشگاه لپ‌تاپ ذخیره شد.");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "ذخیره اسلایدر فروشگاه لپ‌تاپ ناموفق بود.",
+      );
+    } finally {
+      setSavingStorefrontSlider(false);
+    }
+  };
+
+  const saveHomepageImageSlider = async () => {
+    setSavingHomepageSlider(true);
+    try {
+      const slides = ensureHomepageSlides();
+      const payload = new FormData();
+      payload.append("enabled", String(platformFinance.homepageImageSliderEnabled));
+      payload.append("title", platformFinance.homepageImageSliderTitle || "");
+      payload.append("subtitle", platformFinance.homepageImageSliderSubtitle || "");
+      payload.append(
+        "durationSeconds",
+        String(platformFinance.homepageImageSliderDurationSeconds || 5),
+      );
+      payload.append("slides", JSON.stringify(slides));
+      Object.entries(homepageSlideFiles).forEach(([index, file]) => {
+        if (file) payload.append(`slideImage-${index}`, file);
+      });
+      const response = await fetch("/api/admin/homepage-slider", {
+        method: "POST",
+        body: payload,
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "ذخیره اسلایدر تصویری ناموفق بود.");
+      setPlatformFinance(result.settings);
+      setHomepageSlideFiles({});
+      alert(result.message || "اسلایدر تصویری ذخیره شد.");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "ذخیره اسلایدر تصویری ناموفق بود.",
+      );
+    } finally {
+      setSavingHomepageSlider(false);
+    }
+  };
+
+  const saveFinance = async () => {
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...platformFinance, commissionRate }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message);
+      setPlatformFinance(result.settings);
+      setCommissionRate(result.settings.commissionRate);
+      setZarinpalPrerequisites(result.zarinpalPrerequisites || null);
+      alert(result.message);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "ذخیره تنظیمات مالی ناموفق بود.",
+      );
+    }
+  };
+
+  const loadReverseAuctionDispatch = async () => {
+    try {
+      const response = await fetch("/api/admin/reverse-auction/dispatch", { cache: "no-store" });
+      const result = await response.json();
+      if (result.success) {
+        setDispatchData({ requests: result.requests || [], sellers: result.sellers || [] });
+        if (!dispatchRequestId && result.requests?.[0]) setDispatchRequestId(Number(result.requests[0].id));
+      }
+    } catch {
+      // پنل ارجاع در اجرای بعدی دوباره تلاش می‌کند.
+    }
+  };
+
+  const saveReverseAuctionPilot = async () => {
+    setSavingReverseAuctionPilot(true);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reverseAuctionProductCtaEnabled: Boolean(platformFinance.reverseAuctionProductCtaEnabled),
+          reverseAuctionQuickRequestEnabled: Boolean(platformFinance.reverseAuctionQuickRequestEnabled),
+          reverseAuctionFreeSellerOffersEnabled: Boolean(platformFinance.reverseAuctionFreeSellerOffersEnabled),
+          reverseAuctionManualDispatchEnabled: Boolean(platformFinance.reverseAuctionManualDispatchEnabled),
+          reverseAuctionMinimumOffersEnabled: Boolean(platformFinance.reverseAuctionMinimumOffersEnabled),
+          reverseAuctionMinimumOffersCount: Math.max(1, Math.min(10, Number(platformFinance.reverseAuctionMinimumOffersCount || 3))),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات مزایده معکوس ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      await loadReverseAuctionDispatch();
+      alert("تنظیمات ماه اول مزایده معکوس ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات مزایده معکوس ناموفق بود.");
+    } finally {
+      setSavingReverseAuctionPilot(false);
+    }
+  };
+
+  const saveAutoPriceRefreshSettings = async () => {
+    const references = Array.isArray(platformFinance.storeAutoPriceRefreshReferences)
+      ? platformFinance.storeAutoPriceRefreshReferences
+      : [];
+    if (references.length === 0) {
+      alert("حداقل یک مرجع برای به‌روزرسانی خودکار انتخاب کنید.");
+      return;
+    }
+    setSavingAutoPriceRefresh(true);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeAutoPriceRefreshEnabled: Boolean(platformFinance.storeAutoPriceRefreshEnabled),
+          storeAutoPriceRefreshReferences: references,
+          storeAutoPriceRefreshBatchSize: Math.max(
+            1,
+            Math.min(20, Number(platformFinance.storeAutoPriceRefreshBatchSize || 20)),
+          ),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات به‌روزرسانی خودکار ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      alert("تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات به‌روزرسانی خودکار ناموفق بود.");
+    } finally {
+      setSavingAutoPriceRefresh(false);
+    }
+  };
+
+  const toggleAutoPriceRefreshReference = (referenceId: string) => {
+    const current = Array.isArray(platformFinance.storeAutoPriceRefreshReferences)
+      ? platformFinance.storeAutoPriceRefreshReferences
+      : [];
+    updatePlatformFinanceField(
+      "storeAutoPriceRefreshReferences",
+      current.includes(referenceId)
+        ? current.filter((item) => item !== referenceId)
+        : [...current, referenceId],
+    );
+  };
+
+  const dispatchRequestToSellers = async () => {
+    if (!dispatchRequestId || !dispatchSellerIds.length) {
+      alert("یک درخواست و حداقل یک فروشنده انتخاب کنید.");
+      return;
+    }
+    setDispatchingRequest(true);
+    try {
+      const response = await fetch("/api/admin/reverse-auction/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: dispatchRequestId, sellerIds: dispatchSellerIds }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ارجاع درخواست ناموفق بود.");
+      alert(result.message);
+      await loadReverseAuctionDispatch();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ارجاع درخواست ناموفق بود.");
+    } finally {
+      setDispatchingRequest(false);
+    }
+  };
+
+  const saveEnamadSettings = async () => {
+    setSavingEnamad(true);
+    try {
+      const payload = new FormData();
+      payload.append("enabled", String(Boolean(platformFinance.enamadEnabled)));
+      payload.append("title", String(platformFinance.enamadTitle || ""));
+      payload.append("verificationUrl", String(platformFinance.enamadVerificationUrl || ""));
+      payload.append("logoUrl", String(platformFinance.enamadLogoUrl || ""));
+      payload.append("removeUploadedLogo", String(removeUploadedEnamadLogo));
+      if (platformFinance.enamadLogoImage) payload.append("existingLogoImage", JSON.stringify(platformFinance.enamadLogoImage));
+      if (enamadLogoFile) payload.append("logoFile", enamadLogoFile);
+      const response = await fetch("/api/admin/enamad", { method: "POST", body: payload });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره اینماد ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      setEnamadLogoFile(null);
+      setRemoveUploadedEnamadLogo(false);
+      alert(result.message || "تنظیمات اینماد ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره اینماد ناموفق بود.");
+    } finally {
+      setSavingEnamad(false);
+    }
+  };
+
+  const saveStoreCatalogSettings = async () => {
+    if (
+      !platformFinance.storeLaptopCatalogEnabled &&
+      !platformFinance.storeComputerPartsCatalogEnabled
+    ) {
+      alert("حداقل یکی از بخش‌های لپ‌تاپ یا قطعات کامپیوتر باید فعال باشد.");
+      return;
+    }
+    setSavingStoreCatalog(true);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
+          storeComputerPartsCatalogEnabled: Boolean(platformFinance.storeComputerPartsCatalogEnabled),
+          storeComputerPartsSourceUrl: serializeComputerPartSourceEntries(computerPartSources),
+          storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات فروشگاه ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      alert("تنظیمات نمایش لپ‌تاپ و قطعات کامپیوتر ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات فروشگاه ناموفق بود.");
+    } finally {
+      setSavingStoreCatalog(false);
+    }
+  };
+
+  const resolveKyc = async (
+    userId: number,
+    status: "approved" | "rejected",
+  ) => {
+    const reason = kycReasons[userId] || "";
+    if (status === "rejected" && !reason.trim()) {
+      alert("برای رد مدارک، علت را وارد کنید.");
+      return;
+    }
+    if (
+      !confirm(
+        status === "approved"
+          ? "مدارک تایید و حساب فعال شود؟"
+          : "مدارک رد و حساب غیرفعال بماند؟",
+      )
+    )
+      return;
+
+    try {
+      const response = await fetch("/api/admin/kyc", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, status, reason }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message);
+      alert(result.message);
+      const refresh = await fetch("/api/admin/kyc", { cache: "no-store" });
+      const refreshResult = await refresh.json();
+      if (refreshResult.success)
+        setPendingVerifications(refreshResult.users || []);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "تعیین وضعیت مدارک ناموفق بود.",
+      );
+    }
+  };
+
+  const resolveWithdrawal = async (
+    withdrawalId: string,
+    status: "approved" | "rejected",
+  ) => {
+    const actionLabel =
+      status === "approved" ? "تایید و ثبت تسویه بانکی" : "رد و بازگشت وجه";
+    if (!confirm(`${actionLabel} برای این درخواست انجام شود؟`)) return;
+    try {
+      const response = await fetch("/api/admin/withdrawals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          withdrawalId,
+          status,
+          adminNote: withdrawalNotes[withdrawalId] || "",
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message);
+      alert(result.message);
+      const financeResponse = await fetch("/api/admin/finance", {
+        cache: "no-store",
+      });
+      const financeResult = await financeResponse.json();
+      if (financeResult.success)
+        setWithdrawals(financeResult.withdrawals || []);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "تعیین تکلیف برداشت ناموفق بود.",
+      );
+    }
+  };
+
+  const handleSave = (section: string) => {
+    alert(`تنظیمات بخش "${section}" با موفقیت در پایگاه داده ذخیره شد.`);
+  };
+
+  const stats = [
+    {
+      label: "مبلغ تراکنش‌های موفق",
+      value: `${realStats.totalVolume.toLocaleString("fa-IR")} تومان`,
+    },
+    {
+      label: "کل کمیسیون دریافت‌شده",
+      value: `${realStats.totalCommission.toLocaleString("fa-IR")} تومان`,
+    },
+    {
+      label: "مانده حساب پلتفرم OptiBid",
+      value: `${platformFinance.platformWalletBalance.toLocaleString("fa-IR")} تومان`,
+    },
+    {
+      label: "درآمد قابل گزارش پلتفرم",
+      value: `${realStats.escrowHeld.toLocaleString("fa-IR")} تومان`,
+    },
+    {
+      label: "تعداد درخواست‌های خرید باز",
+      value: `${realStats.openRequests.toLocaleString("fa-IR")} درخواست`,
+    },
+  ];
+
+  const moneyLabel = (value: number | string) =>
+    `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
+  const percentLabel = (value: number | string) =>
+    `${Number(value || 0).toLocaleString("fa-IR")}%`;
+  const productReports = adminReports?.productReports || [];
+  const buyerReports = adminReports?.buyerReports || [];
+  const sellerReports = adminReports?.sellerReports || [];
+  const analytics = adminReports?.analytics || {
+    growingItems: [],
+    mostRequestedItems: [],
+    highestRevenueItems: [],
+    technicalItems: [],
+  };
+  const reportRows =
+    reportView === "products"
+      ? productReports
+      : reportView === "buyers"
+        ? buyerReports
+        : sellerReports;
+  const selectedProduct =
+    productReports.find((item: any) => item.product === selectedProductName) ||
+    productReports[0] ||
+    null;
+  const enabledIndicatorsCount =
+    Object.values(selectedIndicators).filter(Boolean).length;
+  const filteredIndicatorOptions = indicatorOptions.filter((option) =>
+    `${option.label} ${option.description}`
+      .toLowerCase()
+      .includes(indicatorSearch.trim().toLowerCase()),
+  );
+  const toggleIndicator = (id: IndicatorId) => {
+    setSelectedIndicators((current) => ({ ...current, [id]: !current[id] }));
+  };
+
+  const categoryToDraft = (category: CatalogCategory) => ({
+    id: category.id,
+    legacyId: category.legacyId,
+    name: category.name,
+    icon: category.icon,
+    isActive: category.isActive !== false,
+    subcategoriesText: category.subcategories
+      .map((group) => `${group.title}: ${group.items.join("، ")}`)
+      .join("\n"),
+  });
+
+  const startNewCategory = () =>
+    setCategoryDraft({
+      id: `category-${Date.now()}`,
+      legacyId:
+        Math.max(0, ...catalogCategories.map((category) => category.legacyId || 0)) +
+        1,
+      name: "",
+      icon: "📦",
+      isActive: true,
+      subcategoriesText: "زیرگروه اول: مورد ۱، مورد ۲، مورد ۳",
+    });
+
+  const addDraftSubcategory = () => {
+    if (!categoryDraft) return;
+    setCategoryDraft({
+      ...categoryDraft,
+      subcategoriesText: `${categoryDraft.subcategoriesText.trim()}\nزیرگروه جدید: مورد جدید`.trim(),
+    });
+  };
+
+  const addDraftSubcategoryItem = () => {
+    if (!categoryDraft) return;
+    const lines = categoryDraft.subcategoriesText.split("\n");
+    if (lines.length === 0 || !lines[lines.length - 1].trim()) {
+      lines.push("زیرگروه جدید: مورد جدید");
+    } else {
+      lines[lines.length - 1] = `${lines[lines.length - 1]}، مورد جدید`;
+    }
+    setCategoryDraft({
+      ...categoryDraft,
+      subcategoriesText: lines.join("\n"),
+    });
+  };
+
+  const saveCategoryDraft = () => {
+    if (!categoryDraft?.name.trim()) {
+      alert("نام دسته‌بندی را وارد کنید.");
+      return;
+    }
+    const subcategories = categoryDraft.subcategoriesText
+      .split("\n")
+      .map((line, index) => {
+        const [titlePart, itemsPart = ""] = line.split(":");
+        const title = titlePart.trim();
+        if (!title) return null;
+        return {
+          id: `${categoryDraft.id}-sub-${index + 1}`,
+          title,
+          items: itemsPart
+            .split(/[،,]/)
+            .map((item) => item.trim())
+            .filter(Boolean),
+        };
+      })
+      .filter(Boolean) as CatalogCategory["subcategories"];
+
+    const nextCategory: CatalogCategory = {
+      id: categoryDraft.id.trim() || `category-${Date.now()}`,
+      legacyId: Number(categoryDraft.legacyId || catalogCategories.length + 1),
+      name: categoryDraft.name.trim(),
+      icon: categoryDraft.icon.trim() || "📦",
+      isActive: categoryDraft.isActive,
+      subcategories,
+    };
+
+    setCatalogCategories((current) => {
+      const exists = current.some((category) => category.id === nextCategory.id);
+      return exists
+        ? current.map((category) =>
+            category.id === nextCategory.id ? nextCategory : category,
+          )
+        : [...current, nextCategory];
+    });
+    setCategoryDraft(null);
+  };
+
+  const saveCatalogCategories = async () => {
+    setSavingCategories(true);
+    try {
+      const response = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categories: catalogCategories }),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "ذخیره دسته‌بندی‌ها ناموفق بود.");
+      setCatalogCategories(result.categories || catalogCategories);
+      alert(result.message || "دسته‌بندی‌ها ذخیره شدند.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره دسته‌بندی‌ها ناموفق بود.");
+    } finally {
+      setSavingCategories(false);
+    }
+  };
+
+  const clearProductImportPreviewState = () => {
+    universalCrawlCancelledRef.current = true;
+    setProductImportPreview([]);
+    setProductImportCsvDrafts([]);
+    setProductImportLinkDrafts([]);
+    setProductImportPreviewSource("");
+    setProductImportSelectedKeys([]);
+    setUniversalCrawlProgress({
+      running: false,
+      extracted: 0,
+      scannedPages: 0,
+      queuedProducts: 0,
+      queuedPages: 0,
+      message: "",
+    });
+  };
+
+  const useComputerPartsSource = () => {
+    const sourceUrl = computerPartSources.find((entry) => entry.url.trim())?.url.trim() || "";
+    if (!sourceUrl) {
+      alert("ابتدا لینک مرجع قطعات کامپیوتر را وارد و ذخیره کنید.");
+      return;
+    }
+    setProductImportUrl(sourceUrl);
+    setProductImportCategories(["components"]);
+    setProductImportScanMode("full-site");
+    clearProductImportPreviewState();
+    setProductImportMessage("لینک مرجع قطعات در فرم قرار گرفت؛ اکنون «اسکن و پیش‌نمایش» را بزنید.");
+  };
+
+  const importComputerPartsFromSource = async () => {
+    const sourceEntries = computerPartSources
+      .map((entry) => ({ ...entry, url: entry.url.trim() }))
+      .filter((entry) => entry.url && entry.parts.length > 0)
+      .slice(0, 8);
+    const sourceText = serializeComputerPartSourceEntries(sourceEntries);
+    if (!sourceEntries.length) {
+      alert("حداقل یک لینک معتبر و یک نوع محصول برای آن انتخاب کنید.");
+      return;
+    }
+    for (const entry of sourceEntries) {
+      try {
+        new URL(entry.url);
+      } catch {
+        alert(`لینک «${entry.url}» معتبر نیست.`);
+        return;
+      }
+    }
+    setImportingComputerParts(true);
+    setProductImportMessage("");
+    try {
+      await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
+          storeComputerPartsCatalogEnabled: true,
+          storeComputerPartsSourceUrl: sourceText,
+          storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
+        }),
+      });
+
+      const digikalaSources = sourceEntries.filter((entry) =>
+        /(^|\.)digikala\.com$/i.test(new URL(entry.url).hostname.replace(/^www\./i, "")),
+      );
+      const serverSources = sourceEntries.filter((entry) => !digikalaSources.includes(entry));
+      const warnings: string[] = [];
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+      let activeStoreProducts = 0;
+      let scannedProducts = 0;
+      let scannedPages = 0;
+
+      // APIهای دیجی‌کالا IP ورکر Cloudflare را redirect می‌کنند، اما معمولاً در مرورگر
+      // مدیر قابل دسترسی‌اند. هر باکس مستقل و فقط با گروه‌های انتخاب‌شده اسکن می‌شود.
+      for (let sourceIndex = 0; sourceIndex < digikalaSources.length; sourceIndex += 1) {
+        const source = digikalaSources[sourceIndex];
+        const browserParts = source.parts.filter((part) => part !== "cooler");
+        if (source.parts.includes("cooler")) {
+          serverSources.push({ ...source, id: `${source.id}-cooler`, parts: ["cooler"] });
+        }
+        if (!browserParts.length) continue;
+        setProductImportMessage(
+          `در حال خواندن لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} از دیجی‌کالا با ${browserParts.length.toLocaleString("fa-IR")} گروه انتخاب‌شده...`,
+        );
+        const scan = await scanDigikalaComponentsInBrowser({
+          sourceUrl: source.url,
+          partFilters: browserParts,
+          maxProducts: 5_000,
+          maxPagesPerCategory: 45,
+          concurrency: 3,
+          onProgress: (progress) => setProductImportMessage(
+            `لینک ${(sourceIndex + 1).toLocaleString("fa-IR")}: ${progress.message}`,
+          ),
+        });
+        warnings.push(...scan.warnings.map((warning) => `لینک ${sourceIndex + 1}: ${warning}`));
+        if (scan.products.length === 0) {
+          warnings.push(`لینک ${sourceIndex + 1} در مرورگر محصولی نداد؛ روش پشتیبان سرور امتحان می‌شود.`);
+          serverSources.push(source);
+          continue;
+        }
+        scannedProducts += scan.products.length;
+        scannedPages += scan.scannedPages;
+
+        setProductImportMessage(
+          `${scan.products.length.toLocaleString("fa-IR")} محصول از لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} پیدا شد؛ در حال ذخیرهٔ یکپارچهٔ همه محصولات...`,
+        );
+        const response = await fetch("/api/admin/store-products/import-csv", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            products: scan.products,
+            strategy: "merge",
+            priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
+            categoryFilters: ["components", "storage"],
+            sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
+          }),
+        });
+        const result = await readJsonResponse(response, "ثبت یکپارچهٔ محصولات دیجی‌کالا ناموفق بود.");
+        if (!result.success) throw new Error(result.message || "ثبت محصولات دیجی‌کالا ناموفق بود.");
+        created += Number(result.created || 0);
+        updated += Number(result.updated || 0);
+        skipped += Number(result.skipped || 0);
+        activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
+        if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+      }
+
+      if (serverSources.length > 0) {
+        setProductImportMessage("در حال بررسی سایر لینک‌های مرجع...");
+        const response = await fetch("/api/admin/store-products/import-multiple", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sources: serverSources.map((source) => ({ url: source.url, parts: source.parts })),
+            limit: 500,
+            priceMultiplier: productImportPriceMultiplier,
+          }),
+        });
+        const result = await readJsonResponse(response, "درون‌ریزی سایر لینک‌های قطعات ناموفق بود.");
+        if (!result.success) {
+          if (scannedProducts === 0) throw new Error(result.message || "محصول قطعه‌ای از لینک‌ها پیدا نشد.");
+          warnings.push(result.message || "یکی از لینک‌های دیگر خوانده نشد.");
+        } else {
+          created += Number(result.created || 0);
+          updated += Number(result.updated || 0);
+          skipped += Number(result.duplicatesRemoved || 0);
+          activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
+          if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+        }
+      }
+
+      setPlatformFinance((current) => ({
+        ...current,
+        storeComputerPartsCatalogEnabled: true,
+        storeComputerPartsSourceUrl: sourceText,
+        storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
+      }));
+      setProductImportWarnings([...new Set(warnings)].slice(0, 30));
+      setProductImportPreview([]);
+      setProductImportPreviewSource("");
+      const scanText = scannedProducts
+        ? `${scannedProducts.toLocaleString("fa-IR")} محصول قیمت‌دار از ${scannedPages.toLocaleString("fa-IR")} صفحهٔ زیرگروه‌های اصلی دیجی‌کالا خوانده شد. `
+        : "";
+      const message = `${scanText}${created.toLocaleString("fa-IR")} محصول اضافه، ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی و ${skipped.toLocaleString("fa-IR")} مورد تکراری/نامعتبر حذف شد. اکنون ${activeStoreProducts.toLocaleString("fa-IR")} محصول فعال در فروشگاه وجود دارد.`;
+      setProductImportMessage(message);
+      alert(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "درون‌ریزی قطعات کامپیوتر ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setImportingComputerParts(false);
+    }
+  };
+
+  const setProductImportCategoriesAndReset = (categories: string[]) => {
+    setProductImportCategories(categories);
+    clearProductImportPreviewState();
+  };
+
+  const toggleProductImportCategory = (categoryId: string) => {
+    setProductImportCategories((current) =>
+      current.includes(categoryId)
+        ? current.filter((item) => item !== categoryId)
+        : [...current, categoryId],
+    );
+    clearProductImportPreviewState();
+  };
+
+  const togglePriceRefreshReference = (referenceId: string) => {
+    setPriceRefreshReferences((current) =>
+      current.includes(referenceId)
+        ? current.filter((item) => item !== referenceId)
+        : [...current, referenceId],
+    );
+    setPriceRefreshOffset(0);
+  };
+
+  const clearStoreProducts = async () => {
+    if (!confirm("همه محصولات فعلی فروشگاه پاک شوند؟ این کار برای تست درون‌ریزی محصولات جدید است.")) return;
+    setClearingStoreProducts(true);
+    try {
+      const response = await fetch("/api/admin/store-products/clear", {
+        method: "POST",
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "پاک‌سازی محصولات ناموفق بود.");
+      setProductImportPreview([]);
+      setProductImportPreviewSource("");
+      setProductImportSelectedKeys([]);
+      setProductImportMessage(result.message || "محصولات فروشگاه پاک شدند.");
+      alert(result.message || "محصولات فروشگاه پاک شدند.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "پاک‌سازی محصولات ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setClearingStoreProducts(false);
+    }
+  };
+
+  const refreshStorePrices = async () => {
+    if (priceRefreshReferences.length === 0) {
+      alert("حداقل یک مرجع قیمت را انتخاب کنید.");
+      return;
+    }
+    setRefreshingStorePrices(true);
+    setPriceRefreshMessage("");
+    try {
+      const startOffset = priceRefreshOffset;
+      let cursor = startOffset;
+      let remaining = priceRefreshMaxProducts;
+      let totalProducts = 0;
+      let totalChecked = 0;
+      let updated = 0;
+      let unchanged = 0;
+      let notFound = 0;
+      let failed = 0;
+      let hasMore = true;
+      const results: any[] = [];
+      const warnings: string[] = [];
+
+      while (remaining > 0 && hasMore) {
+        setPriceRefreshMessage(`ربات در حال بررسی است؛ ${totalChecked.toLocaleString("fa-IR")} کالا از سقف این نوبت بررسی شده...`);
+        const response = await fetch("/api/admin/store-products/refresh-prices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            references: priceRefreshReferences,
+            maxProducts: remaining,
+            priceMultiplier: priceRefreshMultiplier,
+            onlyActive: true,
+            offset: cursor,
+          }),
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || "به‌روزرسانی قیمت‌ها ناموفق بود.");
+        const checked = Number(result.totalChecked || 0);
+        totalProducts = Number(result.totalProducts || totalProducts);
+        totalChecked += checked;
+        remaining -= checked;
+        updated += Number(result.updated || 0);
+        unchanged += Number(result.unchanged || 0);
+        notFound += Number(result.notFound || 0);
+        failed += Number(result.failed || 0);
+        results.push(...(result.results || []));
+        warnings.push(...(result.warnings || []));
+        // نمایش زندهٔ نتایج هر بچ تا اسکرول خودکار، پیشرفت ربات را نشان دهد.
+        setPriceRefreshResults([...results]);
+        cursor = Number(result.nextOffset || 0);
+        hasMore = Boolean(result.hasMore);
+        if (checked === 0) break;
+      }
+
+      setPriceRefreshOffset(cursor);
+      const checkedFrom = totalChecked ? startOffset + 1 : 0;
+      const checkedTo = startOffset + totalChecked;
+      const progress = totalProducts && totalChecked
+        ? ` کالاهای ${checkedFrom.toLocaleString("fa-IR")} تا ${checkedTo.toLocaleString("fa-IR")} از ${totalProducts.toLocaleString("fa-IR")} بررسی شدند.${hasMore ? " اجرای بعدی از ادامهٔ فهرست است." : " چرخه کامل شد و اجرای بعدی از ابتداست."}`
+        : "";
+      const message = `${updated.toLocaleString("fa-IR")} قیمت تغییر کرد، ${unchanged.toLocaleString("fa-IR")} قیمت دوباره ثبت شد، برای ${notFound.toLocaleString("fa-IR")} کالا قیمت معتبر پیدا نشد و ${failed.toLocaleString("fa-IR")} بررسی خطا داشت.${progress}`;
+      setPriceRefreshMessage(message);
+      setPriceRefreshResults(results);
+      setPriceRefreshWarnings([...new Set(warnings)]);
+      alert(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "به‌روزرسانی قیمت‌ها ناموفق بود.";
+      setPriceRefreshMessage(message);
+      alert(message);
+    } finally {
+      setRefreshingStorePrices(false);
+    }
+  };
+
+  const productPreviewKey = (product: any) =>
+    String(product.selectionKey || `${product.id || ""}|${product.externalSourceUrl || ""}|${product.title || ""}`);
+
+  const toggleProductImportSelection = (selectionKey: string) => {
+    setProductImportSelectedKeys((current) =>
+      current.includes(selectionKey)
+        ? current.filter((item) => item !== selectionKey)
+        : [...current, selectionKey],
+    );
+  };
+
+  const selectAllProductImportPreview = () =>
+    setProductImportSelectedKeys(productImportPreview.map(productPreviewKey));
+
+  const clearProductImportSelection = () => setProductImportSelectedKeys([]);
+
+  const repairProductCsvFile = async () => {
+    if (!productCsvFile) {
+      alert("فایل CSV خروجی Easy Scraper را انتخاب کنید.");
+      return;
+    }
+    setRepairingProductCsv(true);
+    setProductImportMessage("");
+    setProductImportWarnings([]);
+    try {
+      // Let React paint the progress state before processing a larger file locally.
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      const repaired = repairStoreProductCsvBytes(
+        new Uint8Array(await productCsvFile.arrayBuffer()),
+        "digikala-easy-scraper",
+      );
+      setProductImportWarnings(repaired.warnings);
+      if (!repaired.productCount || !repaired.csv) {
+        const details = repaired.warnings.slice(0, 2).join("؛ ");
+        throw new Error(`محصول معتبری برای ساخت CSV اصلاح‌شده پیدا نشد.${details ? ` ${details}` : ""}`);
+      }
+
+      const blob = new Blob([repaired.csv], { type: "text/csv;charset=utf-8" });
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = repairedCsvFileName(productCsvFile.name);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
+      const imageMessage = repaired.imageCount > 0
+        ? ` آدرس تصویر ${repaired.imageCount.toLocaleString("fa-IR")} محصول هم در فایل حفظ شد.`
+        : " در این فایل آدرس تصویری تشخیص داده نشد؛ برای عکس‌دار شدن محصولات، فایل اصلی Easy Scraper باید ستون عکس داشته باشد.";
+      setProductImportMessage(
+        `${repaired.productCount.toLocaleString("fa-IR")} محصول به CSV اصلاح‌شده UTF-8 تبدیل شد${repaired.encoding !== "utf-8" ? `؛ کدگذاری تشخیص‌داده‌شده: ${repaired.encoding}` : ""}.${imageMessage} پردازش روی همین دستگاه انجام شد و فایل به سرور ارسال نشد. برای نمایش محصولات، فایل دانلودشده را دوباره انتخاب و «درون‌ریزی CSV» را بزنید.`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ساخت CSV اصلاح‌شده ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setRepairingProductCsv(false);
+    }
+  };
+
+  const prepareProductCsvPreview = async (file: File) => {
+    // Parsing 3 MB Easy Scraper exports in the browser avoids Cloudflare Worker CPU limits.
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    const decoded = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()));
+    if (!decoded.text.trim()) throw new Error("فایل CSV خالی است یا قابل‌خواندن نیست.");
+
+    const parsed = parseEasyScraperCsv(decoded.text, { sourceLabel: "digikala-easy-scraper" });
+    const categories = normalizeProductImportCategories(productImportCategories);
+    const filteredDrafts = parsed.products.filter((draft) => productMatchesImportCategories(draft, categories));
+    const warnings = [
+      ...(decoded.warning ? [decoded.warning] : []),
+      ...parsed.warnings,
+    ];
+    if (filteredDrafts.length < parsed.products.length) {
+      warnings.push(`${(parsed.products.length - filteredDrafts.length).toLocaleString("fa-IR")} محصول از ${parsed.products.length.toLocaleString("fa-IR")} محصول تشخیص‌داده‌شده با دسته‌های انتخابی تطابق نداشت و فیلتر شد.`);
+    }
+
+    const entries: PreparedCsvImportDraft[] = filteredDrafts.map((draft, index) => ({
+      selectionKey: `csv-${index}|${draft.externalSourceUrl || ""}|${draft.title}`,
+      draft,
+    }));
+    const multiplier = normalizedImportPriceMultiplier(productImportPriceMultiplier);
+    const preview = entries.map((entry, index) => ({
+      ...applyImportPriceMultiplierForPreview(entry.draft, multiplier),
+      id: `csv-${index}`,
+      selectionKey: entry.selectionKey,
+      action: "pending",
+      matchedProduct: null,
+      importCategory: productImportCategoryKey(entry.draft),
+    }));
+
+    return { entries, preview, warnings, parsedCount: parsed.products.length, encoding: decoded.encoding };
+  };
+
+  const runProductCsvImport = async (action: "preview" | "import") => {
+    if (!productCsvFile) {
+      alert("فایل CSV خروجی Easy Scraper را انتخاب کنید.");
+      return;
+    }
+    if (productImportCategories.length === 0) {
+      alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
+      return;
+    }
+    const hasCsvPreview = productImportPreviewSource === "csv" && productImportCsvDrafts.length > 0;
+    if (action === "import" && hasCsvPreview && productImportSelectedKeys.length === 0) {
+      alert("حداقل یک محصول از پیش‌نمایش CSV را برای ورود به سایت انتخاب کنید.");
+      return;
+    }
+
+    setProcessingProductCsv(true);
+    setProductImportMessage("");
+    let completedProducts = 0;
+    let totalSelectedProducts = 0;
+    try {
+      let entries = productImportCsvDrafts;
+      let preview = productImportPreview;
+      let warnings = productImportWarnings;
+      let parsedCount = productImportPreview.length;
+      let encoding = "utf-8";
+      let selectedKeys = productImportSelectedKeys;
+
+      if (action === "preview" || !hasCsvPreview) {
+        const prepared = await prepareProductCsvPreview(productCsvFile);
+        entries = prepared.entries;
+        preview = prepared.preview;
+        warnings = prepared.warnings;
+        parsedCount = prepared.parsedCount;
+        encoding = prepared.encoding;
+        selectedKeys = entries.map((entry) => entry.selectionKey);
+        setProductImportCsvDrafts(entries);
+        setProductImportPreview(preview);
+        setProductImportPreviewSource("csv");
+        setProductImportSelectedKeys(selectedKeys);
+        setProductImportWarnings(warnings);
+        setProductImportScannedUrls([]);
+      }
+
+      if (!entries.length) {
+        const message = parsedCount === 0
+          ? "از فایل CSV محصولی با عنوان و قیمت معتبر تشخیص داده نشد. فایل اصلی را نگه دارید تا ساختار ستون‌ها بررسی شود."
+          : "هیچ محصولی با دسته‌های انتخاب‌شده تطابق ندارد. دسته‌ها را تغییر دهید و دوباره پیش‌نمایش بگیرید.";
+        setProductImportMessage(message);
+        if (action === "import") alert(message);
+        return;
+      }
+
+      const selectionSet = new Set(selectedKeys);
+      const selectedDrafts = entries.filter((entry) => selectionSet.has(entry.selectionKey));
+      if (action === "import" && selectedDrafts.length === 0) {
+        alert("حداقل یک محصول از پیش‌نمایش CSV را برای ورود به سایت انتخاب کنید.");
+        return;
+      }
+
+      if (action === "preview") {
+        const imageCount = entries.filter((entry) => Boolean(entry.draft.imageUrl)).length;
+        const imageText = imageCount > 0
+          ? `${imageCount.toLocaleString("fa-IR")} آدرس تصویر هم پیدا شد.`
+          : "در فایل آدرس تصویر معتبری پیدا نشد.";
+        const finalMessage = `${parsedCount.toLocaleString("fa-IR")} محصول از CSV تشخیص داده شد؛ ${entries.length.toLocaleString("fa-IR")} محصول با دسته‌های انتخابی برای پیش‌نمایش آماده است. ${imageText}${encoding !== "utf-8" ? ` کدگذاری فایل: ${encoding}.` : ""} پردازش فایل روی همین دستگاه انجام شد.`;
+        setProductImportMessage(finalMessage);
+        return;
+      }
+
+      totalSelectedProducts = selectedDrafts.length;
+      const multiplier = normalizedImportPriceMultiplier(productImportPriceMultiplier);
+      setProductImportMessage(
+        `${selectedDrafts.length.toLocaleString("fa-IR")} محصول آماده است؛ در حال ثبت فهرست پردازش‌شده (بدون ارسال فایل خام CSV) ...`,
+      );
+      const response = await fetch("/api/admin/store-products/import-csv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          products: selectedDrafts.map((entry) => entry.draft),
+          strategy: productImportStrategy,
+          priceMultiplier: multiplier,
+          categoryFilters: productImportCategories,
+          sourceLabel: "digikala-easy-scraper",
+        }),
+      });
+      const result = await readJsonResponse(response, "درون‌ریزی CSV ناموفق بود.");
+      if (!result.success) throw new Error(result.message || "درون‌ریزی CSV ناموفق بود.");
+      completedProducts = Number(result.selectedCount || selectedDrafts.length);
+      setProductImportSelectedKeys([]);
+      setProductImportWarnings([...new Set([...warnings, ...(Array.isArray(result.warnings) ? result.warnings : [])])]);
+      const activeStoreText = typeof result.activeStoreProducts === "number"
+        ? ` اکنون ${Number(result.activeStoreProducts).toLocaleString("fa-IR")} محصول فعال در فروشگاه ذخیره شده است.`
+        : "";
+      const imageText = typeof result.imageCount === "number"
+        ? result.imageCount > 0
+          ? ` آدرس تصویر ${Number(result.imageCount).toLocaleString("fa-IR")} محصول هم ثبت شد.`
+          : " در CSV آدرس تصویر معتبری پیدا نشد؛ اگر فایل اصلی ستون w-full src دارد، همان فایل را انتخاب کنید."
+        : "";
+      const finalMessage = `${Number(result.created || 0).toLocaleString("fa-IR")} محصول اضافه شد، ${Number(result.updated || 0).toLocaleString("fa-IR")} مورد به‌روزرسانی شد و ${Number(result.skipped || 0).toLocaleString("fa-IR")} مورد تکراری/نامعتبر نادیده گرفته شد.${imageText}${activeStoreText}`;
+      setProductImportMessage(finalMessage);
+      alert(finalMessage);
+    } catch (error) {
+      const baseMessage = error instanceof Error ? error.message : "درون‌ریزی CSV ناموفق بود.";
+      const partialProgress = completedProducts > 0
+        ? ` تا اینجا ${completedProducts.toLocaleString("fa-IR")} از ${totalSelectedProducts.toLocaleString("fa-IR")} محصول بررسی و ثبت شده است. انتخاب‌ها حفظ شده‌اند؛ با اجرای دوبارهٔ درون‌ریزی، موارد قبلی تکراری نمی‌شوند.`
+        : "";
+      const retryHint = /سقف منابع|بیش از حد سنگین/i.test(baseMessage)
+        ? " اگر پاسخ به دلیل محدودیت منابع نرسیده باشد، تکرار درون‌ریزی با لینک منبع، محصول تکراری ایجاد نمی‌کند."
+        : "";
+      const message = `${baseMessage}${partialProgress}${retryHint}`;
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setProcessingProductCsv(false);
+    }
+  };
+
+  const requestUniversalCrawlBatch = async (urls: string[], discoverSitemap = false) => {
+    const response = await fetch("/api/admin/store-products/crawl-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        urls,
+        discoverSitemap,
+        linkLimit: productImportLimit,
+        categoryFilters: productImportCategories,
+      }),
+    });
+    const result = await readJsonResponse(response, "خواندن این دسته از صفحات ناموفق بود.");
+    if (!result.success) throw new Error(result.message || "خواندن این دسته از صفحات ناموفق بود.");
+    return result;
+  };
+
+  const finalizeUniversalCrawlPreview = (
+    drafts: ImportedStoreProductDraft[],
+    warnings: string[],
+    scannedUrls: string[],
+  ) => {
+    const multiplier = normalizedImportPriceMultiplier(productImportPriceMultiplier);
+    const entries: PreparedCsvImportDraft[] = drafts.slice(0, productImportLimit).map((draft, index) => ({
+      selectionKey: `link-bulk-${index}|${draft.externalSourceUrl || ""}|${draft.title}`,
+      draft,
+    }));
+    const preview = entries.map((entry, index) => ({
+      ...applyImportPriceMultiplierForPreview(entry.draft, multiplier),
+      id: `link-bulk-${index}`,
+      selectionKey: entry.selectionKey,
+      action: "pending",
+      matchedProduct: null,
+      importCategory: productImportCategoryKey(entry.draft),
+    }));
+    setProductImportLinkDrafts(entries);
+    setProductImportPreview(preview);
+    setProductImportPreviewSource("link-bulk");
+    setProductImportSelectedKeys(entries.map((entry) => entry.selectionKey));
+    setProductImportWarnings(warnings.slice(0, 30));
+    setProductImportScannedUrls(scannedUrls.slice(-500));
+    return entries;
+  };
+
+  const runUniversalProductCrawl = async () => {
+    const sourceUrl = normalizedCrawlUrl(productImportUrl);
+    if (!sourceUrl) throw new Error("لینک معتبر http/https وارد کنید.");
+    universalCrawlCancelledRef.current = false;
+    setScanningProductImport(true);
+    setProductImportMessage("");
+    setProductImportWarnings([]);
+    setProductImportScannedUrls([]);
+
+    const pageQueue = [sourceUrl];
+    const productQueue: string[] = [];
+    const seenPages = new Set<string>();
+    const seenProducts = new Set<string>();
+    const draftMap = new Map<string, ImportedStoreProductDraft>();
+    const warnings: string[] = [];
+    const scannedUrls: string[] = [];
+    let initialDiscovery = true;
+    let emptySteps = 0;
+
+    try {
+      while (
+        !universalCrawlCancelledRef.current &&
+        draftMap.size < productImportLimit &&
+        (productQueue.length > 0 || pageQueue.length > 0)
+      ) {
+        const readingProducts = productQueue.length > 0;
+        const queue = readingProducts ? productQueue : pageQueue;
+        const batchSize = readingProducts ? 12 : initialDiscovery ? 1 : 4;
+        const urls: string[] = [];
+        while (queue.length > 0 && urls.length < batchSize) {
+          const candidate = normalizedCrawlUrl(queue.shift() || "");
+          if (!candidate) continue;
+          const seen = readingProducts ? seenProducts : seenPages;
+          if (seen.has(candidate)) continue;
+          seen.add(candidate);
+          urls.push(candidate);
+        }
+        if (!urls.length) continue;
+
+        const discoverSitemap = initialDiscovery && !readingProducts && productImportScanMode === "full-site";
+        const result = await requestUniversalCrawlBatch(urls, discoverSitemap);
+        initialDiscovery = false;
+        warnings.push(...(result.warnings || []));
+        scannedUrls.push(...(result.scannedUrls || urls));
+        const discoveredProductUrls = Array.isArray(result.productUrls) ? result.productUrls : [];
+        const discoveredPageUrls = Array.isArray(result.pageUrls) ? result.pageUrls : [];
+        if (!readingProducts) {
+          if (productImportScanMode === "full-site") {
+            discoveredPageUrls.forEach((url: string) => {
+              const normalized = normalizedCrawlUrl(url);
+              if (normalized && !seenPages.has(normalized) && !pageQueue.includes(normalized)) pageQueue.push(normalized);
+            });
+          }
+          discoveredProductUrls.forEach((url: string) => {
+            const normalized = normalizedCrawlUrl(url);
+            if (normalized && !seenProducts.has(normalized) && !productQueue.includes(normalized)) productQueue.push(normalized);
+          });
+        }
+
+        const batchDrafts = (Array.isArray(result.products) ? result.products : []) as ImportedStoreProductDraft[];
+        // روی صفحهٔ فهرست، نسخهٔ کامل صفحهٔ محصول اولویت دارد. اگر لینک جزئیات
+        // پیدا نشد، دادهٔ کارت فهرست به‌عنوان مسیر پشتیبان نگه داشته می‌شود.
+        const acceptPageDrafts = readingProducts || discoveredProductUrls.length === 0;
+        let added = 0;
+        if (acceptPageDrafts) {
+          for (const draft of batchDrafts) {
+            if (draftMap.size >= productImportLimit) break;
+            if (!draft?.title || Number(draft.price || 0) < 100_000) continue;
+            const key = universalDraftKey(draft);
+            const existing = draftMap.get(key);
+            if (!existing) {
+              draftMap.set(key, draft);
+              added += 1;
+              continue;
+            }
+            const richer = Object.keys(draft.specs || {}).length > Object.keys(existing.specs || {}).length
+              ? draft
+              : existing;
+            const cheaper = Number(draft.price || 0) < Number(existing.price || 0) ? draft : existing;
+            const imageUrls = [
+              ...(richer.imageUrls || (richer.imageUrl ? [richer.imageUrl] : [])),
+              ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
+              ...(draft.imageUrls || (draft.imageUrl ? [draft.imageUrl] : [])),
+            ].filter((url, imageIndex, urls) => Boolean(url) && urls.indexOf(url) === imageIndex).slice(0, 8);
+            draftMap.set(key, {
+              ...richer,
+              price: cheaper.price,
+              originalPrice: cheaper.originalPrice,
+              externalSourceUrl: cheaper.externalSourceUrl,
+              sourceHost: cheaper.sourceHost,
+              imageUrls,
+              imageUrl: imageUrls[0] || richer.imageUrl,
+              specs: { ...(existing.specs || {}), ...(draft.specs || {}) },
+            });
+          }
+        }
+        emptySteps = added === 0 && !discoveredProductUrls.length && !discoveredPageUrls.length
+          ? emptySteps + 1
+          : 0;
+        if (emptySteps >= 8 && !productQueue.length) break;
+
+        const message = `${draftMap.size.toLocaleString("fa-IR")} از ${productImportLimit.toLocaleString("fa-IR")} محصول کامل استخراج شد؛ ${productQueue.length.toLocaleString("fa-IR")} لینک محصول و ${pageQueue.length.toLocaleString("fa-IR")} صفحه در صف است.`;
+        setUniversalCrawlProgress({
+          running: true,
+          extracted: draftMap.size,
+          scannedPages: scannedUrls.length,
+          queuedProducts: productQueue.length,
+          queuedPages: pageQueue.length,
+          message,
+        });
+        setProductImportMessage(message);
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+      }
+
+      const drafts = [...draftMap.values()].slice(0, productImportLimit);
+      if (!drafts.length) {
+        throw new Error("از این منبع محصول قیمت‌دار قابل استفاده‌ای استخراج نشد. لینک مستقیم دسته‌بندی، صفحه محصول یا sitemap را امتحان کنید.");
+      }
+      const entries = finalizeUniversalCrawlPreview(drafts, warnings, scannedUrls);
+      const stoppedText = universalCrawlCancelledRef.current ? " عملیات با درخواست شما متوقف شد." : "";
+      const finalMessage = `${entries.length.toLocaleString("fa-IR")} محصول یکتا با تصویر، قیمت و مشخصات برای پیش‌نمایش آماده شد.${stoppedText}`;
+      setProductImportMessage(finalMessage);
+      setUniversalCrawlProgress((current) => ({ ...current, running: false, message: finalMessage }));
+    } finally {
+      setScanningProductImport(false);
+      setUniversalCrawlProgress((current) => ({ ...current, running: false }));
+    }
+  };
+
+  const importUniversalLinkDrafts = async () => {
+    const selectionSet = new Set(productImportSelectedKeys);
+    const selected = productImportLinkDrafts.filter((entry) => selectionSet.has(entry.selectionKey));
+    if (!selected.length) throw new Error("حداقل یک محصول از پیش‌نمایش را انتخاب کنید.");
+    setApplyingProductImport(true);
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    try {
+      for (let offset = 0; offset < selected.length; offset += 200) {
+        const batch = selected.slice(offset, offset + 200);
+        const response = await fetch("/api/admin/store-products/import-csv", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            products: batch.map((entry) => entry.draft),
+            strategy: productImportStrategy,
+            priceMultiplier: productImportPriceMultiplier,
+            categoryFilters: productImportCategories,
+            sourceLabel: "universal-link-crawler",
+          }),
+        });
+        const result = await readJsonResponse(response, "ثبت این دسته از محصولات استخراج‌شده ناموفق بود.");
+        if (!result.success) throw new Error(result.message || "ثبت این دسته ناموفق بود.");
+        created += Number(result.created || 0);
+        updated += Number(result.updated || 0);
+        skipped += Number(result.skipped || 0);
+        const completed = Math.min(selected.length, offset + batch.length);
+        setProductImportMessage(`${completed.toLocaleString("fa-IR")} از ${selected.length.toLocaleString("fa-IR")} محصول ثبت شد...`);
+      }
+      const message = `${created.toLocaleString("fa-IR")} محصول جدید اضافه شد، ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی و ${skipped.toLocaleString("fa-IR")} مورد تکراری/نامعتبر حذف شد.`;
+      setProductImportMessage(message);
+      setProductImportSelectedKeys([]);
+      alert(message);
+    } finally {
+      setApplyingProductImport(false);
+    }
+  };
+
+  const runProductImport = async (action: "preview" | "import") => {
+    if (!productImportUrl.trim()) {
+      alert("لینک فروشگاه یا صفحه محصول را وارد کنید.");
+      return;
+    }
+    if (productImportCategories.length === 0) {
+      alert("حداقل یک دسته کالا را برای درون‌ریزی انتخاب کنید.");
+      return;
+    }
+    const hasLinkPreviewSelection = (productImportPreviewSource === "link" || productImportPreviewSource === "link-bulk") && productImportPreview.length > 0;
+    if (action === "import" && hasLinkPreviewSelection && productImportSelectedKeys.length === 0) {
+      alert("حداقل یک محصول از پیش‌نمایش را برای ورود به سایت انتخاب کنید.");
+      return;
+    }
+    if (action === "preview" && productImportLimit > 50) {
+      try {
+        await runUniversalProductCrawl();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "استخراج مرحله‌ای ناموفق بود.";
+        setProductImportMessage(message);
+        alert(message);
+      }
+      return;
+    }
+    if (action === "import" && productImportPreviewSource === "link-bulk") {
+      try {
+        await importUniversalLinkDrafts();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "ثبت محصولات استخراج‌شده ناموفق بود.";
+        setProductImportMessage(message);
+        alert(message);
+      }
+      return;
+    }
+    if (action === "preview") setScanningProductImport(true);
+    else setApplyingProductImport(true);
+    setProductImportMessage("");
+    try {
+      const response = await fetch("/api/admin/store-products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: productImportUrl.trim(),
+          limit: productImportLimit,
+          action,
+          strategy: productImportStrategy,
+          scanMode: productImportScanMode,
+          priceMultiplier: productImportPriceMultiplier,
+          categoryFilters: productImportCategories,
+          selectedProductKeys:
+            action === "import" && hasLinkPreviewSelection
+              ? productImportSelectedKeys
+              : undefined,
+        }),
+      });
+      const result = await readJsonResponse(response, "درون‌ریزی ناموفق بود.");
+      if (!result.success) throw new Error(result.message || "درون‌ریزی ناموفق بود.");
+      const nextPreview = result.products || [];
+      setProductImportPreview(nextPreview);
+      setProductImportPreviewSource("link");
+      if (action === "preview") setProductImportSelectedKeys(nextPreview.map(productPreviewKey));
+      else setProductImportSelectedKeys([]);
+      setProductImportWarnings(result.warnings || []);
+      setProductImportScannedUrls(result.scannedUrls || []);
+      const activeStoreText = action === "import" && typeof result.activeStoreProducts === "number"
+        ? ` اکنون ${Number(result.activeStoreProducts).toLocaleString("fa-IR")} محصول فعال در فروشگاه ذخیره شده است.`
+        : "";
+      const finalMessage = `${result.message || "عملیات انجام شد."}${activeStoreText}`;
+      setProductImportMessage(finalMessage);
+      if (action === "import") {
+        alert(finalMessage);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "درون‌ریزی ناموفق بود.";
+      setProductImportMessage(message);
+      alert(message);
+    } finally {
+      setScanningProductImport(false);
+      setApplyingProductImport(false);
+    }
+  };
+
+  return (
+    <div
+      dir="rtl"
+      className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8"
+    >
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+              داشبورد مدیریت پلتفرم (ادمین)
+            </h1>
+            <p className="text-gray-600">
+              کنترل کامل تراکنش‌های امانی، تنظیمات سایت و احراز هویت کاربران.
+            </p>
+          </div>
+          <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg font-bold text-sm border border-purple-200">
+            سطح دسترسی: مدیر کل (Super Admin)
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 gap-4 mb-8 md:grid-cols-2 xl:grid-cols-5">
+          {stats.map((stat, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-r-4 border-r-purple-600"
+            >
+              <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
+              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Sidebar Admin Tabs */}
+          <aside className="md:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 sticky top-24 overflow-hidden">
+              <div className="p-4 bg-gray-900 text-white font-bold text-lg">
+                منوی مدیریت
+              </div>
+              <div className="flex flex-col">
+                <button
+                  onClick={() => setActiveTab("overview")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "overview" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  💰 تراکنش‌های امانی (Escrow)
+                </button>
+                <button
+                  onClick={() => setActiveTab("verifications")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition flex justify-between items-center ${activeTab === "verifications" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  <span>🛡️ تایید هویت کاربران</span>
+                  <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">
+                    {pendingVerifications.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("users")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "users" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  👥 مدیریت خریداران و فروشندگان
+                </button>
+                <button
+                  onClick={() => setActiveTab("sellerScores")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "sellerScores" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  📊 امتیازدهی فروشندگان
+                </button>
+                <button
+                  onClick={() => setActiveTab("reports")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "reports" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  📑 گزارش‌گیری تفکیکی
+                </button>
+                <button
+                  onClick={() => setActiveTab("analytics")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "analytics" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🤖 تحلیل آماری و AI
+                </button>
+                <button
+                  onClick={() => setActiveTab("appearance")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "appearance" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🎨 تنظیمات ظاهر و محتوا
+                </button>
+                <button
+                  onClick={() => setActiveTab("homepage")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "homepage" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🏠 مدیریت صفحه اصلی
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("reverseAuctionPilot");
+                    void loadReverseAuctionDispatch();
+                  }}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "reverseAuctionPilot" ? "bg-emerald-50 text-emerald-700 border-r-4 border-r-emerald-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🚀 مزایده معکوس و جذب فروشنده
+                </button>
+                <button
+                  onClick={() => setActiveTab("storeImport")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "storeImport" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🤖 استخراج‌گر لینک و محصولات
+                </button>
+                <button
+                  onClick={() => setActiveTab("contact")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "contact" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  📞 اطلاعات تماس با ما
+                </button>
+                <button
+                  onClick={() => setActiveTab("support")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "support" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🎧 صفحه و چت پشتیبانی
+                </button>
+                <button
+                  onClick={() => setActiveTab("financial")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "financial" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  💵 تنظیمات مالی و کمیسیون
+                </button>
+                <button
+                  onClick={() => setActiveTab("enamad")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "enamad" ? "bg-blue-50 text-blue-700 border-r-4 border-r-blue-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🛡️ اینماد و مجوزها
+                </button>
+                <button
+                  onClick={() => setActiveTab("socialAuth")}
+                  className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition ${activeTab === "socialAuth" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  🔐 ورود با گوگل و فیسبوک
+                </button>
+                <button
+                  onClick={() => setActiveTab("categories")}
+                  className={`text-right px-5 py-4 text-sm font-bold transition ${activeTab === "categories" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  📂 مدیریت دسته‌بندی‌ها
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Content Area */}
+          <div className="lg:col-span-3 space-y-6">
+            {activeTab === "users" && (
+              <UserManagementPanel initialManagedUsers={initialManagedUsers} />
+            )}
+
+            {/* Seller Scoring & Performance */}
+            {activeTab === "sellerScores" && (
+              <div className="animate-in fade-in duration-300 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="mb-6 border-b border-gray-100 pb-4">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    📊 سلامت و امتیازدهی فروشندگان
+                  </h2>
+                  <p className="mt-2 text-sm leading-7 text-gray-600">
+                    رتبه‌بندی با پنجره ارزیابی ۹۰ روزه، امتیاز تعدیل‌شده نظرات،
+                    کیفیت ارسال، پاسخ‌گویی و انطباق انجام می‌شود. فروشنده
+                    تازه‌وارد تا داده کافی داشته باشد «در حال ارزیابی» می‌ماند.
+                  </p>
+                </div>
+
+                {sellerRankings.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-12 text-center">
+                    <div className="mb-3 text-4xl">📉</div>
+                    <p className="font-bold text-gray-700">
+                      هنوز فروشنده ثبت‌شده‌ای برای ارزیابی وجود ندارد.
+                    </p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      پس از ثبت‌نام فروشنده، متریک‌های او در این بخش دیده
+                      می‌شوند.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {sellerRankings.map(({ seller, rating }) => (
+                      <div
+                        key={seller.id}
+                        className="rounded-2xl border border-gray-200 p-5"
+                      >
+                        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">
+                              {seller.fullName}
+                            </h3>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {seller.categories?.join("، ") ||
+                                "حوزه فعالیت ثبت نشده"}
+                            </p>
+                          </div>
+                          <div className="text-left">
+                            <SellerStars score={rating.finalScore} size="md" />
+                            <p className="mt-1 text-xs text-gray-500">
+                              {rating.label} — اعتبار داده {rating.confidence}%
+                              — امتیاز فنی {rating.finalScore}/۱۰۰
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-center md:grid-cols-5">
+                          <div className="rounded-lg bg-gray-50 p-3">
+                            <p className="font-bold text-gray-900">
+                              {rating.metrics.reliability}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              قابلیت اتکا
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-gray-50 p-3">
+                            <p className="font-bold text-gray-900">
+                              {rating.metrics.fulfilment}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              ارسال
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-gray-50 p-3">
+                            <p className="font-bold text-gray-900">
+                              {rating.metrics.buyerExperience}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              رضایت
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-gray-50 p-3">
+                            <p className="font-bold text-gray-900">
+                              {rating.metrics.trust}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              اعتماد
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-gray-50 p-3">
+                            <p className="font-bold text-gray-900">
+                              {rating.metrics.experience}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              سابقه
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-600">
+                          <span>
+                            نقص سفارش: <b>{rating.rates.defectRate}%</b>
+                          </span>
+                          <span>
+                            لغو فروشنده: <b>{rating.rates.cancellationRate}%</b>
+                          </span>
+                          <span>
+                            ارسال به‌موقع:{" "}
+                            <b>{rating.rates.onTimeShippingRate}%</b>
+                          </span>
+                          <span>
+                            رهگیری معتبر:{" "}
+                            <b>{rating.rates.validTrackingRate}%</b>
+                          </span>
+                          <span>
+                            پاسخ ۲۴ساعته: <b>{rating.rates.responseRate24h}%</b>
+                          </span>
+                        </div>
+                        {rating.minimumDataMessage && (
+                          <p className="mt-4 rounded-lg bg-blue-50 p-3 text-xs leading-6 text-blue-800">
+                            {rating.minimumDataMessage}
+                          </p>
+                        )}
+                        {rating.reasons.length > 0 && (
+                          <p className="mt-3 rounded-lg bg-red-50 p-3 text-xs leading-6 text-red-700">
+                            هشدار: {rating.reasons.join("، ")}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reports */}
+            {activeTab === "reports" && (
+              <div className="animate-in fade-in duration-300 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="mb-6 flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 lg:flex-row lg:items-end">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      📑 گزارش‌گیری تفکیکی
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-600">
+                      گزارش واقعی بر اساس درخواست‌ها، سفارش‌ها، پیشنهادها، کیف
+                      پول و وضعیت‌های ثبت‌شده در دیتابیس OptiBid.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      ["products", "۱- کالا"],
+                      ["buyers", "۲- خریدهای خریدار"],
+                      ["sellers", "۳- فروش‌های فروشنده"],
+                    ].map(([id, label]) => (
+                      <button
+                        key={id}
+                        onClick={() =>
+                          setReportView(id as "products" | "buyers" | "sellers")
+                        }
+                        className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${reportView === id ? "border-purple-600 bg-purple-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-purple-50"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-6 grid gap-3 md:grid-cols-4">
+                  <div className="rounded-2xl bg-purple-50 p-4 text-center">
+                    <p className="text-2xl font-bold text-purple-700">
+                      {adminReports?.summary?.productsCount?.toLocaleString(
+                        "fa-IR",
+                      ) || 0}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      کالا/عنوان تحلیل‌شده
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-blue-50 p-4 text-center">
+                    <p className="text-2xl font-bold text-blue-700">
+                      {adminReports?.summary?.buyersCount?.toLocaleString(
+                        "fa-IR",
+                      ) || 0}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">خریدار</p>
+                  </div>
+                  <div className="rounded-2xl bg-green-50 p-4 text-center">
+                    <p className="text-2xl font-bold text-green-700">
+                      {adminReports?.summary?.sellersCount?.toLocaleString(
+                        "fa-IR",
+                      ) || 0}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">فروشنده</p>
+                  </div>
+                  <div className="rounded-2xl bg-amber-50 p-4 text-center">
+                    <p className="text-2xl font-bold text-amber-700">
+                      {adminReports?.summary?.activeRequests?.toLocaleString(
+                        "fa-IR",
+                      ) || 0}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">درخواست فعال</p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                  <table className="w-full min-w-[920px] text-right text-sm">
+                    <thead className="bg-gray-100 text-xs text-gray-600">
+                      {reportView === "products" ? (
+                        <tr>
+                          <th className="p-3">کالا</th>
+                          <th className="p-3">دسته</th>
+                          <th className="p-3">درخواست</th>
+                          <th className="p-3">فعال</th>
+                          <th className="p-3">پیشنهاد</th>
+                          <th className="p-3">فروش موفق</th>
+                          <th className="p-3">ناموفق/مرجوع</th>
+                          <th className="p-3">فروش کل</th>
+                          <th className="p-3">میانگین بودجه</th>
+                        </tr>
+                      ) : reportView === "buyers" ? (
+                        <tr>
+                          <th className="p-3">خریدار</th>
+                          <th className="p-3">ایمیل</th>
+                          <th className="p-3">درخواست‌ها</th>
+                          <th className="p-3">درخواست فعال</th>
+                          <th className="p-3">خرید موفق</th>
+                          <th className="p-3">ناموفق</th>
+                          <th className="p-3">مبلغ خرید</th>
+                          <th className="p-3">نرخ موفقیت</th>
+                          <th className="p-3">دیدگاه</th>
+                        </tr>
+                      ) : (
+                        <tr>
+                          <th className="p-3">فروشنده</th>
+                          <th className="p-3">ایمیل</th>
+                          <th className="p-3">پیشنهادها</th>
+                          <th className="p-3">پذیرفته‌شده</th>
+                          <th className="p-3">فروش موفق</th>
+                          <th className="p-3">ناموفق</th>
+                          <th className="p-3">فروش ناخالص</th>
+                          <th className="p-3">درآمد خالص</th>
+                          <th className="p-3">امتیاز</th>
+                        </tr>
+                      )}
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {reportRows.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={9}
+                            className="p-8 text-center text-gray-500"
+                          >
+                            داده‌ای برای این گزارش وجود ندارد.
+                          </td>
+                        </tr>
+                      ) : reportView === "products" ? (
+                        productReports.map((item: any) => (
+                          <tr key={item.product} className="hover:bg-gray-50">
+                            <td className="p-3 font-bold text-gray-900">
+                              {item.product}
+                            </td>
+                            <td className="p-3">{item.category}</td>
+                            <td className="p-3">{item.requestsCount}</td>
+                            <td className="p-3">{item.openRequests}</td>
+                            <td className="p-3">{item.offersCount}</td>
+                            <td className="p-3 text-green-700">
+                              {item.completedOrders}
+                            </td>
+                            <td className="p-3 text-red-600">
+                              {item.failedOrders}
+                            </td>
+                            <td className="p-3 font-bold">
+                              {moneyLabel(item.totalSalesAmount)}
+                            </td>
+                            <td className="p-3">
+                              {moneyLabel(item.averageRequestedBudget)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : reportView === "buyers" ? (
+                        buyerReports.map((item: any) => (
+                          <tr key={item.id} className="hover:bg-gray-50">
+                            <td className="p-3 font-bold text-gray-900">
+                              {item.name}
+                            </td>
+                            <td className="p-3" dir="ltr">
+                              {item.email}
+                            </td>
+                            <td className="p-3">{item.requestsCount}</td>
+                            <td className="p-3">{item.activeRequests}</td>
+                            <td className="p-3 text-green-700">
+                              {item.completedPurchases}
+                            </td>
+                            <td className="p-3 text-red-600">
+                              {item.failedPurchases}
+                            </td>
+                            <td className="p-3 font-bold">
+                              {moneyLabel(item.totalPurchaseAmount)}
+                            </td>
+                            <td className="p-3">
+                              {percentLabel(item.successRate)}
+                            </td>
+                            <td className="p-3">
+                              داده: {item.reviewsGiven} / گرفته:{" "}
+                              {item.reviewsReceived}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        sellerReports.map((item: any) => (
+                          <tr key={item.id} className="hover:bg-gray-50">
+                            <td className="p-3 font-bold text-gray-900">
+                              {item.name}
+                            </td>
+                            <td className="p-3" dir="ltr">
+                              {item.email}
+                            </td>
+                            <td className="p-3">{item.offersCount}</td>
+                            <td className="p-3">{item.acceptedOffers}</td>
+                            <td className="p-3 text-green-700">
+                              {item.completedSales}
+                            </td>
+                            <td className="p-3 text-red-600">
+                              {item.failedSales}
+                            </td>
+                            <td className="p-3 font-bold">
+                              {moneyLabel(item.totalSalesAmount)}
+                            </td>
+                            <td className="p-3">
+                              {moneyLabel(item.netSellerRevenue)}
+                            </td>
+                            <td className="p-3">
+                              <SellerStars score={item.ratingScore} size="sm" />
+                              <span className="mr-2 text-xs text-gray-500">
+                                {item.ratingLabel}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Analytics */}
+            {activeTab === "analytics" && (
+              <div className="animate-in fade-in duration-300 space-y-6">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      🤖 تحلیل جامع آماری و پیش‌بینی AI
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-600">
+                      این بخش فعلاً فقط برای ادمین است و بعداً می‌تواند به‌عنوان
+                      بخش Pro برای کاربران فعال شود. شاخص‌ها از داده واقعی
+                      درخواست‌ها، پیشنهادها و سفارش‌ها محاسبه می‌شوند؛ اگر داده
+                      تاریخی کافی نباشد، خروجی تکنیکال «داده ناکافی» نمایش داده
+                      می‌شود.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <AnalyticsList
+                      title="آیتم‌های در حال رشد برای خرید"
+                      items={analytics.growingItems}
+                      value={(item: any) =>
+                        `${percentLabel(item.demandTrendPercent)} رشد تقاضا`
+                      }
+                    />
+                    <AnalyticsList
+                      title="آیتم‌های با بیشترین درخواست"
+                      items={analytics.mostRequestedItems}
+                      value={(item: any) =>
+                        `${item.requestsCount.toLocaleString("fa-IR")} درخواست`
+                      }
+                    />
+                    <AnalyticsList
+                      title="بیشترین فروش موفق"
+                      items={analytics.highestRevenueItems}
+                      value={(item: any) => moneyLabel(item.totalSalesAmount)}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex flex-col justify-between gap-4 border-b pb-4 xl:flex-row xl:items-center">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        📈 نمودار تحلیلی کالاها
+                      </h3>
+                      <p className="mt-1 text-xs leading-6 text-gray-500">
+                        مثل صفحه تحلیل کالا، روی هر کالا کلیک کنید و نمودار
+                        قیمت، تقاضا، RSI و MACD را به‌صورت خطی، میله‌ای یا
+                        دایره‌ای ببینید.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        ["line", "خطی"],
+                        ["bar", "میله‌ای"],
+                        ["pie", "دایره‌ای"],
+                      ].map(([id, label]) => (
+                        <button
+                          key={id}
+                          onClick={() =>
+                            setChartMode(id as "line" | "bar" | "pie")
+                          }
+                          className={`rounded-xl border px-4 py-2 text-xs font-bold transition ${chartMode === id ? "border-[#003b5c] bg-[#003b5c] text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-blue-50"}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setIndicatorPanelOpen((open) => !open)}
+                          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 transition hover:bg-amber-100"
+                        >
+                          Indicators · {enabledIndicatorsCount} فعال
+                        </button>
+                        {indicatorPanelOpen && (
+                          <div className="absolute left-0 top-11 z-20 w-80 rounded-2xl border border-gray-200 bg-white p-3 text-right shadow-2xl">
+                            <div className="mb-3 flex items-center justify-between border-b pb-2">
+                              <b className="text-sm text-gray-800">
+                                افزودن اندیکاتور
+                              </b>
+                              <button
+                                type="button"
+                                onClick={() => setIndicatorPanelOpen(false)}
+                                className="text-gray-400 hover:text-gray-700"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <input
+                              value={indicatorSearch}
+                              onChange={(e) =>
+                                setIndicatorSearch(e.target.value)
+                              }
+                              placeholder="جستجوی اندیکاتور..."
+                              className="mb-3 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#00a8e8]"
+                            />
+                            <div className="max-h-80 space-y-1 overflow-y-auto">
+                              {filteredIndicatorOptions.map((option) => (
+                                <label
+                                  key={option.id}
+                                  className="flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2 text-sm transition hover:bg-gray-50"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedIndicators[option.id]}
+                                    onChange={() => toggleIndicator(option.id)}
+                                    className="mt-1"
+                                  />
+                                  <span>
+                                    <span
+                                      className="block font-bold text-gray-800"
+                                      dir="ltr"
+                                    >
+                                      {option.label}
+                                    </span>
+                                    <span className="block text-xs leading-5 text-gray-500">
+                                      {option.description}
+                                    </span>
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedIndicators(defaultIndicators)
+                              }
+                              className="mt-3 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200"
+                            >
+                              بازنشانی اندیکاتورها
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-5 xl:grid-cols-12">
+                    <aside className="xl:col-span-4">
+                      <div className="max-h-[440px] space-y-2 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                        {productReports.length === 0 ? (
+                          <p className="p-6 text-center text-sm text-gray-500">
+                            هنوز کالایی برای نمودار وجود ندارد.
+                          </p>
+                        ) : (
+                          productReports.map((item: any) => (
+                            <button
+                              key={item.product}
+                              onClick={() =>
+                                setSelectedProductName(item.product)
+                              }
+                              className={`w-full rounded-xl border p-3 text-right transition ${selectedProduct?.product === item.product ? "border-[#00a8e8] bg-blue-50 shadow-sm" : "border-gray-200 bg-white hover:border-blue-200"}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="line-clamp-1 font-bold text-gray-900">
+                                  {item.product}
+                                </span>
+                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
+                                  {item.dataPoints} نقطه
+                                </span>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500">
+                                <span>{item.requestsCount} درخواست</span>
+                                <span>{item.offersCount} پیشنهاد</span>
+                                <span>
+                                  {moneyLabel(item.averageRequestedBudget)}
+                                </span>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </aside>
+                    <div className="xl:col-span-8">
+                      {selectedProduct ? (
+                        <ProductAnalysisChart
+                          product={selectedProduct}
+                          mode={chartMode}
+                          indicators={selectedIndicators}
+                          moneyLabel={moneyLabel}
+                          percentLabel={percentLabel}
+                        />
+                      ) : (
+                        <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
+                          یک کالا را برای مشاهده نمودار انتخاب کنید.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-center">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        تحلیل تکنیکال واقعی هر کالا
+                      </h3>
+                      <p className="mt-1 text-xs text-gray-500">
+                        RSI، MACD و پیش‌بینی افزایش درخواست/قیمت از سری زمانی
+                        قیمت‌های واقعی درخواست، پیشنهاد و سفارش استخراج می‌شود.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
+                      آماده برای نسخه Pro
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                    <table className="w-full min-w-[1120px] text-right text-sm">
+                      <thead className="bg-gray-100 text-xs text-gray-600">
+                        <tr>
+                          <th className="p-3">کالا</th>
+                          <th className="p-3">داده</th>
+                          <th className="p-3">رشد تقاضا</th>
+                          <th className="p-3">روند قیمت</th>
+                          <th className="p-3">RSI</th>
+                          <th className="p-3">MACD</th>
+                          <th className="p-3">سیگنال تکنیکال</th>
+                          <th className="p-3">پیش‌بینی AI تقاضا</th>
+                          <th className="p-3">پیش‌بینی AI قیمت</th>
+                          <th className="p-3">اعتماد</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {analytics.technicalItems.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={10}
+                              className="p-8 text-center text-gray-500"
+                            >
+                              هنوز کالایی برای تحلیل وجود ندارد.
+                            </td>
+                          </tr>
+                        ) : (
+                          analytics.technicalItems.map((item: any) => (
+                            <tr key={item.product} className="hover:bg-gray-50">
+                              <td className="p-3 font-bold text-gray-900">
+                                {item.product}
+                                <p className="mt-1 text-xs font-normal text-gray-500">
+                                  {item.category}
+                                </p>
+                              </td>
+                              <td className="p-3">
+                                {item.dataPoints.toLocaleString("fa-IR")} نقطه
+                              </td>
+                              <td
+                                className={`p-3 font-bold ${item.demandTrendPercent >= 0 ? "text-green-700" : "text-red-600"}`}
+                              >
+                                {percentLabel(item.demandTrendPercent)}
+                              </td>
+                              <td
+                                className={`p-3 font-bold ${item.priceTrendPercent >= 0 ? "text-green-700" : "text-red-600"}`}
+                              >
+                                {percentLabel(item.priceTrendPercent)}
+                              </td>
+                              <td className="p-3">
+                                {item.rsi === null
+                                  ? "داده ناکافی"
+                                  : item.rsi.toLocaleString("fa-IR")}
+                              </td>
+                              <td className="p-3" dir="ltr">
+                                {item.macd
+                                  ? `${item.macd.macd} / ${item.macd.signal} / ${item.macd.histogram}`
+                                  : "داده ناکافی"}
+                              </td>
+                              <td className="p-3">
+                                <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                                  {item.technicalSignal}
+                                </span>
+                              </td>
+                              <td className="p-3">{item.aiDemandForecast}</td>
+                              <td className="p-3">{item.aiPriceForecast}</td>
+                              <td className="p-3">
+                                {percentLabel(item.aiConfidence)}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 1. Appearance Settings */}
+            {activeTab === "appearance" && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-in fade-in duration-300">
+                <h2 className="font-bold text-xl mb-6 border-b pb-4">
+                  🎨 تنظیمات ظاهر و محتوای سایت
+                </h2>
+                <div className="space-y-6">
+                  {/* Logo Upload */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-2">
+                      بارگذاری لوگوی سایت
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400">
+                        تصویر
+                      </div>
+                      <div>
+                        <input
+                          type="file"
+                          className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                          فرمت‌های مجاز: PNG, SVG (حداکثر ۲ مگابایت)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Slogan */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-2">
+                      شعار اصلی سایت (Hero Slogan)
+                    </label>
+                    <input
+                      type="text"
+                      value={siteSlogan}
+                      onChange={(e) => setSiteSlogan(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-2">
+                      متن زیرین شعار اصلی (Sub-slogan)
+                    </label>
+                    <textarea
+                      value={siteSubSlogan}
+                      onChange={(e) => setSiteSubSlogan(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 outline-none"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Typography */}
+                  <div className="grid md:grid-cols-2 gap-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-2">
+                        نوع فونت سایت (Font Family)
+                      </label>
+                      <select
+                        value={fontFamily}
+                        onChange={(e) => setFontFamily(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+                      >
+                        <option value="Vazir">وزیرمتن (Vazirmatn)</option>
+                        <option value="YekanBakh">یکان بخ (Yekan Bakh)</option>
+                        <option value="IRANSans">ایران سنس (IRANSans)</option>
+                        <option value="Tahoma">تاهوما (Tahoma)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-2">
+                        اندازه پایه فونت (Base Font Size)
+                      </label>
+                      <select
+                        value={fontSize}
+                        onChange={(e) => setFontSize(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+                      >
+                        <option value="14">کوچک (14px)</option>
+                        <option value="16">متوسط / استاندارد (16px)</option>
+                        <option value="18">بزرگ (18px)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      onClick={() => handleSave("ظاهر و محتوا")}
+                      className="bg-purple-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-purple-700 transition"
+                    >
+                      ذخیره تغییرات ظاهر
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "enamad" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <section className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+                  <div className="mb-5 border-b border-blue-100 pb-4">
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">اعتماد و مجوزها</span>
+                    <h2 className="mt-3 text-2xl font-black text-slate-900">لوگوی نماد اعتماد الکترونیکی</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">می‌توانید کد کامل دریافتی از اینماد به شکل &lt;a&gt;&lt;img&gt;&lt;/a&gt; را مستقیماً در کادر لینک اعتبارسنجی بچسبانید؛ سیستم لینک اعتبار و تصویر لوگو را خودکار استخراج می‌کند. ورود جداگانه لینک‌ها یا آپلود فایل نیز ممکن است.</p>
+                  </div>
+
+                  <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                    <span><b className="block text-sm text-slate-900">نمایش اینماد در فوتر سایت</b><span className="mt-1 block text-xs text-slate-500">تا قبل از تکمیل لوگو و لینک می‌توانید این گزینه را خاموش نگه دارید.</span></span>
+                    <input type="checkbox" checked={Boolean(platformFinance.enamadEnabled)} onChange={(event) => updatePlatformFinanceField("enamadEnabled", event.target.checked)} className="h-5 w-5" />
+                  </label>
+
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <label className="text-sm font-black text-slate-700">عنوان نمایشی
+                      <input value={platformFinance.enamadTitle || ""} onChange={(event) => updatePlatformFinanceField("enamadTitle", event.target.value)} placeholder="نماد اعتماد الکترونیکی" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal" />
+                    </label>
+                    <label className="text-sm font-black text-slate-700">لینک اعتبارسنجی یا کد کامل اینماد
+                      <textarea dir="ltr" rows={3} value={platformFinance.enamadVerificationUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadVerificationUrl", event.target.value)} placeholder="کد کامل <a ...><img ...></a> یا https://trustseal.enamad.ir/..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
+                    </label>
+                    <label className="text-sm font-black text-slate-700 md:col-span-2">آدرس رسمی تصویر لوگو (اختیاری)
+                      <textarea dir="ltr" rows={2} value={platformFinance.enamadLogoUrl || ""} onChange={(event) => updatePlatformFinanceField("enamadLogoUrl", event.target.value)} placeholder="https://trustseal.enamad.ir/logo.aspx?... یا همان کد کامل اینماد" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-normal" />
+                      <span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">اگر کد کامل را در کادر بالا وارد کرده‌اید، این کادر می‌تواند خالی باشد. فایل آپلودی نسبت به آدرس تصویر اولویت دارد.</span>
+                    </label>
+                    <label className="text-sm font-black text-slate-700 md:col-span-2">آپلود فایل لوگو
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setEnamadLogoFile(event.target.files?.[0] || null); setRemoveUploadedEnamadLogo(false); }} className="mt-2 block w-full rounded-xl border border-dashed border-blue-300 bg-blue-50 px-4 py-4 text-sm font-normal" />
+                    </label>
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-4 rounded-2xl bg-slate-50 p-4 sm:flex-row sm:items-center">
+                    <div className="grid h-36 w-36 shrink-0 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-3">
+                      {enamadLogoFile ? (
+                        <span className="text-center text-xs font-bold text-blue-700">فایل جدید: {enamadLogoFile.name}</span>
+                      ) : platformFinance.enamadLogoImage && !removeUploadedEnamadLogo ? (
+                        <img src={productImageUrl(platformFinance.enamadLogoImage)} alt="پیش‌نمایش لوگوی اینماد" className="max-h-full max-w-full object-contain" />
+                      ) : platformFinance.enamadLogoUrl ? (
+                        <img src={platformFinance.enamadLogoUrl} alt="پیش‌نمایش لوگوی اینماد" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <span className="text-center text-xs text-slate-400">هنوز لوگویی ثبت نشده است</span>
+                      )}
+                    </div>
+                    <div className="text-xs leading-6 text-slate-600">
+                      <b className="block text-sm text-slate-900">پیش‌نمایش فوتر</b>
+                      <span>فرمت‌های مجاز: JPG، PNG و WebP؛ حداکثر ۵ مگابایت.</span>
+                      {platformFinance.enamadLogoImage && (
+                        <label className="mt-3 flex items-center gap-2 font-bold text-red-600"><input type="checkbox" checked={removeUploadedEnamadLogo} onChange={(event) => setRemoveUploadedEnamadLogo(event.target.checked)} /> حذف فایل آپلودشده فعلی</label>
+                      )}
+                    </div>
+                  </div>
+
+                  <button type="button" disabled={savingEnamad} onClick={saveEnamadSettings} className="mt-5 rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:bg-slate-300">{savingEnamad ? "در حال ذخیره..." : "ذخیره و نمایش اینماد"}</button>
+                </section>
+              </div>
+            )}
+
+            {activeTab === "reverseAuctionPilot" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
+                  <div className="mb-5 border-b border-emerald-100 pb-4">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">برنامه ماه اول</span>
+                    <h2 className="mt-3 text-2xl font-black text-slate-900">راه‌اندازی مرحله‌ای مزایده معکوس</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">هر قابلیت مستقل است. ابتدا گزینه دلخواه را فعال کنید و سپس دکمه ذخیره را بزنید.</p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {[
+                      ["reverseAuctionProductCtaEnabled", "ورودی مزایده در صفحه اصلی و صفحه محصول", "بنر مزایده در صفحه اصلی و دکمه دریافت پیشنهاد در صفحات محصول نمایش داده می‌شود."],
+                      ["reverseAuctionQuickRequestEnabled", "فرم سریع و ازپیش‌پرشده", "مدل، بودجه و توضیح محصول به فرم درخواست خرید منتقل می‌شود."],
+                      ["reverseAuctionFreeSellerOffersEnabled", "پیشنهاد رایگان فروشندگان", "ثبت و ویرایش پیشنهاد برای فروشنده رایگان اعلام می‌شود."],
+                      ["reverseAuctionManualDispatchEnabled", "ارجاع دستی درخواست به فروشندگان", "ادمین درخواست‌های مهم را مستقیماً برای فروشندگان منتخب ارسال می‌کند."],
+                      ["reverseAuctionMinimumOffersEnabled", "هدف حداقل پیشنهاد برای هر درخواست", "پیشرفت رسیدن هر درخواست معتبر به تعداد هدف پیشنهادها کنترل می‌شود."],
+                    ].map(([key, title, description]) => {
+                      const enabled = Boolean((platformFinance as any)[key]);
+                      return (
+                        <label key={key} className={`flex cursor-pointer items-start justify-between gap-4 rounded-2xl border p-4 ${enabled ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+                          <span>
+                            <b className="block text-sm text-slate-900">{title}</b>
+                            <span className="mt-1 block text-xs leading-6 text-slate-500">{description}</span>
+                          </span>
+                          <input type="checkbox" checked={enabled} onChange={(event) => updatePlatformFinanceField(key, event.target.checked)} className="mt-1 h-5 w-5" />
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {platformFinance.reverseAuctionMinimumOffersEnabled && (
+                    <label className="mt-4 block max-w-xs text-sm font-black text-slate-700">
+                      تعداد هدف پیشنهاد برای هر درخواست
+                      <input type="number" min="1" max="10" value={platformFinance.reverseAuctionMinimumOffersCount} onChange={(event) => updatePlatformFinanceField("reverseAuctionMinimumOffersCount", Math.max(1, Math.min(10, Number(event.target.value || 3))))} className="mt-2 w-full rounded-xl border border-emerald-200 px-4 py-3" />
+                    </label>
+                  )}
+                  <button type="button" disabled={savingReverseAuctionPilot} onClick={saveReverseAuctionPilot} className="mt-5 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:bg-slate-300">
+                    {savingReverseAuctionPilot ? "در حال ذخیره..." : "ذخیره تنظیمات ماه اول"}
+                  </button>
+                </section>
+
+                {platformFinance.reverseAuctionManualDispatchEnabled && (
+                  <section className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+                    <h3 className="text-lg font-black text-slate-900">ارجاع دستی درخواست به فروشندگان منتخب</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-500">یک درخواست باز را انتخاب کنید، فروشندگان مناسب را تیک بزنید و اعلان مستقیم بفرستید.</p>
+                    <select value={dispatchRequestId} onChange={(event) => { setDispatchRequestId(Number(event.target.value)); const selected = dispatchData.requests.find((item) => item.id === Number(event.target.value)); setDispatchSellerIds(selected?.manualSellerIds || []); }} className="mt-4 w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm">
+                      <option value={0}>انتخاب درخواست باز</option>
+                      {dispatchData.requests.map((request) => <option key={request.id} value={request.id}>{request.title} — {request.offersCount.toLocaleString("fa-IR")} پیشنهاد</option>)}
+                    </select>
+                    <div className="mt-4 grid max-h-72 gap-2 overflow-y-auto md:grid-cols-2">
+                      {dispatchData.sellers.map((seller) => {
+                        const checked = dispatchSellerIds.includes(seller.id);
+                        return (
+                          <label key={seller.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${checked ? "border-blue-300 bg-blue-50" : "border-slate-200"}`}>
+                            <input type="checkbox" checked={checked} onChange={() => setDispatchSellerIds((current) => checked ? current.filter((id) => id !== seller.id) : [...current, seller.id])} className="mt-1" />
+                            <span><b className="block text-sm">{seller.fullName}</b><span className="text-[11px] text-slate-500">{seller.categories?.join("، ") || "بدون دسته"} {seller.city ? `· ${seller.city}` : ""}</span></span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <button type="button" disabled={dispatchingRequest} onClick={dispatchRequestToSellers} className="mt-4 rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white disabled:bg-slate-300">{dispatchingRequest ? "در حال ارسال..." : "ارسال درخواست برای فروشندگان منتخب"}</button>
+                  </section>
+                )}
+
+                {platformFinance.reverseAuctionMinimumOffersEnabled && dispatchData.requests.length > 0 && (
+                  <section className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
+                    <h3 className="text-lg font-black text-slate-900">پایش هدف پیشنهادها</h3>
+                    <div className="mt-4 space-y-2">
+                      {dispatchData.requests.slice(0, 20).map((request) => {
+                        const target = Number(request.targetOffers || platformFinance.reverseAuctionMinimumOffersCount || 3);
+                        const complete = request.offersCount >= target;
+                        return <div key={request.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 text-sm"><span className="truncate font-bold">{request.title}</span><span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${complete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{request.offersCount.toLocaleString("fa-IR")} از {target.toLocaleString("fa-IR")}</span></div>;
+                      })}
+                    </div>
+                  </section>
+                )}
+              </div>
+            )}
+
+            {activeTab === "storeImport" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold">🤖 استخراج‌گر داخلی محصولات OptiBid</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-500">
+                      بدون افزونه و بدون Easy Scraper، لینک یک محصول، صفحهٔ دسته‌بندی یا سایت‌مپ را بدهید؛ عنوان، مشخصات فنی، قیمت، موجودی و تصاویر استخراج می‌شوند و پس از پیش‌نمایش به فروشگاه اضافه خواهند شد.
+                    </p>
+                  </div>
+
+                  <div className="mb-6 overflow-hidden rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-950 via-blue-950 to-cyan-900 p-5 text-white shadow-xl sm:p-6">
+                    <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+                      <div className="max-w-2xl">
+                        <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-black text-cyan-100 ring-1 ring-white/15">
+                          استخراج مستقیم از لینک — بدون نیاز به افزونه مرورگر
+                        </span>
+                        <h3 className="mt-4 text-xl font-black sm:text-2xl">لینک را وارد کنید؛ بقیه کارها با استخراج‌گر OptiBid</h3>
+                        <p className="mt-2 text-sm leading-7 text-blue-100">
+                          ابتدا «استخراج و پیش‌نمایش» را بزنید. محصولی بدون تأیید شما ثبت نمی‌شود و موارد تکراری بر اساس لینک و مدل دقیق به‌روزرسانی می‌شوند.
+                        </p>
+                        <p className="mt-2 rounded-xl bg-cyan-300/10 px-3 py-2 text-xs font-bold leading-6 text-cyan-100 ring-1 ring-cyan-200/20">
+                          استخراج‌گر عمومی فعال است: لینک هر فروشگاه، دسته‌بندی، صفحه محصول یا sitemap را وارد کنید؛ تا ۱۰٬۰۰۰ محصول به‌صورت مرحله‌ای خوانده و موارد تکراری ادغام می‌شوند. ایمالز، ترب و دیجی‌کالا نیز پردازش اختصاصی دارند.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold sm:grid-cols-4 lg:w-[390px] lg:grid-cols-2">
+                        {[
+                          ["🏷️", "عنوان و برند"],
+                          ["🧾", "مشخصات فنی"],
+                          ["💰", "قیمت و موجودی"],
+                          ["🖼️", "تا ۸ تصویر"],
+                        ].map(([icon, label]) => (
+                          <div key={label} className="rounded-2xl bg-white/10 px-3 py-3 ring-1 ring-white/10">
+                            <span className="block text-xl">{icon}</span>
+                            <span className="mt-1 block">{label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px_150px]">
+                      <label className="text-xs font-black text-blue-100">
+                        لینک محصول، دسته‌بندی یا sitemap
+                        <input
+                          type="url"
+                          value={productImportUrl}
+                          onChange={(event) => {
+                            setProductImportUrl(event.target.value);
+                            if (productImportPreviewSource === "link") clearProductImportPreviewState();
+                          }}
+                          placeholder="https://example.com/product/..."
+                          className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-4 text-left text-sm font-normal text-slate-900 outline-none ring-cyan-300 focus:ring-2"
+                          dir="ltr"
+                        />
+                      </label>
+                      <label className="text-xs font-black text-blue-100">
+                        محدوده استخراج
+                        <select
+                          value={productImportScanMode}
+                          onChange={(event) => setProductImportScanMode(event.target.value === "page" ? "page" : "full-site")}
+                          className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-bold text-slate-900 outline-none"
+                        >
+                          <option value="page">فقط همین صفحه</option>
+                          <option value="full-site">دسته/چند محصول</option>
+                        </select>
+                      </label>
+                      <label className="text-xs font-black text-blue-100">
+                        حداکثر محصول
+                        <input
+                          type="number"
+                          min="1"
+                          max="10000"
+                          value={productImportLimit}
+                          onChange={(event) => setProductImportLimit(Math.max(1, Math.min(10000, Number(event.target.value || 1))))}
+                          className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-bold text-slate-900 outline-none"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport}
+                        onClick={() => runProductImport("preview")}
+                        className="rounded-xl bg-cyan-400 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-300 disabled:bg-slate-500 disabled:text-slate-200"
+                      >
+                        {scanningProductImport ? "در حال استخراج اطلاعات..." : "استخراج و پیش‌نمایش"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport || !["link", "link-bulk"].includes(productImportPreviewSource) || productImportSelectedKeys.length === 0}
+                        onClick={() => runProductImport("import")}
+                        className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-400 disabled:bg-slate-600 disabled:text-slate-300"
+                      >
+                        {applyingProductImport ? "در حال افزودن به سایت..." : `افزودن ${productImportSelectedKeys.length ? productImportSelectedKeys.length.toLocaleString("fa-IR") : ""} محصول انتخابی به سایت`}
+                      </button>
+                      <label className="flex cursor-pointer items-center gap-2 self-center rounded-xl bg-white/10 px-4 py-3 text-xs font-black text-blue-50 ring-1 ring-white/15">
+                        <input
+                          type="checkbox"
+                          checked={productImportAutoScroll}
+                          onChange={(event) => setProductImportAutoScroll(event.target.checked)}
+                          className="h-4 w-4 accent-cyan-300"
+                        />
+                        اسکرول خودکار پیشرفت و نتایج
+                      </label>
+                    </div>
+                    {(universalCrawlProgress.running || universalCrawlProgress.message) && (
+                      <div ref={productImportProgressRef} className="mt-4 scroll-mt-6 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-50 ring-1 ring-white/15">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <b>{universalCrawlProgress.message}</b>
+                          {universalCrawlProgress.running && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                universalCrawlCancelledRef.current = true;
+                                setUniversalCrawlProgress((current) => ({ ...current, message: "در حال توقف امن پس از پایان این دسته..." }));
+                              }}
+                              className="rounded-lg bg-rose-500 px-3 py-2 font-black text-white"
+                            >
+                              توقف استخراج
+                            </button>
+                          )}
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/15">
+                          <div
+                            className="h-full rounded-full bg-cyan-300 transition-all"
+                            style={{ width: `${Math.min(100, (universalCrawlProgress.extracted / Math.max(1, productImportLimit)) * 100)}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-blue-100">
+                          <span>محصول کامل: {universalCrawlProgress.extracted.toLocaleString("fa-IR")}</span>
+                          <span>صفحه خوانده‌شده: {universalCrawlProgress.scannedPages.toLocaleString("fa-IR")}</span>
+                          <span>صف محصول: {universalCrawlProgress.queuedProducts.toLocaleString("fa-IR")}</span>
+                          <span>صف صفحه‌ها: {universalCrawlProgress.queuedPages.toLocaleString("fa-IR")}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mb-5 rounded-3xl border border-cyan-200 bg-cyan-50/60 p-5">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-black text-cyan-950">فعال‌سازی بخش‌های فروشگاه</h3>
+                      <p className="mt-1 text-xs leading-6 text-cyan-800">
+                        فعلاً می‌توانید فروشگاه را روی قطعات کامپیوتر متمرکز کنید و هر زمان خواستید بخش لپ‌تاپ را دوباره فعال کنید.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-cyan-100 bg-white p-4">
+                        <span>
+                          <b className="block text-sm text-slate-900">بخش لپ‌تاپ و نوت‌بوک</b>
+                          <span className="mt-1 block text-xs text-slate-500">نمایش محصولات و بخش‌های مخصوص لپ‌تاپ</span>
+                        </span>
+                        <span className={`relative h-7 w-12 rounded-full transition ${platformFinance.storeLaptopCatalogEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(platformFinance.storeLaptopCatalogEnabled)}
+                            onChange={(event) => updatePlatformFinanceField("storeLaptopCatalogEnabled", event.target.checked)}
+                            className="sr-only"
+                          />
+                          <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeLaptopCatalogEnabled ? "left-1" : "left-6"}`} />
+                        </span>
+                      </label>
+                      <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-cyan-100 bg-white p-4">
+                        <span>
+                          <b className="block text-sm text-slate-900">بخش قطعات کامپیوتر</b>
+                          <span className="mt-1 block text-xs text-slate-500">پردازنده، مادربرد، کارت گرافیک، رم، پاور و سایر قطعات</span>
+                        </span>
+                        <span className={`relative h-7 w-12 rounded-full transition ${platformFinance.storeComputerPartsCatalogEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(platformFinance.storeComputerPartsCatalogEnabled)}
+                            onChange={(event) => updatePlatformFinanceField("storeComputerPartsCatalogEnabled", event.target.checked)}
+                            className="sr-only"
+                          />
+                          <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeComputerPartsCatalogEnabled ? "left-1" : "left-6"}`} />
+                        </span>
+                      </label>
+                    </div>
+                    <div className="mt-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h4 className="text-sm font-black text-slate-800">لینک‌های جداگانهٔ جستجو و گروه محصولات هر لینک</h4>
+                          <p className="mt-1 text-[11px] font-normal leading-5 text-slate-500">
+                            برای هر لینک مشخص کنید ربات فقط کدام قطعات را جستجو کند. حداکثر ۸ لینک قابل ثبت است.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addComputerPartSource}
+                          disabled={computerPartSources.length >= 8}
+                          className="rounded-xl bg-cyan-700 px-4 py-2 text-xs font-black text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                        >
+                          + افزودن باکس لینک
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {computerPartSources.map((source, sourceIndex) => (
+                          <div key={source.id} className="rounded-2xl border border-cyan-200 bg-white p-4 shadow-sm">
+                            <div className="flex items-center justify-between gap-3">
+                              <label className="flex-1 text-xs font-black text-slate-700">
+                                لینک شماره {(sourceIndex + 1).toLocaleString("fa-IR")}
+                                <input
+                                  type="url"
+                                  value={source.url}
+                                  onChange={(event) => updateComputerPartSource(source.id, { url: event.target.value })}
+                                  placeholder="https://www.digikala.com/search/category-computer-devices/"
+                                  className="mt-2 h-11 w-full rounded-xl border border-cyan-200 bg-slate-50 px-3 text-left text-xs font-normal text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                                  dir="ltr"
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => removeComputerPartSource(source.id)}
+                                disabled={computerPartSources.length === 1}
+                                className="mt-6 rounded-xl border border-red-200 px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50 disabled:opacity-30"
+                              >
+                                حذف
+                              </button>
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              {computerPartSourceTypeOptions.map((option) => {
+                                const checked = source.parts.includes(option.id);
+                                return (
+                                  <label
+                                    key={`${source.id}-${option.id}`}
+                                    className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] font-bold transition ${checked ? "border-emerald-400 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-500"}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => toggleComputerPartSourceType(source.id, option.id)}
+                                      className="ml-1 align-middle"
+                                    />
+                                    {option.label}
+                                  </label>
+                                );
+                              })}
+                              <button
+                                type="button"
+                                onClick={() => updateComputerPartSource(source.id, { parts: [...allComputerPartSourceTypeIds] })}
+                                className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-600 hover:bg-slate-200"
+                              >
+                                انتخاب همه
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateComputerPartSource(source.id, { parts: [] })}
+                                className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-600 hover:bg-slate-200"
+                              >
+                                حذف انتخاب‌ها
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={savingStoreCatalog}
+                        onClick={saveStoreCatalogSettings}
+                        className="rounded-xl bg-cyan-700 px-5 py-3 text-sm font-black text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                      >
+                        {savingStoreCatalog ? "در حال ذخیره..." : "ذخیره وضعیت بخش‌ها و لینک مرجع"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={importingComputerParts}
+                        onClick={importComputerPartsFromSource}
+                        className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:bg-slate-300"
+                      >
+                        {importingComputerParts ? "ربات در حال دریافت قطعات..." : "دریافت و ذخیره مستقیم قطعات از این لینک"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={importingComputerParts}
+                        onClick={useComputerPartsSource}
+                        className="rounded-xl border border-cyan-300 bg-white px-5 py-3 text-sm font-black text-cyan-800 hover:bg-cyan-50 disabled:opacity-50"
+                      >
+                        انتقال لینک به فرم پیش‌نمایش دستی
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-5 rounded-3xl border border-red-100 bg-red-50/60 p-4">
+                    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <b className="text-sm text-red-900">پاک‌سازی محصولات پیش‌فرض/فعلی فروشگاه</b>
+                        <p className="mt-1 text-xs leading-6 text-red-700">
+                          برای تست درون‌ریزی از دیجی‌کالا یا فروشگاه دیگر، می‌توانید همه محصولات فعلی را پاک کنید و سپس محصولات جدید را وارد کنید.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={clearingStoreProducts}
+                        onClick={clearStoreProducts}
+                        className="rounded-xl bg-red-600 px-5 py-3 text-xs font-black text-white transition hover:bg-red-700 disabled:bg-gray-300"
+                      >
+                        {clearingStoreProducts ? "در حال پاک‌سازی..." : "پاک کردن همه محصولات فعلی"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-5 rounded-3xl border border-violet-100 bg-violet-50/60 p-4">
+                    <div className="mb-3">
+                      <b className="text-sm text-violet-900">آپلود CSV خروجی Easy Scraper</b>
+                      <p className="mt-1 text-xs leading-6 text-violet-700">
+                        از افزونه Easy Scraper خروجی CSV بگیرید و اینجا بارگذاری کنید. اگر فایل ستون تصویر مثل «w-full src» داشته باشد، آدرس همان عکس همراه محصول ذخیره و در کارت کالا نمایش داده می‌شود. اصلاح و پیش‌نمایش در مرورگر خودتان انجام می‌شود؛ برای ثبت، فقط فهرست استانداردشدهٔ محصولات به سرور می‌رود، نه فایل خام و حجیم CSV. عدد بالای فروشگاه مجموع محصولات فعالِ قبلی و جدید است؛ تعداد همین فایل را در پیام پیش‌نمایش ببینید. ستون‌های عنوان، قیمت، لینک و تصویر تشخیص داده می‌شوند؛ مشخصات فنیِ موجود در عنوان/توضیحات مثل پردازنده، رم، حافظه، گرافیک و نمایشگر هم جداگانه استخراج می‌شوند. ضریب قیمت همین فرم اعمال می‌شود.
+                        اول دسته کالا را از بخش زیر انتخاب کنید؛ مثلاً فقط «موبایل و گوشی». بعد از پیش‌نمایش، تیک محصولاتی را که می‌خواهید وارد سایت شوند نگه دارید و تیک بقیه را بردارید. قیمت از ستون واقعی CSV خوانده می‌شود و واحد آن به‌صورت هوشمند تشخیص داده می‌شود. توجه: این قیمت، قیمت زمان استخراج Easy Scraper است و پس از ورود خودکار زنده نمی‌شود؛ برای تازه‌سازی آنلاین، «به‌روزرسانی قیمت فروشگاه» را جداگانه اجرا کنید (هر بار حداکثر ۲۰ کالا).
+                      </p>
+                    </div>
+                    <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto] lg:items-center">
+                      <input
+                        type="file"
+                        accept=".csv,text/csv"
+                        onChange={(event) => {
+                          setProductCsvFile(event.target.files?.[0] || null);
+                          clearProductImportPreviewState();
+                        }}
+                        className="rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                      />
+                      <button
+                        type="button"
+                        disabled={processingProductCsv || repairingProductCsv}
+                        onClick={() => runProductCsvImport("preview")}
+                        className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition hover:bg-violet-700 disabled:bg-gray-300"
+                      >
+                        {processingProductCsv ? "در حال پردازش..." : "پیش‌نمایش CSV"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={processingProductCsv || repairingProductCsv}
+                        onClick={repairProductCsvFile}
+                        className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                      >
+                        {repairingProductCsv ? "در حال اصلاح..." : "دانلود CSV اصلاح‌شده"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={processingProductCsv || repairingProductCsv}
+                        onClick={() => runProductCsvImport("import")}
+                        className="rounded-xl bg-fuchsia-600 px-5 py-3 text-sm font-black text-white transition hover:bg-fuchsia-700 disabled:bg-gray-300"
+                      >
+                        درون‌ریزی CSV
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-5 rounded-3xl border border-cyan-100 bg-cyan-50/60 p-4">
+                      <div className="mb-3 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                        <div>
+                          <b className="text-sm text-cyan-950">انتخاب دسته کالا برای CSV و لینک فروشگاه</b>
+                          <p className="mt-1 text-xs leading-6 text-gray-500">
+                            این فیلتر قبل از پیش‌نمایش CSV هم اعمال می‌شود؛ یعنی اگر فقط «موبایل و گوشی» تیک داشته باشد، از فایل CSV فقط ردیف‌های موبایل نمایش داده و وارد سایت می‌شوند.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs font-black">
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(allProductImportCategoryIds)}
+                            className="rounded-full bg-blue-50 px-3 py-2 text-blue-700"
+                          >
+                            انتخاب همه
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop"])}
+                            className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
+                          >
+                            فقط لپ‌تاپ و کامپیوتر آماده
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["mobile"])}
+                            className="rounded-full bg-rose-50 px-3 py-2 text-rose-700"
+                          >
+                            فقط موبایل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset([])}
+                            className="rounded-full bg-slate-100 px-3 py-2 text-slate-600"
+                          >
+                            پاک کردن انتخاب‌ها
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {productImportCategoryOptions.map((option) => {
+                          const checked = productImportCategories.includes(option.id);
+                          return (
+                            <label
+                              key={option.id}
+                              className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-blue-200 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-gray-700 hover:border-blue-100"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleProductImportCategory(option.id)}
+                                className="mt-1"
+                              />
+                              <span>
+                                <span className="block text-sm font-black">{option.label}</span>
+                                <span className="mt-1 block text-[11px] leading-5 text-gray-500">{option.hint}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                  <div className="grid gap-4 rounded-3xl border border-blue-100 bg-blue-50/50 p-5 lg:grid-cols-[1fr_170px_170px]">
+                    <label className="block text-sm font-bold text-gray-700">
+                      لینک فروشگاه، دسته‌بندی، صفحه محصول یا sitemap
+                      <input
+                        value={productImportUrl}
+                        onChange={(e) => setProductImportUrl(e.target.value)}
+                        placeholder="مثلاً https://example.com یا https://example.com/sitemap.xml"
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-left outline-none focus:ring-2 focus:ring-blue-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      حداکثر محصول
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000"
+                        value={productImportLimit}
+                        onChange={(e) => setProductImportLimit(Math.max(1, Math.min(10000, Number(e.target.value || 10000))))}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      ضریب سراسری قیمت
+                      <input
+                        type="number"
+                        min="0.1"
+                        max="10"
+                        step="0.01"
+                        value={productImportPriceMultiplier}
+                        onChange={(e) => updateStorePriceMultiplier(e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="mt-1 block text-[11px] leading-5 text-gray-500">
+                        قیمت نهایی سایت = کمترین قیمت معتبر ترب، دیجی‌کالا و مراجع انتخابی × این ضریب. ۱.۱۵ یعنی ۱۵٪ افزایش.
+                      </span>
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      محدوده اسکن
+                      <select
+                        value={productImportScanMode}
+                        onChange={(e) => setProductImportScanMode(e.target.value === "page" ? "page" : "full-site")}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="full-site">خزش مرحله‌ای هر منبع و sitemap (تا سقف ۱۰٬۰۰۰ محصول)</option>
+                        <option value="page">همین صفحه؛ دیجی‌کالا با دسته‌های انتخابی جستجو شود</option>
+                      </select>
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 lg:col-span-2">
+                      روش برخورد با محصول مشابه و تکراری
+                      <select
+                        value={productImportStrategy}
+                        onChange={(e) => setProductImportStrategy(e.target.value === "add-only" ? "add-only" : "merge")}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="merge">هوشمند: محصول مشابه به‌روزرسانی شود و تکراری‌ها حذف/ادغام شوند</option>
+                        <option value="add-only">محصول جدید اضافه شود؛ سپس تکراری‌های قطعی ادغام شوند</option>
+                      </select>
+                    </label>
+
+
+                    <div className="rounded-3xl border border-slate-200 bg-white p-4 lg:col-span-3">
+                      <div className="mb-3 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                        <div>
+                          <b className="text-sm text-gray-900">انتخاب دسته کالا برای لینک فروشگاه، دسته‌بندی یا sitemap</b>
+                          <p className="mt-1 text-xs leading-6 text-gray-500">
+                            این تیک‌ها برای اسکن لینک/سایت‌مپ هم اعمال می‌شوند. اگر آدرس اصلی دیجی‌کالا را وارد کنید، محصولات از دسته‌های انتخابی جستجو می‌شوند؛ برای سایت‌های دیگر حالت «فقط همین صفحه» فقط همان صفحه را بررسی می‌کند.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs font-black">
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(allProductImportCategoryIds)}
+                            className="rounded-full bg-blue-50 px-3 py-2 text-blue-700"
+                          >
+                            انتخاب همه
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["laptop", "desktop"])}
+                            className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700"
+                          >
+                            فقط لپ‌تاپ و کامپیوتر آماده
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset(["mobile"])}
+                            className="rounded-full bg-rose-50 px-3 py-2 text-rose-700"
+                          >
+                            فقط موبایل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductImportCategoriesAndReset([])}
+                            className="rounded-full bg-slate-100 px-3 py-2 text-slate-600"
+                          >
+                            پاک کردن انتخاب‌ها
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {productImportCategoryOptions.map((option) => {
+                          const checked = productImportCategories.includes(option.id);
+                          return (
+                            <label
+                              key={`link-${option.id}`}
+                              className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-blue-200 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-gray-700 hover:border-blue-100"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleProductImportCategory(option.id)}
+                                className="mt-1"
+                              />
+                              <span>
+                                <span className="block text-sm font-black">{option.label}</span>
+                                <span className="mt-1 block text-[11px] leading-5 text-gray-500">{option.hint}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+
+                    <div className="flex flex-col gap-3 sm:flex-row lg:col-span-3">
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport}
+                        onClick={() => runProductImport("preview")}
+                        className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:bg-gray-300"
+                      >
+                        {scanningProductImport ? "در حال اسکن..." : "اسکن و پیش‌نمایش"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={scanningProductImport || applyingProductImport}
+                        onClick={() => runProductImport("import")}
+                        className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                      >
+                        {applyingProductImport ? "در حال درون‌ریزی..." : "درون‌ریزی و ذخیره در سایت"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
+                    برای لینک قطعات دیجی‌کالا، هشت زیرگروه اصلی پردازنده، گرافیک، رم، مادربرد، SSD، هارد، پاور و کیس مستقیماً در همین مرورگر و تا ۵٬۰۰۰ محصول قیمت‌دار خوانده می‌شود؛ سپس محصولات به‌صورت دسته‌ای و بدون تکرار ذخیره می‌شوند. عدد کل صفحهٔ والد دیجی‌کالا شامل هزاران لوازم جانبی و قطعات یدکی خارج از این هشت گروه نیز هست.
+                  </div>
+
+                  <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">
+                    <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <h3 className="text-lg font-black text-emerald-900">
+                          🤖 ربات به‌روزرسانی قیمت محصولات موجود
+                        </h3>
+                        <p className="mt-1 text-sm leading-7 text-emerald-700">
+                          منابع را انتخاب کنید و ربات را اجرا کنید. برای هر مدل دقیق، کمترین قیمت معتبر بین ترب، دیجی‌کالا و سایر مراجع انتخابی پیدا می‌شود، ضریب سراسری روی آن اعمال و همان قیمت در کارت، محصول و نمودار ذخیره می‌شود.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={refreshingStorePrices}
+                          onClick={refreshStorePrices}
+                          className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                        >
+                          {refreshingStorePrices ? "ربات در حال بررسی قیمت‌هاست..." : priceRefreshOffset > 0 ? "ادامهٔ ربات از محصول بعدی" : "اجرای ربات قیمت"}
+                        </button>
+                        {priceRefreshOffset > 0 && (
+                          <button
+                            type="button"
+                            disabled={refreshingStorePrices}
+                            onClick={() => {
+                              setPriceRefreshOffset(0);
+                              setPriceRefreshMessage("چرخهٔ ربات از ابتدای فهرست تنظیم شد.");
+                            }}
+                            className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-xs font-black text-emerald-700 disabled:opacity-50"
+                          >
+                            شروع چرخه از ابتدا
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[1fr_170px]">
+                      <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <b className="text-sm text-gray-900">مرجع‌های به‌روزرسانی قیمت</b>
+                          <div className="flex gap-2 text-xs font-black">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPriceRefreshReferences(priceRefreshReferenceOptions.map((item) => item.id));
+                                setPriceRefreshOffset(0);
+                              }}
+                              className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
+                            >
+                              انتخاب همه
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPriceRefreshReferences([]);
+                                setPriceRefreshOffset(0);
+                              }}
+                              className="rounded-full bg-slate-100 px-3 py-1 text-slate-600"
+                            >
+                              پاک کردن
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                          {priceRefreshReferenceOptions.map((reference) => {
+                            const checked = priceRefreshReferences.includes(reference.id);
+                            return (
+                              <label
+                                key={reference.id}
+                                className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-gray-700 hover:border-emerald-100"}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => togglePriceRefreshReference(reference.id)}
+                                  className="mt-1"
+                                />
+                                <span>
+                                  <span className="block text-sm font-black">{reference.label}</span>
+                                  <span className="mt-1 block text-[11px] leading-5 text-gray-500">{reference.hint}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="grid gap-3">
+                        <label className="block text-sm font-bold text-gray-700">
+                          ضریب سراسری قیمت
+                          <input
+                            type="number"
+                            min="0.1"
+                            max="10"
+                            step="0.01"
+                            value={priceRefreshMultiplier}
+                            onChange={(e) => updateStorePriceMultiplier(e.target.value)}
+                            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </label>
+                        <label className="block text-sm font-bold text-gray-700">
+                          حداکثر محصول
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={priceRefreshMaxProducts}
+                            onChange={(e) => {
+                              setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))));
+                              setPriceRefreshOffset(0);
+                            }}
+                            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {priceRefreshMessage && (
+                      <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4 text-sm font-bold text-emerald-800">
+                        {priceRefreshMessage}
+                      </div>
+                    )}
+                    {priceRefreshWarnings.length > 0 && (
+                      <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-xs leading-6 text-amber-800">
+                        {priceRefreshWarnings.slice(0, 6).map((warning) => (
+                          <div key={warning}>• {warning}</div>
+                        ))}
+                      </div>
+                    )}
+                    {priceRefreshResults.length > 0 && (
+                      <details className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
+                        <summary className="cursor-pointer font-black text-slate-800">
+                          مشاهده نتیجه به‌روزرسانی ({priceRefreshResults.length.toLocaleString("fa-IR")})
+                        </summary>
+                        <div ref={priceRefreshResultsRef} className="mt-3 max-h-64 space-y-2 overflow-auto">
+                          {priceRefreshResults.slice(0, 80).map((item) => (
+                            <div key={`${item.productId}-${item.status}`} className="rounded-xl bg-slate-50 p-3">
+                              <b>{item.title}</b>
+                              <span className="mr-2 text-slate-500">{item.message}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+
+                    <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <b className="text-sm text-gray-900">⏰ به‌روزرسانی خودکار روزانه از لینک منبع محصولات</b>
+                          <p className="mt-1 max-w-3xl text-xs leading-6 text-slate-500">
+                            بدون نیاز به باز بودن این صفحه، هر روز ساعت ۲:۳۰ بامداد (تهران) قیمت محصولات از همان لینک‌هایی که با آن‌ها درون‌ریزی شده‌اند و مراجع انتخابی خوانده می‌شود. چرخه از جایی که مانده ادامه پیدا می‌کند تا همهٔ محصولات پوشش داده شوند.
+                          </p>
+                        </div>
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700">
+                          {platformFinance.storeAutoPriceRefreshEnabled ? "فعال" : "غیرفعال"}
+                          <span className={`relative h-7 w-12 rounded-full transition ${platformFinance.storeAutoPriceRefreshEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(platformFinance.storeAutoPriceRefreshEnabled)}
+                              onChange={(event) => updatePlatformFinanceField("storeAutoPriceRefreshEnabled", event.target.checked)}
+                              className="sr-only"
+                            />
+                            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeAutoPriceRefreshEnabled ? "left-1" : "left-6"}`} />
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {priceRefreshReferenceOptions.map((reference) => {
+                          const checked = (Array.isArray(platformFinance.storeAutoPriceRefreshReferences) ? platformFinance.storeAutoPriceRefreshReferences : []).includes(reference.id);
+                          return (
+                            <label
+                              key={`auto-${reference.id}`}
+                              className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition ${checked ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-slate-500"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleAutoPriceRefreshReference(reference.id)}
+                              />
+                              {reference.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-end gap-3">
+                        <label className="block text-xs font-bold text-gray-700">
+                          محصولات در هر بچ خودکار (۱ تا ۲۰)
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={platformFinance.storeAutoPriceRefreshBatchSize}
+                            onChange={(event) => updatePlatformFinanceField("storeAutoPriceRefreshBatchSize", Math.max(1, Math.min(20, Number(event.target.value || 20))))}
+                            className="mt-2 w-32 rounded-xl border border-gray-300 bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          disabled={savingAutoPriceRefresh}
+                          onClick={saveAutoPriceRefreshSettings}
+                          className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                        >
+                          {savingAutoPriceRefresh ? "در حال ذخیره..." : "ذخیره تنظیمات به‌روزرسانی خودکار"}
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-6 text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
+                        <div>
+                          <span className="block font-black text-slate-800">آخرین اجرای خودکار</span>
+                          {platformFinance.storeAutoPriceRefreshLastRunAt
+                            ? new Date(platformFinance.storeAutoPriceRefreshLastRunAt).toLocaleString("fa-IR")
+                            : "هنوز اجرا نشده است"}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">دفعات اجرا</span>
+                          {Number(platformFinance.storeAutoPriceRefreshTotalRuns || 0).toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">موقعیت چرخهٔ بعدی</span>
+                          محصول {(Number(platformFinance.storeAutoPriceRefreshOffset || 0) + 1).toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">خلاصهٔ آخرین اجرا</span>
+                          {platformFinance.storeAutoPriceRefreshLastSummary || "—"}
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-[11px] leading-6 text-slate-400">
+                        راه‌اندازی زمان‌بند: مقدار <code dir="ltr" className="rounded bg-slate-100 px-1">CRON_SECRET</code> باید در سکرت‌های Cloudflare Worker و GitHub (برای workflow روزانه) یکسان تنظیم شود؛ آدرس فراخوانی خودکار: <code dir="ltr" className="rounded bg-slate-100 px-1">/api/cron/refresh-prices</code>
+                      </p>
+                    </div>
+                  </div>
+
+                  {productImportMessage && (
+                    <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                      {productImportMessage}
+                    </div>
+                  )}
+
+                  {productImportWarnings.length > 0 && (
+                    <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 p-4 text-sm leading-7 text-orange-800">
+                      <b>هشدارها:</b>
+                      <ul className="mt-2 list-disc space-y-1 pr-5">
+                        {productImportWarnings.slice(0, 8).map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {productImportScannedUrls.length > 0 && (
+                    <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+                      <summary className="cursor-pointer font-black text-slate-800">
+                        لینک‌های اسکن‌شده ({productImportScannedUrls.length.toLocaleString("fa-IR")})
+                      </summary>
+                      <div ref={productImportScannedUrlsRef} className="mt-3 max-h-44 space-y-1 overflow-auto text-left" dir="ltr">
+                        {productImportScannedUrls.map((url) => (
+                          <div key={url} className="truncate rounded-lg bg-white px-2 py-1">{url}</div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {productImportPreview.length > 0 && (
+                    <div ref={productImportPreviewRef} className="mt-6 scroll-mt-6 overflow-hidden rounded-2xl border border-gray-200">
+                      <div className="flex flex-col justify-between gap-3 bg-gray-50 px-4 py-3 text-sm font-black text-gray-700 md:flex-row md:items-center">
+                        <div>
+                          پیش‌نمایش محصولات پیدا شده
+                          <span className="mr-2 rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700">
+                            {productImportSelectedKeys.length.toLocaleString("fa-IR")} انتخاب‌شده از {productImportPreview.length.toLocaleString("fa-IR")}
+                          </span>
+                          {productImportPreview.length > 500 && (
+                            <span className="mt-2 block text-[11px] font-normal text-slate-500">
+                              برای روان ماندن صفحه فقط ۵۰۰ ردیف اول نمایش داده می‌شود؛ انتخاب و ثبت روی همهٔ {productImportPreview.length.toLocaleString("fa-IR")} محصول اعمال می‌شود.
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <button type="button" onClick={selectAllProductImportPreview} className="rounded-full bg-blue-600 px-3 py-2 text-white">
+                            انتخاب همه محصولات
+                          </button>
+                          <button type="button" onClick={clearProductImportSelection} className="rounded-full bg-slate-200 px-3 py-2 text-slate-700">
+                            لغو همه انتخاب‌ها
+                          </button>
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[900px] text-right text-sm">
+                          <thead className="bg-gray-50 text-xs text-gray-500">
+                            <tr>
+                              <th className="px-4 py-3">انتخاب</th>
+                              <th className="px-4 py-3">عملیات</th>
+                              <th className="px-4 py-3">محصول</th>
+                              <th className="px-4 py-3">برند</th>
+                              <th className="px-4 py-3">دسته تشخیص‌داده‌شده</th>
+                              <th className="px-4 py-3">قیمت جدید</th>
+                              <th className="px-4 py-3">قیمت قبلی/اصلی</th>
+                              <th className="px-4 py-3">منبع</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 bg-white">
+                            {productImportPreview.slice(0, 500).map((product) => {
+                              const selectionKey = productPreviewKey(product);
+                              const selected = productImportSelectedKeys.includes(selectionKey);
+                              return (
+                              <tr key={`${product.externalSourceUrl}-${product.title}`} className={selected ? "bg-blue-50/40" : ""}>
+                                <td className="px-4 py-3 align-top">
+                                  <input
+                                    type="checkbox"
+                                    checked={selected}
+                                    onChange={() => toggleProductImportSelection(selectionKey)}
+                                  />
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${product.action === "update" ? "bg-amber-50 text-amber-700" : product.action === "pending" ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-700"}`}>
+                                    {product.action === "update" ? "به‌روزرسانی" : product.action === "pending" ? "بررسی هنگام ثبت" : "محصول جدید"}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    {product.imageUrl && (
+                                      <StoreProductRemoteImage
+                                        src={product.imageUrl}
+                                        alt={`عکس ${product.title}`}
+                                        className="h-12 w-12 shrink-0 rounded-lg border border-slate-200 bg-white object-contain p-1"
+                                      />
+                                    )}
+                                    <b className="block text-gray-900">{product.title}</b>
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold">
+                                    <span className="rounded-full bg-cyan-50 px-2 py-1 text-cyan-700">
+                                      {(product.imageUrls?.length || (product.imageUrl ? 1 : 0)).toLocaleString("fa-IR")} تصویر
+                                    </span>
+                                    <span className="rounded-full bg-violet-50 px-2 py-1 text-violet-700">
+                                      {Object.keys(product.specs || {}).length.toLocaleString("fa-IR")} مشخصه
+                                    </span>
+                                  </div>
+                                  {Object.keys(product.specs || {}).length > 0 && (
+                                    <details className="mt-2 max-w-[340px] rounded-lg bg-slate-50 p-2 text-[11px] text-slate-600">
+                                      <summary className="cursor-pointer font-black text-slate-700">مشاهده مشخصات استخراج‌شده</summary>
+                                      <div className="mt-2 grid gap-1">
+                                        {Object.entries(product.specs || {}).slice(0, 12).map(([key, value]) => (
+                                          <span key={key} className="line-clamp-2"><b>{key}:</b> {String(value)}</span>
+                                        ))}
+                                      </div>
+                                    </details>
+                                  )}
+                                  {product.matchedProduct && (
+                                    <span className="mt-1 block text-xs text-gray-500">
+                                      مشابه در سایت: {product.matchedProduct.title}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">{product.brand}</td>
+                                <td className="px-4 py-3 text-xs font-bold text-blue-700">{product.importCategory || product.category}</td>
+                                <td className="px-4 py-3 font-black text-rose-600">
+                                  {Number(product.price || 0).toLocaleString("fa-IR")} تومان
+                                </td>
+                                <td className="px-4 py-3 text-gray-500">
+                                  {product.matchedProduct
+                                    ? `${Number(product.matchedProduct.price || 0).toLocaleString("fa-IR")} تومان`
+                                    : product.originalPrice
+                                      ? `${Number(product.originalPrice || 0).toLocaleString("fa-IR")} تومان`
+                                      : "—"}
+                                </td>
+                                <td className="max-w-[220px] truncate px-4 py-3 text-left text-xs text-blue-600" dir="ltr">
+                                  {productImportSourceLabel(product)}
+                                </td>
+                              </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "homepage" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold">🏠 مدیریت و بازنویسی صفحه اصلی</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-500">
+                      همه بخش‌های صفحه اصلی از اینجا قابل فعال/غیرفعال‌سازی و تغییر عنوان و متن هستند؛ برای مدل درخواست خرید از واژه «امتیاز جذابیت» استفاده می‌شود، نه درصد تخفیف.
+                    </p>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-purple-100 bg-gradient-to-l from-purple-50 to-white p-5">
+                    <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <h3 className="text-lg font-black text-purple-900">
+                          مدل فعالیت سایت
+                        </h3>
+                        <p className="mt-1 text-sm leading-7 text-purple-700">
+                          در حالت ترکیبی، فروشگاه و سبد خرید فعال می‌مانند و هم‌زمان خریداران درخواست رقابتی ثبت می‌کنند و فروشندگان پیشنهاد می‌دهند.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-purple-700 shadow-sm">
+                        حالت فعلی: {platformFinance.siteMode === "hybrid" ? "ترکیبی: فروشگاه + درخواست" : platformFinance.siteMode === "store" ? "فروشگاه اینترنتی" : "درخواست خرید"}
+                      </span>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() => updatePlatformFinanceField("siteMode", "store")}
+                        className={`rounded-2xl border-2 p-5 text-right transition ${platformFinance.siteMode === "store" ? "border-rose-500 bg-rose-50 text-rose-800 shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:border-rose-200"}`}
+                      >
+                        <span className="text-3xl">🛒</span>
+                        <b className="mt-3 block">فاز فروشگاه اینترنتی</b>
+                        <span className="mt-2 block text-xs leading-6">
+                          صفحه اصلی فروشگاهی، لیست لپ‌تاپ‌ها، صفحه محصول، سبد خرید و ثبت سفارش.
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updatePlatformFinanceField("siteMode", "hybrid")}
+                        className={`rounded-2xl border-2 p-5 text-right transition ${platformFinance.siteMode === "hybrid" ? "border-purple-500 bg-purple-50 text-purple-900 shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:border-purple-200"}`}
+                      >
+                        <span className="text-3xl">🔄</span>
+                        <b className="mt-3 block">حالت ترکیبی پیشنهادی</b>
+                        <span className="mt-2 block text-xs leading-6">
+                          فروشگاه، سبد خرید و سئو فعال می‌مانند؛ ثبت درخواست، عضویت فروشنده و رقابت روی درخواست‌ها نیز هم‌زمان فعال است.
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updatePlatformFinanceField("siteMode", "request")}
+                        className={`rounded-2xl border-2 p-5 text-right transition ${platformFinance.siteMode === "request" ? "border-green-500 bg-green-50 text-green-800 shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:border-green-200"}`}
+                      >
+                        <span className="text-3xl">📡</span>
+                        <b className="mt-3 block">فاز درخواست خرید</b>
+                        <span className="mt-2 block text-xs leading-6">
+                          خریدار درخواست می‌گذارد و فروشنده‌ها روی درخواست پیشنهاد قیمت و مشخصات می‌دهند.
+                        </span>
+                      </button>
+                    </div>
+                    <button
+                      onClick={saveFinance}
+                      className="mt-4 rounded-xl bg-purple-700 px-6 py-3 text-sm font-black text-white transition hover:bg-purple-800"
+                    >
+                      ذخیره مدل فعالیت
+                    </button>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-rose-100 bg-rose-50/40 p-5">
+                    <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <h3 className="text-lg font-black text-rose-900">
+                          اسلایدر صفحه اصلی فروشگاه لپ‌تاپ
+                        </h3>
+                        <p className="mt-1 text-sm leading-7 text-rose-700">
+                          تصویر اسلاید ۱ در جایگاه سمت چپ بنر آبی اصلی و تصویر اسلاید ۲ در جایگاه سمت چپ بنر کوچک زیر آن نمایش داده می‌شود. تصویر PNG/WebP با پس‌زمینه شفاف یا عکس محصول افقی بهترین نتیجه را دارد.
+                        </p>
+                      </div>
+                      <label className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-rose-700 shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(platformFinance.storeHeroSliderEnabled)}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "storeHeroSliderEnabled",
+                              e.target.checked,
+                            )
+                          }
+                        />
+                        فعال
+                      </label>
+                    </div>
+
+                    <div className="mb-5 rounded-2xl border-2 border-dashed border-rose-200 bg-white p-4">
+                      <div className="mb-4">
+                        <h4 className="text-base font-black text-slate-900">
+                          بارگذاری مستقیم تصاویر دو جایگاه مشخص‌شده در صفحه اصلی
+                        </h4>
+                        <p className="mt-1 text-xs leading-6 text-slate-500">
+                          تصویر اول داخل کادر سمت چپ بنر آبی و تصویر دوم داخل کادر سمت چپ بنر سبز نمایش داده می‌شود. پس از انتخاب هر دو فایل، دکمه ذخیره را بزنید.
+                        </p>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {([0, 1] as const).map((index) => {
+                          const slide = ensureStorefrontSlides()[index];
+                          const pendingFile = storefrontSlideFiles[index];
+                          return (
+                            <div key={`banner-slot-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                              <b className="block text-sm text-slate-900">
+                                {index === 0 ? "جایگاه تصویر بنر آبی اصلی" : "جایگاه تصویر بنر سبز زیر آن"}
+                              </b>
+                              <div className="mt-3 flex items-center gap-4">
+                                <div className="grid h-28 w-40 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white text-xs text-slate-400">
+                                  {slide.image ? (
+                                    <img
+                                      src={productImageUrl(slide.image)}
+                                      alt={index === 0 ? "تصویر فعلی بنر آبی" : "تصویر فعلی بنر سبز"}
+                                      className="h-full w-full object-contain p-2"
+                                    />
+                                  ) : (
+                                    "هنوز تصویری ثبت نشده"
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="inline-flex cursor-pointer rounded-xl bg-rose-600 px-4 py-2 text-xs font-black text-white hover:bg-rose-700">
+                                    انتخاب تصویر
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg,image/png,image/webp"
+                                      onChange={(event) =>
+                                        setStorefrontSlideFiles((current) => ({
+                                          ...current,
+                                          [index]: event.target.files?.[0] || null,
+                                        }))
+                                      }
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  <span className="mt-2 block truncate text-[11px] text-slate-500">
+                                    {pendingFile ? pendingFile.name : "JPG، PNG یا WebP؛ حداکثر ۵ مگابایت"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={savingStorefrontSlider || (!storefrontSlideFiles[0] && !storefrontSlideFiles[1])}
+                        onClick={saveStorefrontSlider}
+                        className="mt-4 rounded-xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-rose-600 disabled:bg-slate-300"
+                      >
+                        {savingStorefrontSlider ? "در حال بارگذاری تصاویر..." : "ذخیره و نمایش تصاویر در صفحه اصلی"}
+                      </button>
+                    </div>
+
+                    <label className="mb-4 block max-w-xs text-sm font-bold text-gray-700">
+                      زمان تعویض اسلاید فروشگاهی (ثانیه)
+                      <input
+                        type="number"
+                        min="3"
+                        max="30"
+                        value={platformFinance.storeHeroSliderDurationSeconds}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "storeHeroSliderDurationSeconds",
+                            Number(e.target.value || 5),
+                          )
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      {ensureStorefrontSlides().map((slide, index) => (
+                        <div
+                          key={slide.id || index}
+                          className="rounded-2xl border border-rose-100 bg-white p-4"
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <b className="text-sm text-gray-900">
+                              {index === 0
+                                ? "تصویر بنر اصلی بالا (جایگاه ۱)"
+                                : index === 1
+                                  ? "تصویر بنر کوچک زیر آن (جایگاه ۲)"
+                                  : `اسلاید فروشگاهی ${Number(index + 1).toLocaleString("fa-IR")}`}
+                            </b>
+                            <label className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                              <input
+                                type="checkbox"
+                                checked={slide.isActive !== false}
+                                onChange={(e) =>
+                                  updateStorefrontSlide(index, {
+                                    isActive: e.target.checked,
+                                  })
+                                }
+                              />
+                              فعال
+                            </label>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-[110px_1fr]">
+                            <div>
+                              <div className="mb-2 grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-gray-100 text-xs text-gray-400">
+                                {slide.image ? (
+                                  <img
+                                    src={productImageUrl(slide.image)}
+                                    alt={slide.title}
+                                    className="h-full w-full object-contain p-1"
+                                  />
+                                ) : (
+                                  "بدون عکس"
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(e) =>
+                                  setStorefrontSlideFiles((current) => ({
+                                    ...current,
+                                    [index]: e.target.files?.[0] || null,
+                                  }))
+                                }
+                                className="w-full text-xs"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <input
+                                value={slide.title}
+                                onChange={(e) =>
+                                  updateStorefrontSlide(index, {
+                                    title: e.target.value,
+                                  })
+                                }
+                                placeholder="عنوان بنر فروشگاهی"
+                                className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                              />
+                              <textarea
+                                value={slide.subtitle}
+                                onChange={(e) =>
+                                  updateStorefrontSlide(index, {
+                                    subtitle: e.target.value,
+                                  })
+                                }
+                                placeholder="توضیح کوتاه بنر"
+                                className="min-h-16 rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                              />
+                              <div className="grid gap-2 md:grid-cols-2">
+                                <input
+                                  value={slide.cta}
+                                  onChange={(e) =>
+                                    updateStorefrontSlide(index, {
+                                      cta: e.target.value,
+                                    })
+                                  }
+                                  placeholder="متن دکمه"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                                />
+                                <input
+                                  value={slide.href}
+                                  onChange={(e) =>
+                                    updateStorefrontSlide(index, {
+                                      href: e.target.value,
+                                    })
+                                  }
+                                  placeholder="لینک مقصد"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                                  dir="ltr"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={savingStorefrontSlider}
+                      onClick={saveStorefrontSlider}
+                      className="mt-5 rounded-xl bg-rose-600 px-7 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:bg-gray-300"
+                    >
+                      {savingStorefrontSlider
+                        ? "در حال ذخیره..."
+                        : "ذخیره اسلایدر فروشگاه و ۴ تصویر"}
+                    </button>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-green-100 bg-green-50/50 p-5">
+                    <div className="mb-4 flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageShowStats)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageShowStats",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      <span className="text-sm font-bold text-green-800">
+                        نمایش آمار بالای صفحه اصلی
+                      </span>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="block text-sm font-bold text-gray-700">
+                        عنوان اصلی Hero
+                        <input
+                          value={platformFinance.homepageHeroTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageHeroTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        متن زیر عنوان Hero
+                        <textarea
+                          value={platformFinance.homepageHeroSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageHeroSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 min-h-24 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-blue-100 bg-blue-50/40 p-5">
+                    <label className="mb-4 flex items-center gap-3 text-sm font-bold text-blue-800">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageShowCategorySection)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageShowCategorySection",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      نمایش دسته‌بندی کالاها در صفحه اصلی (فعلاً خاموش برای تمرکز روی لپ‌تاپ/کامپیوتر دست‌دوم)
+                    </label>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <label className="block text-sm font-bold text-gray-700 md:col-span-1">
+                        عنوان بخش دسته‌بندی‌ها
+                        <input
+                          value={platformFinance.homepageCategoriesTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageCategoriesTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        نوع فونت دسته‌بندی‌ها
+                        <select
+                          value={platformFinance.homepageCategoryFontFamily}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageCategoryFontFamily",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="Vazir">وزیرمتن</option>
+                          <option value="Tahoma">Tahoma</option>
+                          <option value="Arial">Arial</option>
+                          <option value="system-ui">System UI</option>
+                        </select>
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        اندازه فونت دسته‌بندی‌ها
+                        <select
+                          value={platformFinance.homepageCategoryFontSize}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageCategoryFontSize",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="14">معمولی ۱۴px</option>
+                          <option value="16">درشت ۱۶px</option>
+                          <option value="18">درشت‌تر ۱۸px</option>
+                          <option value="20">خیلی درشت ۲۰px</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 rounded-3xl border border-orange-100 bg-orange-50/60 p-5">
+                    <label className="mb-4 flex items-center gap-3 text-sm font-bold text-orange-800">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageImageSliderEnabled)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageImageSliderEnabled",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      نمایش اسلایدر تصویری تبلیغاتی صفحه اصلی
+                    </label>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <label className="block text-sm font-bold text-gray-700">
+                        عنوان اسلایدر تصویری
+                        <input
+                          value={platformFinance.homepageImageSliderTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageImageSliderTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        توضیح اسلایدر تصویری
+                        <input
+                          value={platformFinance.homepageImageSliderSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageImageSliderSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        زمان تعویض اسلاید (ثانیه)
+                        <input
+                          type="number"
+                          min="3"
+                          max="30"
+                          value={platformFinance.homepageImageSliderDurationSeconds}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageImageSliderDurationSeconds",
+                              Number(e.target.value || 5),
+                            )
+                          }
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                      {ensureHomepageSlides().map((slide, index) => (
+                        <div
+                          key={slide.id || index}
+                          className="rounded-2xl border border-orange-100 bg-white p-4"
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <b className="text-sm text-gray-900">
+                              اسلاید {Number(index + 1).toLocaleString("fa-IR")}
+                            </b>
+                            <label className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                              <input
+                                type="checkbox"
+                                checked={slide.isActive !== false}
+                                onChange={(e) =>
+                                  updateHomepageSlide(index, {
+                                    isActive: e.target.checked,
+                                  })
+                                }
+                              />
+                              فعال
+                            </label>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-[110px_1fr]">
+                            <div>
+                              <div className="mb-2 grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-gray-100 text-xs text-gray-400">
+                                {slide.image ? (
+                                  <img
+                                    src={productImageUrl(slide.image)}
+                                    alt={slide.title}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  "بدون عکس"
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(e) =>
+                                  setHomepageSlideFiles((current) => ({
+                                    ...current,
+                                    [index]: e.target.files?.[0] || null,
+                                  }))
+                                }
+                                className="w-full text-xs"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <input
+                                value={slide.title}
+                                onChange={(e) =>
+                                  updateHomepageSlide(index, {
+                                    title: e.target.value,
+                                  })
+                                }
+                                placeholder="عنوان اسلاید"
+                                className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                              />
+                              <input
+                                value={slide.subtitle}
+                                onChange={(e) =>
+                                  updateHomepageSlide(index, {
+                                    subtitle: e.target.value,
+                                  })
+                                }
+                                placeholder="توضیح کوتاه"
+                                className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                              />
+                              <div className="grid gap-2 md:grid-cols-2">
+                                <input
+                                  value={slide.cta}
+                                  onChange={(e) =>
+                                    updateHomepageSlide(index, {
+                                      cta: e.target.value,
+                                    })
+                                  }
+                                  placeholder="متن دکمه"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400"
+                                />
+                                <input
+                                  dir="ltr"
+                                  value={slide.href}
+                                  onChange={(e) =>
+                                    updateHomepageSlide(index, {
+                                      href: e.target.value,
+                                    })
+                                  }
+                                  placeholder="/requests"
+                                  className="rounded-xl border border-gray-200 px-3 py-2 text-left text-sm outline-none focus:border-orange-400"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={saveHomepageImageSlider}
+                      disabled={savingHomepageSlider}
+                      className="mt-5 rounded-xl bg-orange-500 px-7 py-3 font-bold text-white transition hover:bg-orange-600 disabled:bg-gray-300"
+                    >
+                      {savingHomepageSlider
+                        ? "در حال ذخیره اسلایدر..."
+                        : "ذخیره اسلایدر تصویری و عکس‌ها"}
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {[
+                      {
+                        label: "درخواست‌های داغ فروشندگان",
+                        enabledKey: "homepageShowOpportunityRequests",
+                        titleKey: "homepageOpportunityTitle",
+                        subtitleKey: "homepageOpportunitySubtitle",
+                      },
+                      {
+                        label: "پررقابت‌ترین درخواست‌ها",
+                        enabledKey: "homepageShowBestSelling",
+                        titleKey: "homepageBestSellingTitle",
+                        subtitleKey: "homepageBestSellingSubtitle",
+                      },
+                      {
+                        label: "سیگنال واقعی رشد قیمت",
+                        enabledKey: "homepageShowGrowthSignals",
+                        titleKey: "homepageGrowthSignalsTitle",
+                        subtitleKey: "homepageGrowthSignalsSubtitle",
+                      },
+                      {
+                        label: "بیشترین درخواست‌شده",
+                        enabledKey: "homepageShowMostRequested",
+                        titleKey: "homepageMostRequestedTitle",
+                        subtitleKey: "homepageMostRequestedSubtitle",
+                      },
+                      {
+                        label: "آخرین درخواست‌های خرید",
+                        enabledKey: "homepageShowLatestRequests",
+                        titleKey: "homepageLatestRequestsTitle",
+                        subtitleKey: "homepageLatestRequestsSubtitle",
+                      },
+                      {
+                        label: "تامین‌کنندگان برتر",
+                        enabledKey: "homepageShowTopSellers",
+                        titleKey: "homepageTopSellersTitle",
+                        subtitleKey: "homepageTopSellersSubtitle",
+                      },
+                      {
+                        label: "خریداران برتر",
+                        enabledKey: "homepageShowTopBuyers",
+                        titleKey: "homepageTopBuyersTitle",
+                        subtitleKey: "homepageTopBuyersSubtitle",
+                      },
+                      {
+                        label: "دعوت به اقدام پایانی",
+                        enabledKey: "homepageShowFinalCta",
+                        titleKey: "homepageFinalCtaTitle",
+                        subtitleKey: "homepageFinalCtaSubtitle",
+                      },
+                    ].map((section) => (
+                      <div
+                        key={section.enabledKey}
+                        className="rounded-3xl border border-gray-100 bg-gray-50 p-5"
+                      >
+                        <label className="mb-4 flex items-center gap-3 text-sm font-black text-gray-800">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(
+                              (platformFinance as any)[section.enabledKey],
+                            )}
+                            onChange={(e) =>
+                              updatePlatformFinanceField(
+                                section.enabledKey,
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          {section.label}
+                        </label>
+                        <label className="mb-3 block text-xs font-bold text-gray-600">
+                          عنوان قابل نمایش
+                          <input
+                            value={String(
+                              (platformFinance as any)[section.titleKey] || "",
+                            )}
+                            onChange={(e) =>
+                              updatePlatformFinanceField(
+                                section.titleKey,
+                                e.target.value,
+                              )
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                          />
+                        </label>
+                        <label className="block text-xs font-bold text-gray-600">
+                          توضیح زیر عنوان
+                          <textarea
+                            value={String(
+                              (platformFinance as any)[section.subtitleKey] || "",
+                            )}
+                            onChange={(e) =>
+                              updatePlatformFinanceField(
+                                section.subtitleKey,
+                                e.target.value,
+                              )
+                            }
+                            className="mt-1 min-h-20 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50/60 p-5">
+                    <label className="mb-4 flex items-center gap-3 text-sm font-black text-amber-900">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(platformFinance.homepageShowPersonalizedRows)}
+                        onChange={(e) =>
+                          updatePlatformFinanceField(
+                            "homepageShowPersonalizedRows",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      نمایش ردیف‌های شخصی‌سازی‌شده بر اساس جستجوهای قبلی
+                    </label>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="block text-xs font-bold text-gray-700">
+                        عنوان ردیف اول شخصی‌سازی
+                        <input
+                          value={platformFinance.homepagePersonalizedTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepagePersonalizedTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                      <label className="block text-xs font-bold text-gray-700">
+                        متن ردیف اول
+                        <input
+                          value={platformFinance.homepagePersonalizedSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepagePersonalizedSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                      <label className="block text-xs font-bold text-gray-700">
+                        عنوان ردیف دوم شخصی‌سازی
+                        <input
+                          value={platformFinance.homepageRelatedTitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageRelatedTitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                      <label className="block text-xs font-bold text-gray-700">
+                        متن ردیف دوم
+                        <input
+                          value={platformFinance.homepageRelatedSubtitle}
+                          onChange={(e) =>
+                            updatePlatformFinanceField(
+                              "homepageRelatedSubtitle",
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={saveFinance}
+                    className="mt-6 rounded-xl bg-purple-600 px-8 py-3 font-bold text-white transition hover:bg-purple-700"
+                  >
+                    ذخیره تنظیمات صفحه اصلی
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "support" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold">🎧 مدیریت صفحه پشتیبانی و چت آنلاین</h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-500">
+                      اطلاعات تماس، متن صفحه پشتیبانی، سوالات پرتکرار و پیام خوشامد چت آنلاین از این بخش قابل تغییر است.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="block text-sm font-bold text-gray-700">
+                      عنوان صفحه پشتیبانی
+                      <input
+                        value={platformFinance.supportPageTitle}
+                        onChange={(e) => updatePlatformFinanceField("supportPageTitle", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      ایمیل پشتیبانی
+                      <input
+                        value={platformFinance.supportEmail}
+                        onChange={(e) => updatePlatformFinanceField("supportEmail", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      توضیح بالای صفحه
+                      <textarea
+                        value={platformFinance.supportPageSubtitle}
+                        onChange={(e) => updatePlatformFinanceField("supportPageSubtitle", e.target.value)}
+                        className="mt-2 min-h-24 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      شماره تلفن پشتیبانی
+                      <input
+                        value={platformFinance.supportPhone}
+                        onChange={(e) => updatePlatformFinanceField("supportPhone", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      موبایل / واتساپ
+                      <input
+                        value={platformFinance.supportMobile}
+                        onChange={(e) => updatePlatformFinanceField("supportMobile", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      آدرس پشتیبانی
+                      <input
+                        value={platformFinance.supportAddress}
+                        onChange={(e) => updatePlatformFinanceField("supportAddress", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      ساعات پاسخ‌گویی
+                      <input
+                        value={platformFinance.supportWorkingHours}
+                        onChange={(e) => updatePlatformFinanceField("supportWorkingHours", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      لینک تلگرام پشتیبانی
+                      <input
+                        value={platformFinance.supportTelegram}
+                        onChange={(e) => updatePlatformFinanceField("supportTelegram", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      لینک واتساپ پشتیبانی
+                      <input
+                        value={platformFinance.supportWhatsapp}
+                        onChange={(e) => updatePlatformFinanceField("supportWhatsapp", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                        dir="ltr"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      پیام خوشامد چت آنلاین
+                      <input
+                        value={platformFinance.supportChatWelcome}
+                        onChange={(e) => updatePlatformFinanceField("supportChatWelcome", e.target.value)}
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700 md:col-span-2">
+                      سوالات پرتکرار؛ هر خط: سوال|پاسخ
+                      <textarea
+                        value={platformFinance.supportFaqText}
+                        onChange={(e) => updatePlatformFinanceField("supportFaqText", e.target.value)}
+                        className="mt-2 min-h-40 w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    onClick={saveFinance}
+                    className="mt-6 rounded-xl bg-purple-600 px-8 py-3 font-bold text-white transition hover:bg-purple-700"
+                  >
+                    ذخیره تنظیمات پشتیبانی
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-xl font-bold">پیام‌های دریافتی چت آنلاین</h2>
+                  {supportChatMessages.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
+                      هنوز پیامی از چت پشتیبانی ثبت نشده است.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {supportChatMessages.slice(0, 20).map((message) => (
+                        <div key={message.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm">
+                          <div className="mb-2 flex flex-wrap justify-between gap-3">
+                            <b className="text-[#003b5c]">{message.name || "بازدیدکننده"}</b>
+                            <span className="font-mono text-xs text-gray-400">{message.id}</span>
+                          </div>
+                          <p className="leading-7 text-gray-700">{message.content}</p>
+                          <p className="mt-2 text-xs text-gray-500">
+                            موبایل: {message.phone || "—"} · ایمیل: {message.email || "—"} · {new Date(message.createdAt).toLocaleString("fa-IR")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Contact Info Settings */}
+            {activeTab === "contact" && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-in fade-in duration-300">
+                <h2 className="font-bold text-xl mb-6 border-b pb-4">
+                  📞 تنظیمات صفحه و اطلاعات تماس با ما
+                </h2>
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-2">
+                      شماره تلفن پشتیبانی
+                    </label>
+                    <input
+                      type="text"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-2">
+                      ایمیل سازمانی
+                    </label>
+                    <input
+                      type="email"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block font-bold text-gray-700 mb-2">
+                      آدرس فیزیکی دفتر مرکزی
+                    </label>
+                    <textarea
+                      value={contactAddress}
+                      onChange={(e) => setContactAddress(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block font-bold text-gray-700 mb-2">
+                      ساعات کاری
+                    </label>
+                    <input
+                      type="text"
+                      value={workingHours}
+                      onChange={(e) => setWorkingHours(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleSave("اطلاعات تماس")}
+                  className="bg-purple-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-purple-700 transition"
+                >
+                  ذخیره اطلاعات تماس
+                </button>
+              </div>
+            )}
+
+            {/* 3. Financial Settings */}
+            {activeTab === "financial" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-6 border-b pb-4 text-xl font-bold">
+                    💵 حساب مالی و کمیسیون پلتفرم
+                  </h2>
+                  <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
+                    <h3 className="mb-2 font-bold text-blue-800">
+                      مانده واقعی حساب کمیسیون OptiBid
+                    </h3>
+                    <p className="text-3xl font-bold text-[#003b5c]">
+                      {platformFinance.platformWalletBalance.toLocaleString(
+                        "fa-IR",
+                      )}{" "}
+                      تومان
+                    </p>
+                    <p className="mt-2 text-sm leading-7 text-blue-700">
+                      با تایید دریافت کالا توسط خریدار، کمیسیون هر سفارش به این
+                      حساب پلتفرم افزوده می‌شود و سهم باقی‌مانده به کیف پول
+                      فروشنده می‌رود.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        نرخ کمیسیون پلتفرم
+                      </label>
+                      <div className="relative max-w-xs">
+                        <input
+                          type="number"
+                          min="0"
+                          max="30"
+                          value={commissionRate}
+                          onChange={(e) =>
+                            setCommissionRate(Number(e.target.value))
+                          }
+                          className="w-full rounded-lg border border-blue-300 px-4 py-3 text-center text-xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-500">
+                          %
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500">
+                        این نرخ فقط روی سفارش‌هایی که بعد از تغییر تنظیمات
+                        انتخاب می‌شوند اعمال خواهد شد.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        نام دارنده حساب مقصد
+                      </label>
+                      <input
+                        value={platformFinance.adminAccountHolder}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            adminAccountHolder: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="مثال: شرکت اپتی‌بید"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        نام بانک مقصد
+                      </label>
+                      <input
+                        value={platformFinance.adminBankName}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            adminBankName: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="مثال: بانک ملت"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        شماره شبا حساب پلتفرم
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.adminSheba}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            adminSheba: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="IRxxxxxxxxxxxxxxxxxxxxxxxx"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        شماره کارت مقصد (اختیاری)
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.adminCardNumber}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            adminCardNumber: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0000-0000-0000-0000"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={saveFinance}
+                    className="mt-6 rounded-lg bg-blue-600 px-7 py-3 font-bold text-white transition hover:bg-blue-700"
+                  >
+                    ذخیره تنظیمات مالی
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-rose-100 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-start">
+                    <div>
+                      <h2 className="text-xl font-bold text-rose-700">
+                        🎁 تنظیمات درخواست‌های ویژه و نوتیفیکیشن صفحه اصلی
+                      </h2>
+                      <p className="mt-2 text-sm leading-7 text-gray-600">
+                        تایمر، کد کمپین و پیام پاپ‌آپ درخواست‌های ویژه از این بخش کنترل می‌شود.
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700">
+                      <input
+                        type="checkbox"
+                        checked={platformFinance.amazingDealsEnabled}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsEnabled: e.target.checked,
+                          })
+                        }
+                      />
+                      نمایش درخواست‌های ویژه
+                    </label>
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <label className="block text-sm font-bold text-gray-700">
+                      مدت تایمر درخواست‌های ویژه (ساعت)
+                      <input
+                        type="number"
+                        min="1"
+                        max="72"
+                        value={platformFinance.amazingDealsDurationHours}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsDurationHours: Number(e.target.value || 1),
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      کد کمپین
+                      <input
+                        dir="ltr"
+                        value={platformFinance.amazingDealsDiscountCode}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsDiscountCode: e.target.value,
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-rose-500"
+                        placeholder="DS23"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-bold text-gray-700 md:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={platformFinance.amazingDealsNotificationEnabled}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsNotificationEnabled: e.target.checked,
+                          })
+                        }
+                      />
+                      نمایش پاپ‌آپ نوتیفیکیشن هنگام ورود به صفحه اصلی
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      عنوان پاپ‌آپ
+                      <input
+                        value={platformFinance.amazingDealsNotificationTitle}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsNotificationTitle: e.target.value,
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-gray-700">
+                      متن پاپ‌آپ
+                      <input
+                        value={platformFinance.amazingDealsNotificationText}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            amazingDealsNotificationText: e.target.value,
+                          })
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    onClick={saveFinance}
+                    className="mt-5 rounded-lg bg-rose-600 px-7 py-3 font-bold text-white transition hover:bg-rose-700"
+                  >
+                    ذخیره تنظیمات درخواست‌های ویژه
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-emerald-100 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex flex-col justify-between gap-3 border-b pb-4 md:flex-row md:items-start">
+                    <div>
+                      <h2 className="text-xl font-bold text-[#003b5c]">
+                        اتصال درگاه پرداخت زرین‌پال
+                      </h2>
+                      <p className="mt-2 text-sm leading-7 text-gray-600">
+                        پیش‌نیازهای لازم برای پرداخت خریدار از زرین‌پال،
+                        Callback و ثبت تراکنش امانی در این بخش مدیریت می‌شود.
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${zarinpalPrerequisites?.ready ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
+                    >
+                      {zarinpalPrerequisites?.ready
+                        ? "آماده اتصال"
+                        : "نیازمند تکمیل"}
+                    </span>
+                  </div>
+
+                  <div className="mb-5 grid gap-3 md:grid-cols-2">
+                    {[
+                      ["۱", "دریافت Merchant ID از پنل زرین‌پال"],
+                      ["۲", "ثبت آدرس Callback زیر در پنل زرین‌پال/دامنه"],
+                      ["۳", "فعال‌سازی HTTPS دامنه live سایت"],
+                      ["۴", "تست Sandbox و سپس تغییر به حالت عملیاتی"],
+                    ].map(([step, text]) => (
+                      <div
+                        key={step}
+                        className="rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-800"
+                      >
+                        <b className="ml-2">{step}</b>
+                        {text}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-bold text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={platformFinance.zarinpalEnabled}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            zarinpalEnabled: e.target.checked,
+                          })
+                        }
+                      />
+                      فعال‌سازی زرین‌پال برای خریدار
+                    </label>
+                    <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm font-bold text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={platformFinance.zarinpalSandbox}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            zarinpalSandbox: e.target.checked,
+                          })
+                        }
+                      />
+                      حالت آزمایشی Sandbox
+                    </label>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        Merchant ID زرین‌پال
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.zarinpalMerchantId}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            zarinpalMerchantId: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        در صورت تنظیم Secret محیطی ZARINPAL_MERCHANT_ID، همان
+                        مقدار روی Workers استفاده می‌شود.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        آدرس پایه سایت برای Callback
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.zarinpalCallbackBaseUrl}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            zarinpalCallbackBaseUrl: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="https://optibid.fazilat-ma.workers.dev"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        توضیح پیش‌فرض تراکنش زرین‌پال
+                      </label>
+                      <input
+                        value={platformFinance.zarinpalDescription}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            zarinpalDescription: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="پرداخت امانی سفارش OptiBid"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-dashed border-blue-200 bg-blue-50 p-4 text-sm leading-7 text-blue-900">
+                    <p>
+                      <b>Callback URL:</b>{" "}
+                      <span dir="ltr" className="font-mono text-xs">
+                        {zarinpalPrerequisites?.callbackUrl ||
+                          `${platformFinance.zarinpalCallbackBaseUrl.replace(/\/+$/, "")}/api/payments/zarinpal/callback`}
+                      </span>
+                    </p>
+                    {zarinpalPrerequisites?.missingItems?.length > 0 && (
+                      <p className="mt-2 text-amber-700">
+                        <b>موارد ناقص:</b>{" "}
+                        {zarinpalPrerequisites.missingItems.join("، ")}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={saveFinance}
+                    className="mt-5 rounded-lg bg-[#0b9c56] px-7 py-3 font-bold text-white transition hover:bg-green-700"
+                  >
+                    ذخیره تنظیمات زرین‌پال
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold">
+                    تراکنش‌های زرین‌پال
+                  </h2>
+                  {zarinpalPayments.length === 0 ? (
+                    <p className="rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500">
+                      هنوز پرداختی از زرین‌پال ثبت نشده است.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-sm">
+                        <thead className="border-b bg-gray-50 text-gray-600">
+                          <tr>
+                            <th className="p-3">شناسه</th>
+                            <th className="p-3">سفارش</th>
+                            <th className="p-3">Authority</th>
+                            <th className="p-3">مبلغ</th>
+                            <th className="p-3">وضعیت</th>
+                            <th className="p-3">Ref ID</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {zarinpalPayments.map((payment) => (
+                            <tr key={payment.id} className="border-b">
+                              <td className="p-3 font-mono text-xs">
+                                {payment.id}
+                              </td>
+                              <td className="p-3 font-mono text-xs">
+                                {payment.orderId}
+                              </td>
+                              <td className="p-3 font-mono text-[11px]">
+                                {payment.authority}
+                              </td>
+                              <td className="p-3 font-bold text-[#003b5c]">
+                                {Number(payment.amount || 0).toLocaleString(
+                                  "fa-IR",
+                                )}{" "}
+                                تومان
+                              </td>
+                              <td className="p-3">
+                                <span
+                                  className={`rounded-full px-2 py-1 text-xs font-bold ${payment.status === "verified" ? "bg-green-100 text-green-700" : payment.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}
+                                >
+                                  {payment.status}
+                                </span>
+                              </td>
+                              <td className="p-3 font-mono text-xs">
+                                {payment.refId || "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold">
+                    دفتر گردش حساب پلتفرم
+                  </h2>
+                  {platformTransactions.length === 0 ? (
+                    <p className="rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500">
+                      هنوز کمیسیونی از معامله تکمیل‌شده به حساب پلتفرم واریز
+                      نشده است.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-sm">
+                        <thead className="border-b bg-gray-50 text-gray-600">
+                          <tr>
+                            <th className="p-3">شناسه</th>
+                            <th className="p-3">شرح</th>
+                            <th className="p-3">سفارش</th>
+                            <th className="p-3">مبلغ کمیسیون</th>
+                            <th className="p-3">مانده پس از ثبت</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {platformTransactions.map((transaction) => (
+                            <tr key={transaction.id} className="border-b">
+                              <td className="p-3 font-mono text-xs">
+                                {transaction.id}
+                              </td>
+                              <td className="p-3">{transaction.description}</td>
+                              <td className="p-3 font-mono text-xs">
+                                {transaction.orderId || "—"}
+                              </td>
+                              <td className="p-3 font-bold text-green-600">
+                                {transaction.amount.toLocaleString("fa-IR")}{" "}
+                                تومان
+                              </td>
+                              <td className="p-3 font-bold text-[#003b5c]">
+                                {transaction.balanceAfter.toLocaleString(
+                                  "fa-IR",
+                                )}{" "}
+                                تومان
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold">
+                        درخواست‌های برداشت کاربران
+                      </h2>
+                      <p className="mt-1 text-xs text-gray-500">
+                        پیش از تایید، نام صاحب حساب و اطلاعات بانکی را با مدارک
+                        کاربر تطبیق دهید.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+                      {
+                        withdrawals.filter((item) => item.status === "pending")
+                          .length
+                      }{" "}
+                      در انتظار
+                    </span>
+                  </div>
+                  {withdrawals.length === 0 ? (
+                    <p className="rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500">
+                      درخواست برداشتی وجود ندارد.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {withdrawals.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-2xl border border-gray-200 p-5"
+                        >
+                          <div className="flex flex-col justify-between gap-4 lg:flex-row">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="font-bold text-gray-900">
+                                  {item.userName}
+                                </h3>
+                                <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                                  {item.role === "seller"
+                                    ? "فروشنده"
+                                    : "خریدار"}
+                                </span>
+                                <span
+                                  className={`rounded-full px-2 py-1 text-xs font-bold ${item.status === "approved" ? "bg-green-100 text-green-700" : item.status === "rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
+                                >
+                                  {item.status === "approved"
+                                    ? "تسویه شد"
+                                    : item.status === "rejected"
+                                      ? "رد شد"
+                                      : "در انتظار"}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-2xl font-bold text-[#003b5c]">
+                                {item.amount.toLocaleString("fa-IR")} تومان
+                              </p>
+                              <p className="mt-1 font-mono text-xs text-gray-400">
+                                {item.id}
+                              </p>
+                            </div>
+                            <div className="grid gap-x-8 gap-y-2 rounded-xl bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:min-w-[520px]">
+                              <p>
+                                <b>صاحب حساب:</b> {item.bankAccountHolder}
+                              </p>
+                              <p>
+                                <b>بانک:</b> {item.bankName}
+                              </p>
+                              <p dir="ltr" className="text-right">
+                                <b>حساب:</b>{" "}
+                                {item.bankAccountNumber.replace(
+                                  /^(\d{3})(\d{3})(\d{7})(\d)$/,
+                                  "$1-$2-$3-$4",
+                                )}
+                              </p>
+                              <p dir="ltr" className="text-right">
+                                <b>کارت:</b>{" "}
+                                {item.bankCardNumber
+                                  .replace(/(.{4})/g, "$1-")
+                                  .replace(/-$/, "")}
+                              </p>
+                              <p dir="ltr" className="text-right sm:col-span-2">
+                                <b>شبا:</b> {item.bankShebaNumber}
+                              </p>
+                            </div>
+                          </div>
+                          {item.status === "pending" && (
+                            <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row">
+                              <input
+                                value={withdrawalNotes[item.id] || ""}
+                                onChange={(e) =>
+                                  setWithdrawalNotes({
+                                    ...withdrawalNotes,
+                                    [item.id]: e.target.value,
+                                  })
+                                }
+                                placeholder="یادداشت ادمین یا شماره پیگیری تسویه"
+                                className="flex-1 rounded-xl border px-4 py-2 text-sm outline-none focus:border-purple-500"
+                              />
+                              <button
+                                onClick={() =>
+                                  resolveWithdrawal(item.id, "approved")
+                                }
+                                className="rounded-xl bg-green-600 px-5 py-2 font-bold text-white"
+                              >
+                                تایید و ثبت تسویه
+                              </button>
+                              <button
+                                onClick={() =>
+                                  resolveWithdrawal(item.id, "rejected")
+                                }
+                                className="rounded-xl bg-red-50 px-5 py-2 font-bold text-red-600"
+                              >
+                                رد و بازگشت وجه
+                              </button>
+                            </div>
+                          )}
+                          {item.adminNote && (
+                            <p className="mt-3 text-xs text-gray-500">
+                              یادداشت ادمین: {item.adminNote}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 4. Escrow Overview */}
+            {activeTab === "overview" && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in duration-300">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                  <h2 className="font-bold text-lg">
+                    تراکنش‌های در جریان (صندوق امانات)
+                  </h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead className="bg-gray-100 text-gray-600 border-b border-gray-200">
+                      <tr>
+                        <th className="p-4 font-bold">شناسه / سفارش</th>
+                        <th className="p-4 font-bold">مبلغ کل (تومان)</th>
+                        <th className="p-4 font-bold">وضعیت وجه</th>
+                        <th className="p-4 font-bold">حل اختلاف / عملیات</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {escrowTransactions.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={4}
+                            className="p-8 text-center text-sm text-gray-500"
+                          >
+                            در حال حاضر وجه امانی فعالی وجود ندارد.
+                          </td>
+                        </tr>
+                      ) : (
+                        escrowTransactions.map((trx) => (
+                          <tr
+                            key={trx.id}
+                            className="hover:bg-gray-50 transition"
+                          >
+                            <td className="p-4">
+                              <div
+                                className="font-bold text-gray-900"
+                                dir="ltr"
+                              >
+                                {trx.id}
+                              </div>
+                              <div
+                                className="mt-1 text-xs text-gray-500"
+                                dir="ltr"
+                              >
+                                {trx.orderId}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="font-bold text-green-600">
+                                {trx.amount.toLocaleString("fa-IR")} تومان
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500">
+                                سهم فروشنده:{" "}
+                                {trx.sellerAmount.toLocaleString("fa-IR")} تومان
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span
+                                className={`rounded px-2 py-1 text-xs font-bold ${trx.status === "held" ? "bg-orange-100 text-orange-700" : trx.status === "released" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                              >
+                                {trx.status === "held"
+                                  ? "در حساب امانی"
+                                  : trx.status === "released"
+                                    ? "آزاد شده"
+                                    : "بازپرداخت شده"}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-xs text-gray-500">
+                                کمیسیون:{" "}
+                                {trx.platformFee.toLocaleString("fa-IR")} تومان
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 5. User Verifications */}
+            {activeTab === "verifications" && (
+              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm animate-in fade-in duration-300">
+                <div className="mb-6 border-b pb-4">
+                  <h2 className="text-xl font-bold">
+                    🛡️ تایید هویت کاربران (KYC)
+                  </h2>
+                  <p className="mt-2 text-sm leading-7 text-gray-600">
+                    تصویر کارت ملی، صفحات شناسنامه و کارت بانکی را بررسی کنید.
+                    پس از تایید، حساب و نام کاربری فعال می‌شوند.
+                  </p>
+                </div>
+
+                {pendingVerifications.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-12 text-center">
+                    <div className="mb-3 text-4xl">✅</div>
+                    <p className="font-bold text-gray-700">
+                      کاربری در انتظار بررسی مدارک نیست.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {pendingVerifications.map((user) => (
+                      <article
+                        key={user.id}
+                        className="rounded-2xl border border-gray-200 p-5 shadow-sm"
+                      >
+                        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                          <div>
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-bold ${user.role === "seller" || user.sellerModeEnabled ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                              >
+                                {roleLabel(user.role, user.sellerModeEnabled)}
+                              </span>
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-bold ${user.kycStatus === "rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
+                              >
+                                {user.kycStatus === "rejected"
+                                  ? "ردشده — قابل بازبینی"
+                                  : "در انتظار بررسی"}
+                              </span>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900">
+                              {user.fullName}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-600">
+                              نام کاربری: <b dir="ltr">{user.username}</b> ·
+                              ایمیل: <b dir="ltr">{user.email}</b>
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              ثبت‌نام:{" "}
+                              {new Date(user.createdAt).toLocaleString("fa-IR")}
+                            </p>
+                            {user.categories?.length > 0 && (
+                              <p className="mt-2 text-xs text-blue-700">
+                                حوزه‌ها: {user.categories.join("، ")}
+                              </p>
+                            )}
+                            {user.kycRejectReason && (
+                              <p className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">
+                                علت رد قبلی: {user.kycRejectReason}
+                              </p>
+                            )}
+                          </div>
+                          <div className="rounded-xl bg-gray-50 p-4 text-xs leading-6 text-gray-600 lg:min-w-64">
+                            <p>
+                              <b>شهر:</b> {user.city || "—"}
+                            </p>
+                            <p>
+                              <b>کدپستی:</b> {user.postalCode || "—"}
+                            </p>
+                            <p>
+                              <b>نشانی:</b> {user.defaultAddress || "—"}
+                            </p>
+                            <p className="mt-2 font-bold text-amber-700">
+                              اطلاعات بانکی متنی در JSON رمزنگاری شده‌اند.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 border-t pt-4">
+                          <h4 className="mb-3 text-sm font-bold text-gray-800">
+                            مدارک بارگذاری‌شده ({user.kycDocuments?.length || 0}
+                            )
+                          </h4>
+                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {(user.kycDocuments || []).map((document: any) => (
+                              <a
+                                key={document.id}
+                                href={`/api/admin/kyc-document?userId=${user.id}&documentId=${document.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-purple-400 hover:bg-purple-50"
+                              >
+                                <p className="font-bold text-gray-800">
+                                  📄 {document.label}
+                                </p>
+                                <p className="mt-1 truncate text-xs text-gray-500">
+                                  {document.originalName}
+                                </p>
+                                <p className="mt-1 text-[11px] text-gray-400">
+                                  {(document.size / 1024).toLocaleString(
+                                    "fa-IR",
+                                    { maximumFractionDigits: 0 },
+                                  )}{" "}
+                                  کیلوبایت · مشاهده تصویر
+                                </p>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row">
+                          <input
+                            value={kycReasons[user.id] || ""}
+                            onChange={(event) =>
+                              setKycReasons({
+                                ...kycReasons,
+                                [user.id]: event.target.value,
+                              })
+                            }
+                            placeholder="علت رد مدارک یا توضیح ادمین"
+                            className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500"
+                          />
+                          <button
+                            onClick={() => resolveKyc(user.id, "approved")}
+                            className="rounded-xl bg-green-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-green-700"
+                          >
+                            ✓ تایید مدارک و فعال‌سازی حساب
+                          </button>
+                          <button
+                            onClick={() => resolveKyc(user.id, "rejected")}
+                            className="rounded-xl bg-red-50 px-6 py-2.5 text-sm font-bold text-red-600 hover:bg-red-100"
+                          >
+                            رد مدارک
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Social Auth Settings */}
+            {activeTab === "socialAuth" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 border-b pb-4">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      🔐 تنظیمات ورود با گوگل و فیسبوک
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-gray-600">
+                      برای اینکه آیکون‌های ورود اجتماعی واقعاً کار کنند، Client
+                      ID و Client Secret هر سرویس را اینجا ثبت و همان Callback
+                      URL را در پنل Google/Facebook وارد کنید.
+                    </p>
+                  </div>
+
+                  <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-7 text-blue-900">
+                    <p>
+                      <b>دامنه پایه:</b>{" "}
+                      <span dir="ltr" className="font-mono text-xs">
+                        {platformFinance.socialAuthBaseUrl}
+                      </span>
+                    </p>
+                    <p>
+                      <b>Callback گوگل:</b>{" "}
+                      <span
+                        dir="ltr"
+                        className="font-mono text-xs"
+                      >{`${platformFinance.socialAuthBaseUrl.replace(/\/+$/, "")}/api/auth/social/google/callback`}</span>
+                    </p>
+                    <p>
+                      <b>Callback فیسبوک:</b>{" "}
+                      <span
+                        dir="ltr"
+                        className="font-mono text-xs"
+                      >{`${platformFinance.socialAuthBaseUrl.replace(/\/+$/, "")}/api/auth/social/facebook/callback`}</span>
+                    </p>
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-200 p-5">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-bold text-[#003b5c]">
+                            Google OAuth
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Google Cloud Console → Credentials → OAuth Client
+                          </p>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={platformFinance.googleOAuthEnabled}
+                            onChange={(e) =>
+                              setPlatformFinance({
+                                ...platformFinance,
+                                googleOAuthEnabled: e.target.checked,
+                              })
+                            }
+                          />{" "}
+                          فعال
+                        </label>
+                      </div>
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Google Client ID
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.googleOAuthClientId}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            googleOAuthClientId: e.target.value,
+                          })
+                        }
+                        className="mb-4 w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="xxxx.apps.googleusercontent.com"
+                      />
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Google Client Secret
+                      </label>
+                      <input
+                        dir="ltr"
+                        type="password"
+                        value={platformFinance.googleOAuthClientSecret}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            googleOAuthClientSecret: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="GOCSPX-..."
+                      />
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-200 p-5">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-bold text-[#1877F2]">
+                            Facebook Login
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Meta Developers → Facebook Login → Settings
+                          </p>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={platformFinance.facebookOAuthEnabled}
+                            onChange={(e) =>
+                              setPlatformFinance({
+                                ...platformFinance,
+                                facebookOAuthEnabled: e.target.checked,
+                              })
+                            }
+                          />{" "}
+                          فعال
+                        </label>
+                      </div>
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Facebook App ID
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.facebookOAuthClientId}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            facebookOAuthClientId: e.target.value,
+                          })
+                        }
+                        className="mb-4 w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="1234567890"
+                      />
+                      <label className="mb-3 block text-sm font-bold text-gray-700">
+                        Facebook App Secret
+                      </label>
+                      <input
+                        dir="ltr"
+                        type="password"
+                        value={platformFinance.facebookOAuthClientSecret}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            facebookOAuthClientSecret: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="app-secret"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        آدرس پایه سایت برای ورود اجتماعی
+                      </label>
+                      <input
+                        dir="ltr"
+                        value={platformFinance.socialAuthBaseUrl}
+                        onChange={(e) =>
+                          setPlatformFinance({
+                            ...platformFinance,
+                            socialAuthBaseUrl: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-left outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="https://optibid.fazilat-ma.workers.dev"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                      <b>۱.</b> اپلیکیشن OAuth را در Google و Meta بسازید.
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                      <b>۲.</b> Callback URLهای بالا را دقیقاً ثبت کنید.
+                    </div>
+                    <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                      <b>۳.</b> تنظیمات را ذخیره کنید؛ دکمه‌های ورود فوراً به
+                      OAuth وصل می‌شوند.
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={saveFinance}
+                    className="mt-6 rounded-lg bg-purple-600 px-7 py-3 font-bold text-white transition hover:bg-purple-700"
+                  >
+                    ذخیره تنظیمات ورود اجتماعی
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 6. Categories Management */}
+            {activeTab === "categories" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="mb-6 flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
+                    <div>
+                      <h2 className="text-xl font-bold">📂 مدیریت دسته‌بندی و زیردسته‌ها</h2>
+                      <p className="mt-2 text-sm text-gray-500">
+                        دسته‌های اصلی و زیرگروه‌هایی که در صفحه اصلی و منوی کشویی سایت نمایش داده می‌شوند را اینجا اضافه یا ویرایش کنید.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={startNewCategory}
+                        className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-700"
+                      >
+                        + افزودن دسته جدید
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveCatalogCategories}
+                        disabled={savingCategories}
+                        className="rounded-lg bg-[#0b9c56] px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:bg-gray-300"
+                      >
+                        {savingCategories ? "در حال ذخیره..." : "ذخیره در سایت"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {categoryDraft && (
+                    <div className="mb-6 rounded-3xl border border-purple-100 bg-purple-50/60 p-5">
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <label className="block text-xs font-bold text-gray-700">
+                          نام دسته اصلی
+                          <input
+                            value={categoryDraft.name}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                name: event.target.value,
+                              })
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                            placeholder="مثلاً کالای دیجیتال"
+                          />
+                        </label>
+                        <label className="block text-xs font-bold text-gray-700">
+                          آیکون
+                          <input
+                            value={categoryDraft.icon}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                icon: event.target.value,
+                              })
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                            placeholder="📱"
+                          />
+                        </label>
+                        <label className="block text-xs font-bold text-gray-700">
+                          شناسه مسیر قدیمی
+                          <input
+                            type="number"
+                            value={categoryDraft.legacyId}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                legacyId: Number(event.target.value || 0),
+                              })
+                            }
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none focus:border-purple-400"
+                          />
+                        </label>
+                        <label className="mt-6 flex items-center gap-2 text-xs font-bold text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={categoryDraft.isActive}
+                            onChange={(event) =>
+                              setCategoryDraft({
+                                ...categoryDraft,
+                                isActive: event.target.checked,
+                              })
+                            }
+                          />
+                          نمایش در سایت
+                        </label>
+                      </div>
+                      <label className="mt-4 block text-xs font-bold text-gray-700">
+                        زیردسته‌ها؛ هر خط با فرمت «عنوان: مورد ۱، مورد ۲، مورد ۳»
+                        <textarea
+                          value={categoryDraft.subcategoriesText}
+                          onChange={(event) =>
+                            setCategoryDraft({
+                              ...categoryDraft,
+                              subcategoriesText: event.target.value,
+                            })
+                          }
+                          className="mt-1 min-h-32 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 leading-7 outline-none focus:border-purple-400"
+                        />
+                      </label>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={addDraftSubcategory}
+                          className="rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-bold text-purple-700"
+                        >
+                          + افزودن زیرگروه
+                        </button>
+                        <button
+                          type="button"
+                          onClick={addDraftSubcategoryItem}
+                          className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700"
+                        >
+                          + افزودن آیتم به زیرگروه
+                        </button>
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={saveCategoryDraft}
+                          className="rounded-xl bg-purple-600 px-5 py-2 text-sm font-bold text-white"
+                        >
+                          ثبت تغییرات دسته
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCategoryDraft(null)}
+                          className="rounded-xl bg-white px-5 py-2 text-sm font-bold text-gray-600"
+                        >
+                          انصراف
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {catalogCategories.map((category) => (
+                      <article
+                        key={category.id}
+                        className="rounded-3xl border border-gray-100 bg-gray-50 p-4"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-2xl shadow-inner">
+                              {category.icon}
+                            </span>
+                            <div>
+                              <h3 className="font-bold text-gray-900">{category.name}</h3>
+                              <p className="mt-1 text-xs text-gray-500">
+                                {category.subcategories.length.toLocaleString("fa-IR")} گروه زیردسته
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${
+                              category.isActive !== false
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-200 text-gray-500"
+                            }`}
+                          >
+                            {category.isActive !== false ? "فعال" : "غیرفعال"}
+                          </span>
+                        </div>
+                        <div className="mb-4 flex flex-wrap gap-1.5">
+                          {category.subcategories.slice(0, 4).map((group) => (
+                            <span
+                              key={group.id}
+                              className="rounded-full bg-white px-2 py-1 text-[11px] text-gray-600"
+                            >
+                              {group.title}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCategoryDraft(categoryToDraft(category))}
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700"
+                          >
+                            ویرایش
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCatalogCategories((current) =>
+                                current.map((item) =>
+                                  item.id === category.id
+                                    ? { ...item, isActive: item.isActive === false }
+                                    : item,
+                                ),
+                              )
+                            }
+                            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700"
+                          >
+                            {category.isActive !== false ? "غیرفعال‌سازی" : "فعال‌سازی"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("این دسته حذف شود؟")) {
+                                setCatalogCategories((current) =>
+                                  current.filter((item) => item.id !== category.id),
+                                );
+                              }
+                            }}
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700"
+                          >
+                            حذف
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function adminMoney(value: number | string) {
+  return `${Number(value || 0).toLocaleString("fa-IR")} تومان`;
+}
+
+function adminDate(value?: string) {
+  return value
+    ? new Date(value).toLocaleString("fa-IR", {
+        dateStyle: "short",
+        timeStyle: "short",
+      })
+    : "—";
+}
+
+function roleLabel(role: string, sellerModeEnabled?: boolean) {
+  if (role === "seller") return "فروشنده";
+  if (role === "buyer" && sellerModeEnabled) return "خریدار + فروشنده";
+  if (role === "buyer") return "خریدار";
+  return role || "کاربر";
+}
+
+function kycLabel(status: string) {
+  if (status === "approved") return "تاییدشده";
+  if (status === "rejected") return "ردشده";
+  return "در انتظار بررسی";
+}
+
+function userAvatarUrl(user: any) {
+  return user?.avatarName
+    ? `/api/avatar?userId=${user.id}&v=${encodeURIComponent(user.avatarName)}`
+    : "";
+}
+
+function UserManagementPanel({
+  initialManagedUsers,
+}: {
+  initialManagedUsers: { summary: any; users: any[] };
+}) {
+  const [users, setUsers] = useState<any[]>(initialManagedUsers?.users || []);
+  const [summary, setSummary] = useState<any>(
+    initialManagedUsers?.summary || {},
+  );
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "buyer" | "seller">(
+    "all",
+  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "blocked" | "pending"
+  >("all");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [drafts, setDrafts] = useState<Record<number, any>>({});
+  const [lastPasswords, setLastPasswords] = useState<Record<number, string>>(
+    {},
+  );
+  const [loading, setLoading] = useState(false);
+
+  const categoryOptions = [
+    "کالای دیجیتال",
+    "مد و پوشاک",
+    "خانه و آشپزخانه",
+    "زیبایی و سلامت",
+    "کتاب و لوازم تحریر",
+    "ورزش و سفر",
+    "اسباب‌بازی و کودک",
+    "خودرو و موتور",
+    "صنعتی و اداری",
+    "سایر",
+  ];
+
+  const refreshUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/users", { cache: "no-store" });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "دریافت کاربران ناموفق بود.");
+      setUsers(result.users || []);
+      setSummary(result.summary || {});
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : "دریافت کاربران ناموفق بود.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredUsers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return users.filter((user) => {
+      const roleOk = roleFilter === "all" || user.role === roleFilter;
+      const statusOk =
+        statusFilter === "all" ||
+        (statusFilter === "active" && user.isActive) ||
+        (statusFilter === "blocked" && !user.isActive) ||
+        (statusFilter === "pending" && user.kycStatus === "pending");
+      const text =
+        `${user.fullName} ${user.username} ${user.email} ${user.phone || ""} ${user.city}`.toLowerCase();
+      return roleOk && statusOk && (!query || text.includes(query));
+    });
+  }, [users, search, roleFilter, statusFilter]);
+
+  const startEdit = (user: any) => {
+    setEditingId(user.id);
+    setDrafts((current) => ({
+      ...current,
+      [user.id]: {
+        fullName: user.fullName || "",
+        username: user.username || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        isActive: Boolean(user.isActive),
+        kycStatus: user.kycStatus || "pending",
+        bankDetailsVerified: Boolean(user.bankDetailsVerified),
+        city: user.city || "",
+        defaultAddress: user.defaultAddress || "",
+        categories: user.categories || [],
+      },
+    }));
+  };
+
+  const updateDraft = (userId: number, key: string, value: any) => {
+    setDrafts((current) => ({
+      ...current,
+      [userId]: { ...(current[userId] || {}), [key]: value },
+    }));
+  };
+
+  const toggleDraftCategory = (userId: number, category: string) => {
+    const categories = drafts[userId]?.categories || [];
+    updateDraft(
+      userId,
+      "categories",
+      categories.includes(category)
+        ? categories.filter((item: string) => item !== category)
+        : [...categories, category],
+    );
+  };
+
+  const mergeUpdatedUser = (updated: any) => {
+    setUsers((current) =>
+      current.map((user) => (user.id === updated.id ? updated : user)),
+    );
+  };
+
+  const saveUser = async (userId: number, partial?: any) => {
+    const body = { userId, ...(partial || drafts[userId] || {}) };
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "ذخیره کاربر ناموفق بود.");
+      mergeUpdatedUser(result.user);
+      setEditingId(null);
+      await refreshUsers();
+      alert(result.message);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره کاربر ناموفق بود.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (user: any) => {
+    const customPassword = window.prompt(
+      `رمز جدید برای ${user.fullName}\nبرای تولید خودکار، کادر را خالی بگذارید.`,
+      "",
+    );
+    if (customPassword === null) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "resetPassword",
+          userId: user.id,
+          password: customPassword.trim() || undefined,
+        }),
+      });
+      const result = await response.json();
+      if (!result.success)
+        throw new Error(result.message || "بازنشانی رمز ناموفق بود.");
+      mergeUpdatedUser(result.user);
+      setLastPasswords((current) => ({
+        ...current,
+        [user.id]: result.temporaryPassword,
+      }));
+      alert(`${result.message}\nرمز جدید: ${result.temporaryPassword}`);
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : "بازنشانی رمز ناموفق بود.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statCards = [
+    ["کل خریداران", summary.buyersCount || 0, "🛒"],
+    ["کل فروشندگان", summary.sellersCount || 0, "🏪"],
+    ["کاربران فعال", summary.activeUsersCount || 0, "✅"],
+    ["در انتظار احراز", summary.pendingKycCount || 0, "🛡️"],
+    ["غیرفعال/مسدود", summary.blockedUsersCount || 0, "⛔"],
+    ["ورود اجتماعی", summary.socialUsersCount || 0, "🔐"],
+  ];
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-col justify-between gap-4 border-b pb-4 lg:flex-row lg:items-center">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              👥 مدیریت خریداران و فروشندگان
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-gray-600">
+              مدیریت حساب‌ها، نام کاربری، وضعیت فعال/مسدود، احراز هویت، حوزه
+              فعالیت فروشنده و بازنشانی رمز عبور. رمز فعلی کاربران به دلایل
+              امنیتی قابل نمایش نیست و فقط امکان ساخت رمز جدید وجود دارد.
+            </p>
+          </div>
+          <button
+            onClick={refreshUsers}
+            disabled={loading}
+            className="rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white disabled:bg-gray-300"
+          >
+            {loading ? "در حال بروزرسانی..." : "بروزرسانی فهرست"}
+          </button>
+        </div>
+
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          {statCards.map(([label, value, icon]) => (
+            <div
+              key={String(label)}
+              className="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-center"
+            >
+              <div className="text-2xl">{icon}</div>
+              <p className="mt-2 text-2xl font-bold text-[#003b5c]">
+                {Number(value).toLocaleString("fa-IR")}
+              </p>
+              <p className="mt-1 text-xs font-bold text-gray-500">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-6 grid gap-3 md:grid-cols-4">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="جستجو نام، یوزرنیم، ایمیل یا شهر..."
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500 md:col-span-2"
+          />
+          <select
+            value={roleFilter}
+            onChange={(event) =>
+              setRoleFilter(event.target.value as "all" | "buyer" | "seller")
+            }
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="all">همه نقش‌ها</option>
+            <option value="buyer">فقط خریداران</option>
+            <option value="seller">فقط فروشندگان</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value as "all" | "active" | "blocked" | "pending",
+              )
+            }
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="all">همه وضعیت‌ها</option>
+            <option value="active">فعال</option>
+            <option value="blocked">غیرفعال/مسدود</option>
+            <option value="pending">در انتظار احراز</option>
+          </select>
+        </div>
+
+        {filteredUsers.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">
+            کاربری با این فیلترها پیدا نشد.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredUsers.map((user) => {
+              const draft = drafts[user.id] || user;
+              const editing = editingId === user.id;
+              const avatarUrl = userAvatarUrl(user);
+              return (
+                <article
+                  key={user.id}
+                  className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-3">
+                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={user.fullName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center bg-gradient-to-br from-[#003b5c] to-[#00a8e8] text-2xl font-bold text-white">
+                              {user.fullName?.charAt(0) || "👤"}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-bold text-[#003b5c]">
+                              {user.fullName}
+                            </h3>
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-bold ${user.role === "seller" || user.sellerModeEnabled ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                            >
+                              {roleLabel(user.role, user.sellerModeEnabled)}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-bold ${user.isActive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                            >
+                              {user.isActive ? "فعال" : "غیرفعال"}
+                            </span>
+                            <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">
+                              احراز: {kycLabel(user.kycStatus)}
+                            </span>
+                          </div>
+                          <div className="grid gap-2 text-xs text-gray-600 md:grid-cols-2 xl:grid-cols-3">
+                            <p>
+                              <b>یوزرنیم:</b>{" "}
+                              <span dir="ltr">{user.username || "—"}</span>
+                            </p>
+                            <p>
+                              <b>ایمیل:</b>{" "}
+                              <span dir="ltr">
+                                {user.email?.includes("@phone.optibid.local")
+                                  ? "—"
+                                  : user.email}
+                              </span>
+                            </p>
+                            <p>
+                              <b>موبایل:</b>{" "}
+                              <span dir="ltr">{user.phone || "—"}</span>
+                            </p>
+                            <p>
+                              <b>شهر:</b> {user.city || "—"}
+                            </p>
+                            <p>
+                              <b>کیف پول:</b> {adminMoney(user.walletBalance)}
+                            </p>
+                            <p>
+                              <b>عضویت:</b> {adminDate(user.createdAt)}
+                            </p>
+                            <p>
+                              <b>ورود اجتماعی:</b>{" "}
+                              {user.socialProviders?.length
+                                ? user.socialProviders.join("، ")
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 rounded-2xl bg-gray-50 p-4 text-xs md:grid-cols-2 xl:grid-cols-4">
+                        <div>
+                          <b>درخواست‌ها:</b>{" "}
+                          {user.stats.requestsCount.toLocaleString("fa-IR")} /
+                          باز:{" "}
+                          {user.stats.openRequestsCount.toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <b>پیشنهادها:</b>{" "}
+                          {user.stats.offersCount.toLocaleString("fa-IR")} /
+                          پذیرفته:{" "}
+                          {user.stats.acceptedOffersCount.toLocaleString(
+                            "fa-IR",
+                          )}
+                        </div>
+                        <div>
+                          <b>خرید موفق:</b>{" "}
+                          {user.stats.completedPurchases.toLocaleString(
+                            "fa-IR",
+                          )}{" "}
+                          · {adminMoney(user.stats.totalPurchaseAmount)}
+                        </div>
+                        <div>
+                          <b>فروش موفق:</b>{" "}
+                          {user.stats.completedSales.toLocaleString("fa-IR")} ·{" "}
+                          {adminMoney(user.stats.totalSalesAmount)}
+                        </div>
+                        <div>
+                          <b>مدارک:</b>{" "}
+                          {user.kycDocumentsCount.toLocaleString("fa-IR")} فایل
+                        </div>
+                        <div>
+                          <b>بانک:</b>{" "}
+                          {user.bankDetailsVerified
+                            ? "تایید شده"
+                            : "نیازمند بررسی"}
+                        </div>
+                        <div>
+                          <b>کارت:</b>{" "}
+                          <span dir="ltr">
+                            {user.bankCardNumberMasked || "—"}
+                          </span>
+                        </div>
+                        <div>
+                          <b>شبا:</b>{" "}
+                          <span dir="ltr">
+                            {user.bankShebaNumberMasked || "—"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-blue-900">
+                        <p>
+                          <b>وضعیت رمز عبور:</b> {user.passwordStatus}
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          رمز فعلی قابل مشاهده نیست چون به‌صورت امن Hash شده
+                          است؛ ادمین می‌تواند رمز موقت جدید بسازد یا رمز دلخواه
+                          تنظیم کند.
+                        </p>
+                        {lastPasswords[user.id] && (
+                          <p
+                            className="mt-2 rounded-xl bg-white p-3 font-mono text-sm text-[#003b5c]"
+                            dir="ltr"
+                          >
+                            Temporary Password: {lastPasswords[user.id]}
+                          </p>
+                        )}
+                      </div>
+
+                      {editing && (
+                        <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50/40 p-4">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <label className="text-xs font-bold text-gray-700">
+                              نام / نام شرکت
+                              <input
+                                value={draft.fullName}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "fullName",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              یوزرنیم
+                              <input
+                                dir="ltr"
+                                value={draft.username}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "username",
+                                    event.target.value
+                                      .toLowerCase()
+                                      .replace(/[^a-z0-9._-]/g, "")
+                                      .slice(0, 30),
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 text-left font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              ایمیل
+                              <input
+                                dir="ltr"
+                                value={draft.email}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "email",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 text-left font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              موبایل
+                              <input
+                                dir="ltr"
+                                value={draft.phone || ""}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "phone",
+                                    event.target.value
+                                      .replace(/\D/g, "")
+                                      .slice(0, 11),
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 text-left font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              شهر
+                              <input
+                                value={draft.city}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "city",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border p-2 font-normal"
+                              />
+                            </label>
+                            <label className="text-xs font-bold text-gray-700">
+                              وضعیت احراز
+                              <select
+                                value={draft.kycStatus}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "kycStatus",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-xl border bg-white p-2 font-normal"
+                              >
+                                <option value="pending">در انتظار</option>
+                                <option value="approved">تایید شده</option>
+                                <option value="rejected">رد شده</option>
+                              </select>
+                            </label>
+                            <div className="flex flex-wrap items-center gap-4 rounded-xl bg-white p-3 text-xs font-bold text-gray-700">
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={draft.isActive}
+                                  onChange={(event) =>
+                                    updateDraft(
+                                      user.id,
+                                      "isActive",
+                                      event.target.checked,
+                                    )
+                                  }
+                                />{" "}
+                                حساب فعال
+                              </label>
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={draft.bankDetailsVerified}
+                                  onChange={(event) =>
+                                    updateDraft(
+                                      user.id,
+                                      "bankDetailsVerified",
+                                      event.target.checked,
+                                    )
+                                  }
+                                />{" "}
+                                اطلاعات بانکی تایید شده
+                              </label>
+                            </div>
+                            <label className="md:col-span-2 text-xs font-bold text-gray-700">
+                              نشانی پیش‌فرض
+                              <textarea
+                                value={draft.defaultAddress}
+                                onChange={(event) =>
+                                  updateDraft(
+                                    user.id,
+                                    "defaultAddress",
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 min-h-20 w-full rounded-xl border p-2 font-normal"
+                              />
+                            </label>
+                          </div>
+                          {(user.role === "seller" ||
+                            user.sellerModeEnabled) && (
+                            <div className="mt-4">
+                              <p className="mb-2 text-xs font-bold text-gray-700">
+                                حوزه‌های فعالیت فروشنده
+                              </p>
+                              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {categoryOptions.map((category) => (
+                                  <label
+                                    key={category}
+                                    className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2 text-xs font-bold ${draft.categories?.includes(category) ? "border-blue-300 bg-blue-50 text-blue-700" : "bg-white text-gray-600"}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={draft.categories?.includes(
+                                        category,
+                                      )}
+                                      onChange={() =>
+                                        toggleDraftCategory(user.id, category)
+                                      }
+                                    />
+                                    {category}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex min-w-[190px] flex-col gap-2">
+                      {editing ? (
+                        <>
+                          <button
+                            onClick={() => saveUser(user.id)}
+                            disabled={loading}
+                            className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white disabled:bg-gray-300"
+                          >
+                            ذخیره تغییرات
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700"
+                          >
+                            انصراف
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(user)}
+                          className="rounded-xl bg-purple-50 px-4 py-2 text-sm font-bold text-purple-700"
+                        >
+                          ویرایش کاربر
+                        </button>
+                      )}
+                      <button
+                        onClick={() => resetPassword(user)}
+                        disabled={loading}
+                        className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 disabled:bg-gray-100"
+                      >
+                        بازنشانی / تنظیم رمز
+                      </button>
+                      <button
+                        onClick={() =>
+                          saveUser(user.id, { isActive: !user.isActive })
+                        }
+                        disabled={loading}
+                        className={`rounded-xl px-4 py-2 text-sm font-bold disabled:bg-gray-100 ${user.isActive ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}
+                      >
+                        {user.isActive ? "غیرفعال کردن" : "فعال کردن"}
+                      </button>
+                      {user.kycStatus !== "approved" && (
+                        <button
+                          onClick={() =>
+                            saveUser(user.id, {
+                              kycStatus: "approved",
+                              isActive: true,
+                            })
+                          }
+                          disabled={loading}
+                          className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 disabled:bg-gray-100"
+                        >
+                          تایید احراز
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsList({
+  title,
+  items,
+  value,
+}: {
+  title: string;
+  items: any[];
+  value: (item: any) => string;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+      <h3 className="mb-3 font-bold text-gray-900">{title}</h3>
+      {items.length === 0 ? (
+        <p className="rounded-xl bg-white p-4 text-center text-xs text-gray-500">
+          داده کافی وجود ندارد.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div
+              key={`${item.product}-${index}`}
+              className="rounded-xl bg-white p-3 shadow-sm"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="line-clamp-1 font-bold text-gray-800">
+                  {item.product}
+                </p>
+                <span className="rounded-full bg-purple-50 px-2 py-1 text-[11px] font-bold text-purple-700">
+                  #{index + 1}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">{item.category}</p>
+              <p className="mt-2 text-sm font-bold text-[#003b5c]">
+                {value(item)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductAnalysisChart({
+  product,
+  mode,
+  indicators,
+  moneyLabel,
+  percentLabel,
+}: {
+  product: any;
+  mode: "line" | "bar" | "pie";
+  indicators: Record<IndicatorId, boolean>;
+  moneyLabel: (value: number | string) => string;
+  percentLabel: (value: number | string) => string;
+}) {
+  const externalAvailable =
+    Array.isArray(product.externalChartPoints) &&
+    product.externalChartPoints.length > 0;
+  const [dataSource, setDataSource] = useState<"internal" | "external">(
+    "external",
+  );
+  const activeDataSource =
+    dataSource === "external" && externalAvailable ? "external" : "internal";
+  const activeSourceInfo =
+    activeDataSource === "external" ? product.externalSource : null;
+  const chartPoints = (
+    (activeDataSource === "external"
+      ? product.externalChartPoints
+      : product.chartPoints) || []
+  ).filter((point: any) => Number(point.price) > 0);
+  const distribution = (product.chartDistribution || []).filter(
+    (item: any) => Number(item.value) > 0,
+  );
+  const activeRsi =
+    activeDataSource === "external" ? product.externalRsi : product.rsi;
+  const activeMacd =
+    activeDataSource === "external" ? product.externalMacd : product.macd;
+  const activeSignal =
+    activeDataSource === "external"
+      ? product.externalTechnicalSignal
+      : product.technicalSignal;
+  const width = 900;
+  const height = 560;
+  const left = 62;
+  const right = 34;
+  const plotWidth = width - left - right;
+  const priceTop = 30;
+  const priceHeight = 250;
+  const oscillatorTop = 316;
+  const oscillatorHeight = 92;
+  const lowerTop = 450;
+  const lowerHeight = 72;
+
+  const enabled = (id: IndicatorId) => Boolean(indicators[id]);
+  const priceKeys = ["price"];
+  if (enabled("sma")) priceKeys.push("sma7", "sma20");
+  if (enabled("ema")) priceKeys.push("ema12", "ema26");
+  if (enabled("bollinger"))
+    priceKeys.push("bollingerUpper", "bollingerMiddle", "bollingerLower");
+
+  const priceValues = chartPoints.flatMap((point: any) =>
+    priceKeys
+      .map((key) => point[key])
+      .filter((value) => value !== null && value !== undefined)
+      .map(Number),
+  );
+  const minPrice = Math.min(...priceValues, 0);
+  const maxPrice = Math.max(...priceValues, 1);
+  const pricePadding = Math.max(1, (maxPrice - minPrice) * 0.12);
+  const priceMin = Math.max(0, minPrice - pricePadding);
+  const priceMax = maxPrice + pricePadding;
+  const maxDemand = Math.max(
+    1,
+    ...chartPoints.map((point: any) => Number(point.demand || 0)),
+  );
+
+  const x = (index: number) =>
+    left + (index * plotWidth) / Math.max(1, chartPoints.length - 1);
+  const priceY = (value: number) =>
+    priceTop +
+    priceHeight -
+    ((value - priceMin) / Math.max(1, priceMax - priceMin)) * priceHeight;
+  const oscillatorY = (value: number) =>
+    oscillatorTop +
+    oscillatorHeight -
+    (Math.max(0, Math.min(100, value)) / 100) * oscillatorHeight;
+  const lowerKeys: string[] = [];
+  if (enabled("macd")) lowerKeys.push("macd", "macdSignal", "macdHistogram");
+  if (enabled("roc")) lowerKeys.push("roc");
+  if (enabled("momentum")) lowerKeys.push("momentum");
+  if (enabled("atr")) lowerKeys.push("atr");
+  const lowerValues: number[] = chartPoints.flatMap((point: any) =>
+    lowerKeys
+      .map((key) => point[key])
+      .filter((value) => value !== null && value !== undefined)
+      .map(Number),
+  );
+  const lowerAbsMax = Math.max(
+    1,
+    ...lowerValues.map((value: number) => Math.abs(value)),
+  );
+  const lowerZeroY = lowerTop + lowerHeight / 2;
+  const lowerY = (value: number) =>
+    lowerZeroY - (value / lowerAbsMax) * (lowerHeight / 2);
+
+  const linePath = (key: string, mapper: (value: number) => number) => {
+    let started = false;
+    return chartPoints
+      .map((point: any, index: number) => {
+        const value = point[key];
+        if (
+          value === null ||
+          value === undefined ||
+          Number.isNaN(Number(value))
+        )
+          return "";
+        const command = started ? "L" : "M";
+        started = true;
+        return `${command}${x(index)},${mapper(Number(value))}`;
+      })
+      .filter(Boolean)
+      .join(" ");
+  };
+
+  const renderLine = (
+    key: string,
+    color: string,
+    mapper: (value: number) => number,
+    strokeWidth = 2,
+    dash = "",
+  ) => {
+    const path = linePath(key, mapper);
+    return path ? (
+      <path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeDasharray={dash}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ) : null;
+  };
+
+  const pieColors = ["#00a8e8", "#8b5cf6", "#16a34a", "#ef4444", "#f59e0b"];
+  const pieTotal = distribution.reduce(
+    (sum: number, item: any) => sum + Number(item.value || 0),
+    0,
+  );
+  let pieStart = -90;
+  const pieSlices = distribution.map((item: any, index: number) => {
+    const value = Number(item.value || 0);
+    const angle = pieTotal ? (value / pieTotal) * 360 : 0;
+    const start = pieStart;
+    const end = pieStart + angle;
+    pieStart = end;
+    return { ...item, start, end, color: pieColors[index % pieColors.length] };
+  });
+
+  const describeArc = (
+    cx: number,
+    cy: number,
+    r: number,
+    startAngle: number,
+    endAngle: number,
+  ) => {
+    const polar = (angle: number) => {
+      const rad = (angle * Math.PI) / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    };
+    const start = polar(startAngle);
+    const end = polar(endAngle);
+    const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+    return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
+  };
+
+  const legend = [
+    { enabled: true, color: "#00a8e8", label: "Price" },
+    {
+      enabled: enabled("demand") && mode !== "pie",
+      color: "#14b8a6",
+      label: "Demand",
+    },
+    {
+      enabled: enabled("sma") && mode !== "pie",
+      color: "#f59e0b",
+      label: "SMA 7/20",
+    },
+    {
+      enabled: enabled("ema") && mode !== "pie",
+      color: "#8b5cf6",
+      label: "EMA 12/26",
+    },
+    {
+      enabled: enabled("bollinger") && mode !== "pie",
+      color: "#64748b",
+      label: "Bollinger",
+    },
+    {
+      enabled: enabled("rsi") && mode !== "pie",
+      color: "#9333ea",
+      label: "RSI",
+    },
+    {
+      enabled: enabled("stochRsi") && mode !== "pie",
+      color: "#ef4444",
+      label: "Stoch RSI",
+    },
+    {
+      enabled: enabled("macd") && mode !== "pie",
+      color: "#2563eb",
+      label: "MACD",
+    },
+    {
+      enabled: enabled("roc") && mode !== "pie",
+      color: "#0f766e",
+      label: "ROC",
+    },
+    {
+      enabled: enabled("momentum") && mode !== "pie",
+      color: "#be123c",
+      label: "Momentum",
+    },
+    {
+      enabled: enabled("atr") && mode !== "pie",
+      color: "#7c3aed",
+      label: "ATR",
+    },
+  ].filter((item) => item.enabled);
+
+  if (chartPoints.length === 0 && mode !== "pie") {
+    return (
+      <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
+        برای این کالا هنوز نقطه قیمتی کافی وجود ندارد.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-start">
+        <div>
+          <h4 className="text-lg font-bold text-gray-900">{product.product}</h4>
+          <p className="mt-1 text-xs text-gray-500">
+            {product.category} · {chartPoints.length.toLocaleString("fa-IR")}{" "}
+            نقطه داده · آخرین سیگنال: {activeSignal}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+          <span className="rounded-xl bg-blue-50 px-3 py-2 font-bold text-blue-700">
+            RSI: {activeRsi === null ? "ناکافی" : activeRsi}
+          </span>
+          <span className="rounded-xl bg-purple-50 px-3 py-2 font-bold text-purple-700">
+            MACD: {activeMacd ? activeMacd.histogram : "ناکافی"}
+          </span>
+          <span className="rounded-xl bg-green-50 px-3 py-2 font-bold text-green-700">
+            تقاضا: {product.aiDemandForecast}
+          </span>
+          <span className="rounded-xl bg-amber-50 px-3 py-2 font-bold text-amber-700">
+            قیمت: {product.aiPriceForecast}
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 text-xs">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setDataSource("internal")}
+            className={`rounded-xl px-3 py-2 font-bold transition ${activeDataSource === "internal" ? "bg-[#003b5c] text-white" : "bg-white text-gray-600 hover:bg-blue-50"}`}
+          >
+            داده داخلی OptiBid
+          </button>
+          <button
+            type="button"
+            disabled={!externalAvailable}
+            onClick={() => setDataSource("external")}
+            className={`rounded-xl px-3 py-2 font-bold transition ${activeDataSource === "external" ? "bg-[#003b5c] text-white" : "bg-white text-gray-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"}`}
+          >
+            داده بیرونی بازار
+          </button>
+        </div>
+        <div className="text-left text-gray-500">
+          {activeSourceInfo ? (
+            <span>
+              منبع:{" "}
+              <a
+                href={activeSourceInfo.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-[#00a8e8] underline"
+              >
+                {activeSourceInfo.sourceName} / {activeSourceInfo.sourceTitle}
+              </a>{" "}
+              ·{" "}
+              {activeSourceInfo.isProxy ? "پروکسی قابل استناد" : "نماد مستقیم"}{" "}
+              · {activeSourceInfo.pointsCount?.toLocaleString("fa-IR")} نقطه
+            </span>
+          ) : (
+            <span>
+              منبع: داده‌های داخلی OptiBid از درخواست‌ها، پیشنهادها و سفارش‌ها
+            </span>
+          )}
+        </div>
+      </div>
+
+      {mode === "pie" ? (
+        <div className="grid gap-5 md:grid-cols-2 md:items-center">
+          <svg
+            viewBox="0 0 360 300"
+            className="h-[320px] w-full rounded-2xl bg-gray-50"
+          >
+            {pieSlices.length === 0 ? (
+              <text
+                x="180"
+                y="150"
+                textAnchor="middle"
+                className="fill-gray-500 text-sm"
+              >
+                داده‌ای برای نمودار دایره‌ای وجود ندارد
+              </text>
+            ) : (
+              pieSlices.map((slice: any, index: number) => (
+                <path
+                  key={`${slice.label}-${index}`}
+                  d={describeArc(180, 150, 110, slice.start, slice.end)}
+                  fill={slice.color}
+                  stroke="#fff"
+                  strokeWidth="3"
+                />
+              ))
+            )}
+            <circle cx="180" cy="150" r="54" fill="#fff" />
+            <text
+              x="180"
+              y="145"
+              textAnchor="middle"
+              className="fill-gray-700 text-xs font-bold"
+            >
+              توزیع وضعیت
+            </text>
+            <text
+              x="180"
+              y="168"
+              textAnchor="middle"
+              className="fill-gray-500 text-[11px]"
+            >
+              {product.product}
+            </text>
+          </svg>
+          <div className="space-y-3">
+            {pieSlices.map((slice: any, index: number) => (
+              <div
+                key={`${slice.label}-legend-${index}`}
+                className="flex items-center justify-between rounded-xl bg-gray-50 p-3 text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: slice.color }}
+                  />{" "}
+                  <span className="font-bold text-gray-700">{slice.label}</span>
+                </div>
+                <span className="text-gray-600">
+                  {Number(slice.value).toLocaleString("fa-IR")} (
+                  {percentLabel(
+                    Math.round(
+                      (Number(slice.value) / Math.max(1, pieTotal)) * 100,
+                    ),
+                  )}
+                  )
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-[560px] w-full rounded-2xl bg-gradient-to-b from-white to-gray-50"
+          role="img"
+          aria-label={`نمودار تحلیلی ${product.product}`}
+        >
+          {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
+            <g key={tick}>
+              <line
+                x1={left}
+                x2={width - right}
+                y1={priceTop + priceHeight * tick}
+                y2={priceTop + priceHeight * tick}
+                stroke="#e5e7eb"
+                strokeDasharray="4 4"
+              />
+              <text
+                x={left - 10}
+                y={priceTop + priceHeight * tick + 4}
+                textAnchor="end"
+                className="fill-gray-400 text-[10px]"
+              >
+                {Math.round(
+                  priceMax - (priceMax - priceMin) * tick,
+                ).toLocaleString("fa-IR")}
+              </text>
+            </g>
+          ))}
+
+          <text x={left} y="18" className="fill-gray-600 text-[11px] font-bold">
+            قیمت / بودجه / پیشنهاد
+          </text>
+          {enabled("demand") &&
+            chartPoints.map((point: any, index: number) => {
+              const demandHeight = (Number(point.demand || 0) / maxDemand) * 48;
+              const barWidth = Math.max(
+                5,
+                plotWidth / Math.max(1, chartPoints.length) - 4,
+              );
+              return (
+                <rect
+                  key={`${point.at}-demand`}
+                  x={x(index) - barWidth / 2}
+                  y={priceTop + priceHeight - demandHeight}
+                  width={barWidth}
+                  height={demandHeight}
+                  rx="3"
+                  fill="#14b8a6"
+                  opacity="0.22"
+                />
+              );
+            })}
+          {mode === "bar" ? (
+            chartPoints.map((point: any, index: number) => {
+              const barWidth = Math.max(
+                8,
+                plotWidth / Math.max(1, chartPoints.length) - 5,
+              );
+              const y = priceY(Number(point.price));
+              return (
+                <rect
+                  key={`${point.at}-bar`}
+                  x={x(index) - barWidth / 2}
+                  y={y}
+                  width={barWidth}
+                  height={priceTop + priceHeight - y}
+                  rx="5"
+                  fill="#00a8e8"
+                  opacity="0.75"
+                />
+              );
+            })
+          ) : (
+            <>
+              {renderLine("price", "#00a8e8", priceY, 4)}
+              {chartPoints.map((point: any, index: number) => (
+                <circle
+                  key={`${point.at}-dot`}
+                  cx={x(index)}
+                  cy={priceY(Number(point.price))}
+                  r="4"
+                  fill="#00a8e8"
+                  stroke="#fff"
+                  strokeWidth="2"
+                />
+              ))}
+            </>
+          )}
+          {enabled("sma") && renderLine("sma7", "#f59e0b", priceY, 2.4)}
+          {enabled("sma") && renderLine("sma20", "#d97706", priceY, 2.2, "6 4")}
+          {enabled("ema") && renderLine("ema12", "#8b5cf6", priceY, 2.3)}
+          {enabled("ema") && renderLine("ema26", "#6d28d9", priceY, 2.1, "6 4")}
+          {enabled("bollinger") &&
+            renderLine("bollingerUpper", "#64748b", priceY, 1.8, "5 5")}
+          {enabled("bollinger") &&
+            renderLine("bollingerMiddle", "#94a3b8", priceY, 1.5, "3 5")}
+          {enabled("bollinger") &&
+            renderLine("bollingerLower", "#64748b", priceY, 1.8, "5 5")}
+
+          {chartPoints.map((point: any, index: number) => {
+            if (index % Math.max(1, Math.ceil(chartPoints.length / 6)) !== 0)
+              return null;
+            return (
+              <text
+                key={`${point.at}-label`}
+                x={x(index)}
+                y={priceTop + priceHeight + 20}
+                textAnchor="middle"
+                className="fill-gray-400 text-[10px]"
+              >
+                {point.label}
+              </text>
+            );
+          })}
+
+          <text
+            x={left}
+            y={oscillatorTop - 10}
+            className="fill-purple-700 text-[11px] font-bold"
+          >
+            RSI / Stoch RSI
+          </text>
+          <rect
+            x={left}
+            y={oscillatorTop}
+            width={plotWidth}
+            height={oscillatorHeight}
+            fill="#faf5ff"
+            opacity="0.86"
+          />
+          <line
+            x1={left}
+            x2={width - right}
+            y1={oscillatorY(80)}
+            y2={oscillatorY(80)}
+            stroke="#c084fc"
+            strokeDasharray="5 5"
+          />
+          <line
+            x1={left}
+            x2={width - right}
+            y1={oscillatorY(70)}
+            y2={oscillatorY(70)}
+            stroke="#ddd6fe"
+            strokeDasharray="4 6"
+          />
+          <line
+            x1={left}
+            x2={width - right}
+            y1={oscillatorY(30)}
+            y2={oscillatorY(30)}
+            stroke="#ddd6fe"
+            strokeDasharray="4 6"
+          />
+          <line
+            x1={left}
+            x2={width - right}
+            y1={oscillatorY(20)}
+            y2={oscillatorY(20)}
+            stroke="#c084fc"
+            strokeDasharray="5 5"
+          />
+          {enabled("rsi") && renderLine("rsi", "#9333ea", oscillatorY, 2.6)}
+          {enabled("stochRsi") &&
+            renderLine("stochRsiK", "#ef4444", oscillatorY, 2.1)}
+          {enabled("stochRsi") &&
+            renderLine("stochRsiD", "#2563eb", oscillatorY, 2.1)}
+
+          <text
+            x={left}
+            y={lowerTop - 10}
+            className="fill-rose-700 text-[11px] font-bold"
+          >
+            MACD / ROC / Momentum / ATR
+          </text>
+          <rect
+            x={left}
+            y={lowerTop}
+            width={plotWidth}
+            height={lowerHeight}
+            fill="#fff7ed"
+            opacity="0.65"
+          />
+          <line
+            x1={left}
+            x2={width - right}
+            y1={lowerZeroY}
+            y2={lowerZeroY}
+            stroke="#d1d5db"
+          />
+          {enabled("macd") &&
+            chartPoints.map((point: any, index: number) => {
+              if (
+                point.macdHistogram === null ||
+                point.macdHistogram === undefined
+              )
+                return null;
+              const y = lowerY(Number(point.macdHistogram));
+              return (
+                <rect
+                  key={`${point.at}-macd-hist`}
+                  x={x(index) - 3}
+                  y={Math.min(y, lowerZeroY)}
+                  width="6"
+                  height={Math.abs(lowerZeroY - y)}
+                  rx="2"
+                  fill={
+                    Number(point.macdHistogram) >= 0 ? "#16a34a" : "#ef4444"
+                  }
+                  opacity="0.65"
+                />
+              );
+            })}
+          {enabled("macd") && renderLine("macd", "#2563eb", lowerY, 2)}
+          {enabled("macd") && renderLine("macdSignal", "#f97316", lowerY, 2)}
+          {enabled("roc") && renderLine("roc", "#0f766e", lowerY, 2.2)}
+          {enabled("momentum") &&
+            renderLine("momentum", "#be123c", lowerY, 2.2)}
+          {enabled("atr") && renderLine("atr", "#7c3aed", lowerY, 2.2)}
+        </svg>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+        {legend.map((item) => (
+          <span
+            key={item.label}
+            className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2.5 py-1 font-bold text-gray-600"
+          >
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            {item.label}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 text-xs md:grid-cols-4">
+        <div className="rounded-xl bg-gray-50 p-3">
+          <b>میانگین بودجه:</b>
+          <br />
+          {moneyLabel(product.averageRequestedBudget)}
+        </div>
+        <div className="rounded-xl bg-gray-50 p-3">
+          <b>میانگین فروش:</b>
+          <br />
+          {moneyLabel(product.averageSaleAmount)}
+        </div>
+        <div className="rounded-xl bg-gray-50 p-3">
+          <b>رشد تقاضا:</b>
+          <br />
+          {percentLabel(product.demandTrendPercent)}
+        </div>
+        <div className="rounded-xl bg-gray-50 p-3">
+          <b>روند قیمت:</b>
+          <br />
+          {percentLabel(product.priceTrendPercent)}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -23,7 +23,7 @@ export default function SellerStars({
   const roundedStars = Math.round(scoreOutOfFive);
 
   return (
-    <div className={`inline-flex items-center gap-1.5 ${className}`} aria-label={`امتیاز فروشنده ${scoreOutOfFive.toFixed(1)} از ۵`}>
+    <div className={`inline-flex items-center gap-1.5 ${className}`} aria-label={`امتیاز ${scoreOutOfFive.toFixed(1)} از ۵`}>
       <span className={`tracking-tight text-amber-400 ${sizeClasses[size]}`} aria-hidden="true">
         {Array.from({ length: 5 }, (_, index) => (index < roundedStars ? "★" : "☆")).join("")}
       </span>

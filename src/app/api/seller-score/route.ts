@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getOptiBidData } from "@/lib/json-store";
-import { calculateSellerScore, createDefaultSellerMetrics } from "@/lib/seller-rating";
+import {
+  calculateSellerScore,
+  createDefaultSellerMetrics,
+} from "@/lib/seller-rating";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +14,21 @@ export async function GET(request: Request) {
   if (!sellerId) {
     return NextResponse.json(
       { success: false, message: "sellerId معتبر ارسال نشده است." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const data = await getOptiBidData();
-  const seller = data.users.find((user) => user.id === sellerId && user.role === "seller");
+  const seller = data.users.find(
+    (user) =>
+      user.id === sellerId &&
+      (user.role === "seller" || user.sellerModeEnabled),
+  );
 
   if (!seller) {
     return NextResponse.json(
       { success: false, message: "فروشنده یافت نشد." },
-      { status: 404 }
+      { status: 404 },
     );
   }
 
@@ -33,6 +40,8 @@ export async function GET(request: Request) {
       bio: seller.bio || "",
       categories: seller.categories || [],
     },
-    score: calculateSellerScore(seller.sellerMetrics || createDefaultSellerMetrics()),
+    score: calculateSellerScore(
+      seller.sellerMetrics || createDefaultSellerMetrics(),
+    ),
   });
 }

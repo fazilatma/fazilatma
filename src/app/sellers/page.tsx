@@ -84,6 +84,7 @@ export default async function SellersPage() {
                     <div className="min-w-0 flex-1 pl-20">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="truncate text-xl font-bold text-gray-900">{seller.fullName}</h2>
+                        <SellerStars score={rating.finalScore} size="sm" />
                         {metrics?.identityVerified && (
                           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">تایید هویت</span>
                         )}

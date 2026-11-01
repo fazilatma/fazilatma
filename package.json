@@ -12,10 +12,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "pretypecheck": "node scripts/generate-source-snapshot.mjs",
-    "build:worker": "node scripts/generate-source-snapshot.mjs && opennextjs-cloudflare build",
+    "build:worker": "node scripts/worker-artifact.mjs build",
     "preview": "npm run build:worker && wrangler dev",
-    "deploy:cf": "npm run build:worker && node scripts/cf-ensure-kv.mjs && wrangler deploy",
-    "cf:prepare": "npm run build:worker && node scripts/cf-ensure-kv.mjs"
+    "deploy:cf": "node scripts/worker-artifact.mjs deploy",
+    "cf:prepare": "node scripts/worker-artifact.mjs build && node scripts/cf-ensure-kv.mjs",
+    "artifact:hash": "node scripts/worker-artifact.mjs hash"
   },
   "dependencies": {
     "@types/adm-zip": "^0.5.8",

@@ -1,5 +1,6 @@
 import RequestsListClient from "./RequestsListClient";
-import { getJsonRequests } from "@/lib/json-store";
+import { getJsonRequests, getOptiBidData } from "@/lib/json-store";
+import type { ProductImageAttachment } from "@/lib/product-image-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -12,27 +13,69 @@ export default async function RequestsPage() {
     category: string;
     timeAgo: string;
     offers: number;
+    buyerId: number;
     buyer: string;
     buyerRating: number;
+    buyerUser?: { id: number; fullName: string; avatarName?: string };
+    latestSeller?: { id: number; fullName: string; avatarName?: string };
     quantity: number;
     deadline: string;
+    sellerOffers: any[];
+    productImages?: ProductImageAttachment[];
+    valuationFactors?: any;
   }> = [];
 
   try {
-    const requests = await getJsonRequests();
-    allRequests = requests.map((request) => ({
-      id: request.id,
-      title: request.title,
-      description: request.description,
-      budget: Number(request.budget || 0).toLocaleString("fa-IR") + " تومان",
-      category: request.category || "سایر",
-      timeAgo: "جدید (ثبت‌شده)",
-      offers: request.offersCount,
-      buyer: request.buyerName || "خریدار",
-      buyerRating: 0,
-      quantity: request.quantity,
-      deadline: request.deadline === "flexible" ? "انعطاف‌پذیر" : request.deadline,
-    }));
+    const [requests, data] = await Promise.all([
+      getJsonRequests(),
+      getOptiBidData(),
+    ]);
+    const userById = new Map(
+      data.users.map((user) => [
+        user.id,
+        { id: user.id, fullName: user.fullName, avatarName: user.avatarName },
+      ]),
+    );
+    const offersByRequest = new Map<number, any[]>();
+    for (const offer of data.offers) {
+      const list = offersByRequest.get(offer.requestId) || [];
+      list.push({
+        id: offer.id,
+        sellerId: offer.sellerId,
+        sellerName: offer.sellerName,
+        amount: offer.amount,
+        deliveryDays: offer.deliveryDays,
+        status: offer.status,
+        message: offer.message,
+        productSpecs: offer.productSpecs,
+        productImages: offer.productImages || [],
+        seller: userById.get(offer.sellerId),
+      });
+      offersByRequest.set(offer.requestId, list);
+    }
+    allRequests = requests.map((request) => {
+      const sellerOffers = offersByRequest.get(request.id) || [];
+      return {
+        id: request.id,
+        title: request.title,
+        description: request.description,
+        budget: Number(request.budget || 0).toLocaleString("fa-IR") + " تومان",
+        category: request.category || "سایر",
+        timeAgo: "جدید (ثبت‌شده)",
+        offers: request.offersCount,
+        buyerId: request.buyerId,
+        buyer: request.buyerName || "خریدار",
+        buyerRating: 0,
+        buyerUser: userById.get(request.buyerId),
+        latestSeller: sellerOffers[0]?.seller,
+        quantity: request.quantity,
+        deadline:
+          request.deadline === "flexible" ? "انعطاف‌پذیر" : request.deadline,
+        sellerOffers,
+        productImages: request.productImages || [],
+        valuationFactors: request.valuationFactors,
+      };
+    });
   } catch (error) {
     console.error("JSON request list error:", error);
   }
@@ -51,5 +94,10 @@ export default async function RequestsPage() {
     "سایر",
   ];
 
-  return <RequestsListClient initialRequests={allRequests} allCategories={allCategories} />;
+  return (
+    <RequestsListClient
+      initialRequests={allRequests}
+      allCategories={allCategories}
+    />
+  );
 }

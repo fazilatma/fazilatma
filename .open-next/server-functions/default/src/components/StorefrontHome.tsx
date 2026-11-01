@@ -1,0 +1,757 @@
+import Link from "next/link";
+import HomeProductSearch from "@/components/HomeProductSearch";
+import StoreAdSlider from "@/components/StoreAdSlider";
+import StoreHeroSlider from "@/components/StoreHeroSlider";
+import StoreProductCard from "@/components/StoreProductCard";
+import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
+import {
+  getLaptopCollectionProducts,
+  laptopCollectionItems,
+  laptopGuideItems,
+  type LaptopCollectionItem,
+  type LaptopGuideItem,
+} from "@/lib/laptop-storefront";
+import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
+import { itemListJsonLd, jsonLd } from "@/lib/seo";
+
+export default function StorefrontHome({
+  products,
+  heroSlides,
+  heroDurationSeconds,
+  laptopCatalogEnabled = true,
+  computerPartsCatalogEnabled = false,
+  reverseAuctionPilot,
+}: {
+  products: JsonStoreProduct[];
+  heroSlides?: HomepageImageSliderSlide[];
+  heroDurationSeconds?: number;
+  laptopCatalogEnabled?: boolean;
+  computerPartsCatalogEnabled?: boolean;
+  reverseAuctionPilot?: {
+    productCtaEnabled: boolean;
+    quickRequestEnabled: boolean;
+    freeSellerOffersEnabled: boolean;
+    manualDispatchEnabled: boolean;
+    minimumOffersEnabled: boolean;
+    minimumOffersCount: number;
+  };
+}) {
+  const featured = products.filter((product) => product.isFeatured).slice(0, 4);
+  const bannerProducts = products.filter((product) => Boolean(product.imageUrl)).slice(0, 2);
+  const computerPartsOnly = computerPartsCatalogEnabled && !laptopCatalogEnabled;
+  const effectiveHeroSlides = computerPartsOnly
+    ? (heroSlides || []).map((slide, index) => index === 0
+        ? {
+            ...slide,
+            title: "خرید آنلاین قطعات کامپیوتر با مقایسه مشخصات و قیمت",
+            subtitle: "پردازنده، مادربرد، کارت گرافیک، رم، SSD، پاور و قطعات موردنیاز سیستم را یکجا بررسی و مقایسه کنید.",
+            cta: "مشاهده همه قطعات",
+            href: "/shop?category=computer-parts",
+          }
+        : slide)
+    : heroSlides;
+  const partCollectionSubtitles: Record<string, string> = {
+    growing: "قطعاتی که بر اساس تقاضا، مشخصات فنی و وضعیت قیمت توجه بیشتری گرفته‌اند.",
+    "best-selling": "پردازنده، مادربرد، کارت گرافیک، رم و قطعات پرطرفدار فروشگاه.",
+    "special-offers": "قطعات منتخب با قیمت جذاب‌تر و فرصت خرید بهتر.",
+  };
+  const collectionRows = laptopCollectionItems.map((collection) => ({
+    collection: computerPartsOnly
+      ? {
+          ...collection,
+          subtitle: partCollectionSubtitles[collection.slug] || collection.subtitle,
+          href: `/shop?category=computer-parts&collection=${collection.slug}`,
+        }
+      : collection,
+    products: getLaptopCollectionProducts(products, collection.slug).slice(0, 3),
+  }));
+  const specialOfferProducts =
+    getLaptopCollectionProducts(products, "special-offers").slice(0, 8);
+  const productListStructuredData = itemListJsonLd({
+    name: computerPartsOnly ? "فروشگاه قطعات کامپیوتر OptiBid" : "فروشگاه لپ‌تاپ OptiBid",
+    description: computerPartsOnly
+      ? "خرید آنلاین پردازنده، مادربرد، کارت گرافیک، رم، حافظه و قطعات کامپیوتر در OptiBid."
+      : "خرید آنلاین لپ‌تاپ نو، استوک، اداری، دانشجویی، مهندسی و گیمینگ در OptiBid.",
+    url: "/",
+    items: products
+      .filter((product) => product.isActive !== false)
+      .slice(0, 12)
+      .map((product) => ({
+        name: product.title,
+        url: `/shop/${product.slug}`,
+      })),
+  });
+
+  return (
+    <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
+      />
+      <section className="bg-white">
+        <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+          <div className="min-w-0 space-y-5">
+            <StoreHeroSlider
+              slides={effectiveHeroSlides}
+              durationSeconds={heroDurationSeconds}
+              fallbackImageUrl={bannerProducts[0]?.imageUrl}
+              focus={computerPartsOnly ? "components" : "laptop"}
+            />
+            <HomeProductSearch focus={computerPartsOnly ? "components" : "laptop"} />
+            <StoreAdSlider
+              slides={effectiveHeroSlides}
+              fallbackImageUrl={bannerProducts[1]?.imageUrl || bannerProducts[0]?.imageUrl}
+              focus={computerPartsOnly ? "components" : "laptop"}
+            />
+            {laptopCatalogEnabled && <StoreLaptopBrandSlider />}
+            {computerPartsCatalogEnabled && <StoreComputerPartsSlider />}
+            {laptopCatalogEnabled && <SmartLaptopPickStrip />}
+            <SpecialOfferCarousel
+              products={specialOfferProducts.length > 0 ? specialOfferProducts : featured}
+            />
+          </div>
+        </div>
+      </section>
+
+      {reverseAuctionPilot?.productCtaEnabled && (
+        <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-gradient-to-l from-[#003b5c] via-[#005f78] to-[#0b9c56] p-6 text-white shadow-lg md:p-8">
+            <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-black text-emerald-50">
+                  خرید رقابتی OptiBid
+                </span>
+                <h2 className="mt-4 text-2xl font-black md:text-3xl">
+                  کالا را پیدا کردی؟ از چند فروشنده قیمت رقابتی بگیر
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-8 text-emerald-50/90">
+                  درخواست خریدت را ثبت کن تا فروشندگان مرتبط برای قیمت، گارانتی و زمان تحویل با هم رقابت کنند. انتخاب نهایی همیشه با شماست.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+                  {reverseAuctionPilot.quickRequestEnabled && <span className="rounded-full bg-white/15 px-3 py-2">فرم سریع درخواست</span>}
+                  {reverseAuctionPilot.minimumOffersEnabled && <span className="rounded-full bg-white/15 px-3 py-2">هدف حداقل {reverseAuctionPilot.minimumOffersCount.toLocaleString("fa-IR")} پیشنهاد</span>}
+                  {reverseAuctionPilot.freeSellerOffersEnabled && <span className="rounded-full bg-white/15 px-3 py-2">پیشنهاد رایگان برای فروشندگان</span>}
+                  {reverseAuctionPilot.manualDispatchEnabled && <span className="rounded-full bg-white/15 px-3 py-2">ارجاع هوشمند و دستی</span>}
+                </div>
+              </div>
+              <div className="flex min-w-56 flex-col gap-3">
+                <Link href="/request-purchase" className="rounded-2xl bg-white px-6 py-4 text-center text-sm font-black text-[#003b5c] transition hover:-translate-y-0.5 hover:bg-emerald-50">
+                  ثبت درخواست و دریافت قیمت
+                </Link>
+                <Link href="/become-seller" className="rounded-2xl border border-white/40 bg-white/10 px-6 py-3 text-center text-sm font-black text-white transition hover:bg-white/20">
+                  عضویت فروشندگان
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {reverseAuctionPilot?.productCtaEnabled && (
+        <section id="seller-acquisition" className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-[2rem] border border-violet-300 bg-gradient-to-l from-[#141b34] via-[#312e81] to-[#6d28d9] p-6 text-white shadow-xl md:p-9">
+            <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
+            <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-fuchsia-400/20 blur-3xl" />
+            <div className="relative grid gap-7 xl:grid-cols-[1fr_330px] xl:items-center">
+              <div>
+                <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-violet-50">
+                  ویژه فروشندگان قطعات کامپیوتر
+                </span>
+                <h2 className="mt-4 max-w-4xl text-2xl font-black leading-10 md:text-4xl md:leading-[1.5]">
+                  فروشنده هستید؟ به‌جای انتظار برای مشتری، روی درخواست‌های واقعی پیشنهاد بدهید
+                </h2>
+                <p className="mt-3 max-w-4xl text-sm leading-8 text-violet-100 md:text-base">
+                  در OptiBid خریدار مدل، بودجه و زمان خریدش را مشخص می‌کند؛ شما درخواست‌های مرتبط را می‌بینید، پیشنهاد خصوصی خود را ثبت می‌کنید و با قیمت، گارانتی و تحویل بهتر برای فروش رقابت می‌کنید.
+                </p>
+                <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">🎯 تقاضای مرتبط</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">درخواست‌های متناسب با کالا و حوزه فعالیت شما</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">🔒 پیشنهاد خصوصی</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">قیمت پیشنهادی شما در ویترین عمومی نمایش داده نمی‌شود</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">⚡ شروع سریع</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">بدون ساخت فروشگاه پیچیده، اولین پیشنهاد را ثبت کنید</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
+                    <b className="block text-cyan-200">📈 سابقه فروش</b>
+                    <span className="mt-2 block text-xs leading-6 text-violet-100">با پاسخ‌گویی و معامله موفق، اعتبار و اولویت بیشتری بگیرید</span>
+                  </div>
+                </div>
+                {reverseAuctionPilot.freeSellerOffersEnabled && (
+                  <p className="mt-5 inline-flex rounded-full bg-emerald-400/15 px-4 py-2 text-xs font-black text-emerald-100 ring-1 ring-emerald-300/30">
+                    ثبت و ویرایش پیشنهاد برای فروشندگان رایگان است
+                  </p>
+                )}
+              </div>
+              <div className="rounded-[1.75rem] border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-sm">
+                <div className="text-center text-5xl">🏪</div>
+                <h3 className="mt-3 text-center text-xl font-black">فروش را از یک درخواست واقعی شروع کنید</h3>
+                <p className="mt-2 text-center text-xs leading-6 text-violet-100">
+                  ثبت‌نام کنید، حوزه فعالیتتان را مشخص کنید و برای خریداران مرتبط پیشنهاد بفرستید.
+                </p>
+                <Link
+                  href="/become-seller"
+                  className="mt-5 block rounded-2xl bg-white px-6 py-4 text-center text-sm font-black text-[#312e81] shadow-lg transition hover:-translate-y-0.5 hover:bg-violet-50"
+                >
+                  همین حالا فروشنده OptiBid شوید
+                </Link>
+                <Link
+                  href="/requests"
+                  className="mt-3 block rounded-2xl border border-white/30 bg-white/10 px-6 py-3 text-center text-sm font-black text-white transition hover:bg-white/20"
+                >
+                  مشاهده درخواست‌های خرید
+                </Link>
+                <p className="mt-3 text-center text-[11px] leading-5 text-violet-200">
+                  عضویت اولیه سریع است؛ اطلاعات تکمیلی و احراز هویت را مرحله‌به‌مرحله انجام می‌دهید.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                مسیرهای سریع خرید
+              </span>
+              <h2 className="mt-3 text-2xl font-black text-slate-900">
+                {computerPartsOnly ? "انتخاب سریع بر اساس نوع قطعه" : "پیشنهاد خرید بر اساس بودجه و کاربری"}
+              </h2>
+              <div className="mt-2 text-sm leading-7 text-slate-500">
+                {computerPartsOnly
+                  ? "مسیرهای مستقیم برای ارتقای حافظه، انتخاب پردازنده و مادربرد، گرافیک و پاور یا کیس و خنک‌کننده."
+                  : "مسیرهای آماده برای رسیدن سریع به لپ‌تاپ مناسب دانشجویی، اداری، مهندسی یا گیمینگ."}
+              </div>
+            </div>
+            <Link href={computerPartsOnly ? "/shop?category=computer-parts" : "/shop?ref=budget-use#budget-use"} className="text-sm font-black text-emerald-700">
+              مشاهده همه محصولات ←
+            </Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {computerPartsOnly ? (
+              <>
+                <QuickPathCard title="ارتقای RAM و SSD" text="افزایش سرعت سیستم با حافظه رم بیشتر و ذخیره‌سازی NVMe یا SSD." href="/shop?category=computer-parts&partGroup=memory" icon="💾" color="emerald" />
+                <QuickPathCard title="پردازنده و مادربرد" text="انتخاب CPU و مادربرد سازگار بر اساس سوکت، نسل و نوع کاربری." href="/shop?category=computer-parts&partGroup=platform" icon="🧩" color="blue" />
+                <QuickPathCard title="کارت گرافیک و پاور" text="انتخاب GPU همراه با پاور مناسب برای توان مصرفی و پایداری سیستم." href="/shop?category=computer-parts&partGroup=graphics-power" icon="🎮" color="amber" />
+                <QuickPathCard title="کیس و خنک‌کننده" text="مدیریت جریان هوا و دمای قطعات با کیس، فن و خنک‌کننده مناسب." href="/shop?category=computer-parts&partGroup=case-cooling" icon="❄️" color="rose" />
+              </>
+            ) : (
+              <>
+                <QuickPathCard title="اقتصادی و دانشجویی" text="مدل‌های سبک، قیمت منطقی و مناسب کلاس، وب‌گردی و کار روزمره." href="/shop?use=student&maxPrice=45000000&ref=student-budget" icon="🎓" color="emerald" />
+                <QuickPathCard title="اداری و شرکتی" text="لپ‌تاپ‌های پایدار برای حسابداری، آفیس، جلسات و استفاده طولانی." href="/shop?use=business&ram=16GB&ref=business-ram" icon="💼" color="blue" />
+                <QuickPathCard title="مهندسی و طراحی" text="پردازنده قوی، رم بالاتر و SSD پرسرعت برای نرم‌افزارهای تخصصی." href="/shop?use=engineering&ram=16GB&ref=engineering-ram" icon="🧮" color="amber" />
+                <QuickPathCard title="گیمینگ و تدوین" text="مدل‌های RTX و گرافیک مجزا برای بازی، تدوین و کارهای سنگین." href="/shop?use=gaming&gpuType=rtx&ref=gaming-rtx" icon="🎮" color="rose" />
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {laptopCatalogEnabled && (
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                راهنمای سریع فروشگاه
+              </span>
+              <h2 className="mt-3 text-2xl font-black text-slate-900">
+                قبل از خرید، نیازت را دقیق‌تر مشخص کن
+              </h2>
+            </div>
+            <Link href="/shop?ref=buying-guides#buying-guides" className="text-sm font-black text-rose-600">
+              مشاهده همه مدل‌ها ←
+            </Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            {laptopGuideItems.map((guide) => (
+              <GuideCard key={guide.slug} guide={guide} />
+            ))}
+          </div>
+        </div>
+      </section>
+      )}
+
+
+      {laptopCatalogEnabled && (
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900">
+            راهنمای کوتاه خرید لپ‌تاپ در OptiBid
+          </h2>
+          <div className="mt-4 grid gap-4 text-sm leading-8 text-slate-600 md:grid-cols-3">
+            <p>
+              برای انتخاب لپ‌تاپ مناسب، ابتدا نوع کاربری خود را مشخص کنید. مدل‌های اداری و دانشجویی معمولاً به وزن کم، باتری سالم و حافظه SSD سریع نیاز دارند.
+            </p>
+            <p>
+              اگر برای طراحی، برنامه‌نویسی یا کارهای مهندسی خرید می‌کنید، پردازنده قوی‌تر، رم بیشتر و نمایشگر باکیفیت اهمیت بیشتری دارد. در OptiBid می‌توانید این مشخصات را کنار قیمت مقایسه کنید.
+            </p>
+            <p>
+              برای بازی و تدوین، وجود کارت گرافیک مجزا، خنک‌کنندگی مناسب و حافظه پرسرعت ضروری است. برای بررسی مشخصات رسمی، می‌توانید به وب‌سایت‌های <a href="https://www.lenovo.com" className="font-bold text-blue-700 underline">Lenovo</a> و <a href="https://www.dell.com" className="font-bold text-blue-700 underline">Dell</a> مراجعه کنید.
+            </p>
+          </div>
+        </div>
+      </section>
+      )}
+      <section className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        {collectionRows.map(({ collection, products: rowProducts }) => (
+          <StoreCollectionRow
+            key={collection.slug}
+            collection={collection}
+            products={rowProducts}
+          />
+        ))}
+      </section>
+
+      {laptopCatalogEnabled && (
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">پیشنهادهای منتخب لپ‌تاپ</h2>
+            <div className="mt-2 text-sm text-slate-500">
+              مدل‌های منتخب برای خرید آنلاین، مقایسه سریع مشخصات و انتخاب مطمئن‌تر.
+            </div>
+          </div>
+          <Link href="/shop?ref=selected-products#selected-products" className="text-sm font-black text-rose-600">
+            مشاهده همه محصولات ←
+          </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickPathCard title="مدل‌های اقتصادی" text="انتخاب‌های مناسب بودجه محدود، استفاده روزمره و خرید مطمئن‌تر." href="/shop?maxPrice=45000000&ref=selected-economy#selected-economy" icon="💰" color="emerald" />
+          <QuickPathCard title="لپ‌تاپ‌های اداری" text="مدل‌های پایدار برای آفیس، حسابداری، جلسات و کار طولانی‌مدت." href="/shop?use=business&ref=selected-business#selected-business" icon="💼" color="blue" />
+          <QuickPathCard title="گیمینگ و RTX" text="گزینه‌های دارای گرافیک مجزا برای بازی، تدوین و طراحی سنگین." href="/shop?gpuType=rtx&ref=selected-gaming#selected-gaming" icon="🎮" color="rose" />
+          <QuickPathCard title="استوک تمیز" text="انتخاب‌های کارکرده و استوک با تمرکز روی مهلت تست و سلامت کالا." href="/shop?condition=stock&ref=selected-stock#selected-stock" icon="🧪" color="amber" />
+        </div>
+      </section>
+      )}
+
+      {laptopCatalogEnabled && (
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900">
+                چک‌لیست خرید مطمئن لپ‌تاپ
+              </h2>
+              <div className="mt-2 text-sm leading-7 text-slate-500">
+                نکاتی که قبل از خرید لپ‌تاپ نو، استوک یا کارکرده بهتر است بررسی کنید.
+              </div>
+              <h3 className="mt-3 text-base font-black text-slate-800">
+                مهم‌ترین معیارهای انتخاب لپ‌تاپ
+              </h3>
+            </div>
+            <span className="text-sm font-black text-rose-600">
+              مشاوره و پشتیبانی خرید
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <TrustCard icon="🧪" title="مهلت تست و بررسی سلامت" text="قبل از نهایی‌کردن خرید، سلامت باتری، نمایشگر، پورت‌ها و قطعات را بررسی کنید." />
+            <TrustCard icon="⚙️" title="مقایسه کانفیگ واقعی" text="CPU، RAM، SSD، گرافیک و نسل پردازنده را با نیاز خودتان تطبیق دهید." />
+            <TrustCard icon="🔋" title="باتری و شارژدهی" text="برای مدل‌های کارکرده، سلامت باتری و شارژدهی روزانه اهمیت زیادی دارد." />
+            <TrustCard icon="🚚" title="ارسال قابل پیگیری" text="پس از ثبت سفارش، اطلاعات ارسال و هماهنگی تحویل از مسیر پشتیبانی قابل پیگیری است." />
+            <TrustCard icon="💳" title="پرداخت امن" text="در فاز فروشگاهی، سفارش از مسیر پرداخت آنلاین یا روش‌های فعال سایت ثبت می‌شود." />
+            <TrustCard icon="🎧" title="مشاوره انتخاب مدل" text="اگر بین چند مدل مردد هستید، از بخش پشتیبانی آنلاین برای انتخاب بهتر کمک بگیرید." />
+          </div>
+        </div>
+      </section>
+      )}
+    </div>
+  );
+}
+
+
+const brandCircleItems = [
+  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?brand=Asus&ref=brand-asus", color: "from-indigo-500 to-fuchsia-500" },
+  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?brand=Lenovo&ref=brand-lenovo", color: "from-red-500 to-slate-800" },
+  { title: "HP", subtitle: "EliteBook", href: "/shop?brand=HP&ref=brand-hp", color: "from-sky-500 to-blue-700" },
+  { title: "Dell", subtitle: "Latitude", href: "/shop?brand=Dell&ref=brand-dell", color: "from-cyan-500 to-slate-700" },
+  { title: "Apple", subtitle: "MacBook", href: "/shop?brand=Apple&ref=brand-apple", color: "from-slate-500 to-slate-900" },
+  { title: "RTX", subtitle: "گیمینگ", href: "/shop?gpuType=rtx&ref=rtx", color: "from-rose-500 to-orange-500" },
+  { title: "SSD", subtitle: "سرعت بالا", href: "/shop?ssd=512GB&ref=ssd", color: "from-emerald-500 to-teal-700" },
+  { title: "i7", subtitle: "حرفه‌ای", href: "/shop?cpu=i7&ref=cpu-i7", color: "from-violet-500 to-[#003b5c]" },
+];
+
+const computerPartItems: Array<{
+  title: string;
+  subtitle: string;
+  href: string;
+  kind: ComputerPartVisualKind;
+  image: string;
+}> = [
+  { title: "CPU", subtitle: "پردازنده", href: "/shop?category=computer-parts&part=cpu", kind: "cpu", image: "/images/parts/cpu.png" },
+  { title: "GPU", subtitle: "کارت گرافیک", href: "/shop?category=computer-parts&part=gpu", kind: "gpu", image: "/images/parts/gpu.png" },
+  { title: "RAM", subtitle: "حافظه رم", href: "/shop?category=computer-parts&part=ram", kind: "ram", image: "/images/parts/ram.png" },
+  { title: "SSD", subtitle: "حافظه پرسرعت", href: "/shop?category=computer-parts&part=ssd", kind: "ssd", image: "/images/parts/ssd.png" },
+  { title: "MB", subtitle: "مادربرد", href: "/shop?category=computer-parts&part=motherboard", kind: "motherboard", image: "/images/parts/motherboard.png" },
+  { title: "PSU", subtitle: "پاور", href: "/shop?category=computer-parts&part=power", kind: "power", image: "/images/parts/power.png" },
+  { title: "CASE", subtitle: "کیس", href: "/shop?category=computer-parts&part=case", kind: "case", image: "/images/parts/case.png" },
+  { title: "COOL", subtitle: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", kind: "cooler", image: "/images/parts/cooler.png" },
+];
+
+function StoreComputerPartsSlider() {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">انتخاب سریع قطعات</span>
+          <h2 className="mt-2 text-xl font-black text-slate-900">دسته‌بندی قطعات کامپیوتر</h2>
+        </div>
+        <Link href="/shop?category=computer-parts" className="text-xs font-black text-rose-600 md:text-sm">مشاهده همه قطعات ←</Link>
+      </div>
+      <div className="flex gap-3 overflow-x-auto scroll-smooth pb-1">
+        {computerPartItems.map((item) => (
+          <Link key={item.title} href={item.href} className="group w-32 shrink-0 text-center">
+            <div className="mx-auto h-24 w-24 overflow-hidden rounded-full border border-slate-100 bg-white p-1 shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-lg">
+              <img src={item.image} alt={`تصویر ${item.subtitle}`} className="h-full w-full rounded-full object-contain" />
+            </div>
+            <span className="mt-2 block text-xs font-black text-slate-700">{item.subtitle}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StoreLaptopBrandSlider() {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+            انتخاب سریع برند و مشخصات
+          </span>
+          <h2 className="mt-2 text-xl font-black text-slate-900">
+            برندهای محبوب و گزینه‌های پرجستجو
+          </h2>
+        </div>
+        <Link href="/shop?ref=brand-search#brand-search" className="text-xs font-black text-rose-600 md:text-sm">
+          مشاهده همه لپ‌تاپ‌ها ←
+        </Link>
+      </div>
+      <div className="flex gap-3 overflow-x-auto scroll-smooth pb-1">
+        {brandCircleItems.map((item) => (
+          <Link
+            key={item.title}
+            href={item.href}
+            className="group w-32 shrink-0 text-center"
+          >
+            <div
+              className={`mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br ${item.color} p-[3px] shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-lg`}
+            >
+              <div className="grid h-full w-full place-items-center rounded-full bg-white text-xl font-black text-slate-800">
+                {item.title}
+              </div>
+            </div>
+            <div className="mt-2 text-xs font-black text-slate-800 group-hover:text-rose-600">
+              {item.subtitle}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SmartLaptopPickStrip() {
+  const picks = [
+    {
+      title: "برای کار اداری",
+      text: "ThinkPad، Latitude یا EliteBook با رم ۱۶ گیگ و SSD انتخاب امن‌تری است.",
+      href: "/shop?use=business&ram=16GB&ref=business-ram",
+      icon: "💼",
+      color: "bg-blue-50 text-blue-800 border-blue-100",
+    },
+    {
+      title: "برای دانشجو",
+      text: "وزن کم، باتری سالم و نمایشگر ۱۴ اینچ برای حمل روزانه مناسب‌تر است.",
+      href: "/shop?use=student&display=14&ref=student-display",
+      icon: "🎓",
+      color: "bg-emerald-50 text-emerald-800 border-emerald-100",
+    },
+    {
+      title: "برای گیم و تدوین",
+      text: "مدل‌های دارای RTX و خنک‌کنندگی بهتر را در اولویت بگذارید.",
+      href: "/shop?use=gaming&gpuType=rtx&ref=gaming-rtx",
+      icon: "🎮",
+      color: "bg-rose-50 text-rose-800 border-rose-100",
+    },
+    {
+      title: "برای خرید اقتصادی",
+      text: "استوک تمیز با مهلت تست می‌تواند بهترین نسبت قیمت به کارایی باشد.",
+      href: "/shop?condition=stock&maxPrice=45000000&ref=stock-budget",
+      icon: "💰",
+      color: "bg-amber-50 text-amber-800 border-amber-100",
+    },
+  ];
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+            پیشنهاد هوشمند OptiBid
+          </span>
+          <h2 className="mt-2 text-xl font-black text-slate-900">
+            نمی‌دانی کدام لپ‌تاپ مناسب‌تر است؟
+          </h2>
+        </div>
+        <Link href="/shop/guides" className="text-xs font-black text-rose-600 md:text-sm">
+          راهنمای کامل خرید ←
+        </Link>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {picks.map((pick) => (
+          <Link
+            key={pick.title}
+            href={pick.href}
+            className={`rounded-2xl border p-4 transition hover:-translate-y-1 hover:shadow-md ${pick.color}`}
+          >
+            <div className="text-2xl">{pick.icon}</div>
+            <div className="mt-2 text-sm font-black">{pick.title}</div>
+            <div className="mt-1 text-xs leading-6 opacity-80">{pick.text}</div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SpecialOfferCarousel({ products }: { products: JsonStoreProduct[] }) {
+  return (
+    <section className="rounded-[2rem] border border-rose-100 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
+            پیشنهاد ویژه
+          </span>
+          <h2 className="mt-2 text-xl font-black text-slate-900 md:text-2xl">
+            پیشنهادهای ویژه امروز
+          </h2>
+          <div className="mt-1 text-sm leading-7 text-slate-500">
+            چند مدل منتخب با قیمت جذاب‌تر و فرصت خرید بهتر برای شروع سریع‌تر.
+          </div>
+        </div>
+        <Link href="/shop/collections/special-offers?ref=special-carousel" className="text-sm font-black text-rose-600">
+          مشاهده همه فروش ویژه ←
+        </Link>
+      </div>
+      <div className="flex gap-4 overflow-x-auto scroll-smooth pb-2">
+        {products.map((product) => (
+          <div key={`hero-special-${product.id}`} className="w-[270px] shrink-0 md:w-[300px]">
+            <StoreProductCard product={product} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function QuickPathCard({
+  title,
+  text,
+  href,
+  icon,
+  color,
+}: {
+  title: string;
+  text: string;
+  href: string;
+  icon: string;
+  color: "emerald" | "blue" | "amber" | "rose";
+}) {
+  const colors = {
+    emerald: "border-emerald-100 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
+    blue: "border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100",
+    amber: "border-amber-100 bg-amber-50 text-amber-800 hover:bg-amber-100",
+    rose: "border-rose-100 bg-rose-50 text-rose-800 hover:bg-rose-100",
+  }[color];
+  return (
+    <Link
+      href={href}
+      className={`rounded-3xl border p-5 transition hover:-translate-y-1 hover:shadow-lg ${colors}`}
+    >
+      <div className="text-3xl">{icon}</div>
+      <div className="mt-3 font-black">{title}</div>
+      <div className="mt-2 text-xs leading-6 opacity-80">{text}</div>
+    </Link>
+  );
+}
+
+function TrustCard({
+  icon,
+  title,
+  text,
+}: {
+  icon: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-100 bg-slate-50 p-5 transition hover:-translate-y-1 hover:border-blue-100 hover:bg-blue-50/60 hover:shadow-md">
+      <div className="text-3xl">{icon}</div>
+      <div className="mt-3 font-black text-slate-900">{title}</div>
+      <div className="mt-2 text-xs leading-6 text-slate-500">{text}</div>
+    </div>
+  );
+}
+
+function CollectionIcon({ icon }: { icon: LaptopCollectionItem["icon"] }) {
+  const common = "h-7 w-7";
+  if (icon === "trend") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 17 9 12l4 4 7-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M15 7h5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (icon === "fire") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 21c3.9 0 7-2.7 7-6.6 0-2.8-1.6-5.1-3.3-6.9-.5 2-1.6 3.2-3 4.2.2-3.2-1-5.8-3.5-8.2.2 4.2-4.2 6-4.2 10.9C5 18.3 8.1 21 12 21Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 12v8H4v-8m16 0H4m16 0H4m4-4a2 2 0 1 1 4 0v4H8V8Zm8 0a2 2 0 1 0-4 0v4h4V8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StoreCollectionRow({
+  collection,
+  products,
+}: {
+  collection: LaptopCollectionItem;
+  products: JsonStoreProduct[];
+}) {
+  const colors = {
+    emerald: {
+      badge: "bg-emerald-50 text-emerald-700",
+      icon: "bg-emerald-100 text-emerald-700",
+      link: "text-emerald-700 hover:text-emerald-800",
+      border: "border-emerald-100",
+    },
+    blue: {
+      badge: "bg-blue-50 text-blue-700",
+      icon: "bg-blue-100 text-blue-700",
+      link: "text-blue-700 hover:text-blue-800",
+      border: "border-blue-100",
+    },
+    rose: {
+      badge: "bg-rose-50 text-rose-700",
+      icon: "bg-rose-100 text-rose-700",
+      link: "text-rose-700 hover:text-rose-800",
+      border: "border-rose-100",
+    },
+  }[collection.accent];
+
+  return (
+    <div className={`rounded-[2rem] border bg-white p-5 shadow-sm ${colors.border}`}>
+      <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div className="flex items-start gap-3">
+          <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${colors.icon}`}>
+            <CollectionIcon icon={collection.icon} />
+          </div>
+          <div>
+            <span className={`rounded-full px-3 py-1 text-xs font-black ${colors.badge}`}>
+              {collection.badge}
+            </span>
+            <h2 className="mt-3 text-2xl font-black text-slate-900">
+              {collection.title}
+            </h2>
+            <div className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+              {collection.subtitle}
+            </div>
+          </div>
+        </div>
+        <Link href={collection.href} className={`text-sm font-black ${colors.link}`}>
+          مشاهده صفحه {collection.shortTitle} ←
+        </Link>
+      </div>
+      {products.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+          فعلاً محصولی برای این بخش ثبت نشده است.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {products.map((product) => (
+            <StoreProductCard
+              key={`${collection.slug}-${product.id}`}
+              product={product}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GuideIcon({ icon }: { icon: LaptopGuideItem["icon"] }) {
+  const common = "h-8 w-8";
+  if (icon === "briefcase") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 7V6a3 3 0 0 1 6 0v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" strokeWidth="2" />
+        <path d="M4 13h16M10 13v1h4v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (icon === "student") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 8l9-4 9 4-9 4-9-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M7 11v4c0 1.7 2.2 3 5 3s5-1.3 5-3v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M21 8v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (icon === "engineering") {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M14.5 5.5 18 9m-8.5 9L6 14.5m1.5-7 9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M15 4l5 5-9.5 9.5H5.5v-5L15 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8 13h8m-10 4 2-7a4 4 0 0 1 3.8-3h.4A4 4 0 0 1 16 10l2 7a2 2 0 0 1-3 2l-1.2-1.2h-3.6L9 19a2 2 0 0 1-3-2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12v3m-1.5-1.5h3M15.5 13.5h.01M17 15h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function GuideCard({ guide }: { guide: LaptopGuideItem }) {
+  const colors = {
+    blue: "bg-blue-50 text-blue-800 border-blue-100 hover:bg-blue-100",
+    emerald: "bg-emerald-50 text-emerald-800 border-emerald-100 hover:bg-emerald-100",
+    amber: "bg-amber-50 text-amber-800 border-amber-100 hover:bg-amber-100",
+    rose: "bg-rose-50 text-rose-800 border-rose-100 hover:bg-rose-100",
+  }[guide.accent];
+  return (
+    <Link
+      href={guide.href}
+      className={`group rounded-3xl border p-5 transition hover:-translate-y-1 hover:shadow-lg ${colors}`}
+    >
+      <div className="mb-4 inline-grid h-14 w-14 place-items-center rounded-2xl bg-white/80 shadow-sm transition group-hover:scale-105">
+        <GuideIcon icon={guide.icon} />
+      </div>
+      <div className="font-black">{guide.title}</div>
+      <div className="mt-2 text-xs leading-6 opacity-80">{guide.text}</div>
+      <span className="mt-4 inline-flex text-xs font-black opacity-80">
+        مشاهده راهنما ←
+      </span>
+    </Link>
+  );
+}

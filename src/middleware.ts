@@ -1,20 +1,96 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// نکته: قرارداد middleware.ts (به جای proxy.ts در Next 16) عمداً انتخاب شده است،
-// چون آداپتور OpenNext برای Cloudflare در حال حاضر فقط Middleware لبه (Edge) را
-// پشتیبانی می‌کند و proxy.ts همیشه روی رانتایم Node اجرا می‌شود.
-// این میدل‌ور فقط یک کوکی را بررسی می‌کند و با Edge کاملاً سازگار است.
+const publicPagePrefixes = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/shop",
+  "/cart",
+  "/support",
+];
+
+const publicApiPrefixes = [
+  "/api/login",
+  "/api/register",
+  "/api/logout",
+  "/api/auth/social",
+  "/api/password",
+  "/api/live-content",
+  "/api/catalog-categories",
+  "/api/site-mode",
+  "/api/enamad",
+  "/api/support-chat",
+  "/api/shop/prices",
+  "/api/torob",
+  "/api/health",
+  // مسیر کرون به‌روزرسانی خودکار قیمت؛ احراز هویت با CRON_SECRET داخل خود مسیر انجام می‌شود.
+  "/api/cron",
+];
+
+function isPublicPath(pathname: string) {
+  if (pathname === "/") return true;
+  if (pathname.startsWith("/_next") || pathname === "/favicon.ico") return true;
+  if (
+    publicPagePrefixes.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
+  )
+    return true;
+  if (
+    publicApiPrefixes.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
+  )
+    return true;
+  return false;
+}
+
+function unauthorizedApi() {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "برای دسترسی به این بخش باید ابتدا ثبت‌نام و ورود کنید.",
+    },
+    { status: 401 },
+  );
+}
+
 export function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const host = request.headers.get("host") || "";
+  if (host.toLowerCase() === "www.optibid.ir") {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.hostname = "optibid.ir";
+    canonicalUrl.protocol = "https";
+    canonicalUrl.port = "";
+    return NextResponse.redirect(canonicalUrl, 308);
+  }
+  if (isPublicPath(pathname)) return NextResponse.next();
+
   const isAdmin = request.cookies.get("optibid_admin")?.value === "1";
-  if (!isAdmin) {
+  const hasUserSession = Boolean(request.cookies.get("optibid_user")?.value);
+
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    if (!isAdmin) {
+      if (pathname.startsWith("/api/")) return unauthorizedApi();
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
+  if (!hasUserSession && !isAdmin) {
+    if (pathname.startsWith("/api/")) return unauthorizedApi();
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

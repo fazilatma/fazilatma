@@ -1,24 +1,23 @@
 import { NextResponse } from "next/server";
-import { getOptiBidData, getStorageInfo } from "@/lib/json-store";
+import { getStorageInfo } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const data = await getOptiBidData();
+    // Health check نباید دیتاست بزرگ اصلی را بخواند و migrate کند؛ این مسیر باید
+    // حتی زیر بار فهرست/جزئیات کالا سبک و قابل اتکا بماند.
     const storage = await getStorageInfo();
-
     return NextResponse.json({
       ok: true,
       service: "OptiBid",
       storage: storage.mode,
-      requests: data.requests.length,
       timestamp: new Date().toISOString(),
     });
   } catch {
     return NextResponse.json(
       { ok: false, service: "OptiBid", storage: "unknown" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

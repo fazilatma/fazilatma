@@ -1,0 +1,86 @@
+# به‌روزرسانی خودکار روزانهٔ قیمت محصولات فروشگاه
+# ────────────────────────────────────────────────────────────────
+# ⚠️ این فایل آمادهٔ استفاده است اما باید در مسیر زیر قرار بگیرد تا
+# GitHub Actions آن را اجرا کند:
+#     .github/workflows/daily-price-refresh.yml
+# (اپ اتصال Arena اجازهٔ ساخت مستقیم فایل‌های workflows در گیت‌هاب را ندارد؛
+# کافی است در وب‌سایت GitHub همین فایل را با آن مسیر/نام بسازید و محتوای
+# این فایل را عیناً کپی کنید — یا با اکانت خودتان پوش کنید.)
+# توجه: زمان‌بند اصلی روی Cloudflare Cron فعال است و این workflow پشتیبان است.
+#
+# هر روز ساعت ۲۳:۰۰ UTC (۲:۳۰ بامداد به وقت تهران) مسیر کرون سایت را
+# صدا می‌زند و تا کامل‌شدن چرخهٔ همهٔ محصولات، بچ‌های بعدی را ادامه می‌دهد.
+#
+# پیش‌نیازها (یک بار):
+# 1) در GitHub: ‏Settings → Secrets and variables → Actions → ‏New repository secret
+#    نام: CRON_SECRET ‏— مقدار: همان رشته‌ای که در Cloudflare تنظیم می‌شود.
+# 2) در Cloudflare (ترمینال پروژه): ‏npx wrangler secret put CRON_SECRET
+# 3) اختیاری: variable با نام OPTIBID_SITE_URL (پیش‌فرض https://optibid.ir)
+#
+# توجه: زمان‌بندی (schedule) گیت‌هاب فقط وقتی فعال می‌شود که این فایل روی
+# برنچ پیش‌فرض ریپو (main) باشد.
+name: Daily price refresh
+
+on:
+  schedule:
+    # 23:00 UTC = 02:30 Tehran
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+    inputs:
+      max_rounds:
+        description: "حداکثر دور فراخوانی (هر دور تا ۵ بچ)"
+        required: false
+        default: "60"
+
+permissions: {}
+
+concurrency:
+  group: daily-price-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Call cron endpoint until the cycle completes
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.OPTIBID_SITE_URL }}
+          MAX_ROUNDS: ${{ inputs.max_rounds || '60' }}
+        run: |
+          set -uo pipefail
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::error::CRON_SECRET secret is not set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          SITE_URL="${SITE_URL:-https://optibid.ir}"
+          SITE_URL="${SITE_URL%/}"
+          echo "Refreshing prices on ${SITE_URL} (max ${MAX_ROUNDS} rounds)"
+          round=0
+          while [ "${round}" -lt "${MAX_ROUNDS}" ]; do
+            round=$((round + 1))
+            response="$(curl -sS --max-time 240 -w '\n%{http_code}' \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "${SITE_URL}/api/cron/refresh-prices?batches=5" || true)"
+            http_code="$(printf '%s' "${response}" | tail -n1)"
+            body="$(printf '%s' "${response}" | sed '$d')"
+            echo "Round ${round}: HTTP ${http_code}"
+            printf '%s\n' "${body}" | jq -c '{success, skipped, totalChecked, updated, unchanged, notFound, failed, hasMore, nextOffset, totalProducts, message}' || printf '%s\n' "${body}"
+            if [ "${http_code}" != "200" ]; then
+              echo "::error::Cron endpoint returned HTTP ${http_code}"
+              exit 1
+            fi
+            has_more="$(printf '%s' "${body}" | jq -r '.hasMore // false' 2>/dev/null || echo false)"
+            skipped="$(printf '%s' "${body}" | jq -r '.skipped // false' 2>/dev/null || echo false)"
+            if [ "${skipped}" = "true" ]; then
+              echo "Automatic refresh is disabled in admin settings; stopping."
+              break
+            fi
+            if [ "${has_more}" != "true" ]; then
+              echo "Full product cycle completed."
+              break
+            fi
+            sleep 5
+          done
+          echo "Done after ${round} round(s)."
