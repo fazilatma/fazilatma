@@ -3,8 +3,10 @@
  *
  * خروجی OpenNext در `.open-next/worker.js` فقط هندلر `fetch` دارد؛ این فایل
  * همان هندلر را بدون تغییر بازنشر می‌کند و یک هندلر `scheduled` برای
- * به‌روزرسانی خودکار روزانهٔ قیمت‌ها به آن اضافه می‌کند (Cron Trigger در
- * `wrangler.jsonc` — هر روز ۲۳:۰۰ UTC، یعنی ۲:۳۰ بامداد تهران).
+ * به‌روزرسانی خودکار قیمت‌ها به آن اضافه می‌کند (Cron Trigger در
+ * `wrangler.jsonc` — هر ۱۰ دقیقه؛ مسیر کرون خودش سقف شبانه‌روزی پنل ادمین
+ * (تا ۱۰٬۰۰۰ محصول) را مدیریت می‌کند و وقتی سهمیهٔ روز کامل شود، فراخوانی‌ها
+ * بدون پردازش برمی‌گردند تا روز بعد از ابتدا شروع شود).
  *
  * هندلر زمان‌بندی‌شده به‌جای فراخوانی دامنهٔ عمومی (که در Cloudflare به
  * ورکرِ همان زون نمی‌رسد)، مسیر داخلی `/api/cron/refresh-prices` را مستقیم
@@ -44,7 +46,9 @@ type OpenNextWorker = {
 
 const handler = openNextWorker as OpenNextWorker;
 
-const MAX_CRON_ROUNDS = 40;
+// هر ده دقیقه یک‌بار اجرا می‌شود؛ در هر اجرا چند دور پشت سر هم صدا زده
+// می‌شود و بقیهٔ کار به اجراهای بعدی همان روز می‌ماند.
+const MAX_CRON_ROUNDS = 10;
 
 async function runDailyPriceRefresh(env: WorkerEnv, ctx: WorkerExecutionContext) {
   const secret = typeof env.CRON_SECRET === "string" ? env.CRON_SECRET : "";
@@ -69,18 +73,23 @@ async function runDailyPriceRefresh(env: WorkerEnv, ctx: WorkerExecutionContext)
     );
     const payload = (await response.json().catch(() => null)) as {
       success?: boolean;
+      skipped?: boolean;
       hasMore?: boolean;
       totalChecked?: number;
       updated?: number;
+      dailyChecked?: number;
+      dailyLimit?: number;
+      dailyDone?: boolean;
       message?: string;
     } | null;
     console.log(
       `[optibid-cron] round ${round}: HTTP ${response.status}` +
         (payload
-          ? ` checked=${payload.totalChecked ?? 0} updated=${payload.updated ?? 0} hasMore=${Boolean(payload.hasMore)}`
+          ? ` checked=${payload.totalChecked ?? 0} updated=${payload.updated ?? 0} hasMore=${Boolean(payload.hasMore)} daily=${payload.dailyChecked ?? 0}/${payload.dailyLimit ?? 0} dailyDone=${Boolean(payload.dailyDone)}`
           : " (no JSON payload)"),
     );
-    if (!response.ok || !payload?.success || !payload.hasMore) break;
+    // سقف روز پر شده یا چرخهٔ امروز کامل است: تا اجرای بعدی (روز تازه) صبر کن.
+    if (!response.ok || !payload?.success || payload.skipped || payload.dailyDone || !payload.hasMore) break;
   }
 }
 

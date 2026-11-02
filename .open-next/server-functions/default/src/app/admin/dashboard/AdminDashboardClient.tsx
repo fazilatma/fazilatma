@@ -349,6 +349,10 @@ export default function AdminDashboardClient({
     storeAutoPriceRefreshLastRunAt: "",
     storeAutoPriceRefreshLastSummary: "",
     storeAutoPriceRefreshTotalRuns: 0,
+    storeAutoPriceRefreshDailyLimit: 10000,
+    storeAutoPriceRefreshDailyDate: "",
+    storeAutoPriceRefreshDailyChecked: 0,
+    storeAutoPriceRefreshDailyCycleDone: false,
     reverseAuctionProductCtaEnabled: false,
     reverseAuctionQuickRequestEnabled: false,
     reverseAuctionFreeSellerOffersEnabled: false,
@@ -824,9 +828,9 @@ export default function AdminDashboardClient({
         body: JSON.stringify({
           storeAutoPriceRefreshEnabled: Boolean(platformFinance.storeAutoPriceRefreshEnabled),
           storeAutoPriceRefreshReferences: references,
-          storeAutoPriceRefreshBatchSize: Math.max(
+          storeAutoPriceRefreshDailyLimit: Math.max(
             1,
-            Math.min(20, Number(platformFinance.storeAutoPriceRefreshBatchSize || 20)),
+            Math.min(10000, Math.round(Number(platformFinance.storeAutoPriceRefreshDailyLimit || 10000)) || 10000),
           ),
         }),
       });
@@ -3735,7 +3739,7 @@ export default function AdminDashboardClient({
                         <div>
                           <b className="text-sm text-gray-900">⏰ به‌روزرسانی خودکار روزانه از لینک منبع محصولات</b>
                           <p className="mt-1 max-w-3xl text-xs leading-6 text-slate-500">
-                            بدون نیاز به باز بودن این صفحه، هر روز ساعت ۲:۳۰ بامداد (تهران) قیمت محصولات از همان لینک‌هایی که با آن‌ها درون‌ریزی شده‌اند و مراجع انتخابی خوانده می‌شود. چرخه از جایی که مانده ادامه پیدا می‌کند تا همهٔ محصولات پوشش داده شوند.
+                            بدون نیاز به باز بودن این صفحه، در طول شبانه‌روز هر چند دقیقه به‌صورت خودکار قیمت محصولات از همان لینک‌هایی که با آن‌ها درون‌ریزی شده‌اند و مراجع انتخابی خوانده می‌شود و چرخه از جایی که مانده ادامه پیدا می‌کند تا «سقف شبانه‌روزی» کامل شود یا همهٔ محصولات پوشش داده شوند. هر روز (نیمه‌شب تهران) شمارنده صفر و چرخه از ابتدا شروع می‌شود.
                           </p>
                         </div>
                         <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700">
@@ -3773,15 +3777,24 @@ export default function AdminDashboardClient({
 
                       <div className="mt-3 flex flex-wrap items-end gap-3">
                         <label className="block text-xs font-bold text-gray-700">
-                          محصولات در هر بچ خودکار (۱ تا ۲۰)
+                          حداکثر محصول در هر شبانه‌روز (۱ تا ۱۰٬۰۰۰)
                           <input
+                            key={`auto-daily-limit-${platformFinance.storeAutoPriceRefreshDailyLimit}`}
                             type="number"
                             min="1"
-                            max="20"
-                            value={platformFinance.storeAutoPriceRefreshBatchSize}
-                            onChange={(event) => updatePlatformFinanceField("storeAutoPriceRefreshBatchSize", Math.max(1, Math.min(20, Number(event.target.value || 20))))}
-                            className="mt-2 w-32 rounded-xl border border-gray-300 bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+                            max="10000"
+                            step="1"
+                            dir="ltr"
+                            defaultValue={platformFinance.storeAutoPriceRefreshDailyLimit}
+                            onBlur={(event) => updatePlatformFinanceField("storeAutoPriceRefreshDailyLimit", Math.max(1, Math.min(10000, Math.round(Number(event.target.value || 10000)) || 10000)))}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") event.currentTarget.blur();
+                            }}
+                            className="mt-2 w-36 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left outline-none focus:ring-2 focus:ring-emerald-500"
                           />
+                          <span className="mt-1 block text-[11px] font-medium leading-5 text-slate-400">
+                            در شبانه‌روز حداکثر همین تعداد محصول به‌صورت خودکار بررسی می‌شود؛ پردازش در بچ‌های کوچک فنی و در چند نوبت انجام می‌شود.
+                          </span>
                         </label>
                         <button
                           type="button"
@@ -3793,7 +3806,7 @@ export default function AdminDashboardClient({
                         </button>
                       </div>
 
-                      <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-6 text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-6 text-slate-600 sm:grid-cols-2 xl:grid-cols-5">
                         <div>
                           <span className="block font-black text-slate-800">آخرین اجرای خودکار</span>
                           {platformFinance.storeAutoPriceRefreshLastRunAt
@@ -3807,6 +3820,11 @@ export default function AdminDashboardClient({
                         <div>
                           <span className="block font-black text-slate-800">موقعیت چرخهٔ بعدی</span>
                           محصول {(Number(platformFinance.storeAutoPriceRefreshOffset || 0) + 1).toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">پیشرفت امروز</span>
+                          {Number(platformFinance.storeAutoPriceRefreshDailyChecked || 0).toLocaleString("fa-IR")} از {Number(platformFinance.storeAutoPriceRefreshDailyLimit || 10000).toLocaleString("fa-IR")} محصول
+                          {platformFinance.storeAutoPriceRefreshDailyCycleDone ? " (چرخهٔ امروز کامل شد)" : ""}
                         </div>
                         <div>
                           <span className="block font-black text-slate-800">خلاصهٔ آخرین اجرا</span>

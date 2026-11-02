@@ -8,8 +8,9 @@
 # این فایل را عیناً کپی کنید — یا با اکانت خودتان پوش کنید.)
 # توجه: زمان‌بند اصلی روی Cloudflare Cron فعال است و این workflow پشتیبان است.
 #
-# هر روز ساعت ۲۳:۰۰ UTC (۲:۳۰ بامداد به وقت تهران) مسیر کرون سایت را
-# صدا می‌زند و تا کامل‌شدن چرخهٔ همهٔ محصولات، بچ‌های بعدی را ادامه می‌دهد.
+# هر ۱۵ دقیقه مسیر کرون سایت را صدا می‌زند و بچ‌ها را ادامه می‌دهد تا
+# یا چرخهٔ کامل محصولات تمام شود یا «سقف شبانه‌روزی» پنل ادمین
+# (تا ۱۰٬۰۰۰ محصول در شبانه‌روز) پر شود؛ شمارندهٔ روز نیمه‌شب تهران صفر می‌شود.
 #
 # پیش‌نیازها (یک بار):
 # 1) در GitHub: ‏Settings → Secrets and variables → Actions → ‏New repository secret
@@ -23,14 +24,14 @@ name: Daily price refresh
 
 on:
   schedule:
-    # 23:00 UTC = 02:30 Tehran
-    - cron: "0 23 * * *"
+    # هر ۱۵ دقیقه؛ خود سایت سقف شبانه‌روزی را مدیریت می‌کند.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       max_rounds:
         description: "حداکثر دور فراخوانی (هر دور تا ۵ بچ)"
         required: false
-        default: "60"
+        default: "20"
 
 permissions: {}
 
@@ -47,7 +48,7 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           SITE_URL: ${{ vars.OPTIBID_SITE_URL }}
-          MAX_ROUNDS: ${{ inputs.max_rounds || '60' }}
+          MAX_ROUNDS: ${{ inputs.max_rounds || '20' }}
         run: |
           set -uo pipefail
           if [ -z "${CRON_SECRET}" ]; then
@@ -66,15 +67,20 @@ jobs:
             http_code="$(printf '%s' "${response}" | tail -n1)"
             body="$(printf '%s' "${response}" | sed '$d')"
             echo "Round ${round}: HTTP ${http_code}"
-            printf '%s\n' "${body}" | jq -c '{success, skipped, totalChecked, updated, unchanged, notFound, failed, hasMore, nextOffset, totalProducts, message}' || printf '%s\n' "${body}"
+            printf '%s\n' "${body}" | jq -c '{success, skipped, reason, totalChecked, updated, unchanged, notFound, failed, hasMore, nextOffset, totalProducts, dailyChecked, dailyLimit, dailyDone, message}' || printf '%s\n' "${body}"
             if [ "${http_code}" != "200" ]; then
               echo "::error::Cron endpoint returned HTTP ${http_code}"
               exit 1
             fi
             has_more="$(printf '%s' "${body}" | jq -r '.hasMore // false' 2>/dev/null || echo false)"
             skipped="$(printf '%s' "${body}" | jq -r '.skipped // false' 2>/dev/null || echo false)"
+            daily_done="$(printf '%s' "${body}" | jq -r '.dailyDone // false' 2>/dev/null || echo false)"
             if [ "${skipped}" = "true" ]; then
-              echo "Automatic refresh is disabled in admin settings; stopping."
+              echo "Automatic refresh skipped (disabled or daily quota done); stopping."
+              break
+            fi
+            if [ "${daily_done}" = "true" ]; then
+              echo "Daily quota reached or today's cycle completed."
               break
             fi
             if [ "${has_more}" != "true" ]; then
