@@ -31,6 +31,7 @@ const componentSources: DigikalaSource[] = [
   { slug: "psu", category: "قطعات کامپیوتر", part: "power" },
   { slug: "computer-chassis", category: "قطعات کامپیوتر", part: "case" },
   { slug: "cooling-system", category: "قطعات کامپیوتر", part: "cooler" },
+  { slug: "notebook-netbook-ultrabook", category: "لپ‌تاپ و نوت‌بوک", part: "laptop" },
 ];
 
 const brandRules: Array<[RegExp, string]> = [
@@ -51,6 +52,13 @@ const brandRules: Array<[RegExp, string]> = [
   [/intel|اینتل/i, "Intel"],
   [/\bamd\b|ای ام دی|ای‌ام‌دی/i, "AMD"],
   [/nvidia|انویدیا/i, "NVIDIA"],
+  [/lenovo|لنوو/i, "Lenovo"],
+  [/\bhp\b|اچ.?پی|هیولت/i, "HP"],
+  [/dell|دل(?![ا-ی])/i, "Dell"],
+  [/apple|اپل|macbook|مک.?بوک/i, "Apple"],
+  [/acer|ایسر/i, "Acer"],
+  [/huawei|هواوی/i, "Huawei"],
+  [/microsoft|مایکروسافت|surface/i, "Microsoft"],
 ];
 
 function firstText(...values: unknown[]): string {

@@ -1,5 +1,5 @@
 var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/cron/refresh-prices/route.js")
-R.c("server/chunks/[root-of-the-server]__1jcc4am._.js")
+R.c("server/chunks/[root-of-the-server]__172vouw._.js")
 R.c("server/chunks/src_lib_store-price-refresh_ts_0cq_m6t._.js")
 R.c("server/chunks/[root-of-the-server]__0xuaoik._.js")
 R.c("server/chunks/src_lib_json-store_ts_0m90tqd._.js")
