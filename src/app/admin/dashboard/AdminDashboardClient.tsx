@@ -456,7 +456,7 @@ export default function AdminDashboardClient({
     priceRefreshReferenceOptions.map((item) => item.id),
   );
   const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
-  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(20);
+  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(10000);
   const [priceRefreshOffset, setPriceRefreshOffset] = useState(0);
   const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
   const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
@@ -3635,18 +3635,21 @@ export default function AdminDashboardClient({
                           />
                         </label>
                         <label className="block text-sm font-bold text-gray-700">
-                          حداکثر محصول
+                          حداکثر محصول در این اجرا
                           <input
                             type="number"
                             min="1"
-                            max="20"
+                            max="10000"
                             value={priceRefreshMaxProducts}
                             onChange={(e) => {
-                              setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))));
+                              setPriceRefreshMaxProducts(Math.max(1, Math.min(10000, Number(e.target.value || 20))));
                               setPriceRefreshOffset(0);
                             }}
                             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
                           />
+                          <span className="mt-1 block text-[11px] font-normal leading-5 text-gray-400">
+                            تا ۱۰٬۰۰۰ محصول؛ ربات به‌صورت خودکار بچ‌به‌بچ ادامه می‌دهد تا این سقف یا پایان فهرست.
+                          </span>
                         </label>
                       </div>
                     </div>
