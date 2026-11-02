@@ -1,5 +1,9 @@
 import type { JsonStoreProduct, OptiBidJsonData } from "@/lib/json-store";
 import {
+  computerPartSourceMultiplierForProductUrl,
+  parseComputerPartSourceEntries,
+} from "@/lib/source-link-parser";
+import {
   applyRefreshedPrice,
   chooseBestPriceCandidate,
   findProductPriceCandidates,
@@ -89,6 +93,11 @@ export async function runStorePriceRefreshBatch(
   const multiplierSettingChanged =
     Math.abs(Number(data.settings.storePriceMultiplier || 1) - multiplier) > 0.0001;
   data.settings.storePriceMultiplier = multiplier;
+  // ضریب اختصاصی هر باکس لینک: قیمت بازارِ خوانده‌شده برای محصولاتی که از آن
+  // لینک آمده‌اند در ضریب همان لینک ضرب می‌شود تا با قیمت دانلود اولیه هم‌خوان بماند.
+  const sourceLinkEntries = parseComputerPartSourceEntries(
+    data.settings.storeComputerPartsSourceUrl,
+  );
 
   const matchingProducts = data.storeProducts
     .map((product, index) => ({ product, index }))
@@ -121,7 +130,15 @@ export async function runStorePriceRefreshBatch(
         continue;
       }
 
-      const nextProduct = applyRefreshedPrice(product, best, multiplier);
+      const sourceFactor = computerPartSourceMultiplierForProductUrl(
+        sourceLinkEntries,
+        product.externalSourceUrl || "",
+      );
+      const effectiveCandidate =
+        sourceFactor !== 1
+          ? { ...best, price: Math.max(0, Math.round(best.price * sourceFactor)) }
+          : best;
+      const nextProduct = applyRefreshedPrice(product, effectiveCandidate, multiplier);
       const oldPrice = Number(product.price || 0);
       const newPrice = Number(nextProduct.price || 0);
       const changeRatio = oldPrice ? Math.abs(newPrice - oldPrice) / oldPrice : 1;

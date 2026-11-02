@@ -92,6 +92,7 @@ const computerPartSourceTypeOptions = [
   { id: "power", label: "پاور" },
   { id: "case", label: "کیس" },
   { id: "cooler", label: "خنک‌کننده" },
+  { id: "laptop", label: "لپ‌تاپ و نوت‌بوک" },
 ] as const;
 
 const allComputerPartSourceTypeIds = computerPartSourceTypeOptions.map((option) => option.id);
@@ -100,11 +101,13 @@ type ComputerPartSourceEntry = {
   id: string;
   url: string;
   parts: string[];
+  /** ضریب اختصاصی همین لینک؛ قیمت‌های دانلودشده از این لینک در آن ضرب می‌شوند. */
+  priceMultiplier: number;
 };
 
 function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceEntry[] {
   const raw = String(value || "").trim();
-  let parsedEntries: Array<{ url?: unknown; parts?: unknown }> = [];
+  let parsedEntries: Array<{ url?: unknown; parts?: unknown; priceMultiplier?: unknown }> = [];
   if (raw.startsWith("[")) {
     try {
       const parsed = JSON.parse(raw);
@@ -129,11 +132,12 @@ function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceE
         id: `source-${index + 1}`,
         url: String(entry.url || "").trim(),
         parts: selectedParts.length ? [...new Set(selectedParts)] : [...allComputerPartSourceTypeIds],
+        priceMultiplier: normalizedImportPriceMultiplier(entry.priceMultiplier),
       };
     });
   return entries.length
     ? entries
-    : [{ id: "source-1", url: "https://www.digikala.com/search/category-computer-devices/", parts: [...allComputerPartSourceTypeIds] }];
+    : [{ id: "source-1", url: "https://www.digikala.com/search/category-computer-devices/", parts: [...allComputerPartSourceTypeIds], priceMultiplier: 1 }];
 }
 
 function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) {
@@ -141,6 +145,7 @@ function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) 
     entries.slice(0, 8).map((entry) => ({
       url: entry.url.trim(),
       parts: entry.parts,
+      priceMultiplier: normalizedImportPriceMultiplier(entry.priceMultiplier),
     })),
   );
 }
@@ -456,7 +461,7 @@ export default function AdminDashboardClient({
     priceRefreshReferenceOptions.map((item) => item.id),
   );
   const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
-  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(20);
+  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(10000);
   const [priceRefreshOffset, setPriceRefreshOffset] = useState(0);
   const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
   const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
@@ -556,7 +561,7 @@ export default function AdminDashboardClient({
 
   const updateComputerPartSource = (
     id: string,
-    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts">>,
+    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts" | "priceMultiplier">>,
   ) => {
     setComputerPartSources((current) =>
       current.map((entry) => entry.id === id ? { ...entry, ...updates } : entry),
@@ -572,6 +577,7 @@ export default function AdminDashboardClient({
           id: `source-${Date.now()}-${current.length + 1}`,
           url: "",
           parts: [...allComputerPartSourceTypeIds],
+          priceMultiplier: 1,
         },
       ];
     });
@@ -1277,14 +1283,28 @@ export default function AdminDashboardClient({
         setProductImportMessage(
           `${scan.products.length.toLocaleString("fa-IR")} محصول از لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} پیدا شد؛ در حال ذخیرهٔ یکپارچهٔ همه محصولات...`,
         );
+        // ضریب اختصاصی همین لینک روی قیمت‌های دانلودشده از آن اعمال می‌شود؛
+        // ضریب سراسری مثل قبل در سرور روی آن سوار می‌شود.
+        const sourceFactor = normalizedImportPriceMultiplier(source.priceMultiplier);
+        const pricedProducts = sourceFactor !== 1
+          ? scan.products.map((product) => ({
+              ...product,
+              price: Math.max(0, Math.round(Number(product.price || 0) * sourceFactor)),
+              originalPrice: product.originalPrice
+                ? Math.max(0, Math.round(Number(product.originalPrice) * sourceFactor))
+                : product.originalPrice,
+            }))
+          : scan.products;
         const response = await fetch("/api/admin/store-products/import-csv", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            products: scan.products,
+            products: pricedProducts,
             strategy: "merge",
             priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
-            categoryFilters: ["components", "storage"],
+            categoryFilters: source.parts.includes("laptop")
+              ? ["components", "storage", "laptop"]
+              : ["components", "storage"],
             sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
           }),
         });
@@ -1303,7 +1323,11 @@ export default function AdminDashboardClient({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sources: serverSources.map((source) => ({ url: source.url, parts: source.parts })),
+            sources: serverSources.map((source) => ({
+              url: source.url,
+              parts: source.parts,
+              priceMultiplier: normalizedImportPriceMultiplier(source.priceMultiplier),
+            })),
             limit: 500,
             priceMultiplier: productImportPriceMultiplier,
           }),
@@ -3228,6 +3252,30 @@ export default function AdminDashboardClient({
                                 حذف انتخاب‌ها
                               </button>
                             </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-cyan-50/70 px-3 py-2.5 ring-1 ring-cyan-100">
+                              <label className="flex items-center gap-2 text-[11px] font-black text-slate-700">
+                                ضریب قیمت این لینک
+                                <input
+                                  key={`${source.id}-multiplier-${source.priceMultiplier}`}
+                                  type="number"
+                                  min="0.1"
+                                  max="10"
+                                  step="0.01"
+                                  dir="ltr"
+                                  defaultValue={source.priceMultiplier}
+                                  onBlur={(event) => updateComputerPartSource(source.id, {
+                                    priceMultiplier: normalizedImportPriceMultiplier(Number(event.target.value || 1)),
+                                  })}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") (event.target as HTMLInputElement).blur();
+                                  }}
+                                  className="h-9 w-24 rounded-lg border border-cyan-200 bg-white px-2 text-center text-xs font-bold text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                                />
+                              </label>
+                              <span className="text-[11px] leading-5 text-slate-500">
+                                قیمت محصولات دانلودشده از همین لینک در این ضریب ضرب می‌شود؛ مثلاً ۰٫۸ یا ۱٫۱ (علاوه بر ضریب سراسری). عدد ۱ یعنی بدون تغییر.
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -3533,7 +3581,7 @@ export default function AdminDashboardClient({
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    برای لینک قطعات دیجی‌کالا، هشت زیرگروه اصلی پردازنده، گرافیک، رم، مادربرد، SSD، هارد، پاور و کیس مستقیماً در همین مرورگر و تا ۵٬۰۰۰ محصول قیمت‌دار خوانده می‌شود؛ سپس محصولات به‌صورت دسته‌ای و بدون تکرار ذخیره می‌شوند. عدد کل صفحهٔ والد دیجی‌کالا شامل هزاران لوازم جانبی و قطعات یدکی خارج از این هشت گروه نیز هست.
+                    برای لینک قطعات دیجی‌کالا، زیرگروه‌های اصلی پردازنده، گرافیک، رم، مادربرد، SSD، هارد، پاور و کیس — و در صورت انتخاب گروه «لپ‌تاپ و نوت‌بوک»، دستهٔ لپ‌تاپ — مستقیماً در همین مرورگر و تا ۵٬۰۰۰ محصول قیمت‌دار خوانده می‌شود؛ سپس محصولات به‌صورت دسته‌ای و بدون تکرار ذخیره می‌شوند. عدد کل صفحهٔ والد دیجی‌کالا شامل هزاران لوازم جانبی و قطعات یدکی خارج از این گروه‌ها نیز هست.
                   </div>
 
                   <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">
@@ -3635,18 +3683,21 @@ export default function AdminDashboardClient({
                           />
                         </label>
                         <label className="block text-sm font-bold text-gray-700">
-                          حداکثر محصول
+                          حداکثر محصول در این اجرا
                           <input
                             type="number"
                             min="1"
-                            max="20"
+                            max="10000"
                             value={priceRefreshMaxProducts}
                             onChange={(e) => {
-                              setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))));
+                              setPriceRefreshMaxProducts(Math.max(1, Math.min(10000, Number(e.target.value || 20))));
                               setPriceRefreshOffset(0);
                             }}
                             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
                           />
+                          <span className="mt-1 block text-[11px] font-normal leading-5 text-gray-400">
+                            تا ۱۰٬۰۰۰ محصول؛ ربات به‌صورت خودکار بچ‌به‌بچ ادامه می‌دهد تا این سقف یا پایان فهرست.
+                          </span>
                         </label>
                       </div>
                     </div>
