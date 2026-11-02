@@ -951,6 +951,14 @@ export type OptiBidJsonData = {
     storeAutoPriceRefreshLastRunAt: string;
     storeAutoPriceRefreshLastSummary: string;
     storeAutoPriceRefreshTotalRuns: number;
+    /** سقف محصولات بررسی‌شده در هر شبانه‌روز توسط به‌روزرسانی خودکار (۱ تا ۱۰۰۰۰). */
+    storeAutoPriceRefreshDailyLimit: number;
+    /** تاریخ جاری شمارندهٔ روزانه به وقت تهران (YYYY-MM-DD) — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyDate: string;
+    /** تعداد محصولات بررسی‌شده در روز جاری — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyChecked: number;
+    /** چرخهٔ کامل کاتالوگ در روز جاری به پایان رسیده است — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyCycleDone: boolean;
   };
 };
 
@@ -1099,6 +1107,10 @@ const emptyData = (): OptiBidJsonData => ({
     storeAutoPriceRefreshLastRunAt: "",
     storeAutoPriceRefreshLastSummary: "",
     storeAutoPriceRefreshTotalRuns: 0,
+    storeAutoPriceRefreshDailyLimit: 10000,
+    storeAutoPriceRefreshDailyDate: "",
+    storeAutoPriceRefreshDailyChecked: 0,
+    storeAutoPriceRefreshDailyCycleDone: false,
   },
 });
 
@@ -2001,6 +2013,34 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           ),
         ) || 0,
       ),
+      storeAutoPriceRefreshDailyLimit: Math.max(
+        1,
+        Math.min(
+          10000,
+          Math.round(
+            Number(
+              (parsed.settings as { storeAutoPriceRefreshDailyLimit?: number } | undefined)
+                ?.storeAutoPriceRefreshDailyLimit || 10000,
+            ),
+          ) || 10000,
+        ),
+      ),
+      storeAutoPriceRefreshDailyDate: String(
+        (parsed.settings as { storeAutoPriceRefreshDailyDate?: string } | undefined)
+          ?.storeAutoPriceRefreshDailyDate || "",
+      ).slice(0, 12),
+      storeAutoPriceRefreshDailyChecked: Math.max(
+        0,
+        Math.floor(
+          Number(
+            (parsed.settings as { storeAutoPriceRefreshDailyChecked?: number } | undefined)
+              ?.storeAutoPriceRefreshDailyChecked || 0,
+          ),
+        ) || 0,
+      ),
+      storeAutoPriceRefreshDailyCycleDone:
+        (parsed.settings as { storeAutoPriceRefreshDailyCycleDone?: boolean } | undefined)
+          ?.storeAutoPriceRefreshDailyCycleDone === true,
     },
   };
 
@@ -4658,8 +4698,8 @@ export async function updateJsonPlatformFinanceSettings(
       data.settings.storePriceMultiplier,
     );
   }
-  // تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت: فقط سه فیلد قابل ویرایش ادمین
-  // پذیرفته می‌شوند؛ وضعیت اجرا (offset و آخرین نتیجه) را فقط مسیر cron می‌نویسد
+  // تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت: فقط فیلدهای قابل ویرایش ادمین
+  // پذیرفته می‌شوند؛ وضعیت اجرا (offset، آخرین نتیجه و شمارندهٔ روز) را فقط مسیر cron می‌نویسد
   // تا ذخیرهٔ تنظیمات مالی با دادهٔ کهنهٔ مرورگر، پیشرفت چرخه را برنگرداند.
   if (typeof updates.storeAutoPriceRefreshEnabled === "boolean") {
     data.settings.storeAutoPriceRefreshEnabled = updates.storeAutoPriceRefreshEnabled;
@@ -4678,6 +4718,14 @@ export async function updateJsonPlatformFinanceSettings(
     data.settings.storeAutoPriceRefreshBatchSize = Math.max(
       1,
       Math.min(20, Math.round(updates.storeAutoPriceRefreshBatchSize) || 20),
+    );
+  }
+  // سقف روزانه را ادمین تعیین می‌کند؛ شمارندهٔ پیشرفت روز (تاریخ/تعداد/اتمام
+  // چرخه) فقط توسط cron نوشته می‌شود و این‌جا دست‌نخورده می‌ماند.
+  if (typeof updates.storeAutoPriceRefreshDailyLimit === "number") {
+    data.settings.storeAutoPriceRefreshDailyLimit = Math.max(
+      1,
+      Math.min(10000, Math.round(updates.storeAutoPriceRefreshDailyLimit) || 10000),
     );
   }
   if (typeof updates.reverseAuctionMinimumOffersCount === "number") {
