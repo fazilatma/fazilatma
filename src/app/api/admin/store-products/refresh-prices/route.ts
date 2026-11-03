@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOptiBidData, writeOptiBidData } from "@/lib/json-store";
 import { normalizePriceReferences } from "@/lib/store-price-refresh";
+import { normalizeImportSourceUrl, parseComputerPartSourceEntries } from "@/lib/source-link-parser";
 import { runStorePriceRefreshBatch } from "@/lib/store-price-refresh-run";
 
 export const dynamic = "force-dynamic";
@@ -12,12 +13,25 @@ type Body = {
   onlyActive?: boolean;
   productIds?: string[];
   offset?: number;
+  sourceUrl?: string;
 };
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Body;
-    const references = normalizePriceReferences(body.references);
+    const sourceUrl = normalizeImportSourceUrl(body.sourceUrl);
+    const data = await getOptiBidData();
+    const sourceEntry = sourceUrl
+      ? parseComputerPartSourceEntries(data.settings.storeComputerPartsSourceUrl)
+          .find((entry) => normalizeImportSourceUrl(entry.url) === sourceUrl)
+      : undefined;
+    if (body.sourceUrl && !sourceEntry) {
+      return NextResponse.json(
+        { success: false, message: "این لینک در تنظیمات ذخیره نشده است؛ ابتدا تنظیمات لینک‌ها را ذخیره کنید." },
+        { status: 400 },
+      );
+    }
+    const references = sourceEntry ? (["source"] as const).slice() : normalizePriceReferences(body.references);
     if (references.length === 0) {
       return NextResponse.json(
         {
@@ -28,11 +42,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = await getOptiBidData();
     const result = await runStorePriceRefreshBatch(data, {
       references,
-      maxProducts: body.maxProducts,
-      priceMultiplier: body.priceMultiplier,
+      sourceUrl: sourceEntry ? sourceUrl : undefined,
+      maxProducts: sourceEntry
+        ? Math.min(sourceEntry.maxProducts, Math.max(1, Number(body.maxProducts || sourceEntry.maxProducts)))
+        : body.maxProducts,
+      priceMultiplier: sourceEntry ? sourceEntry.priceMultiplier : body.priceMultiplier,
       onlyActive: body.onlyActive,
       productIds: body.productIds,
       offset: body.offset,
@@ -40,7 +56,9 @@ export async function POST(request: Request) {
 
     if (result.emptySelection) {
       return NextResponse.json(
-        { success: false, message: "محصول انتخاب‌شده در فروشگاه فعال نیست یا پیدا نشد." },
+        { success: false, message: sourceEntry
+          ? "هنوز محصولی به این لینک متصل نیست؛ ابتدا «دانلود محصولات این لینک» را اجرا کنید."
+          : "محصول انتخاب‌شده در فروشگاه فعال نیست یا پیدا نشد." },
         { status: 404 },
       );
     }
@@ -52,6 +70,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       references,
+      sourceUrl: sourceEntry ? sourceUrl : undefined,
+      sourcePriceMultiplier: sourceEntry?.priceMultiplier,
       priceMultiplier: result.priceMultiplier,
       totalProducts: result.totalProducts,
       offset: result.offset,

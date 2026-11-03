@@ -1,7 +1,10 @@
 import type { JsonStoreProduct, OptiBidJsonData } from "@/lib/json-store";
 import {
-  computerPartSourceMultiplierForProductUrl,
+  computerPartSourceMultiplierForProduct,
+  normalizeImportSourceUrl,
   parseComputerPartSourceEntries,
+  productBelongsToImportSource,
+  productUrlForImportSource,
 } from "@/lib/source-link-parser";
 import {
   applyRefreshedPrice,
@@ -29,6 +32,8 @@ export type StorePriceRefreshBatchOptions = {
   onlyActive?: boolean;
   productIds?: string[];
   offset?: number;
+  /** فقط کالاهای درون‌ریزی‌شده از این باکس لینک بررسی شوند. */
+  sourceUrl?: string;
 };
 
 export type StorePriceRefreshBatchResult = {
@@ -73,9 +78,21 @@ export async function runStorePriceRefreshBatch(
   data: OptiBidJsonData,
   options: StorePriceRefreshBatchOptions,
 ): Promise<StorePriceRefreshBatchResult> {
-  const references = options.references;
-  const multiplier = normalizeMultiplier(options.priceMultiplier);
-  const requestedMaxProducts = Math.max(1, Number(options.maxProducts || 20));
+  const references = options.sourceUrl ? (["source"] as PriceReferenceKey[]) : options.references;
+  const sourceLinkEntries = parseComputerPartSourceEntries(
+    data.settings.storeComputerPartsSourceUrl,
+  );
+  const requestedSourceUrl = normalizeImportSourceUrl(options.sourceUrl);
+  const sourceEntry = requestedSourceUrl
+    ? sourceLinkEntries.find((entry) => normalizeImportSourceUrl(entry.url) === requestedSourceUrl)
+    : undefined;
+  // ضریب باکس لینک، ضریب نهایی همان محصول است؛ ضریب سراسری فرم‌های دیگر
+  // روی آن ضرب نمی‌شود تا هنگام آپدیت، ضریب دوبار اعمال نشود.
+  const multiplier = normalizeMultiplier(sourceEntry ? sourceEntry.priceMultiplier : options.priceMultiplier);
+  const requestedMaxProducts = Math.max(1, Math.min(
+    Number(options.maxProducts || 20),
+    sourceEntry ? sourceEntry.maxProducts : Number.POSITIVE_INFINITY,
+  ));
   const requestWeight = references.reduce((total, source) => {
     if (source === "torob" || source === "digikala") return total + 2;
     return total + 1;
@@ -90,18 +107,14 @@ export async function runStorePriceRefreshBatch(
     ? 0
     : Math.max(0, Math.floor(Number(options.offset || 0)));
 
-  const multiplierSettingChanged =
+  const multiplierSettingChanged = !requestedSourceUrl &&
     Math.abs(Number(data.settings.storePriceMultiplier || 1) - multiplier) > 0.0001;
-  data.settings.storePriceMultiplier = multiplier;
-  // ضریب اختصاصی هر باکس لینک: قیمت بازارِ خوانده‌شده برای محصولاتی که از آن
-  // لینک آمده‌اند در ضریب همان لینک ضرب می‌شود تا با قیمت دانلود اولیه هم‌خوان بماند.
-  const sourceLinkEntries = parseComputerPartSourceEntries(
-    data.settings.storeComputerPartsSourceUrl,
-  );
+  if (!requestedSourceUrl) data.settings.storePriceMultiplier = multiplier;
 
   const matchingProducts = data.storeProducts
     .map((product, index) => ({ product, index }))
     .filter(({ product }) => (onlyActive ? product.isActive !== false : true))
+    .filter(({ product }) => !requestedSourceUrl || productBelongsToImportSource(product, requestedSourceUrl))
     .filter(({ product }) => !productIdFilter || productIdFilter.has(product.id));
   const offset = requestedOffset >= matchingProducts.length ? 0 : requestedOffset;
   const targetProducts = matchingProducts.slice(offset, offset + maxProducts);
@@ -121,7 +134,13 @@ export async function runStorePriceRefreshBatch(
 
   for (const { product, index } of targetProducts) {
     try {
-      const { candidates, errors } = await findProductPriceCandidates(product, references);
+      const sourceProductUrl = requestedSourceUrl
+        ? productUrlForImportSource(product, requestedSourceUrl)
+        : "";
+      const lookupProduct = sourceProductUrl
+        ? { ...product, externalSourceUrl: sourceProductUrl }
+        : product;
+      const { candidates, errors } = await findProductPriceCandidates(lookupProduct, references);
       if (errors.length) warnings.push(`${product.title}: ${errors.slice(0, 3).join(" | ")}`);
       const best = chooseBestPriceCandidate(candidates);
       if (!best) {
@@ -130,10 +149,9 @@ export async function runStorePriceRefreshBatch(
         continue;
       }
 
-      const sourceFactor = computerPartSourceMultiplierForProductUrl(
-        sourceLinkEntries,
-        product.externalSourceUrl || "",
-      );
+      const sourceFactor = requestedSourceUrl
+        ? 1
+        : computerPartSourceMultiplierForProduct(product, sourceLinkEntries);
       const effectiveCandidate =
         sourceFactor !== 1
           ? { ...best, price: Math.max(0, Math.round(best.price * sourceFactor)) }
@@ -183,7 +201,7 @@ export async function runStorePriceRefreshBatch(
   const hasMore = offset + targetProducts.length < matchingProducts.length;
   return {
     ok: true,
-    emptySelection: Boolean(productIdFilter && targetProducts.length === 0),
+    emptySelection: Boolean((productIdFilter || requestedSourceUrl) && targetProducts.length === 0),
     changed: updated > 0 || historyRecorded > 0 || multiplierSettingChanged,
     priceMultiplier: multiplier,
     totalProducts: matchingProducts.length,

@@ -32,17 +32,27 @@ export function parseSourceLinks(value: unknown, maximum = 8) {
   return links;
 }
 
+export const MAX_PRODUCTS_PER_SOURCE_LINK = 10000;
+
+export function normalizeSourceProductLimit(value: unknown, fallback = MAX_PRODUCTS_PER_SOURCE_LINK) {
+  const number = Math.round(Number(value || fallback));
+  if (!Number.isFinite(number) || number <= 0) return fallback;
+  return Math.max(1, Math.min(MAX_PRODUCTS_PER_SOURCE_LINK, number));
+}
+
 export type ComputerPartSourceLinkEntry = {
   url: string;
   parts: string[];
-  /** ضریب اختصاصی همین لینک؛ قیمت‌های دانلودشده از این لینک در آن ضرب می‌شوند. */
+  /** ضریب اختصاصی همین لینک؛ قیمت‌های دانلودشده یا به‌روزرسانی‌شده از این لینک در آن ضرب می‌شوند. */
   priceMultiplier: number;
+  /** سقف تعداد محصول برای دانلود یا به‌روزرسانی همین لینک. */
+  maxProducts: number;
 };
 
 /**
- * خواندن باکس‌های لینک مرجع قطعات از مقدار ذخیره‌شده در تنظیمات
- * (`storeComputerPartsSourceUrl`) که به‌صورت JSON شامل url/parts/priceMultiplier
- * ذخیره می‌شود. مقادیر قدیمیِ متنی (فقط لینک) هم با ضریب ۱ خوانده می‌شوند.
+ * خواندن باکس‌های لینک مرجع از مقدار ذخیره‌شده در تنظیمات
+ * (`storeComputerPartsSourceUrl`) که به‌صورت JSON شامل url/parts/priceMultiplier/maxProducts
+ * ذخیره می‌شود. مقادیر قدیمیِ متنی یا بدون سقف، با ضریب ۱ و سقف ۱۰٬۰۰۰ خوانده می‌شوند.
  */
 export function parseComputerPartSourceEntries(
   value: unknown,
@@ -63,6 +73,7 @@ export function parseComputerPartSourceEntries(
                 ? [...new Set(record.parts.map((part) => String(part).trim().toLowerCase()).filter(Boolean))]
                 : [],
               priceMultiplier: normalizeStorePriceMultiplier(record.priceMultiplier, 1),
+              maxProducts: normalizeSourceProductLimit(record.maxProducts),
             };
           })
           .filter((entry) => entry.url)
@@ -76,7 +87,121 @@ export function parseComputerPartSourceEntries(
     url,
     parts: [],
     priceMultiplier: 1,
+    maxProducts: MAX_PRODUCTS_PER_SOURCE_LINK,
   }));
+}
+
+/** یکسان‌سازی لینک منبع برای تطبیق دقیق باکس‌ها با محصولات درون‌ریزی‌شده. */
+export function normalizeImportSourceUrl(value: unknown) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    url.hostname = url.hostname.replace(/^www\./i, "").toLowerCase();
+    url.hash = "";
+    url.pathname = url.pathname.replace(/\/+$/g, "") || "/";
+    url.searchParams.sort();
+    return url.toString().replace(/\/+$/g, "");
+  } catch {
+    return "";
+  }
+}
+
+export const STORE_SOURCE_PRODUCT_PARTS = [
+  "cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler", "laptop", "desktop",
+] as const;
+
+export type StoreProductImportSource = {
+  /** لینک فهرست/دسته‌ای که مدیر در باکس لینک ثبت کرده است. */
+  sourceUrl: string;
+  /** صفحهٔ اختصاصی همین محصول در همان منبع، برای خواندن دوبارهٔ قیمت. */
+  productUrl: string;
+};
+
+type ProductSourceFields = {
+  importSourceUrl?: string;
+  importSourceUrls?: string[];
+  importSources?: StoreProductImportSource[];
+  externalSourceUrl?: string;
+};
+
+export function normalizeProductImportSources(product: ProductSourceFields): StoreProductImportSource[] {
+  const bySource = new Map<string, string>();
+  for (const item of Array.isArray(product.importSources) ? product.importSources : []) {
+    if (!item || typeof item !== "object") continue;
+    const sourceUrl = normalizeImportSourceUrl(item.sourceUrl);
+    const productUrl = String(item.productUrl || "").trim();
+    if (sourceUrl && productUrl && !bySource.has(sourceUrl)) bySource.set(sourceUrl, productUrl);
+  }
+  const legacyUrls = [
+    ...(Array.isArray(product.importSourceUrls) ? product.importSourceUrls : []),
+    product.importSourceUrl || "",
+  ];
+  for (const value of legacyUrls) {
+    const sourceUrl = normalizeImportSourceUrl(value);
+    if (sourceUrl && !bySource.has(sourceUrl)) {
+      bySource.set(sourceUrl, String(product.externalSourceUrl || "").trim());
+    }
+  }
+  return [...bySource.entries()].slice(0, 8).map(([sourceUrl, productUrl]) => ({ sourceUrl, productUrl }));
+}
+
+export function productImportSourceUrls(product: ProductSourceFields) {
+  return normalizeProductImportSources(product).map((item) => item.sourceUrl);
+}
+
+export function productUrlForImportSource(product: ProductSourceFields, sourceUrl: unknown) {
+  const target = normalizeImportSourceUrl(sourceUrl);
+  return normalizeProductImportSources(product).find((item) => item.sourceUrl === target)?.productUrl || "";
+}
+
+/** برچسب منبع را هنگام ادغام کالاهای تکراری از دست ندهیم. */
+export function mergeProductImportSources(
+  existing: ProductSourceFields,
+  imported: ProductSourceFields,
+): Pick<JsonStoreProductSourceFields, "importSourceUrl" | "importSourceUrls" | "importSources"> {
+  const importSources = normalizeProductImportSources({
+    importSources: [
+      ...normalizeProductImportSources(imported),
+      ...normalizeProductImportSources(existing),
+    ],
+  });
+  const importSourceUrl = importSources[0]?.sourceUrl || "";
+  return {
+    importSourceUrl,
+    importSourceUrls: importSources.map((item) => item.sourceUrl),
+    importSources,
+  };
+}
+
+type JsonStoreProductSourceFields = ProductSourceFields;
+
+export function tagProductImportSource<T extends ProductSourceFields>(
+  product: T,
+  sourceUrl: unknown,
+): T {
+  const normalizedSource = normalizeImportSourceUrl(sourceUrl);
+  if (!normalizedSource) return product;
+  return {
+    ...product,
+    ...mergeProductImportSources(product, {
+      importSourceUrl: normalizedSource,
+      externalSourceUrl: product.externalSourceUrl,
+    }),
+  };
+}
+
+/**
+ * فقط محصولاتی به یک باکس لینک تعلق دارند که هنگام درون‌ریزی از همان لینک
+ * ثبت شده باشند. برای محصولات خیلی قدیمی که هنوز برچسب لینک ندارند، فقط
+ * تطبیق دقیق صفحهٔ محصول با خود لینک پذیرفته می‌شود (نه کل هاست).
+ */
+export function productBelongsToImportSource(product: ProductSourceFields, sourceUrl: unknown) {
+  const target = normalizeImportSourceUrl(sourceUrl);
+  if (!target) return false;
+  if (productImportSourceUrls(product).includes(target)) return true;
+  return normalizeImportSourceUrl(product.externalSourceUrl) === target;
 }
 
 function normalizedHost(value: string) {
@@ -85,6 +210,26 @@ function normalizedHost(value: string) {
   } catch {
     return "";
   }
+}
+
+/** ضریب اختصاصی لینکِ درون‌ریزی محصول؛ اولویت با تطبیق دقیق لینک باکس است. */
+export function computerPartSourceMultiplierForProduct(
+  product: ProductSourceFields,
+  entries: ComputerPartSourceLinkEntry[],
+) {
+  const sourceUrls = productImportSourceUrls(product);
+  for (const entry of entries) {
+    const entryUrl = normalizeImportSourceUrl(entry.url);
+    if (entryUrl && sourceUrls.includes(entryUrl)) {
+      return normalizeStorePriceMultiplier(entry.priceMultiplier, 1);
+    }
+  }
+  // محصولِ متعلق به یک لینک دیگر نباید ضریب این لینک را بگیرد.
+  if (sourceUrls.length) return 1;
+  const externalUrl = normalizeImportSourceUrl(product.externalSourceUrl);
+  return externalUrl && entries.some((entry) => normalizeImportSourceUrl(entry.url) === externalUrl)
+    ? normalizeStorePriceMultiplier(entries.find((entry) => normalizeImportSourceUrl(entry.url) === externalUrl)?.priceMultiplier, 1)
+    : 1;
 }
 
 /**

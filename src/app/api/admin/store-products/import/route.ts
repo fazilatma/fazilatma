@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { mergeStorePriceHistory } from "@/lib/store-price-history";
+import { mergeProductImportSources, tagProductImportSource } from "@/lib/source-link-parser";
 import {
   getOptiBidData,
   writeOptiBidData,
@@ -130,6 +131,7 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
       ? imported.marketReferenceNote
       : existing.marketReferenceNote,
     externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
+    ...mergeProductImportSources(existing, imported),
     imageUrls: Array.from(
       new Set([
         ...(imported.imageUrls || (imported.imageUrl ? [imported.imageUrl] : [])),
@@ -224,7 +226,10 @@ export async function POST(request: Request) {
 
     const importedProducts = filteredDrafts
       .map((draft) => {
-        const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, priceMultiplier));
+        const product = tagProductImportSource(
+          importedDraftToStoreProduct(applyPriceMultiplier(draft, priceMultiplier)),
+          scan.sourceUrl,
+        );
         product.marketPrice = Math.round(draft.price);
         product.priceMultiplier = priceMultiplier;
         if (priceMultiplier !== 1) {

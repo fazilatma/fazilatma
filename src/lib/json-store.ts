@@ -39,6 +39,11 @@ import {
 } from "@/lib/store-pricing";
 import { isStorefrontEligibleComputerPart } from "@/lib/store-computer-part-kind";
 import { applyStorePriceOverrides, getStorePriceOverridesByIds } from "@/lib/store-price-overrides";
+import {
+  normalizeProductImportSources,
+  productImportSourceUrls,
+  type StoreProductImportSource,
+} from "@/lib/source-link-parser";
 
 // کلید KV که کل داده‌های برنامه به صورت یک JSON در آن ذخیره می‌شود.
 // فقط در محیط Cloudflare Workers استفاده می‌شود.
@@ -392,6 +397,13 @@ export type HomepageImageSliderSlide = {
 
 export type SiteMode = "store" | "request" | "hybrid";
 
+export type StoreSourcePriceRefreshState = {
+  date: string;
+  checked: number;
+  offset: number;
+  done: boolean;
+};
+
 export type JsonStoreProduct = {
   id: string;
   slug: string;
@@ -424,6 +436,10 @@ export type JsonStoreProduct = {
   priceAvailable?: boolean;
   marketReferenceNote?: string;
   externalSourceUrl?: string;
+  /** لینک باکسِ درون‌ریزی و صفحهٔ محصول در همان منبع؛ برای آپدیت مستقل هر لینک. */
+  importSourceUrl?: string;
+  importSourceUrls?: string[];
+  importSources?: StoreProductImportSource[];
   isActive: boolean;
   isFeatured: boolean;
   createdAt: string;
@@ -951,6 +967,16 @@ export type OptiBidJsonData = {
     storeAutoPriceRefreshLastRunAt: string;
     storeAutoPriceRefreshLastSummary: string;
     storeAutoPriceRefreshTotalRuns: number;
+    /** سقف محصولات بررسی‌شده در هر شبانه‌روز توسط به‌روزرسانی خودکار (۱ تا ۱۰۰۰۰). */
+    storeAutoPriceRefreshDailyLimit: number;
+    /** تاریخ جاری شمارندهٔ روزانه به وقت تهران (YYYY-MM-DD) — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyDate: string;
+    /** تعداد محصولات بررسی‌شده در روز جاری — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyChecked: number;
+    /** چرخهٔ کامل کاتالوگ در روز جاری به پایان رسیده است — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyCycleDone: boolean;
+    /** وضعیت چرخهٔ روزانه به تفکیک لینک؛ فقط مسیر cron می‌نویسد. */
+    storeSourcePriceRefreshState: Record<string, StoreSourcePriceRefreshState>;
   };
 };
 
@@ -1099,6 +1125,11 @@ const emptyData = (): OptiBidJsonData => ({
     storeAutoPriceRefreshLastRunAt: "",
     storeAutoPriceRefreshLastSummary: "",
     storeAutoPriceRefreshTotalRuns: 0,
+    storeAutoPriceRefreshDailyLimit: 10000,
+    storeAutoPriceRefreshDailyDate: "",
+    storeAutoPriceRefreshDailyChecked: 0,
+    storeAutoPriceRefreshDailyCycleDone: false,
+    storeSourcePriceRefreshState: {},
   },
 });
 
@@ -1316,6 +1347,14 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       externalSourceUrl: product.externalSourceUrl
         ? String(product.externalSourceUrl).trim()
         : undefined,
+      ...(() => {
+        const importSources = normalizeProductImportSources(product);
+        return {
+          importSources,
+          importSourceUrl: importSources[0]?.sourceUrl || undefined,
+          importSourceUrls: importSources.map((item) => item.sourceUrl),
+        };
+      })(),
       imageUrls: normalizedImageUrls,
       imageUrl: normalizedImageUrls[0],
       priceHistory: normalizeStorePriceHistory(product.priceHistory),
@@ -2001,6 +2040,53 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
           ),
         ) || 0,
       ),
+      storeAutoPriceRefreshDailyLimit: Math.max(
+        1,
+        Math.min(
+          10000,
+          Math.round(
+            Number(
+              (parsed.settings as { storeAutoPriceRefreshDailyLimit?: number } | undefined)
+                ?.storeAutoPriceRefreshDailyLimit || 10000,
+            ),
+          ) || 10000,
+        ),
+      ),
+      storeAutoPriceRefreshDailyDate: String(
+        (parsed.settings as { storeAutoPriceRefreshDailyDate?: string } | undefined)
+          ?.storeAutoPriceRefreshDailyDate || "",
+      ).slice(0, 12),
+      storeAutoPriceRefreshDailyChecked: Math.max(
+        0,
+        Math.floor(
+          Number(
+            (parsed.settings as { storeAutoPriceRefreshDailyChecked?: number } | undefined)
+              ?.storeAutoPriceRefreshDailyChecked || 0,
+          ),
+        ) || 0,
+      ),
+      storeAutoPriceRefreshDailyCycleDone:
+        (parsed.settings as { storeAutoPriceRefreshDailyCycleDone?: boolean } | undefined)
+          ?.storeAutoPriceRefreshDailyCycleDone === true,
+      storeSourcePriceRefreshState: (() => {
+        const raw = (parsed.settings as { storeSourcePriceRefreshState?: unknown } | undefined)
+          ?.storeSourcePriceRefreshState;
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+        const output: Record<string, StoreSourcePriceRefreshState> = {};
+        for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+          if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+          const record = value as Record<string, unknown>;
+          const sourceKey = String(key || "").slice(0, 2000);
+          if (!sourceKey) continue;
+          output[sourceKey] = {
+            date: String(record.date || "").slice(0, 12),
+            checked: Math.max(0, Math.floor(Number(record.checked || 0)) || 0),
+            offset: Math.max(0, Math.floor(Number(record.offset || 0)) || 0),
+            done: record.done === true,
+          };
+        }
+        return output;
+      })(),
     },
   };
 
@@ -2023,9 +2109,15 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
   const globalMultiplier = normalizeStorePriceMultiplier(migrated.settings.storePriceMultiplier, 1);
   migrated.settings.storePriceMultiplier = globalMultiplier;
   migrated.storeProducts = migrated.storeProducts.map((product) => {
-    const productMultiplier = hasConfiguredMultiplier
-      ? globalMultiplier
-      : storedProductPriceMultiplier(product, globalMultiplier);
+    // کالاهای متصل به یک باکس لینک، ضریب ذخیره‌شدهٔ خودشان را نگه می‌دارند؛
+    // ضریب سراسری یا ضریب لینکِ دیگر نباید هنگام خواندن/ذخیره آن‌ها را بازنویسی کند.
+    // ضریب جدیدِ یک لینک فقط با «دانلود» یا «به‌روزرسانی همان لینک» اعمال می‌شود.
+    const sourceUrls = productImportSourceUrls(product);
+    const productMultiplier = sourceUrls.length
+      ? storedProductPriceMultiplier(product, 1)
+      : hasConfiguredMultiplier
+        ? globalMultiplier
+        : storedProductPriceMultiplier(product, globalMultiplier);
     const marketPrice = storedProductMarketPrice(product);
     return marketPrice > 0
       ? applyStorePriceFormula(product, marketPrice, productMultiplier)
@@ -4658,8 +4750,8 @@ export async function updateJsonPlatformFinanceSettings(
       data.settings.storePriceMultiplier,
     );
   }
-  // تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت: فقط سه فیلد قابل ویرایش ادمین
-  // پذیرفته می‌شوند؛ وضعیت اجرا (offset و آخرین نتیجه) را فقط مسیر cron می‌نویسد
+  // تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت: فقط فیلدهای قابل ویرایش ادمین
+  // پذیرفته می‌شوند؛ وضعیت اجرا (offset، آخرین نتیجه و شمارندهٔ روز) را فقط مسیر cron می‌نویسد
   // تا ذخیرهٔ تنظیمات مالی با دادهٔ کهنهٔ مرورگر، پیشرفت چرخه را برنگرداند.
   if (typeof updates.storeAutoPriceRefreshEnabled === "boolean") {
     data.settings.storeAutoPriceRefreshEnabled = updates.storeAutoPriceRefreshEnabled;
@@ -4670,14 +4762,30 @@ export async function updateJsonPlatformFinanceSettings(
       .map((item) => String(item || "").trim())
       .filter((item) => allowed.includes(item));
     if (list.length) {
-      data.settings.storeAutoPriceRefreshReferences = [...new Set(list)];
-      data.settings.storeAutoPriceRefreshOffset = 0;
+      const nextReferences = [...new Set(list)];
+      const currentReferences = [...new Set(data.settings.storeAutoPriceRefreshReferences || [])];
+      // ترتیب یا تکرار گزینه‌ها در فرم ادمین به‌معنای تغییر منبع نیست. فقط وقتی
+      // مجموعهٔ منابع واقعاً عوض شود چرخه از ابتدا شروع می‌شود؛ در غیر این صورت
+      // ذخیرهٔ سقف روزانه نباید محصولاتی را که امروز بررسی شده‌اند دوباره بشمارد.
+      const referenceKey = (values: string[]) => [...values].sort().join("\u0000");
+      if (referenceKey(nextReferences) !== referenceKey(currentReferences)) {
+        data.settings.storeAutoPriceRefreshReferences = nextReferences;
+        data.settings.storeAutoPriceRefreshOffset = 0;
+      }
     }
   }
   if (typeof updates.storeAutoPriceRefreshBatchSize === "number") {
     data.settings.storeAutoPriceRefreshBatchSize = Math.max(
       1,
       Math.min(20, Math.round(updates.storeAutoPriceRefreshBatchSize) || 20),
+    );
+  }
+  // سقف روزانه را ادمین تعیین می‌کند؛ شمارندهٔ پیشرفت روز (تاریخ/تعداد/اتمام
+  // چرخه) فقط توسط cron نوشته می‌شود و این‌جا دست‌نخورده می‌ماند.
+  if (typeof updates.storeAutoPriceRefreshDailyLimit === "number") {
+    data.settings.storeAutoPriceRefreshDailyLimit = Math.max(
+      1,
+      Math.min(10000, Math.round(updates.storeAutoPriceRefreshDailyLimit) || 10000),
     );
   }
   if (typeof updates.reverseAuctionMinimumOffersCount === "number") {
@@ -4755,9 +4863,11 @@ export async function updateJsonPlatformFinanceSettings(
     }
   }
   if (typeof updatesRecord.storeComputerPartsSourceUrl === "string") {
+    // هشت لینک بلند ترب/دیجی‌کالا همراه ضریب و سقف هر لینک ممکن است از ۴۰۰۰ نویسه
+    // بیشتر شود؛ بریدن JSON باعث از دست رفتن تنظیمات لینک‌های آخر می‌شد.
     settingsRecord.storeComputerPartsSourceUrl = String(updatesRecord.storeComputerPartsSourceUrl)
       .trim()
-      .slice(0, 4000);
+      .slice(0, 24000);
   }
   const supportStringLimits: Record<string, number> = {
     supportPageTitle: 120,

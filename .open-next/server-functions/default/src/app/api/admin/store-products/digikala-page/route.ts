@@ -13,6 +13,10 @@ const allowedSlugs = new Set([
   "psu",
   "computer-chassis",
   "cooling-system",
+  "notebook-netbook-ultrabook",
+  "gaming-laptop",
+  "desktop-computer",
+  "all-in-one",
 ]);
 
 export async function GET(request: Request) {
