@@ -42,5 +42,6 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "wrangler": "^4.124.0"
-  }
+  },
+  "version": "1.0.0"
 }
