@@ -36,6 +36,7 @@ const filesToInclude = [
   "README_CLOUDFLARE.md",
   "liara.json",
   "wrangler.jsonc",
+  "worker.ts",
   "open-next.config.ts",
   ".env.example",
 ];

@@ -1032,6 +1032,26 @@ export function productMatchesComputerPartFilters(
 ) {
   const filters = [...new Set(partFilters.map((item) => String(item).trim().toLowerCase()).filter(Boolean))];
   if (!filters.length) return true;
+  // «لپ‌تاپ و نوت‌بوک» قطعه نیست و در تشخیص نوع قطعه نمی‌آید؛ با کلید دستهٔ
+  // درون‌ریزی سنجیده می‌شود (لپ‌تاپ‌های گیمینگ هم شامل می‌شوند).
+  if (filters.includes("laptop")) {
+    const categoryKey = productImportCategoryKey(draft);
+    const draftText = `${draft.title || ""} ${draft.brand || ""} ${draft.category || ""} ${Object.values(draft.specs || {}).join(" ")}`.toLowerCase();
+    const titleText = String(draft.title || "").toLowerCase();
+    const explicitLaptopTitle =
+      /laptop|notebook|ultrabook|chromebook|macbook|لپ\s?تاپ|لپ‌تاپ|لپتاپ|نوت\s?بوک|نوت‌بوک|مک\s?بوک|اولترابوک|کروم\s?بوک/.test(titleText);
+    // عنوان‌هایی مثل «کارت گرافیک ROG Strix» به‌خاطر سری ROG لپ‌تاپ به نظر می‌رسند؛
+    // اگر عنوان صراحتاً قطعهٔ دسکتاپ است و واژهٔ لپ‌تاپ ندارد، لپ‌تاپ حساب نمی‌شود.
+    const desktopPartTitle =
+      /کارت گرافیک|graphics card|video card|مادربرد|motherboard|mainboard|منبع تغذیه|power supply|کیس کامپیوتر|computer case/.test(titleText);
+    if (
+      explicitLaptopTitle ||
+      categoryKey === "laptop" ||
+      (categoryKey === "gaming" && textMatchesLaptop(draftText) && !desktopPartTitle)
+    ) {
+      return true;
+    }
+  }
   const kind = storeComputerPartKind(draft);
   return Boolean(kind && filters.includes(kind));
 }

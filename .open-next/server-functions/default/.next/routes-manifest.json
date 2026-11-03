@@ -302,6 +302,12 @@
       "namedRegex": "^/api/catalog\\-categories(?:/)?$"
     },
     {
+      "page": "/api/cron/refresh-prices",
+      "regex": "^/api/cron/refresh\\-prices(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/refresh\\-prices(?:/)?$"
+    },
+    {
       "page": "/api/dashboard/buyer",
       "regex": "^/api/dashboard/buyer(?:/)?$",
       "routeKeys": {},

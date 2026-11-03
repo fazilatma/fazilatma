@@ -92,6 +92,7 @@ const computerPartSourceTypeOptions = [
   { id: "power", label: "پاور" },
   { id: "case", label: "کیس" },
   { id: "cooler", label: "خنک‌کننده" },
+  { id: "laptop", label: "لپ‌تاپ و نوت‌بوک" },
 ] as const;
 
 const allComputerPartSourceTypeIds = computerPartSourceTypeOptions.map((option) => option.id);
@@ -100,11 +101,13 @@ type ComputerPartSourceEntry = {
   id: string;
   url: string;
   parts: string[];
+  /** ضریب اختصاصی همین لینک؛ قیمت‌های دانلودشده از این لینک در آن ضرب می‌شوند. */
+  priceMultiplier: number;
 };
 
 function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceEntry[] {
   const raw = String(value || "").trim();
-  let parsedEntries: Array<{ url?: unknown; parts?: unknown }> = [];
+  let parsedEntries: Array<{ url?: unknown; parts?: unknown; priceMultiplier?: unknown }> = [];
   if (raw.startsWith("[")) {
     try {
       const parsed = JSON.parse(raw);
@@ -129,11 +132,12 @@ function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceE
         id: `source-${index + 1}`,
         url: String(entry.url || "").trim(),
         parts: selectedParts.length ? [...new Set(selectedParts)] : [...allComputerPartSourceTypeIds],
+        priceMultiplier: normalizedImportPriceMultiplier(entry.priceMultiplier),
       };
     });
   return entries.length
     ? entries
-    : [{ id: "source-1", url: "https://www.digikala.com/search/category-computer-devices/", parts: [...allComputerPartSourceTypeIds] }];
+    : [{ id: "source-1", url: "https://www.digikala.com/search/category-computer-devices/", parts: [...allComputerPartSourceTypeIds], priceMultiplier: 1 }];
 }
 
 function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) {
@@ -141,6 +145,7 @@ function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) 
     entries.slice(0, 8).map((entry) => ({
       url: entry.url.trim(),
       parts: entry.parts,
+      priceMultiplier: normalizedImportPriceMultiplier(entry.priceMultiplier),
     })),
   );
 }
@@ -221,6 +226,7 @@ async function readJsonResponse(response: Response, fallbackMessage: string) {
 }
 
 const priceRefreshReferenceOptions = [
+  { id: "source", label: "لینک منبع خود محصول", hint: "قیمت از همان صفحه‌ای خوانده می‌شود که محصول با آن درون‌ریزی شده است" },
   { id: "torob", label: "ترب", hint: "جستجو در بازار ترب و قیمت‌های فروشنده‌ها" },
   { id: "digikala", label: "دیجی‌کالا", hint: "جستجو در داده‌های قابل خواندن دیجی‌کالا" },
   { id: "google", label: "گوگل و سایت‌های فروشگاهی", hint: "جستجوی قیمت محصول در نتایج وب و فروشگاه‌های ایندکس‌شده" },
@@ -336,6 +342,17 @@ export default function AdminDashboardClient({
     storeComputerPartsCatalogEnabled: true,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
+    storeAutoPriceRefreshEnabled: true,
+    storeAutoPriceRefreshReferences: ["source", "torob", "digikala"] as string[],
+    storeAutoPriceRefreshBatchSize: 20,
+    storeAutoPriceRefreshOffset: 0,
+    storeAutoPriceRefreshLastRunAt: "",
+    storeAutoPriceRefreshLastSummary: "",
+    storeAutoPriceRefreshTotalRuns: 0,
+    storeAutoPriceRefreshDailyLimit: 10000,
+    storeAutoPriceRefreshDailyDate: "",
+    storeAutoPriceRefreshDailyChecked: 0,
+    storeAutoPriceRefreshDailyCycleDone: false,
     reverseAuctionProductCtaEnabled: false,
     reverseAuctionQuickRequestEnabled: false,
     reverseAuctionFreeSellerOffersEnabled: false,
@@ -448,12 +465,54 @@ export default function AdminDashboardClient({
     priceRefreshReferenceOptions.map((item) => item.id),
   );
   const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
-  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(20);
+  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(10000);
   const [priceRefreshOffset, setPriceRefreshOffset] = useState(0);
   const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
   const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
   const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
   const [priceRefreshWarnings, setPriceRefreshWarnings] = useState<string[]>([]);
+  const [productImportAutoScroll, setProductImportAutoScroll] = useState(true);
+  const [savingAutoPriceRefresh, setSavingAutoPriceRefresh] = useState(false);
+  const productImportProgressRef = useRef<HTMLDivElement | null>(null);
+  const productImportPreviewRef = useRef<HTMLDivElement | null>(null);
+  const productImportScannedUrlsRef = useRef<HTMLDivElement | null>(null);
+  const priceRefreshResultsRef = useRef<HTMLDivElement | null>(null);
+  const productImportPreviewLengthRef = useRef(0);
+
+  // اسکرول خودکار استخراج: با شروع خزش مرحله‌ای، پنل پیشرفت کنار لینک
+  // درون‌ریزی به‌صورت خودکار در دید قرار می‌گیرد تا نیازی به اسکرول دستی نباشد.
+  useEffect(() => {
+    if (!productImportAutoScroll || !universalCrawlProgress.running) return;
+    const timer = window.setTimeout(() => {
+      productImportProgressRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [productImportAutoScroll, universalCrawlProgress.running]);
+
+  // اسکرول خودکار به جدول پیش‌نمایش به‌محض آماده‌شدن نتایج استخراج/درون‌ریزی.
+  useEffect(() => {
+    const previous = productImportPreviewLengthRef.current;
+    productImportPreviewLengthRef.current = productImportPreview.length;
+    if (!productImportAutoScroll || previous !== 0 || productImportPreview.length === 0) return;
+    const timer = window.setTimeout(() => {
+      productImportPreviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [productImportAutoScroll, productImportPreview.length]);
+
+  // لاگ لینک‌های اسکن‌شده و نتایج ربات قیمت همیشه به آخرین ردیف اسکرول می‌شوند.
+  useEffect(() => {
+    if (!productImportAutoScroll) return;
+    const element = productImportScannedUrlsRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [productImportAutoScroll, productImportScannedUrls.length]);
+
+  useEffect(() => {
+    if (!productImportAutoScroll) return;
+    const element = priceRefreshResultsRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [productImportAutoScroll, priceRefreshResults.length]);
+
   const [savingReverseAuctionPilot, setSavingReverseAuctionPilot] = useState(false);
   const [enamadLogoFile, setEnamadLogoFile] = useState<File | null>(null);
   const [removeUploadedEnamadLogo, setRemoveUploadedEnamadLogo] = useState(false);
@@ -506,7 +565,7 @@ export default function AdminDashboardClient({
 
   const updateComputerPartSource = (
     id: string,
-    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts">>,
+    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts" | "priceMultiplier">>,
   ) => {
     setComputerPartSources((current) =>
       current.map((entry) => entry.id === id ? { ...entry, ...updates } : entry),
@@ -522,6 +581,7 @@ export default function AdminDashboardClient({
           id: `source-${Date.now()}-${current.length + 1}`,
           url: "",
           parts: [...allComputerPartSourceTypeIds],
+          priceMultiplier: 1,
         },
       ];
     });
@@ -750,6 +810,51 @@ export default function AdminDashboardClient({
     } finally {
       setSavingReverseAuctionPilot(false);
     }
+  };
+
+  const saveAutoPriceRefreshSettings = async () => {
+    const references = Array.isArray(platformFinance.storeAutoPriceRefreshReferences)
+      ? platformFinance.storeAutoPriceRefreshReferences
+      : [];
+    if (references.length === 0) {
+      alert("حداقل یک مرجع برای به‌روزرسانی خودکار انتخاب کنید.");
+      return;
+    }
+    setSavingAutoPriceRefresh(true);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeAutoPriceRefreshEnabled: Boolean(platformFinance.storeAutoPriceRefreshEnabled),
+          storeAutoPriceRefreshReferences: references,
+          storeAutoPriceRefreshDailyLimit: Math.max(
+            1,
+            Math.min(10000, Math.round(Number(platformFinance.storeAutoPriceRefreshDailyLimit || 10000)) || 10000),
+          ),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "ذخیره تنظیمات به‌روزرسانی خودکار ناموفق بود.");
+      setPlatformFinance((current) => ({ ...current, ...result.settings }));
+      alert("تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت ذخیره شد.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ذخیره تنظیمات به‌روزرسانی خودکار ناموفق بود.");
+    } finally {
+      setSavingAutoPriceRefresh(false);
+    }
+  };
+
+  const toggleAutoPriceRefreshReference = (referenceId: string) => {
+    const current = Array.isArray(platformFinance.storeAutoPriceRefreshReferences)
+      ? platformFinance.storeAutoPriceRefreshReferences
+      : [];
+    updatePlatformFinanceField(
+      "storeAutoPriceRefreshReferences",
+      current.includes(referenceId)
+        ? current.filter((item) => item !== referenceId)
+        : [...current, referenceId],
+    );
   };
 
   const dispatchRequestToSellers = async () => {
@@ -1182,14 +1287,28 @@ export default function AdminDashboardClient({
         setProductImportMessage(
           `${scan.products.length.toLocaleString("fa-IR")} محصول از لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} پیدا شد؛ در حال ذخیرهٔ یکپارچهٔ همه محصولات...`,
         );
+        // ضریب اختصاصی همین لینک روی قیمت‌های دانلودشده از آن اعمال می‌شود؛
+        // ضریب سراسری مثل قبل در سرور روی آن سوار می‌شود.
+        const sourceFactor = normalizedImportPriceMultiplier(source.priceMultiplier);
+        const pricedProducts = sourceFactor !== 1
+          ? scan.products.map((product) => ({
+              ...product,
+              price: Math.max(0, Math.round(Number(product.price || 0) * sourceFactor)),
+              originalPrice: product.originalPrice
+                ? Math.max(0, Math.round(Number(product.originalPrice) * sourceFactor))
+                : product.originalPrice,
+            }))
+          : scan.products;
         const response = await fetch("/api/admin/store-products/import-csv", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            products: scan.products,
+            products: pricedProducts,
             strategy: "merge",
             priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
-            categoryFilters: ["components", "storage"],
+            categoryFilters: source.parts.includes("laptop")
+              ? ["components", "storage", "laptop"]
+              : ["components", "storage"],
             sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
           }),
         });
@@ -1208,7 +1327,11 @@ export default function AdminDashboardClient({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sources: serverSources.map((source) => ({ url: source.url, parts: source.parts })),
+            sources: serverSources.map((source) => ({
+              url: source.url,
+              parts: source.parts,
+              priceMultiplier: normalizedImportPriceMultiplier(source.priceMultiplier),
+            })),
             limit: 500,
             priceMultiplier: productImportPriceMultiplier,
           }),
@@ -1342,6 +1465,8 @@ export default function AdminDashboardClient({
         failed += Number(result.failed || 0);
         results.push(...(result.results || []));
         warnings.push(...(result.warnings || []));
+        // نمایش زندهٔ نتایج هر بچ تا اسکرول خودکار، پیشرفت ربات را نشان دهد.
+        setPriceRefreshResults([...results]);
         cursor = Number(result.nextOffset || 0);
         hasMore = Boolean(result.hasMore);
         if (checked === 0) break;
@@ -2975,9 +3100,18 @@ export default function AdminDashboardClient({
                       >
                         {applyingProductImport ? "در حال افزودن به سایت..." : `افزودن ${productImportSelectedKeys.length ? productImportSelectedKeys.length.toLocaleString("fa-IR") : ""} محصول انتخابی به سایت`}
                       </button>
+                      <label className="flex cursor-pointer items-center gap-2 self-center rounded-xl bg-white/10 px-4 py-3 text-xs font-black text-blue-50 ring-1 ring-white/15">
+                        <input
+                          type="checkbox"
+                          checked={productImportAutoScroll}
+                          onChange={(event) => setProductImportAutoScroll(event.target.checked)}
+                          className="h-4 w-4 accent-cyan-300"
+                        />
+                        اسکرول خودکار پیشرفت و نتایج
+                      </label>
                     </div>
                     {(universalCrawlProgress.running || universalCrawlProgress.message) && (
-                      <div className="mt-4 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-50 ring-1 ring-white/15">
+                      <div ref={productImportProgressRef} className="mt-4 scroll-mt-6 rounded-2xl bg-white/10 p-4 text-xs leading-6 text-blue-50 ring-1 ring-white/15">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <b>{universalCrawlProgress.message}</b>
                           {universalCrawlProgress.running && (
@@ -3121,6 +3255,30 @@ export default function AdminDashboardClient({
                               >
                                 حذف انتخاب‌ها
                               </button>
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-cyan-50/70 px-3 py-2.5 ring-1 ring-cyan-100">
+                              <label className="flex items-center gap-2 text-[11px] font-black text-slate-700">
+                                ضریب قیمت این لینک
+                                <input
+                                  key={`${source.id}-multiplier-${source.priceMultiplier}`}
+                                  type="number"
+                                  min="0.1"
+                                  max="10"
+                                  step="0.01"
+                                  dir="ltr"
+                                  defaultValue={source.priceMultiplier}
+                                  onBlur={(event) => updateComputerPartSource(source.id, {
+                                    priceMultiplier: normalizedImportPriceMultiplier(Number(event.target.value || 1)),
+                                  })}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") (event.target as HTMLInputElement).blur();
+                                  }}
+                                  className="h-9 w-24 rounded-lg border border-cyan-200 bg-white px-2 text-center text-xs font-bold text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                                />
+                              </label>
+                              <span className="text-[11px] leading-5 text-slate-500">
+                                قیمت محصولات دانلودشده از همین لینک در این ضریب ضرب می‌شود؛ مثلاً ۰٫۸ یا ۱٫۱ (علاوه بر ضریب سراسری). عدد ۱ یعنی بدون تغییر.
+                              </span>
                             </div>
                           </div>
                         ))}
@@ -3427,7 +3585,7 @@ export default function AdminDashboardClient({
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    برای لینک قطعات دیجی‌کالا، هشت زیرگروه اصلی پردازنده، گرافیک، رم، مادربرد، SSD، هارد، پاور و کیس مستقیماً در همین مرورگر و تا ۵٬۰۰۰ محصول قیمت‌دار خوانده می‌شود؛ سپس محصولات به‌صورت دسته‌ای و بدون تکرار ذخیره می‌شوند. عدد کل صفحهٔ والد دیجی‌کالا شامل هزاران لوازم جانبی و قطعات یدکی خارج از این هشت گروه نیز هست.
+                    برای لینک قطعات دیجی‌کالا، زیرگروه‌های اصلی پردازنده، گرافیک، رم، مادربرد، SSD، هارد، پاور و کیس — و در صورت انتخاب گروه «لپ‌تاپ و نوت‌بوک»، دستهٔ لپ‌تاپ — مستقیماً در همین مرورگر و تا ۵٬۰۰۰ محصول قیمت‌دار خوانده می‌شود؛ سپس محصولات به‌صورت دسته‌ای و بدون تکرار ذخیره می‌شوند. عدد کل صفحهٔ والد دیجی‌کالا شامل هزاران لوازم جانبی و قطعات یدکی خارج از این گروه‌ها نیز هست.
                   </div>
 
                   <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">
@@ -3529,18 +3687,21 @@ export default function AdminDashboardClient({
                           />
                         </label>
                         <label className="block text-sm font-bold text-gray-700">
-                          حداکثر محصول
+                          حداکثر محصول در این اجرا
                           <input
                             type="number"
                             min="1"
-                            max="20"
+                            max="10000"
                             value={priceRefreshMaxProducts}
                             onChange={(e) => {
-                              setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))));
+                              setPriceRefreshMaxProducts(Math.max(1, Math.min(10000, Number(e.target.value || 20))));
                               setPriceRefreshOffset(0);
                             }}
                             className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
                           />
+                          <span className="mt-1 block text-[11px] font-normal leading-5 text-gray-400">
+                            تا ۱۰٬۰۰۰ محصول؛ ربات به‌صورت خودکار بچ‌به‌بچ ادامه می‌دهد تا این سقف یا پایان فهرست.
+                          </span>
                         </label>
                       </div>
                     </div>
@@ -3562,7 +3723,7 @@ export default function AdminDashboardClient({
                         <summary className="cursor-pointer font-black text-slate-800">
                           مشاهده نتیجه به‌روزرسانی ({priceRefreshResults.length.toLocaleString("fa-IR")})
                         </summary>
-                        <div className="mt-3 max-h-64 space-y-2 overflow-auto">
+                        <div ref={priceRefreshResultsRef} className="mt-3 max-h-64 space-y-2 overflow-auto">
                           {priceRefreshResults.slice(0, 80).map((item) => (
                             <div key={`${item.productId}-${item.status}`} className="rounded-xl bg-slate-50 p-3">
                               <b>{item.title}</b>
@@ -3572,6 +3733,109 @@ export default function AdminDashboardClient({
                         </div>
                       </details>
                     )}
+
+                    <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <b className="text-sm text-gray-900">⏰ به‌روزرسانی خودکار روزانه از لینک منبع محصولات</b>
+                          <p className="mt-1 max-w-3xl text-xs leading-6 text-slate-500">
+                            بدون نیاز به باز بودن این صفحه، در طول شبانه‌روز هر چند دقیقه به‌صورت خودکار قیمت محصولات از همان لینک‌هایی که با آن‌ها درون‌ریزی شده‌اند و مراجع انتخابی خوانده می‌شود و چرخه از جایی که مانده ادامه پیدا می‌کند تا «سقف شبانه‌روزی» کامل شود یا همهٔ محصولات پوشش داده شوند. هر روز (نیمه‌شب تهران) شمارنده صفر و چرخه از ابتدا شروع می‌شود.
+                          </p>
+                        </div>
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700">
+                          {platformFinance.storeAutoPriceRefreshEnabled ? "فعال" : "غیرفعال"}
+                          <span className={`relative h-7 w-12 rounded-full transition ${platformFinance.storeAutoPriceRefreshEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(platformFinance.storeAutoPriceRefreshEnabled)}
+                              onChange={(event) => updatePlatformFinanceField("storeAutoPriceRefreshEnabled", event.target.checked)}
+                              className="sr-only"
+                            />
+                            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeAutoPriceRefreshEnabled ? "left-1" : "left-6"}`} />
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {priceRefreshReferenceOptions.map((reference) => {
+                          const checked = (Array.isArray(platformFinance.storeAutoPriceRefreshReferences) ? platformFinance.storeAutoPriceRefreshReferences : []).includes(reference.id);
+                          return (
+                            <label
+                              key={`auto-${reference.id}`}
+                              className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition ${checked ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-slate-500"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleAutoPriceRefreshReference(reference.id)}
+                              />
+                              {reference.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-end gap-3">
+                        <label className="block text-xs font-bold text-gray-700">
+                          حداکثر محصول در هر شبانه‌روز (۱ تا ۱۰٬۰۰۰)
+                          <input
+                            key={`auto-daily-limit-${platformFinance.storeAutoPriceRefreshDailyLimit}`}
+                            type="number"
+                            min="1"
+                            max="10000"
+                            step="1"
+                            dir="ltr"
+                            defaultValue={platformFinance.storeAutoPriceRefreshDailyLimit}
+                            onBlur={(event) => updatePlatformFinanceField("storeAutoPriceRefreshDailyLimit", Math.max(1, Math.min(10000, Math.round(Number(event.target.value || 10000)) || 10000)))}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") event.currentTarget.blur();
+                            }}
+                            className="mt-2 w-36 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                          <span className="mt-1 block text-[11px] font-medium leading-5 text-slate-400">
+                            در شبانه‌روز حداکثر همین تعداد محصول به‌صورت خودکار بررسی می‌شود؛ پردازش در بچ‌های کوچک فنی و در چند نوبت انجام می‌شود.
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          disabled={savingAutoPriceRefresh}
+                          onClick={saveAutoPriceRefreshSettings}
+                          className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
+                        >
+                          {savingAutoPriceRefresh ? "در حال ذخیره..." : "ذخیره تنظیمات به‌روزرسانی خودکار"}
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-6 text-slate-600 sm:grid-cols-2 xl:grid-cols-5">
+                        <div>
+                          <span className="block font-black text-slate-800">آخرین اجرای خودکار</span>
+                          {platformFinance.storeAutoPriceRefreshLastRunAt
+                            ? new Date(platformFinance.storeAutoPriceRefreshLastRunAt).toLocaleString("fa-IR")
+                            : "هنوز اجرا نشده است"}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">دفعات اجرا</span>
+                          {Number(platformFinance.storeAutoPriceRefreshTotalRuns || 0).toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">موقعیت چرخهٔ بعدی</span>
+                          محصول {(Number(platformFinance.storeAutoPriceRefreshOffset || 0) + 1).toLocaleString("fa-IR")}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">پیشرفت امروز</span>
+                          {Number(platformFinance.storeAutoPriceRefreshDailyChecked || 0).toLocaleString("fa-IR")} از {Number(platformFinance.storeAutoPriceRefreshDailyLimit || 10000).toLocaleString("fa-IR")} محصول
+                          {platformFinance.storeAutoPriceRefreshDailyCycleDone ? " (چرخهٔ امروز کامل شد)" : ""}
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-800">خلاصهٔ آخرین اجرا</span>
+                          {platformFinance.storeAutoPriceRefreshLastSummary || "—"}
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-[11px] leading-6 text-slate-400">
+                        راه‌اندازی زمان‌بند: مقدار <code dir="ltr" className="rounded bg-slate-100 px-1">CRON_SECRET</code> باید در سکرت‌های Cloudflare Worker و GitHub (برای workflow روزانه) یکسان تنظیم شود؛ آدرس فراخوانی خودکار: <code dir="ltr" className="rounded bg-slate-100 px-1">/api/cron/refresh-prices</code>
+                      </p>
+                    </div>
                   </div>
 
                   {productImportMessage && (
@@ -3596,7 +3860,7 @@ export default function AdminDashboardClient({
                       <summary className="cursor-pointer font-black text-slate-800">
                         لینک‌های اسکن‌شده ({productImportScannedUrls.length.toLocaleString("fa-IR")})
                       </summary>
-                      <div className="mt-3 max-h-44 space-y-1 overflow-auto text-left" dir="ltr">
+                      <div ref={productImportScannedUrlsRef} className="mt-3 max-h-44 space-y-1 overflow-auto text-left" dir="ltr">
                         {productImportScannedUrls.map((url) => (
                           <div key={url} className="truncate rounded-lg bg-white px-2 py-1">{url}</div>
                         ))}
@@ -3605,7 +3869,7 @@ export default function AdminDashboardClient({
                   )}
 
                   {productImportPreview.length > 0 && (
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
+                    <div ref={productImportPreviewRef} className="mt-6 scroll-mt-6 overflow-hidden rounded-2xl border border-gray-200">
                       <div className="flex flex-col justify-between gap-3 bg-gray-50 px-4 py-3 text-sm font-black text-gray-700 md:flex-row md:items-center">
                         <div>
                           پیش‌نمایش محصولات پیدا شده

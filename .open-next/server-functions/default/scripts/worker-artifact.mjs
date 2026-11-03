@@ -43,6 +43,7 @@ const sourceFiles = [
   "README_DEPLOY.md",
   "README_SELLER_RATING.md",
   "tsconfig.json",
+  "worker.ts",
   "wrangler.jsonc",
 ];
 

@@ -1,9 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "optibid",
-  "main": ".open-next/worker.js",
+  "main": "worker.ts",
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "triggers": {
+    "crons": ["*/10 * * * *"]
+  },
   "assets": {
     "directory": "./.open-next/assets",
     "binding": "ASSETS"

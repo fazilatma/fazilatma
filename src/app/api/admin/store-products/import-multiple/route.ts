@@ -179,7 +179,7 @@ function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: Json
 }
 
 function normalizeSourceConfigs(body: Record<string, unknown>) {
-  const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler"]);
+  const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler", "laptop"]);
   const configured = Array.isArray(body.sources)
     ? body.sources.flatMap((item) => {
         if (!item || typeof item !== "object" || Array.isArray(item)) return [];
@@ -189,11 +189,19 @@ function normalizeSourceConfigs(body: Record<string, unknown>) {
         const parts = Array.isArray(record.parts)
           ? [...new Set(record.parts.map((part) => String(part).toLowerCase()).filter((part) => allowedParts.has(part)))]
           : [];
-        return [{ url, parts }];
+        // ضریب اختصاصی همین لینک؛ روی قیمت‌های دانلودشده از همین منبع اعمال می‌شود.
+        const priceMultiplier = normalizeMultiplier(record.priceMultiplier);
+        return [{ url, parts, priceMultiplier }];
       })
     : [];
   if (configured.length) return configured.slice(0, 8);
-  return parseSourceLinks(body.links, 8).map((url) => ({ url, parts: [] as string[] }));
+  return parseSourceLinks(body.links, 8).map((url) => ({ url, parts: [] as string[], priceMultiplier: 1 }));
+}
+
+function categoryFiltersForSource(parts: string[]): Array<"components" | "storage" | "laptop"> {
+  return parts.includes("laptop")
+    ? ["components", "storage", "laptop"]
+    : ["components", "storage"];
 }
 
 export async function POST(request: Request) {
@@ -228,14 +236,15 @@ export async function POST(request: Request) {
             limit: requestedLimit,
             fullSite: specializedSource,
             maxPages: specializedSource ? 12 : 6,
-            categoryFilters: ["components", "storage"],
+            categoryFilters: categoryFiltersForSource(sourceConfig.parts),
             partFilters: sourceConfig.parts,
           });
-          return { host, parts: sourceConfig.parts, scan, error: "" };
+          return { host, parts: sourceConfig.parts, priceMultiplier: sourceConfig.priceMultiplier, scan, error: "" };
         } catch (error) {
           return {
             host,
             parts: sourceConfig.parts,
+            priceMultiplier: sourceConfig.priceMultiplier,
             scan: null,
             error: error instanceof Error ? error.message : "خطای نامشخص",
           };
@@ -251,13 +260,26 @@ export async function POST(request: Request) {
       warnings.push(...source.scan.warnings.map((warning) => `${source.host}: ${warning}`));
       scannedUrls.push(...source.scan.scannedUrls);
       const drafts = source.scan.products.filter((draft) =>
-        productMatchesImportCategories(draft, ["components", "storage"]) &&
+        productMatchesImportCategories(draft, categoryFiltersForSource(source.parts)) &&
         productMatchesComputerPartFilters(draft, source.parts),
       );
       rawProducts += drafts.length;
 
+      // ضریب اختصاصی همین لینک ابتدا روی قیمت دانلودشده اعمال می‌شود (و در قیمت
+      // بازارِ ذخیره‌شده می‌نشیند)؛ ضریب سراسری مثل قبل روی آن سوار می‌شود.
+      const sourceFactor = normalizeMultiplier(source.priceMultiplier);
       for (const draft of drafts) {
-        const product = applyMultiplier(importedDraftToStoreProduct(draft), multiplier);
+        const pricedDraft =
+          sourceFactor !== 1
+            ? {
+                ...draft,
+                price: Math.max(0, Math.round(Number(draft.price || 0) * sourceFactor)),
+                originalPrice: draft.originalPrice
+                  ? Math.max(0, Math.round(Number(draft.originalPrice) * sourceFactor))
+                  : draft.originalPrice,
+              }
+            : draft;
+        const product = applyMultiplier(importedDraftToStoreProduct(pricedDraft), multiplier);
         const matchIndex = findMultiSourceMatch(aggregated, product, aggregatedMatchIndex);
         if (matchIndex >= 0) {
           aggregated[matchIndex] = mergeLowestPrice(aggregated[matchIndex], product);

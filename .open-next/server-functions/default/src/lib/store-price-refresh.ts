@@ -6,7 +6,13 @@ import {
   normalizeStorePriceMultiplier,
 } from "@/lib/store-pricing";
 
-export type PriceReferenceKey = "torob" | "digikala" | "instagram" | "telegram" | "google";
+export type PriceReferenceKey =
+  | "source"
+  | "torob"
+  | "digikala"
+  | "instagram"
+  | "telegram"
+  | "google";
 
 export type PriceCandidate = {
   source: PriceReferenceKey;
@@ -33,6 +39,8 @@ const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
 const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
 
 const referenceHosts: Record<PriceReferenceKey, string[]> = {
+  // «source» یعنی خودِ لینکی که محصول با آن درون‌ریزی شده است (هر فروشگاهی).
+  source: [],
   torob: ["torob.com"],
   digikala: ["digikala.com"],
   instagram: ["instagram.com", "cdninstagram.com"],
@@ -395,6 +403,15 @@ function candidatesFromGoogleSearch(
   return candidates;
 }
 
+function priceSourceForHost(host: string): PriceReferenceKey {
+  if (host.includes("torob.com")) return "torob";
+  if (host.includes("digikala.com")) return "digikala";
+  if (host.includes("instagram.com")) return "instagram";
+  if (host === "t.me" || host.includes("telegram")) return "telegram";
+  if (host.includes("google.")) return "google";
+  return "source";
+}
+
 async function directSourceCandidates(product: JsonStoreProduct, source: PriceReferenceKey) {
   if (!product.externalSourceUrl) return [];
   let host = "";
@@ -403,9 +420,12 @@ async function directSourceCandidates(product: JsonStoreProduct, source: PriceRe
   } catch {
     return [];
   }
-  if (!referenceHosts[source].some((item) => host.includes(item))) return [];
+  // مرجع «source» همان لینک درون‌ریزی خود محصول است و به هاست خاصی محدود نیست؛
+  // اما اگر آن لینک روی ترب/دیجی‌کالا باشد، با قواعد اختصاصی همان منبع خوانده می‌شود.
+  if (source !== "source" && !referenceHosts[source].some((item) => host.includes(item))) return [];
   const html = await fetchText(product.externalSourceUrl);
-  return candidatesFromHtml(html, source, product.externalSourceUrl);
+  const effectiveSource = source === "source" ? priceSourceForHost(host) : source;
+  return candidatesFromHtml(html, effectiveSource, product.externalSourceUrl);
 }
 
 async function digikalaCandidates(product: JsonStoreProduct) {
@@ -455,7 +475,7 @@ async function socialCandidates(product: JsonStoreProduct, source: "instagram" |
 }
 
 export function normalizePriceReferences(value: unknown): PriceReferenceKey[] {
-  const valid = new Set<PriceReferenceKey>(["torob", "digikala", "instagram", "telegram", "google"]);
+  const valid = new Set<PriceReferenceKey>(["source", "torob", "digikala", "instagram", "telegram", "google"]);
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => String(item || "").trim())
@@ -466,9 +486,22 @@ export async function findProductPriceCandidates(
   product: JsonStoreProduct,
   references: PriceReferenceKey[],
 ) {
-  const selected: PriceReferenceKey[] = references.length ? references : ["torob", "digikala"];
+  const selected: PriceReferenceKey[] = references.length ? references : ["source", "torob", "digikala"];
   const errors: string[] = [];
   const rawCandidates: Omit<PriceCandidate, "score">[] = [];
+
+  // اگر لینک منبع محصول روی یکی از مراجع انتخاب‌شده (مثلاً ترب) باشد، همان مرجع
+  // صفحهٔ منبع را می‌خواند؛ پس برای مرجع «source» دوباره همان صفحه واکشی نمی‌شود.
+  let sourceHostKey: PriceReferenceKey | null = null;
+  if (product.externalSourceUrl) {
+    try {
+      sourceHostKey = priceSourceForHost(
+        new URL(product.externalSourceUrl).hostname.replace(/^www\./, ""),
+      );
+    } catch {
+      sourceHostKey = null;
+    }
+  }
 
   for (const source of selected) {
     try {
@@ -476,7 +509,15 @@ export async function findProductPriceCandidates(
       else if (source === "torob") rawCandidates.push(...(await torobCandidates(product)));
       else if (source === "google") rawCandidates.push(...(await googleCandidates(product)));
       else if (source === "instagram" || source === "telegram") rawCandidates.push(...(await socialCandidates(product, source)));
-      rawCandidates.push(...(await directSourceCandidates(product, source)));
+      const directCoveredByHostReference =
+        source === "source" &&
+        sourceHostKey !== null &&
+        sourceHostKey !== "source" &&
+        sourceHostKey !== "google" &&
+        selected.includes(sourceHostKey);
+      if (!directCoveredByHostReference) {
+        rawCandidates.push(...(await directSourceCandidates(product, source)));
+      }
     } catch (error) {
       errors.push(`${source}: ${error instanceof Error ? error.message : "خطا"}`);
     }

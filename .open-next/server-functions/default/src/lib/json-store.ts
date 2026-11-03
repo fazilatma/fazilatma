@@ -943,6 +943,22 @@ export type OptiBidJsonData = {
     homepageShowFinalCta: boolean;
     homepageFinalCtaTitle: string;
     homepageFinalCtaSubtitle: string;
+    /** به‌روزرسانی خودکار روزانهٔ قیمت‌ها از لینک منبع درون‌ریزی هر محصول. */
+    storeAutoPriceRefreshEnabled: boolean;
+    storeAutoPriceRefreshReferences: string[];
+    storeAutoPriceRefreshBatchSize: number;
+    storeAutoPriceRefreshOffset: number;
+    storeAutoPriceRefreshLastRunAt: string;
+    storeAutoPriceRefreshLastSummary: string;
+    storeAutoPriceRefreshTotalRuns: number;
+    /** سقف محصولات بررسی‌شده در هر شبانه‌روز توسط به‌روزرسانی خودکار (۱ تا ۱۰۰۰۰). */
+    storeAutoPriceRefreshDailyLimit: number;
+    /** تاریخ جاری شمارندهٔ روزانه به وقت تهران (YYYY-MM-DD) — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyDate: string;
+    /** تعداد محصولات بررسی‌شده در روز جاری — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyChecked: number;
+    /** چرخهٔ کامل کاتالوگ در روز جاری به پایان رسیده است — فقط مسیر cron می‌نویسد. */
+    storeAutoPriceRefreshDailyCycleDone: boolean;
   };
 };
 
@@ -1084,6 +1100,17 @@ const emptyData = (): OptiBidJsonData => ({
     homepageFinalCtaTitle: "آماده شروع هستید؟",
     homepageFinalCtaSubtitle:
       "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
+    storeAutoPriceRefreshEnabled: true,
+    storeAutoPriceRefreshReferences: ["source", "torob", "digikala"],
+    storeAutoPriceRefreshBatchSize: 20,
+    storeAutoPriceRefreshOffset: 0,
+    storeAutoPriceRefreshLastRunAt: "",
+    storeAutoPriceRefreshLastSummary: "",
+    storeAutoPriceRefreshTotalRuns: 0,
+    storeAutoPriceRefreshDailyLimit: 10000,
+    storeAutoPriceRefreshDailyDate: "",
+    storeAutoPriceRefreshDailyChecked: 0,
+    storeAutoPriceRefreshDailyCycleDone: false,
   },
 });
 
@@ -1934,6 +1961,86 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         (parsed.settings as { homepageFinalCtaSubtitle?: string } | undefined)
           ?.homepageFinalCtaSubtitle ||
         "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
+      storeAutoPriceRefreshEnabled:
+        (parsed.settings as { storeAutoPriceRefreshEnabled?: boolean } | undefined)
+          ?.storeAutoPriceRefreshEnabled !== false,
+      storeAutoPriceRefreshReferences: (() => {
+        // کلیدها باید با PriceReferenceKey در store-price-refresh.ts هم‌خوان باشند؛
+        // برای جلوگیری از import چرخه‌ای، فهرست مجاز همین‌جا نگه داشته می‌شود.
+        const allowed = ["source", "torob", "digikala", "google", "instagram", "telegram"];
+        const raw = (parsed.settings as { storeAutoPriceRefreshReferences?: unknown } | undefined)
+          ?.storeAutoPriceRefreshReferences;
+        const list = Array.isArray(raw)
+          ? raw.map((item) => String(item || "").trim()).filter((item) => allowed.includes(item))
+          : [];
+        return list.length ? [...new Set(list)] : ["source", "torob", "digikala"];
+      })(),
+      storeAutoPriceRefreshBatchSize: Math.max(
+        1,
+        Math.min(
+          20,
+          Math.round(
+            Number(
+              (parsed.settings as { storeAutoPriceRefreshBatchSize?: number } | undefined)
+                ?.storeAutoPriceRefreshBatchSize || 20,
+            ),
+          ) || 20,
+        ),
+      ),
+      storeAutoPriceRefreshOffset: Math.max(
+        0,
+        Math.floor(
+          Number(
+            (parsed.settings as { storeAutoPriceRefreshOffset?: number } | undefined)
+              ?.storeAutoPriceRefreshOffset || 0,
+          ),
+        ) || 0,
+      ),
+      storeAutoPriceRefreshLastRunAt: String(
+        (parsed.settings as { storeAutoPriceRefreshLastRunAt?: string } | undefined)
+          ?.storeAutoPriceRefreshLastRunAt || "",
+      ).slice(0, 40),
+      storeAutoPriceRefreshLastSummary: String(
+        (parsed.settings as { storeAutoPriceRefreshLastSummary?: string } | undefined)
+          ?.storeAutoPriceRefreshLastSummary || "",
+      ).slice(0, 500),
+      storeAutoPriceRefreshTotalRuns: Math.max(
+        0,
+        Math.floor(
+          Number(
+            (parsed.settings as { storeAutoPriceRefreshTotalRuns?: number } | undefined)
+              ?.storeAutoPriceRefreshTotalRuns || 0,
+          ),
+        ) || 0,
+      ),
+      storeAutoPriceRefreshDailyLimit: Math.max(
+        1,
+        Math.min(
+          10000,
+          Math.round(
+            Number(
+              (parsed.settings as { storeAutoPriceRefreshDailyLimit?: number } | undefined)
+                ?.storeAutoPriceRefreshDailyLimit || 10000,
+            ),
+          ) || 10000,
+        ),
+      ),
+      storeAutoPriceRefreshDailyDate: String(
+        (parsed.settings as { storeAutoPriceRefreshDailyDate?: string } | undefined)
+          ?.storeAutoPriceRefreshDailyDate || "",
+      ).slice(0, 12),
+      storeAutoPriceRefreshDailyChecked: Math.max(
+        0,
+        Math.floor(
+          Number(
+            (parsed.settings as { storeAutoPriceRefreshDailyChecked?: number } | undefined)
+              ?.storeAutoPriceRefreshDailyChecked || 0,
+          ),
+        ) || 0,
+      ),
+      storeAutoPriceRefreshDailyCycleDone:
+        (parsed.settings as { storeAutoPriceRefreshDailyCycleDone?: boolean } | undefined)
+          ?.storeAutoPriceRefreshDailyCycleDone === true,
     },
   };
 
@@ -4589,6 +4696,44 @@ export async function updateJsonPlatformFinanceSettings(
     data.settings.storePriceMultiplier = normalizeStorePriceMultiplier(
       updates.storePriceMultiplier,
       data.settings.storePriceMultiplier,
+    );
+  }
+  // تنظیمات به‌روزرسانی خودکار روزانهٔ قیمت: فقط فیلدهای قابل ویرایش ادمین
+  // پذیرفته می‌شوند؛ وضعیت اجرا (offset، آخرین نتیجه و شمارندهٔ روز) را فقط مسیر cron می‌نویسد
+  // تا ذخیرهٔ تنظیمات مالی با دادهٔ کهنهٔ مرورگر، پیشرفت چرخه را برنگرداند.
+  if (typeof updates.storeAutoPriceRefreshEnabled === "boolean") {
+    data.settings.storeAutoPriceRefreshEnabled = updates.storeAutoPriceRefreshEnabled;
+  }
+  if (Array.isArray(updates.storeAutoPriceRefreshReferences)) {
+    const allowed = ["source", "torob", "digikala", "google", "instagram", "telegram"];
+    const list = updates.storeAutoPriceRefreshReferences
+      .map((item) => String(item || "").trim())
+      .filter((item) => allowed.includes(item));
+    if (list.length) {
+      const nextReferences = [...new Set(list)];
+      const currentReferences = [...new Set(data.settings.storeAutoPriceRefreshReferences || [])];
+      // ترتیب یا تکرار گزینه‌ها در فرم ادمین به‌معنای تغییر منبع نیست. فقط وقتی
+      // مجموعهٔ منابع واقعاً عوض شود چرخه از ابتدا شروع می‌شود؛ در غیر این صورت
+      // ذخیرهٔ سقف روزانه نباید محصولاتی را که امروز بررسی شده‌اند دوباره بشمارد.
+      const referenceKey = (values: string[]) => [...values].sort().join("\u0000");
+      if (referenceKey(nextReferences) !== referenceKey(currentReferences)) {
+        data.settings.storeAutoPriceRefreshReferences = nextReferences;
+        data.settings.storeAutoPriceRefreshOffset = 0;
+      }
+    }
+  }
+  if (typeof updates.storeAutoPriceRefreshBatchSize === "number") {
+    data.settings.storeAutoPriceRefreshBatchSize = Math.max(
+      1,
+      Math.min(20, Math.round(updates.storeAutoPriceRefreshBatchSize) || 20),
+    );
+  }
+  // سقف روزانه را ادمین تعیین می‌کند؛ شمارندهٔ پیشرفت روز (تاریخ/تعداد/اتمام
+  // چرخه) فقط توسط cron نوشته می‌شود و این‌جا دست‌نخورده می‌ماند.
+  if (typeof updates.storeAutoPriceRefreshDailyLimit === "number") {
+    data.settings.storeAutoPriceRefreshDailyLimit = Math.max(
+      1,
+      Math.min(10000, Math.round(updates.storeAutoPriceRefreshDailyLimit) || 10000),
     );
   }
   if (typeof updates.reverseAuctionMinimumOffersCount === "number") {

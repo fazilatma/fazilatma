@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HomeProductSearch from "@/components/HomeProductSearch";
 import StoreAdSlider from "@/components/StoreAdSlider";
 import StoreHeroSlider from "@/components/StoreHeroSlider";
 import StoreProductCard from "@/components/StoreProductCard";
@@ -96,6 +97,7 @@ export default function StorefrontHome({
               fallbackImageUrl={bannerProducts[0]?.imageUrl}
               focus={computerPartsOnly ? "components" : "laptop"}
             />
+            <HomeProductSearch focus={computerPartsOnly ? "components" : "laptop"} />
             <StoreAdSlider
               slides={effectiveHeroSlides}
               fallbackImageUrl={bannerProducts[1]?.imageUrl || bannerProducts[0]?.imageUrl}
