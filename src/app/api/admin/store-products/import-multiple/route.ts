@@ -10,7 +10,7 @@ import {
   normalizeStorePriceMultiplier,
   storedProductMarketPrice,
 } from "@/lib/store-pricing";
-import { parseSourceLinks } from "@/lib/source-link-parser";
+import { parseSourceLinks, normalizeSourceProductLimit, mergeProductImportSources } from "@/lib/source-link-parser";
 import {
   importedDraftToStoreProduct,
   productMatchesComputerPartFilters,
@@ -148,6 +148,7 @@ function mergeLowestPrice(existing: JsonStoreProduct, candidate: JsonStoreProduc
     priceUpdatedAt: chosen.priceUpdatedAt,
     marketReferenceNote: chosen.marketReferenceNote,
     externalSourceUrl: chosen.externalSourceUrl,
+    ...mergeProductImportSources(existing, candidate),
     imageUrls: Array.from(new Set([
       ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
       ...(candidate.imageUrls || (candidate.imageUrl ? [candidate.imageUrl] : [])),
@@ -174,12 +175,13 @@ function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: Json
     priceUpdatedAt: candidate.priceUpdatedAt,
     marketReferenceNote: candidate.marketReferenceNote,
     externalSourceUrl: candidate.externalSourceUrl,
+    ...mergeProductImportSources(existing, candidate),
     priceHistory: mergeStorePriceHistory(existing.priceHistory, candidate.priceHistory),
   } satisfies JsonStoreProduct;
 }
 
 function normalizeSourceConfigs(body: Record<string, unknown>) {
-  const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler", "laptop"]);
+  const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler", "laptop", "desktop"]);
   const configured = Array.isArray(body.sources)
     ? body.sources.flatMap((item) => {
         if (!item || typeof item !== "object" || Array.isArray(item)) return [];
@@ -191,17 +193,19 @@ function normalizeSourceConfigs(body: Record<string, unknown>) {
           : [];
         // ضریب اختصاصی همین لینک؛ روی قیمت‌های دانلودشده از همین منبع اعمال می‌شود.
         const priceMultiplier = normalizeMultiplier(record.priceMultiplier);
-        return [{ url, parts, priceMultiplier }];
+        const maxProducts = normalizeSourceProductLimit(record.maxProducts ?? body.limit);
+        return [{ url, parts, priceMultiplier, maxProducts }];
       })
     : [];
   if (configured.length) return configured.slice(0, 8);
-  return parseSourceLinks(body.links, 8).map((url) => ({ url, parts: [] as string[], priceMultiplier: 1 }));
+  return parseSourceLinks(body.links, 8).map((url) => ({ url, parts: [] as string[], priceMultiplier: 1, maxProducts: normalizeSourceProductLimit(body.limit) }));
 }
 
-function categoryFiltersForSource(parts: string[]): Array<"components" | "storage" | "laptop"> {
-  return parts.includes("laptop")
-    ? ["components", "storage", "laptop"]
-    : ["components", "storage"];
+function categoryFiltersForSource(parts: string[]): Array<"components" | "storage" | "laptop" | "desktop"> {
+  const categories: Array<"components" | "storage" | "laptop" | "desktop"> = ["components", "storage"];
+  if (parts.includes("laptop")) categories.push("laptop");
+  if (parts.includes("desktop")) categories.push("desktop");
+  return categories;
 }
 
 export async function POST(request: Request) {
@@ -217,7 +221,7 @@ export async function POST(request: Request) {
 
     // منابع تخصصی ترب و دیجی‌کالا به‌صورت چندصفحه‌ای خوانده می‌شوند.
     // سقف برای هر لینک است تا یک دستهٔ بزرگ به ۵۰ نتیجهٔ صفحهٔ اول محدود نشود.
-    const requestedLimit = Math.max(1, Math.min(500, Number(body.limit || 500)));
+    const perSourcePricing = body.perSourcePricing === true;
     const multiplier = normalizeMultiplier(body.priceMultiplier);
     const warnings: string[] = [];
     const scannedUrls: string[] = [];
@@ -233,18 +237,20 @@ export async function POST(request: Request) {
         const specializedSource = /(?:^|\.)(?:digikala\.com|torob\.com)$/i.test(host.replace(/^www\./, ""));
         try {
           const scan = await scanStoreProductsFromUrl(sourceConfig.url, {
-            limit: requestedLimit,
+            limit: sourceConfig.maxProducts,
             fullSite: specializedSource,
-            maxPages: specializedSource ? 12 : 6,
+            maxPages: specializedSource ? Math.min(500, Math.max(12, Math.ceil(sourceConfig.maxProducts / 20))) : 6,
             categoryFilters: categoryFiltersForSource(sourceConfig.parts),
             partFilters: sourceConfig.parts,
           });
-          return { host, parts: sourceConfig.parts, priceMultiplier: sourceConfig.priceMultiplier, scan, error: "" };
+          return { host, url: sourceConfig.url, parts: sourceConfig.parts, priceMultiplier: sourceConfig.priceMultiplier, maxProducts: sourceConfig.maxProducts, scan, error: "" };
         } catch (error) {
           return {
             host,
+            url: sourceConfig.url,
             parts: sourceConfig.parts,
             priceMultiplier: sourceConfig.priceMultiplier,
+            maxProducts: sourceConfig.maxProducts,
             scan: null,
             error: error instanceof Error ? error.message : "خطای نامشخص",
           };
@@ -270,7 +276,7 @@ export async function POST(request: Request) {
       const sourceFactor = normalizeMultiplier(source.priceMultiplier);
       for (const draft of drafts) {
         const pricedDraft =
-          sourceFactor !== 1
+          !perSourcePricing && sourceFactor !== 1
             ? {
                 ...draft,
                 price: Math.max(0, Math.round(Number(draft.price || 0) * sourceFactor)),
@@ -279,7 +285,10 @@ export async function POST(request: Request) {
                   : draft.originalPrice,
               }
             : draft;
-        const product = applyMultiplier(importedDraftToStoreProduct(pricedDraft), multiplier);
+        const product = applyMultiplier(
+          importedDraftToStoreProduct({ ...pricedDraft, importSourceUrl: source.url }),
+          perSourcePricing ? sourceFactor : multiplier,
+        );
         const matchIndex = findMultiSourceMatch(aggregated, product, aggregatedMatchIndex);
         if (matchIndex >= 0) {
           aggregated[matchIndex] = mergeLowestPrice(aggregated[matchIndex], product);
@@ -309,7 +318,7 @@ export async function POST(request: Request) {
     }
 
     const data = await getOptiBidData();
-    data.settings.storePriceMultiplier = multiplier;
+    if (!perSourcePricing) data.settings.storePriceMultiplier = multiplier;
     let created = 0;
     let updated = 0;
     const existingSlugs = new Set(data.storeProducts.map((product) => product.slug));

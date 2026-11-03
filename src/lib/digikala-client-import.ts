@@ -32,6 +32,9 @@ const componentSources: DigikalaSource[] = [
   { slug: "computer-chassis", category: "قطعات کامپیوتر", part: "case" },
   { slug: "cooling-system", category: "قطعات کامپیوتر", part: "cooler" },
   { slug: "notebook-netbook-ultrabook", category: "لپ‌تاپ و نوت‌بوک", part: "laptop" },
+  { slug: "gaming-laptop", category: "لپ‌تاپ و نوت‌بوک", part: "laptop" },
+  { slug: "desktop-computer", category: "کامپیوتر آماده", part: "desktop" },
+  { slug: "all-in-one", category: "کامپیوتر آماده", part: "desktop" },
 ];
 
 const brandRules: Array<[RegExp, string]> = [
@@ -155,6 +158,7 @@ function draftFromRecord(record: Record<string, any>, source: DigikalaSource): I
     stock: status.includes("out") || status.includes("inactive") ? 0 : 5,
     specs: {
       "گروه کالا": source.category,
+      "گروه واردات": source.part,
     },
     externalSourceUrl: productUrl,
     sourceHost: "digikala.com",
@@ -303,8 +307,8 @@ export async function scanDigikalaComponentsInBrowser(
     onProgress?: (progress: DigikalaClientScanProgress) => void;
   } = {},
 ): Promise<DigikalaClientScanResult> {
-  const maxProducts = Math.max(100, Math.min(6_000, Number(options.maxProducts || 5_000)));
-  const maxPagesPerCategory = Math.max(1, Math.min(60, Number(options.maxPagesPerCategory || 45)));
+  const maxProducts = Math.max(1, Math.min(10_000, Number(options.maxProducts || 10_000)));
+  const maxPagesPerCategory = Math.max(1, Math.min(500, Number(options.maxPagesPerCategory || 500)));
   const concurrency = Math.max(1, Math.min(4, Number(options.concurrency || 3)));
   const requestedParts = new Set((options.partFilters || []).map((item) => String(item).trim().toLowerCase()).filter(Boolean));
   let selectedSources = requestedParts.size
@@ -352,8 +356,13 @@ export async function scanDigikalaComponentsInBrowser(
         ? maxPagesPerCategory
         : 1;
     totalPages += categoryPages;
-    for (const draft of firstDrafts) byUrl.set(draft.externalSourceUrl, draft);
-    for (let page = 2; page <= categoryPages; page += 1) pageTasks.push({ source, page });
+    for (const draft of firstDrafts) {
+      byUrl.set(draft.externalSourceUrl, draft);
+      if (byUrl.size >= maxProducts) break;
+    }
+    if (byUrl.size < maxProducts) {
+      for (let page = 2; page <= categoryPages; page += 1) pageTasks.push({ source, page });
+    }
   }
   totalPages = Math.max(completedPages, totalPages);
   options.onProgress?.({

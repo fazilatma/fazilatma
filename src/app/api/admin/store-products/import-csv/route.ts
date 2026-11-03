@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { decodeCsvBytes } from "@/lib/store-product-csv-encoding";
 import { getOptiBidData, writeOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import { parseEasyScraperCsv } from "@/lib/store-product-csv-import";
+import { mergeProductImportSources, normalizeImportSourceUrl, tagProductImportSource } from "@/lib/source-link-parser";
 import { mergeStorePriceHistory } from "@/lib/store-price-history";
 import {
   applyStorePriceFormula,
@@ -245,6 +246,7 @@ function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
     priceUpdatedAt: chosen.priceUpdatedAt,
     marketReferenceNote: chosen.marketReferenceNote,
     externalSourceUrl: chosen.externalSourceUrl || existing.externalSourceUrl,
+    ...mergeProductImportSources(existing, imported),
     imageUrls: Array.from(new Set([
       ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
       ...(imported.imageUrls || (imported.imageUrl ? [imported.imageUrl] : [])),
@@ -356,7 +358,12 @@ async function importPreparedCsvBatch(request: Request) {
 
     const normalizedDrafts = incoming.map(normalizeDraftPayload).filter((item): item is ImportedStoreProductDraft => Boolean(item));
     const strategy = payload.strategy === "add-only" ? "add-only" : "merge";
-    const multiplier = normalizePriceMultiplier(payload.priceMultiplier);
+    const importSourceUrl = normalizeImportSourceUrl(payload.importSourceUrl);
+    // در دانلودِ باکسِ لینک، ضریب همان لینک ضریب نهایی محصول است و ضریب
+    // سراسریِ فرم‌های دیگر دوباره روی آن سوار نمی‌شود.
+    const multiplier = normalizePriceMultiplier(
+      importSourceUrl ? (payload.sourcePriceMultiplier ?? payload.priceMultiplier) : payload.priceMultiplier,
+    );
     const categoryFilters = normalizeProductImportCategories(
       Array.isArray(payload.categoryFilters) ? payload.categoryFilters.map(String) : [],
     );
@@ -370,7 +377,10 @@ async function importPreparedCsvBatch(request: Request) {
 
     const sourceLabel = String(payload.sourceLabel || "digikala-easy-scraper").slice(0, 160);
     const importedProducts = filteredDrafts.map((draft) => {
-      const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, multiplier));
+      const product = tagProductImportSource(
+        importedDraftToStoreProduct(applyPriceMultiplier(draft, multiplier)),
+        importSourceUrl,
+      );
       product.marketPrice = Math.round(draft.price);
       product.priceMultiplier = multiplier;
       if (multiplier !== 1) {
@@ -381,7 +391,7 @@ async function importPreparedCsvBatch(request: Request) {
     });
 
     const data = await getOptiBidData();
-    data.settings.storePriceMultiplier = multiplier;
+    if (!importSourceUrl) data.settings.storePriceMultiplier = multiplier;
     let created = 0;
     let updated = 0;
     let skipped = incoming.length - filteredDrafts.length;

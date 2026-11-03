@@ -266,6 +266,12 @@
       "namedRegex": "^/api/admin/store\\-products/repair\\-csv(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/torob-page",
+      "regex": "^/api/admin/store\\-products/torob\\-page(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/torob\\-page(?:/)?$"
+    },
+    {
       "page": "/api/admin/storefront-slider",
       "regex": "^/api/admin/storefront\\-slider(?:/)?$",
       "routeKeys": {},

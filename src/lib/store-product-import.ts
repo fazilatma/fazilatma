@@ -2,6 +2,7 @@ import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
 import { technicalSpecsFromText } from "@/lib/store-product-specs";
+import { tagProductImportSource } from "@/lib/source-link-parser";
 
 export type ImportedStoreProductDraft = {
   title: string;
@@ -18,6 +19,8 @@ export type ImportedStoreProductDraft = {
   specs: Record<string, string>;
   externalSourceUrl: string;
   sourceHost: string;
+  /** لینک باکس/فهرستی که این محصول از آن دانلود شده است. */
+  importSourceUrl?: string;
   currency?: string;
 };
 
@@ -1052,6 +1055,13 @@ export function productMatchesComputerPartFilters(
       return true;
     }
   }
+  if (filters.includes("desktop")) {
+    const titleAndCategory = `${draft.title || ""} ${draft.category || ""}`.toLowerCase();
+    const explicitDesktop = /\bdesktop(?:\s+computer)?\b|all[\s-]?in[\s-]?one|mini[\s-]?pc|کامپیوتر آماده|کیس آماده|کیس اسمبل|مینی[\s‌-]?پی[\s‌-]?سی|آل[\s‌-]?این[\s‌-]?وان/.test(titleAndCategory);
+    const explicitLaptop = /laptop|notebook|macbook|لپ\s?تاپ|لپ‌تاپ|لپتاپ|نوت\s?بوک|مک\s?بوک/.test(titleAndCategory);
+    if (explicitDesktop && !explicitLaptop) return true;
+    if (productImportCategoryKey(draft) === "desktop" && !explicitLaptop) return true;
+  }
   const kind = storeComputerPartKind(draft);
   return Boolean(kind && filters.includes(kind));
 }
@@ -1797,8 +1807,13 @@ export async function fetchDigikalaCategoryPageDrafts(slug: string, page: number
   const apiUrl = `https://api.digikala.com/v1/categories/${safeSlug}/search/?page=${safePage}&sort=7`;
   const payload = await fetchDigikalaApi(apiUrl) as Record<string, any>;
   const records = digikalaRecordsFromJson(payload);
-  const storageCategory = /(?:ssd|hard-drive)/.test(safeSlug);
-  const fallbackCategory: ProductImportCategoryKey = storageCategory ? "storage" : "components";
+  const fallbackCategory: ProductImportCategoryKey = /(?:ssd|hard-drive)/.test(safeSlug)
+    ? "storage"
+    : /(?:notebook|gaming-laptop)/.test(safeSlug)
+      ? "laptop"
+      : /(?:desktop-computer|all-in-one)/.test(safeSlug)
+        ? "desktop"
+        : "components";
   const partBySlug: Record<string, string> = {
     processor: "cpu",
     "graphics-card": "gpu",
@@ -1809,6 +1824,10 @@ export async function fetchDigikalaCategoryPageDrafts(slug: string, page: number
     psu: "power",
     "computer-chassis": "case",
     "cooling-system": "cooler",
+    "notebook-netbook-ultrabook": "laptop",
+    "gaming-laptop": "laptop",
+    "desktop-computer": "desktop",
+    "all-in-one": "desktop",
   };
   const products = records
     .map((record) => draftFromDigikalaRecord(record, "digikala.com", fallbackCategory))
@@ -1845,9 +1864,14 @@ async function scanDigikalaRobot(
     "internal-hard-drive": "ssd",
     psu: "power",
     "computer-chassis": "case",
+    "cooling-system": "cooler",
+    "notebook-netbook-ultrabook": "laptop",
+    "gaming-laptop": "laptop",
+    "desktop-computer": "desktop",
+    "all-in-one": "desktop",
   };
   const selectedPartSet = new Set(partFilters.map((item) => String(item).toLowerCase()));
-  const broadSlugs = ["processor", "graphics-card", "ram", "motherboard", "internal-ssd", "internal-hard-drive", "psu", "computer-chassis"]
+  const broadSlugs = ["processor", "graphics-card", "ram", "motherboard", "internal-ssd", "internal-hard-drive", "psu", "computer-chassis", "cooling-system", "notebook-netbook-ultrabook", "gaming-laptop", "desktop-computer", "all-in-one"]
     .filter((slug) => selectedPartSet.size === 0 || selectedPartSet.has(slugParts[slug]));
   const categorySlugs = sourceCategorySlug && sourceCategorySlug !== "computer-devices"
     ? [sourceCategorySlug]
@@ -1861,7 +1885,7 @@ async function scanDigikalaRobot(
   // ابتدا API صفحه‌بندی‌شده را با sort صریح و redirect دستی امتحان می‌کنیم؛
   // این شکل درخواست از حلقهٔ redirect بعضی IPهای Cloudflare جلوگیری می‌کند.
   const endedApiSlugs = new Set<string>();
-  const maxApiCalls = Math.min(40, Math.max(categorySlugs.length, Math.ceil(limit / 20) + categorySlugs.length));
+  const maxApiCalls = Math.min(500, Math.max(categorySlugs.length, Math.ceil(limit / 20) + categorySlugs.length));
   let apiCalls = 0;
   for (let page = 1; apiCalls < maxApiCalls && uniqueDrafts(drafts).length < limit; page += 1) {
     let attemptedOnPage = 0;
@@ -1881,7 +1905,11 @@ async function scanDigikalaRobot(
         }
         const fallbackCategory: ProductImportCategoryKey = /(?:ssd|hard-drive)/.test(slug)
           ? "storage"
-          : "components";
+          : /(?:notebook|gaming-laptop)/.test(slug)
+            ? "laptop"
+            : /(?:desktop-computer|all-in-one)/.test(slug)
+              ? "desktop"
+              : "components";
         const pageDrafts = records
           .map((record) => draftFromDigikalaRecord(record, "digikala.com", fallbackCategory))
           .filter((draft): draft is ImportedStoreProductDraft => Boolean(draft))
@@ -1926,6 +1954,30 @@ async function scanDigikalaRobot(
   return { drafts: unique, scannedUrls };
 }
 
+/** یک صفحهٔ ترب را برمی‌گرداند تا دانلود ۱۰٬۰۰۰ محصول در مرورگر مدیر مرحله‌ای انجام شود. */
+export async function fetchTorobBrowsePageDrafts(inputUrl: string, page: number) {
+  const sourceUrl = publicHttpUrl(inputUrl);
+  const parsedSource = new URL(sourceUrl);
+  const host = parsedSource.hostname.replace(/^www\./i, "").toLowerCase();
+  if (!/(^|\.)torob\.com$/i.test(host) || !/\/browse\/\d+/i.test(parsedSource.pathname)) {
+    throw new Error("لینک باید یک دستهٔ معتبر ترب با مسیر /browse/ باشد.");
+  }
+  const safePage = Math.max(1, Math.min(500, Math.floor(Number(page || 1))));
+  const pageUrl = new URL(sourceUrl);
+  if (safePage > 1) pageUrl.searchParams.set("page", String(safePage));
+  else pageUrl.searchParams.delete("page");
+  const html = await fetchText(pageUrl.toString());
+  const drafts = productCardDraftsFromHtml(html, pageUrl.toString(), "torob");
+  return {
+    sourceUrl,
+    pageUrl: pageUrl.toString(),
+    page: safePage,
+    products: drafts,
+    rawCount: drafts.length,
+    hasMore: drafts.length > 0 && safePage < 500,
+  };
+}
+
 async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: string[]) {
   const parsedSource = new URL(sourceUrl);
   const categoryId = parsedSource.pathname.match(/\/browse\/(\d+)/i)?.[1];
@@ -1933,7 +1985,7 @@ async function scanTorobBrowseRobot(sourceUrl: string, limit: number, warnings: 
 
   // API ترب روی IP ورکر پاسخ 490 می‌دهد؛ خود صفحهٔ عمومی دسته‌بندی SSR است و
   // با پارامتر page محصولات واقعی، تصویر و کمترین قیمت را برمی‌گرداند.
-  const pageCount = Math.min(20, Math.max(1, Math.ceil(limit / 22)));
+  const pageCount = Math.min(500, Math.max(1, Math.ceil(limit / 22)));
   const pageUrls = Array.from({ length: pageCount }, (_, index) => {
     if (index === 0) return sourceUrl;
     const pageUrl = new URL(sourceUrl);
@@ -1978,10 +2030,10 @@ export async function scanStoreProductsFromUrl(
   const isDigikalaSource = /(^|\.)digikala\.com$/i.test(sourceHost) || /(^|\.)digikala\./i.test(sourceHost);
   const isTorobBrowseSource = /(^|\.)torob\.com$/i.test(sourceHost) && /\/browse\/\d+/i.test(parsedSource.pathname);
   const isEmallsSource = /(^|\.)emalls\.ir$/i.test(sourceHost);
-  const specializedLimit = isEmallsSource ? 1000 : isDigikalaSource || isTorobBrowseSource ? 500 : 50;
+  const specializedLimit = isEmallsSource ? 1000 : isDigikalaSource || isTorobBrowseSource ? 10_000 : 50;
   const defaultLimit = options.fullSite ? specializedLimit : 20;
   const limit = Math.max(1, Math.min(specializedLimit, Number(options.limit || defaultLimit)));
-  const maxPages = Math.max(1, Math.min(100, Number(options.maxPages || Math.min(100, limit + 30))));
+  const maxPages = Math.max(1, Math.min(500, Number(options.maxPages || Math.min(500, limit + 30))));
   const warnings: string[] = [];
   const scannedUrls: string[] = [];
   const allDrafts: ImportedStoreProductDraft[] = [];
@@ -2145,7 +2197,7 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
   const now = new Date().toISOString();
   const specs = { ...draft.specs };
   if (!specs.منبع) specs.منبع = draft.sourceHost;
-  return {
+  return tagProductImportSource({
     id: `imp-${stableHash(`${draft.sourceHost}:${importedDraftIdentityKey(draft)}`)}`,
     slug: storeProductSlugFromTitle(draft.title, draft.sourceHost),
     title: draft.title,
@@ -2187,7 +2239,7 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
     isActive: true,
     isFeatured: false,
     createdAt: now,
-  };
+  }, draft.importSourceUrl);
 }
 
 function normalizedMatchTokens(value: string) {

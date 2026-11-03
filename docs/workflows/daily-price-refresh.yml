@@ -9,8 +9,9 @@
 # توجه: زمان‌بند اصلی روی Cloudflare Cron فعال است و این workflow پشتیبان است.
 #
 # هر ۱۵ دقیقه مسیر کرون سایت را صدا می‌زند و بچ‌ها را ادامه می‌دهد تا
-# یا چرخهٔ کامل محصولات تمام شود یا «سقف شبانه‌روزی» پنل ادمین
-# (تا ۱۰٬۰۰۰ محصول در شبانه‌روز) پر شود؛ شمارندهٔ روز نیمه‌شب تهران صفر می‌شود.
+# چرخهٔ همهٔ لینک‌های ثبت‌شده کامل شود. سقف و ضریب هر لینک جداگانه از
+# باکس همان لینک خوانده می‌شود (تا ۱۰٬۰۰۰ محصول برای هر لینک)؛
+# شمارندهٔ روزِ هر لینک نیمه‌شب تهران صفر می‌شود.
 #
 # پیش‌نیازها (یک بار):
 # 1) در GitHub: ‏Settings → Secrets and variables → Actions → ‏New repository secret
@@ -67,7 +68,7 @@ jobs:
             http_code="$(printf '%s' "${response}" | tail -n1)"
             body="$(printf '%s' "${response}" | sed '$d')"
             echo "Round ${round}: HTTP ${http_code}"
-            printf '%s\n' "${body}" | jq -c '{success, skipped, reason, totalChecked, updated, unchanged, notFound, failed, hasMore, nextOffset, totalProducts, dailyChecked, dailyLimit, dailyDone, message}' || printf '%s\n' "${body}"
+            printf '%s\n' "${body}" | jq -c '{success, skipped, reason, perSource, totalChecked, updated, unchanged, notFound, failed, hasMore, dailyChecked, dailyLimit, dailyDone, sources, message}' || printf '%s\n' "${body}"
             if [ "${http_code}" != "200" ]; then
               echo "::error::Cron endpoint returned HTTP ${http_code}"
               exit 1
