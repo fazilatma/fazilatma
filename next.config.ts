@@ -17,7 +17,16 @@ const nextConfig: NextConfig = {
   // هدرهای کش فقط برای خروجی پروداکشن اعمال می‌شوند؛ در dev باعث اختلال
   // در بارگذاری مجدد فایل‌ها و HMR می‌شوند.
   async headers() {
-    if (!isProduction) return [];
+    if (!isProduction) {
+      // در حالت dev هیچ چیزی نباید کش شود؛ وگرنه باندل قدیمی صفحه در مرورگر
+      // قفل می‌شود و تغییرات جدید (مثل مسیر ورود ادمین) دیده نمی‌شود.
+      return [
+        {
+          source: "/:path*",
+          headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }],
+        },
+      ];
+    }
     return [
       {
         source: "/_next/static/:path*",

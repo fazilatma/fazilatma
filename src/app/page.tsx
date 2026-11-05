@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { AmazingDealItem } from "@/components/AmazingDealsSection";
 import StorefrontHome from "@/components/StorefrontHome";
@@ -107,6 +109,13 @@ type HomeRequestCard = {
 };
 
 export default async function HomePage() {
+  // مدیر سامانه بعد از ورود باید مستقیم در پنل مدیریت باشد. این بررسی سمت سرور
+  // انجام می‌شود تا حتی با کش‌شدن باندل قدیمی کلاینت هم ورود ادمین به پنل برسد.
+  const cookieStore = await cookies();
+  if (cookieStore.get("optibid_admin")?.value === "1") {
+    redirect("/admin/dashboard");
+  }
+
   let displayRequests: HomeRequestCard[] = [];
   let bestSellingRequests: HomeRequestCard[] = [];
   let growthPredictionRequests: HomeRequestCard[] = [];

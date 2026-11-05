@@ -57,6 +57,15 @@ function unauthorizedApi() {
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // عیب‌یابی محلی: نشان می‌دهد آیا کوکی نشست از مرورگر می‌رسد یا نه.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    (pathname.startsWith("/admin") || pathname.startsWith("/api/login") || pathname.startsWith("/api/session"))
+  ) {
+    const names = request.cookies.getAll().map((cookie) => cookie.name);
+    console.log(`[session] ${pathname} cookies=${names.join(",") || "none"}`);
+  }
   const host = request.headers.get("host") || "";
   if (host.toLowerCase() === "www.optibid.ir") {
     const canonicalUrl = request.nextUrl.clone();
