@@ -850,6 +850,11 @@ export type OptiBidJsonData = {
     storeComputerPartsSourceUrl: string;
     /** ضریب سراسری قیمت: قیمت نهایی = کمترین قیمت معتبر بازار × این ضریب. */
     storePriceMultiplier: number;
+    /**
+     * گزارش آخرین اجرای ربات به‌روزرسانی روزانهٔ لینک‌ها به‌صورت JSON:
+     * { [sourceUrl]: "YYYY-MM-DD" }
+     */
+    storeSourceAutoRefreshLog?: string;
     reverseAuctionProductCtaEnabled: boolean;
     reverseAuctionQuickRequestEnabled: boolean;
     reverseAuctionFreeSellerOffersEnabled: boolean;
@@ -1564,6 +1569,13 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
         (parsed.settings as { storeComputerPartsSourceUrl?: string } | undefined)
           ?.storeComputerPartsSourceUrl || "https://www.digikala.com/",
       ).trim().slice(0, 4000),
+      storeSourceAutoRefreshLog:
+        typeof (parsed.settings as { storeSourceAutoRefreshLog?: unknown } | undefined)
+          ?.storeSourceAutoRefreshLog === "string"
+          ? String(
+              (parsed.settings as { storeSourceAutoRefreshLog?: string }).storeSourceAutoRefreshLog,
+            ).slice(0, 8000)
+          : undefined,
       storePriceMultiplier: normalizeStorePriceMultiplier(
         (parsed.settings as { storePriceMultiplier?: number } | undefined)?.storePriceMultiplier,
         1,
@@ -4670,7 +4682,12 @@ export async function updateJsonPlatformFinanceSettings(
   if (typeof updatesRecord.storeComputerPartsSourceUrl === "string") {
     settingsRecord.storeComputerPartsSourceUrl = String(updatesRecord.storeComputerPartsSourceUrl)
       .trim()
-      .slice(0, 4000);
+      .slice(0, 8000);
+  }
+  if (typeof updatesRecord.storeSourceAutoRefreshLog === "string") {
+    settingsRecord.storeSourceAutoRefreshLog = String(updatesRecord.storeSourceAutoRefreshLog)
+      .trim()
+      .slice(0, 8000);
   }
   const supportStringLimits: Record<string, number> = {
     supportPageTitle: 120,

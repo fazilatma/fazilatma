@@ -106,6 +106,10 @@ type ComputerPartSourceEntry = {
   multiplier: number;
   /** حداکثر تعداد محصولی که از این لینک دانلود یا به‌روزرسانی می‌شود. */
   limit: number;
+  /** مرجع‌های قیمت همین لینک (برای به‌روزرسانی دستی و روزانه). */
+  references: string[];
+  /** ساعت اجرای روزانهٔ ربات به‌وقت تهران؛ null یعنی خاموش. */
+  autoRefreshHour: number | null;
 };
 
 const defaultSourceLimit = 10_000;
@@ -135,6 +139,14 @@ function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceE
         : allComputerPartSourceTypeIds;
       const entryLimit = Number((entry as { limit?: unknown }).limit);
       const entryMultiplier = Number((entry as { multiplier?: unknown }).multiplier);
+      const entryRecord = entry as { references?: unknown; autoRefreshHour?: unknown };
+      const entryReferences = Array.isArray(entryRecord.references)
+        ? priceRefreshReferenceOptions
+            .map((option) => option.id)
+            .filter((id) => (entryRecord.references as unknown[]).map(String).includes(id))
+        : [];
+      const hourRaw = entryRecord.autoRefreshHour;
+      const hourNumber = Number(hourRaw);
       return {
         id: `source-${index + 1}`,
         url: String(entry.url || "").trim(),
@@ -146,6 +158,13 @@ function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceE
           Number.isFinite(entryLimit) && entryLimit > 0
             ? Math.max(1, Math.min(defaultSourceLimit, Math.round(entryLimit)))
             : defaultSourceLimit,
+        references: entryReferences.length
+          ? entryReferences
+          : priceRefreshReferenceOptions.map((option) => option.id),
+        autoRefreshHour:
+          hourRaw === null || hourRaw === undefined || hourRaw === "" || !Number.isFinite(hourNumber)
+            ? null
+            : Math.max(0, Math.min(23, Math.round(hourNumber))),
       };
     });
   return entries.length
@@ -156,6 +175,8 @@ function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceE
         parts: [...allComputerPartSourceTypeIds],
         multiplier: 1,
         limit: defaultSourceLimit,
+        references: priceRefreshReferenceOptions.map((option) => option.id),
+        autoRefreshHour: null,
       }];
 }
 
@@ -166,6 +187,8 @@ function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) 
       parts: entry.parts,
       multiplier: entry.multiplier,
       limit: entry.limit,
+      references: entry.references,
+      autoRefreshHour: entry.autoRefreshHour,
     })),
   );
 }
@@ -469,8 +492,7 @@ export default function AdminDashboardClient({
   const [scanningProductImport, setScanningProductImport] = useState(false);
   const [applyingProductImport, setApplyingProductImport] = useState(false);
   const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
-  // به‌روزرسانی قیمت به تفکیک هر لینک: مرجع‌های انتخابی و وضعیت اجرای هر باکس.
-  const [sourceRefreshReferences, setSourceRefreshReferences] = useState<Record<string, string[]>>({});
+  // به‌روزرسانی قیمت به تفکیک هر لینک: وضعیت اجرای هر باکس.
   const [sourceRefreshState, setSourceRefreshState] = useState<
     Record<string, { running: boolean; message: string }>
   >({});
@@ -485,6 +507,29 @@ export default function AdminDashboardClient({
   const [withdrawalNotes, setWithdrawalNotes] = useState<
     Record<string, string>
   >({});
+
+  // جبران عقب‌ماندگی ربات روزانه: اگر پنل باز شود و اجرای امروز انجام نشده باشد،
+  // سرور همان لینک‌های سررسیده را به‌روزرسانی می‌کند (حداکثر هر ۳ ساعت یک بار).
+  useEffect(() => {
+    try {
+      const key = "optibidAutoRefreshPing";
+      const last = Number(window.sessionStorage.getItem(key) || 0);
+      if (Date.now() - last < 3 * 60 * 60 * 1000) return;
+      window.sessionStorage.setItem(key, String(Date.now()));
+    } catch {
+      return;
+    }
+    fetch("/api/store-products/auto-refresh", { method: "POST" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result?.ranLinks > 0) {
+          setProductImportMessage(
+            `ربات روزانه ${Number(result.ranLinks).toLocaleString("fa-IR")} لینک را طبق ساعت تعیین‌شده به‌روزرسانی کرد.`,
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/admin/finance")
@@ -523,7 +568,9 @@ export default function AdminDashboardClient({
 
   const updateComputerPartSource = (
     id: string,
-    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts" | "multiplier" | "limit">>,
+    updates: Partial<
+      Pick<ComputerPartSourceEntry, "url" | "parts" | "multiplier" | "limit" | "references" | "autoRefreshHour">
+    >,
   ) => {
     setComputerPartSources((current) =>
       current.map((entry) => entry.id === id ? { ...entry, ...updates } : entry),
@@ -541,6 +588,8 @@ export default function AdminDashboardClient({
           parts: [...allComputerPartSourceTypeIds],
           multiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
           limit: defaultSourceLimit,
+          references: priceRefreshReferenceOptions.map((option) => option.id),
+          autoRefreshHour: null,
         },
       ];
     });
@@ -1313,20 +1362,14 @@ export default function AdminDashboardClient({
     }
   };
 
-  const sourceReferencesFor = (sourceId: string) =>
-    sourceRefreshReferences[sourceId] ??
-    priceRefreshReferenceOptions.map((item) => item.id);
+  const sourceReferencesFor = (source: ComputerPartSourceEntry) => source.references;
 
-  const toggleSourceRefreshReference = (sourceId: string, referenceId: string) => {
-    setSourceRefreshReferences((current) => {
-      const list = current[sourceId] ?? priceRefreshReferenceOptions.map((item) => item.id);
-      return {
-        ...current,
-        [sourceId]: list.includes(referenceId)
-          ? list.filter((item) => item !== referenceId)
-          : [...list, referenceId],
-      };
-    });
+  const toggleSourceRefreshReference = (source: ComputerPartSourceEntry, referenceId: string) => {
+    const current = source.references;
+    const next = current.includes(referenceId)
+      ? current.filter((item) => item !== referenceId)
+      : [...current, referenceId];
+    updateComputerPartSource(source.id, { references: next });
   };
 
   const setSourceRefresh = (
@@ -1349,7 +1392,7 @@ export default function AdminDashboardClient({
       alert("ابتدا لینک این باکس را وارد و ذخیره کنید.");
       return;
     }
-    const references = sourceReferencesFor(source.id);
+    const references = sourceReferencesFor(source);
     if (references.length === 0) {
       alert("حداقل یک مرجع قیمت برای این لینک انتخاب کنید.");
       return;
@@ -3097,6 +3140,7 @@ export default function AdminDashboardClient({
                           <h4 className="text-sm font-black text-slate-800">لینک‌های جداگانهٔ جستجو و گروه محصولات هر لینک</h4>
                           <p className="mt-1 text-[11px] font-normal leading-5 text-slate-500">
                             برای هر لینک مشخص کنید ربات فقط کدام قطعات را جستجو کند. حداکثر ۸ لینک قابل ثبت است.
+                            با انتخاب «ربات روزانهٔ این لینک» قیمت همان لینک هر روز در ساعت تعیین‌شده (به‌وقت تهران) با ضریب و سقف همان باکس به‌روزرسانی می‌شود.
                           </p>
                         </div>
                         <button
@@ -3122,6 +3166,30 @@ export default function AdminDashboardClient({
                                   className="mt-2 h-11 w-full rounded-xl border border-cyan-200 bg-slate-50 px-3 text-left text-xs font-normal text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                                   dir="ltr"
                                 />
+                              </label>
+                              <label className="mt-6 w-36 shrink-0 text-[10px] font-black text-emerald-900">
+                                ربات روزانهٔ این لینک
+                                <select
+                                  value={source.autoRefreshHour === null ? "off" : String(source.autoRefreshHour)}
+                                  onChange={(event) =>
+                                    updateComputerPartSource(source.id, {
+                                      autoRefreshHour:
+                                        event.target.value === "off" ? null : Number(event.target.value),
+                                    })
+                                  }
+                                  className={`mt-1 h-11 w-full rounded-xl border px-2 text-[11px] font-black outline-none ${
+                                    source.autoRefreshHour === null
+                                      ? "border-slate-200 bg-slate-50 text-slate-500"
+                                      : "border-emerald-300 bg-emerald-50 text-emerald-900"
+                                  }`}
+                                >
+                                  <option value="off">خاموش</option>
+                                  {Array.from({ length: 24 }, (_, hour) => hour).map((hour) => (
+                                    <option key={`${source.id}-hour-${hour}`} value={String(hour)}>
+                                      هر روز {hour.toLocaleString("fa-IR", { minimumIntegerDigits: 2 })}:۰۰
+                                    </option>
+                                  ))}
+                                </select>
                               </label>
                               <button
                                 type="button"
@@ -3150,6 +3218,29 @@ export default function AdminDashboardClient({
                                   </label>
                                 );
                               })}
+                              {/* تیک آینه‌ای لپ‌تاپ کنار «خنک‌کننده»: با تیک بالای لیست هم‌زمان است. */}
+                              {computerPartSourceTypeOptions
+                                .filter((option) => option.id === "laptop")
+                                .map((option) => {
+                                  const checked = source.parts.includes(option.id);
+                                  return (
+                                    <label
+                                      key={`${source.id}-${option.id}-mirror`}
+                                      className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] font-bold transition ${checked ? "border-emerald-400 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-500"}`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggleComputerPartSourceType(source.id, option.id)}
+                                        className="ml-1 align-middle"
+                                      />
+                                      {option.label}
+                                    </label>
+                                  );
+                                })}
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
                               <button
                                 type="button"
                                 onClick={() => updateComputerPartSource(source.id, { parts: [...allComputerPartSourceTypeIds] })}
@@ -3216,7 +3307,7 @@ export default function AdminDashboardClient({
                                 </b>
                                 <div className="flex flex-wrap gap-1">
                                   {priceRefreshReferenceOptions.map((reference) => {
-                                    const checked = sourceReferencesFor(source.id).includes(reference.id);
+                                    const checked = sourceReferencesFor(source).includes(reference.id);
                                     return (
                                       <label
                                         key={`${source.id}-ref-${reference.id}`}
@@ -3229,7 +3320,7 @@ export default function AdminDashboardClient({
                                         <input
                                           type="checkbox"
                                           checked={checked}
-                                          onChange={() => toggleSourceRefreshReference(source.id, reference.id)}
+                                          onChange={() => toggleSourceRefreshReference(source, reference.id)}
                                           className="ml-1 align-middle"
                                         />
                                         {reference.label}

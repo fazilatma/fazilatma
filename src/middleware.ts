@@ -26,6 +26,8 @@ const publicApiPrefixes = [
   "/api/torob",
   "/api/health",
   "/api/session",
+  // ربات به‌روزرسانی روزانهٔ قیمت لینک‌ها؛ داخل خود مسیر با CRON_SECRET محافظت می‌شود.
+  "/api/store-products/auto-refresh",
 ];
 
 function isPublicPath(pathname: string) {
