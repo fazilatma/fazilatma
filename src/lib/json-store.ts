@@ -424,6 +424,8 @@ export type JsonStoreProduct = {
   priceAvailable?: boolean;
   marketReferenceNote?: string;
   externalSourceUrl?: string;
+  /** لینک مرجعی که این محصول از آن وارد شده؛ برای به‌روزرسانی قیمت به تفکیک لینک. */
+  sourceLink?: string;
   isActive: boolean;
   isFeatured: boolean;
   createdAt: string;

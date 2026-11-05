@@ -22,6 +22,9 @@ type DigikalaSource = {
 };
 
 const componentSources: DigikalaSource[] = [
+  { slug: "notebook-netbook-ultrabook", category: "لپ‌تاپ و نوت‌بوک", part: "laptop" },
+  { slug: "desktop-computer", category: "کامپیوتر آماده", part: "desktop" },
+  { slug: "all-in-one", category: "کامپیوتر آماده", part: "desktop" },
   { slug: "processor", category: "قطعات کامپیوتر", part: "cpu" },
   { slug: "graphics-card", category: "قطعات کامپیوتر", part: "gpu" },
   { slug: "ram", category: "قطعات کامپیوتر", part: "ram" },
@@ -295,7 +298,7 @@ export async function scanDigikalaComponentsInBrowser(
     onProgress?: (progress: DigikalaClientScanProgress) => void;
   } = {},
 ): Promise<DigikalaClientScanResult> {
-  const maxProducts = Math.max(100, Math.min(6_000, Number(options.maxProducts || 5_000)));
+  const maxProducts = Math.max(100, Math.min(10_000, Number(options.maxProducts || 5_000)));
   const maxPagesPerCategory = Math.max(1, Math.min(60, Number(options.maxPagesPerCategory || 45)));
   const concurrency = Math.max(1, Math.min(4, Number(options.concurrency || 3)));
   const requestedParts = new Set((options.partFilters || []).map((item) => String(item).trim().toLowerCase()).filter(Boolean));

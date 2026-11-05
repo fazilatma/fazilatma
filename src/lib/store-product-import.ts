@@ -1032,6 +1032,16 @@ export function productMatchesComputerPartFilters(
 ) {
   const filters = [...new Set(partFilters.map((item) => String(item).trim().toLowerCase()).filter(Boolean))];
   if (!filters.length) return true;
+
+  // «لپ‌تاپ» و «کامپیوتر آماده» قطعه نیستند و تشخیص آن‌ها بر اساس متن عنوان/دسته است.
+  const text = `${draft.title || ""} ${draft.category || ""}`
+    .toLowerCase()
+    .replace(/[\u200c\s]+/g, " ");
+  const isLaptop = /لپ ?تاپ|laptop|notebook|macbook|ultrabook|thinkpad|ideapad|latitude|elitebook/.test(text);
+  const isDesktop = /کامپیوتر آماده|آل ?این ?وان|all ?in ?one|desktop computer|mini ?pc|مینی ?پی ?سی/.test(text);
+  if (filters.includes("laptop") && isLaptop) return true;
+  if (filters.includes("desktop") && isDesktop) return true;
+
   const kind = storeComputerPartKind(draft);
   return Boolean(kind && filters.includes(kind));
 }

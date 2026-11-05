@@ -369,10 +369,12 @@ async function importPreparedCsvBatch(request: Request) {
     }
 
     const sourceLabel = String(payload.sourceLabel || "digikala-easy-scraper").slice(0, 160);
+    const sourceLink = String(payload.sourceLink || "").trim().slice(0, 1000);
     const importedProducts = filteredDrafts.map((draft) => {
       const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, multiplier));
       product.marketPrice = Math.round(draft.price);
       product.priceMultiplier = multiplier;
+      if (sourceLink) product.sourceLink = sourceLink;
       if (multiplier !== 1) {
         product.marketReferenceNote = `${product.marketReferenceNote}؛ اعمال ضریب قیمت ${multiplier.toLocaleString("fa-IR")}`;
         product.badges = Array.from(new Set([...(product.badges || []), `ضریب ${multiplier.toLocaleString("fa-IR")}`])).slice(0, 6);

@@ -84,6 +84,8 @@ const productImportCategoryOptions = [
 const allProductImportCategoryIds = productImportCategoryOptions.map((option) => option.id);
 
 const computerPartSourceTypeOptions = [
+  { id: "laptop", label: "لپ‌تاپ و نوت‌بوک" },
+  { id: "desktop", label: "کامپیوتر آماده" },
   { id: "cpu", label: "پردازنده CPU" },
   { id: "gpu", label: "کارت گرافیک GPU" },
   { id: "ram", label: "حافظه RAM" },
@@ -100,7 +102,13 @@ type ComputerPartSourceEntry = {
   id: string;
   url: string;
   parts: string[];
+  /** ضریب اعمال‌شده روی قیمت‌های همین لینک. */
+  multiplier: number;
+  /** حداکثر تعداد محصولی که از این لینک دانلود یا به‌روزرسانی می‌شود. */
+  limit: number;
 };
+
+const defaultSourceLimit = 10_000;
 
 function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceEntry[] {
   const raw = String(value || "").trim();
@@ -125,15 +133,30 @@ function normalizeComputerPartSourceEntries(value: unknown): ComputerPartSourceE
       const selectedParts = Array.isArray(entry.parts)
         ? entry.parts.map(String).filter((part) => allComputerPartSourceTypeIds.includes(part as typeof allComputerPartSourceTypeIds[number]))
         : allComputerPartSourceTypeIds;
+      const entryLimit = Number((entry as { limit?: unknown }).limit);
+      const entryMultiplier = Number((entry as { multiplier?: unknown }).multiplier);
       return {
         id: `source-${index + 1}`,
         url: String(entry.url || "").trim(),
         parts: selectedParts.length ? [...new Set(selectedParts)] : [...allComputerPartSourceTypeIds],
+        multiplier: normalizedImportPriceMultiplier(
+          Number.isFinite(entryMultiplier) && entryMultiplier > 0 ? entryMultiplier : 1,
+        ),
+        limit:
+          Number.isFinite(entryLimit) && entryLimit > 0
+            ? Math.max(1, Math.min(defaultSourceLimit, Math.round(entryLimit)))
+            : defaultSourceLimit,
       };
     });
   return entries.length
     ? entries
-    : [{ id: "source-1", url: "https://www.digikala.com/search/category-computer-devices/", parts: [...allComputerPartSourceTypeIds] }];
+    : [{
+        id: "source-1",
+        url: "https://www.digikala.com/search/category-computer-devices/",
+        parts: [...allComputerPartSourceTypeIds],
+        multiplier: 1,
+        limit: defaultSourceLimit,
+      }];
 }
 
 function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) {
@@ -141,6 +164,8 @@ function serializeComputerPartSourceEntries(entries: ComputerPartSourceEntry[]) 
     entries.slice(0, 8).map((entry) => ({
       url: entry.url.trim(),
       parts: entry.parts,
+      multiplier: entry.multiplier,
+      limit: entry.limit,
     })),
   );
 }
@@ -444,16 +469,11 @@ export default function AdminDashboardClient({
   const [scanningProductImport, setScanningProductImport] = useState(false);
   const [applyingProductImport, setApplyingProductImport] = useState(false);
   const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
-  const [priceRefreshReferences, setPriceRefreshReferences] = useState<string[]>(
-    priceRefreshReferenceOptions.map((item) => item.id),
-  );
-  const [priceRefreshMultiplier, setPriceRefreshMultiplier] = useState(1);
-  const [priceRefreshMaxProducts, setPriceRefreshMaxProducts] = useState(20);
-  const [priceRefreshOffset, setPriceRefreshOffset] = useState(0);
-  const [refreshingStorePrices, setRefreshingStorePrices] = useState(false);
-  const [priceRefreshMessage, setPriceRefreshMessage] = useState("");
-  const [priceRefreshResults, setPriceRefreshResults] = useState<any[]>([]);
-  const [priceRefreshWarnings, setPriceRefreshWarnings] = useState<string[]>([]);
+  // به‌روزرسانی قیمت به تفکیک هر لینک: مرجع‌های انتخابی و وضعیت اجرای هر باکس.
+  const [sourceRefreshReferences, setSourceRefreshReferences] = useState<Record<string, string[]>>({});
+  const [sourceRefreshState, setSourceRefreshState] = useState<
+    Record<string, { running: boolean; message: string }>
+  >({});
   const [savingReverseAuctionPilot, setSavingReverseAuctionPilot] = useState(false);
   const [enamadLogoFile, setEnamadLogoFile] = useState<File | null>(null);
   const [removeUploadedEnamadLogo, setRemoveUploadedEnamadLogo] = useState(false);
@@ -475,7 +495,6 @@ export default function AdminDashboardClient({
         setComputerPartSources(normalizeComputerPartSourceEntries(result.settings.storeComputerPartsSourceUrl));
         const savedStoreMultiplier = normalizedImportPriceMultiplier(result.settings.storePriceMultiplier);
         setProductImportPriceMultiplier(savedStoreMultiplier);
-        setPriceRefreshMultiplier(savedStoreMultiplier);
         setCommissionRate(result.settings.commissionRate);
         setPlatformTransactions(result.platformTransactions || []);
         setEscrowTransactions(result.escrowTransactions || []);
@@ -499,14 +518,12 @@ export default function AdminDashboardClient({
   const updateStorePriceMultiplier = (value: unknown) => {
     const multiplier = normalizedImportPriceMultiplier(value);
     setProductImportPriceMultiplier(multiplier);
-    setPriceRefreshMultiplier(multiplier);
-    setPriceRefreshOffset(0);
     setPlatformFinance((current) => ({ ...current, storePriceMultiplier: multiplier }));
   };
 
   const updateComputerPartSource = (
     id: string,
-    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts">>,
+    updates: Partial<Pick<ComputerPartSourceEntry, "url" | "parts" | "multiplier" | "limit">>,
   ) => {
     setComputerPartSources((current) =>
       current.map((entry) => entry.id === id ? { ...entry, ...updates } : entry),
@@ -522,6 +539,8 @@ export default function AdminDashboardClient({
           id: `source-${Date.now()}-${current.length + 1}`,
           url: "",
           parts: [...allComputerPartSourceTypeIds],
+          multiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
+          limit: defaultSourceLimit,
         },
       ];
     });
@@ -1160,10 +1179,11 @@ export default function AdminDashboardClient({
         setProductImportMessage(
           `در حال خواندن لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} از دیجی‌کالا با ${browserParts.length.toLocaleString("fa-IR")} گروه انتخاب‌شده...`,
         );
+        const sourceLimit = Math.max(1, Math.min(defaultSourceLimit, Number(source.limit) || defaultSourceLimit));
         const scan = await scanDigikalaComponentsInBrowser({
           sourceUrl: source.url,
           partFilters: browserParts,
-          maxProducts: 5_000,
+          maxProducts: sourceLimit,
           maxPagesPerCategory: 45,
           concurrency: 3,
           onProgress: (progress) => setProductImportMessage(
@@ -1188,9 +1208,10 @@ export default function AdminDashboardClient({
           body: JSON.stringify({
             products: scan.products,
             strategy: "merge",
-            priceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
-            categoryFilters: ["components", "storage"],
+            priceMultiplier: source.multiplier,
+            categoryFilters: ["components", "storage", "laptop", "desktop"],
             sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
+            sourceLink: source.url,
           }),
         });
         const result = await readJsonResponse(response, "ثبت یکپارچهٔ محصولات دیجی‌کالا ناموفق بود.");
@@ -1208,7 +1229,12 @@ export default function AdminDashboardClient({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sources: serverSources.map((source) => ({ url: source.url, parts: source.parts })),
+            sources: serverSources.map((source) => ({
+              url: source.url,
+              parts: source.parts,
+              limit: source.limit,
+              priceMultiplier: source.multiplier,
+            })),
             limit: 500,
             priceMultiplier: productImportPriceMultiplier,
           }),
@@ -1264,15 +1290,6 @@ export default function AdminDashboardClient({
     clearProductImportPreviewState();
   };
 
-  const togglePriceRefreshReference = (referenceId: string) => {
-    setPriceRefreshReferences((current) =>
-      current.includes(referenceId)
-        ? current.filter((item) => item !== referenceId)
-        : [...current, referenceId],
-    );
-    setPriceRefreshOffset(0);
-  };
-
   const clearStoreProducts = async () => {
     if (!confirm("همه محصولات فعلی فروشگاه پاک شوند؟ این کار برای تست درون‌ریزی محصولات جدید است.")) return;
     setClearingStoreProducts(true);
@@ -1296,74 +1313,100 @@ export default function AdminDashboardClient({
     }
   };
 
-  const refreshStorePrices = async () => {
-    if (priceRefreshReferences.length === 0) {
-      alert("حداقل یک مرجع قیمت را انتخاب کنید.");
+  const sourceReferencesFor = (sourceId: string) =>
+    sourceRefreshReferences[sourceId] ??
+    priceRefreshReferenceOptions.map((item) => item.id);
+
+  const toggleSourceRefreshReference = (sourceId: string, referenceId: string) => {
+    setSourceRefreshReferences((current) => {
+      const list = current[sourceId] ?? priceRefreshReferenceOptions.map((item) => item.id);
+      return {
+        ...current,
+        [sourceId]: list.includes(referenceId)
+          ? list.filter((item) => item !== referenceId)
+          : [...list, referenceId],
+      };
+    });
+  };
+
+  const setSourceRefresh = (
+    sourceId: string,
+    patch: Partial<{ running: boolean; message: string }>,
+  ) => {
+    setSourceRefreshState((current) => {
+      const previous = current[sourceId] ?? { running: false, message: "" };
+      return { ...current, [sourceId]: { ...previous, ...patch } };
+    });
+  };
+
+  /**
+   * به‌روزرسانی قیمت فقط برای محصولات همان لینک.
+   * ضریب و سقف تعداد از تنظیمات همان باکس خوانده می‌شود.
+   */
+  const refreshSourcePrices = async (source: ComputerPartSourceEntry) => {
+    const sourceUrl = source.url.trim();
+    if (!sourceUrl) {
+      alert("ابتدا لینک این باکس را وارد و ذخیره کنید.");
       return;
     }
-    setRefreshingStorePrices(true);
-    setPriceRefreshMessage("");
+    const references = sourceReferencesFor(source.id);
+    if (references.length === 0) {
+      alert("حداقل یک مرجع قیمت برای این لینک انتخاب کنید.");
+      return;
+    }
+    const limit = Math.max(1, Math.min(defaultSourceLimit, Number(source.limit) || defaultSourceLimit));
+    setSourceRefresh(source.id, { running: true, message: "در حال بررسی قیمت محصولات این لینک..." });
     try {
-      const startOffset = priceRefreshOffset;
-      let cursor = startOffset;
-      let remaining = priceRefreshMaxProducts;
-      let totalProducts = 0;
-      let totalChecked = 0;
+      let checked = 0;
+      let cursor = 0;
       let updated = 0;
       let unchanged = 0;
       let notFound = 0;
       let failed = 0;
       let hasMore = true;
-      const results: any[] = [];
-      const warnings: string[] = [];
+      let totalProducts = 0;
 
-      while (remaining > 0 && hasMore) {
-        setPriceRefreshMessage(`ربات در حال بررسی است؛ ${totalChecked.toLocaleString("fa-IR")} کالا از سقف این نوبت بررسی شده...`);
+      while (checked < limit && hasMore) {
+        const remaining = limit - checked;
         const response = await fetch("/api/admin/store-products/refresh-prices", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            references: priceRefreshReferences,
+            references,
             maxProducts: remaining,
-            priceMultiplier: priceRefreshMultiplier,
+            priceMultiplier: source.multiplier,
             onlyActive: true,
             offset: cursor,
+            sourceUrl,
           }),
         });
         const result = await response.json();
-        if (!result.success) throw new Error(result.message || "به‌روزرسانی قیمت‌ها ناموفق بود.");
-        const checked = Number(result.totalChecked || 0);
+        if (!result.success) throw new Error(result.message || "به‌روزرسانی قیمت این لینک ناموفق بود.");
+        const batchChecked = Number(result.totalChecked || 0);
         totalProducts = Number(result.totalProducts || totalProducts);
-        totalChecked += checked;
-        remaining -= checked;
+        checked += batchChecked;
         updated += Number(result.updated || 0);
         unchanged += Number(result.unchanged || 0);
         notFound += Number(result.notFound || 0);
         failed += Number(result.failed || 0);
-        results.push(...(result.results || []));
-        warnings.push(...(result.warnings || []));
         cursor = Number(result.nextOffset || 0);
         hasMore = Boolean(result.hasMore);
-        if (checked === 0) break;
+        setSourceRefresh(source.id, {
+          running: true,
+          message: `${checked.toLocaleString("fa-IR")} از ${limit.toLocaleString("fa-IR")} محصول بررسی شد...`,
+        });
+        if (batchChecked === 0) break;
       }
 
-      setPriceRefreshOffset(cursor);
-      const checkedFrom = totalChecked ? startOffset + 1 : 0;
-      const checkedTo = startOffset + totalChecked;
-      const progress = totalProducts && totalChecked
-        ? ` کالاهای ${checkedFrom.toLocaleString("fa-IR")} تا ${checkedTo.toLocaleString("fa-IR")} از ${totalProducts.toLocaleString("fa-IR")} بررسی شدند.${hasMore ? " اجرای بعدی از ادامهٔ فهرست است." : " چرخه کامل شد و اجرای بعدی از ابتداست."}`
-        : "";
-      const message = `${updated.toLocaleString("fa-IR")} قیمت تغییر کرد، ${unchanged.toLocaleString("fa-IR")} قیمت دوباره ثبت شد، برای ${notFound.toLocaleString("fa-IR")} کالا قیمت معتبر پیدا نشد و ${failed.toLocaleString("fa-IR")} بررسی خطا داشت.${progress}`;
-      setPriceRefreshMessage(message);
-      setPriceRefreshResults(results);
-      setPriceRefreshWarnings([...new Set(warnings)]);
+      const message = totalProducts === 0
+        ? "برای این لینک محصولی در فروشگاه پیدا نشد؛ ابتدا محصولات این لینک را وارد کنید."
+        : `${updated.toLocaleString("fa-IR")} قیمت تغییر کرد، ${unchanged.toLocaleString("fa-IR")} بدون تغییر ماند، برای ${notFound.toLocaleString("fa-IR")} کالا قیمت معتبر پیدا نشد و ${failed.toLocaleString("fa-IR")} مورد خطا داشت.`;
+      setSourceRefresh(source.id, { running: false, message });
       alert(message);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "به‌روزرسانی قیمت‌ها ناموفق بود.";
-      setPriceRefreshMessage(message);
+      const message = error instanceof Error ? error.message : "به‌روزرسانی قیمت این لینک ناموفق بود.";
+      setSourceRefresh(source.id, { running: false, message });
       alert(message);
-    } finally {
-      setRefreshingStorePrices(false);
     }
   };
 
@@ -3122,6 +3165,95 @@ export default function AdminDashboardClient({
                                 حذف انتخاب‌ها
                               </button>
                             </div>
+
+                            <div className="mt-3 grid gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3 md:grid-cols-2">
+                              <label className="block text-[11px] font-black text-amber-900">
+                                ضریب اعمال‌شده روی قیمت‌های این لینک
+                                <input
+                                  type="number"
+                                  min="0.1"
+                                  max="10"
+                                  step="0.01"
+                                  value={source.multiplier}
+                                  onChange={(event) =>
+                                    updateComputerPartSource(source.id, {
+                                      multiplier: normalizedImportPriceMultiplier(event.target.value),
+                                    })
+                                  }
+                                  className="mt-1 h-10 w-full rounded-xl border border-amber-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-amber-300"
+                                />
+                                <span className="mt-1 block text-[10px] font-normal leading-4 text-amber-700">
+                                  قیمت نهایی محصولات این لینک = قیمت منبع × این ضریب.
+                                </span>
+                              </label>
+                              <label className="block text-[11px] font-black text-amber-900">
+                                تعداد دانلود/به‌روزرسانی این لینک (تا ۱۰٬۰۰۰ محصول)
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10000"
+                                  value={source.limit}
+                                  onChange={(event) =>
+                                    updateComputerPartSource(source.id, {
+                                      limit: Math.max(
+                                        1,
+                                        Math.min(defaultSourceLimit, Number(event.target.value || 1)),
+                                      ),
+                                    })
+                                  }
+                                  className="mt-1 h-10 w-full rounded-xl border border-amber-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-amber-300"
+                                />
+                                <span className="mt-1 block text-[10px] font-normal leading-4 text-amber-700">
+                                  سقف محصولاتی که از این لینک خوانده یا قیمت‌شان به‌روز می‌شود.
+                                </span>
+                              </label>
+                            </div>
+
+                            <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <b className="text-[11px] font-black text-emerald-900">
+                                  به‌روزرسانی قیمت فقط محصولات همین لینک
+                                </b>
+                                <div className="flex flex-wrap gap-1">
+                                  {priceRefreshReferenceOptions.map((reference) => {
+                                    const checked = sourceReferencesFor(source.id).includes(reference.id);
+                                    return (
+                                      <label
+                                        key={`${source.id}-ref-${reference.id}`}
+                                        className={`cursor-pointer rounded-lg border px-2 py-1 text-[10px] font-bold transition ${
+                                          checked
+                                            ? "border-emerald-400 bg-white text-emerald-800"
+                                            : "border-slate-200 bg-white text-slate-500"
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => toggleSourceRefreshReference(source.id, reference.id)}
+                                          className="ml-1 align-middle"
+                                        />
+                                        {reference.label}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={Boolean(sourceRefreshState[source.id]?.running)}
+                                  onClick={() => refreshSourcePrices(source)}
+                                  className="rounded-xl bg-emerald-600 px-4 py-2 text-[11px] font-black text-white transition hover:bg-emerald-700 disabled:bg-slate-300"
+                                >
+                                  {sourceRefreshState[source.id]?.running
+                                    ? "در حال به‌روزرسانی..."
+                                    : "به‌روزرسانی قیمت این لینک"}
+                                </button>
+                              </div>
+                              {sourceRefreshState[source.id]?.message && (
+                                <div className="mt-2 rounded-xl bg-white p-2 text-[11px] font-bold leading-5 text-emerald-800">
+                                  {sourceRefreshState[source.id].message}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -3428,150 +3560,6 @@ export default function AdminDashboardClient({
 
                   <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
                     برای لینک قطعات دیجی‌کالا، هشت زیرگروه اصلی پردازنده، گرافیک، رم، مادربرد، SSD، هارد، پاور و کیس مستقیماً در همین مرورگر و تا ۵٬۰۰۰ محصول قیمت‌دار خوانده می‌شود؛ سپس محصولات به‌صورت دسته‌ای و بدون تکرار ذخیره می‌شوند. عدد کل صفحهٔ والد دیجی‌کالا شامل هزاران لوازم جانبی و قطعات یدکی خارج از این هشت گروه نیز هست.
-                  </div>
-
-                  <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">
-                    <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                      <div>
-                        <h3 className="text-lg font-black text-emerald-900">
-                          🤖 ربات به‌روزرسانی قیمت محصولات موجود
-                        </h3>
-                        <p className="mt-1 text-sm leading-7 text-emerald-700">
-                          منابع را انتخاب کنید و ربات را اجرا کنید. برای هر مدل دقیق، کمترین قیمت معتبر بین ترب، دیجی‌کالا و سایر مراجع انتخابی پیدا می‌شود، ضریب سراسری روی آن اعمال و همان قیمت در کارت، محصول و نمودار ذخیره می‌شود.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={refreshingStorePrices}
-                          onClick={refreshStorePrices}
-                          className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-gray-300"
-                        >
-                          {refreshingStorePrices ? "ربات در حال بررسی قیمت‌هاست..." : priceRefreshOffset > 0 ? "ادامهٔ ربات از محصول بعدی" : "اجرای ربات قیمت"}
-                        </button>
-                        {priceRefreshOffset > 0 && (
-                          <button
-                            type="button"
-                            disabled={refreshingStorePrices}
-                            onClick={() => {
-                              setPriceRefreshOffset(0);
-                              setPriceRefreshMessage("چرخهٔ ربات از ابتدای فهرست تنظیم شد.");
-                            }}
-                            className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-xs font-black text-emerald-700 disabled:opacity-50"
-                          >
-                            شروع چرخه از ابتدا
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 lg:grid-cols-[1fr_170px]">
-                      <div className="rounded-2xl border border-emerald-100 bg-white p-4">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <b className="text-sm text-gray-900">مرجع‌های به‌روزرسانی قیمت</b>
-                          <div className="flex gap-2 text-xs font-black">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPriceRefreshReferences(priceRefreshReferenceOptions.map((item) => item.id));
-                                setPriceRefreshOffset(0);
-                              }}
-                              className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
-                            >
-                              انتخاب همه
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPriceRefreshReferences([]);
-                                setPriceRefreshOffset(0);
-                              }}
-                              className="rounded-full bg-slate-100 px-3 py-1 text-slate-600"
-                            >
-                              پاک کردن
-                            </button>
-                          </div>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                          {priceRefreshReferenceOptions.map((reference) => {
-                            const checked = priceRefreshReferences.includes(reference.id);
-                            return (
-                              <label
-                                key={reference.id}
-                                className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${checked ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-gray-700 hover:border-emerald-100"}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => togglePriceRefreshReference(reference.id)}
-                                  className="mt-1"
-                                />
-                                <span>
-                                  <span className="block text-sm font-black">{reference.label}</span>
-                                  <span className="mt-1 block text-[11px] leading-5 text-gray-500">{reference.hint}</span>
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className="grid gap-3">
-                        <label className="block text-sm font-bold text-gray-700">
-                          ضریب سراسری قیمت
-                          <input
-                            type="number"
-                            min="0.1"
-                            max="10"
-                            step="0.01"
-                            value={priceRefreshMultiplier}
-                            onChange={(e) => updateStorePriceMultiplier(e.target.value)}
-                            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </label>
-                        <label className="block text-sm font-bold text-gray-700">
-                          حداکثر محصول
-                          <input
-                            type="number"
-                            min="1"
-                            max="20"
-                            value={priceRefreshMaxProducts}
-                            onChange={(e) => {
-                              setPriceRefreshMaxProducts(Math.max(1, Math.min(20, Number(e.target.value || 20))));
-                              setPriceRefreshOffset(0);
-                            }}
-                            className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </label>
-                      </div>
-                    </div>
-
-                    {priceRefreshMessage && (
-                      <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4 text-sm font-bold text-emerald-800">
-                        {priceRefreshMessage}
-                      </div>
-                    )}
-                    {priceRefreshWarnings.length > 0 && (
-                      <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-xs leading-6 text-amber-800">
-                        {priceRefreshWarnings.slice(0, 6).map((warning) => (
-                          <div key={warning}>• {warning}</div>
-                        ))}
-                      </div>
-                    )}
-                    {priceRefreshResults.length > 0 && (
-                      <details className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
-                        <summary className="cursor-pointer font-black text-slate-800">
-                          مشاهده نتیجه به‌روزرسانی ({priceRefreshResults.length.toLocaleString("fa-IR")})
-                        </summary>
-                        <div className="mt-3 max-h-64 space-y-2 overflow-auto">
-                          {priceRefreshResults.slice(0, 80).map((item) => (
-                            <div key={`${item.productId}-${item.status}`} className="rounded-xl bg-slate-50 p-3">
-                              <b>{item.title}</b>
-                              <span className="mr-2 text-slate-500">{item.message}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
                   </div>
 
                   {productImportMessage && (

@@ -20,7 +20,39 @@ type Body = {
   onlyActive?: boolean;
   productIds?: string[];
   offset?: number;
+  /** فقط محصولاتی که از این لینک مرجع وارد شده‌اند به‌روزرسانی شوند. */
+  sourceUrl?: string;
 };
+
+function hostOf(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * تطبیق محصول با لینک مرجع:
+ * ۱) اگر محصول `sourceLink` داشته باشد، همان لینک مقایسه می‌شود (دقیق‌ترین حالت).
+ * ۲) در غیر این صورت دامنهٔ آدرس محصول با دامنهٔ لینک مقایسه می‌شود تا محصولات
+ *    قدیمی‌تر هم قابل به‌روزرسانی باشند.
+ */
+function productBelongsToSource(
+  product: JsonStoreProduct,
+  sourceUrl: string,
+) {
+  const prefix = sourceUrl.trim().toLowerCase().replace(/\/+$/, "");
+  if (!prefix) return true;
+  const linkHost = hostOf(sourceUrl);
+  const candidates = [product.sourceLink, product.externalSourceUrl]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.trim().toLowerCase());
+  if (candidates.some((value) => value.replace(/\/+$/, "").startsWith(prefix))) {
+    return true;
+  }
+  return Boolean(linkHost) && candidates.some((value) => hostOf(value) === linkHost);
+}
 
 function normalizeMultiplier(value: unknown) {
   const number = Number(value || 1);
@@ -69,10 +101,12 @@ export async function POST(request: Request) {
       Number(data.settings.storePriceMultiplier || 1) - multiplier,
     ) > 0.0001;
     data.settings.storePriceMultiplier = multiplier;
+    const sourceUrl = String(body.sourceUrl || "").trim();
     const matchingProducts = data.storeProducts
       .map((product, index) => ({ product, index }))
       .filter(({ product }) => (onlyActive ? product.isActive !== false : true))
-      .filter(({ product }) => !productIdFilter || productIdFilter.has(product.id));
+      .filter(({ product }) => !productIdFilter || productIdFilter.has(product.id))
+      .filter(({ product }) => productBelongsToSource(product, sourceUrl));
     const offset = requestedOffset >= matchingProducts.length ? 0 : requestedOffset;
     const targetProducts = matchingProducts.slice(offset, offset + maxProducts);
     if (productIdFilter && targetProducts.length === 0) {
@@ -153,6 +187,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       references,
+      sourceUrl,
       priceMultiplier: multiplier,
       totalProducts: matchingProducts.length,
       offset,
