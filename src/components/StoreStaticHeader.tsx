@@ -1,5 +1,6 @@
 import Link from "next/link";
 import OptiBidLogo from "@/components/OptiBidLogo";
+import StoreSessionLinks from "@/components/StoreSessionLinks";
 import { getOptiBidData } from "@/lib/json-store";
 
 const laptopQuickLinks = [
@@ -46,12 +47,7 @@ export default async function StoreStaticHeader() {
                 </Link>
               ))}
               <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3">
-                <Link href="/login" className="block rounded-2xl border border-[#003b5c]/20 bg-white px-4 py-3 text-center text-sm font-black text-[#003b5c]">
-                  ورود
-                </Link>
-                <Link href="/register" className="block rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-center text-sm font-black text-emerald-700">
-                  ثبت‌نام
-                </Link>
+                <StoreSessionLinks layout="mobile" />
                 <Link href="/cart" className="block rounded-2xl bg-[#003b5c] px-4 py-3 text-center text-sm font-black text-white">
                   سبد خرید
                 </Link>
@@ -79,18 +75,7 @@ export default async function StoreStaticHeader() {
               ثبت درخواست
             </Link>
           )}
-          <Link
-            href="/login"
-            className="hidden rounded-2xl border border-[#003b5c]/20 bg-white px-4 py-2 text-sm font-black text-[#003b5c] shadow-sm transition hover:bg-blue-50 sm:inline-flex"
-          >
-            ورود
-          </Link>
-          <Link
-            href="/register"
-            className="hidden rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-100 sm:inline-flex"
-          >
-            ثبت‌نام
-          </Link>
+          <StoreSessionLinks />
           <Link href="/cart" className="rounded-2xl bg-[#003b5c] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#005f8f]">
             سبد خرید
           </Link>

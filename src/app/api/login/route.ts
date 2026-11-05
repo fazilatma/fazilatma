@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authenticateJsonUser } from "@/lib/json-store";
+import { sessionCookieOptions } from "@/lib/session-cookie-options";
 
 export const dynamic = "force-dynamic";
 
@@ -15,16 +16,15 @@ function normalizeDigits(value: string) {
 
 function setUserSession(
   response: NextResponse,
+  request: Request,
   user: { id: number; role: string },
   remember = true,
 ) {
-  response.cookies.set("optibid_user", `${user.role}:${user.id}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: remember ? 60 * 60 * 24 * 30 : 60 * 60 * 8,
-  });
+  response.cookies.set(
+    "optibid_user",
+    `${user.role}:${user.id}`,
+    sessionCookieOptions(request, remember ? 60 * 60 * 24 * 30 : 60 * 60 * 8),
+  );
   return response;
 }
 
@@ -42,15 +42,14 @@ export async function POST(request: Request) {
         user: { id: 0, fullName: "مدیر OptiBid", role: "admin" },
         redirectTo: "/admin/dashboard",
       });
-      response.cookies.set("optibid_admin", "1", {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 8,
-      });
+      response.cookies.set(
+        "optibid_admin",
+        "1",
+        sessionCookieOptions(request, 60 * 60 * 8),
+      );
       setUserSession(
         response,
+        request,
         { id: 0, role: "admin" },
         Boolean(body.rememberMe),
       );
@@ -74,6 +73,7 @@ export async function POST(request: Request) {
     });
     setUserSession(
       response,
+      request,
       { id: user.id, role: user.role },
       Boolean(body.rememberMe),
     );

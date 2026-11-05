@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sessionCookieOptions } from "@/lib/session-cookie-options";
 import {
   authenticateOrCreateJsonSocialUser,
   getJsonPlatformFinance,
@@ -8,15 +9,14 @@ export const dynamic = "force-dynamic";
 
 function setUserSession(
   response: NextResponse,
+  request: Request,
   user: { id: number; role: string },
 ) {
-  response.cookies.set("optibid_user", `${user.role}:${user.id}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  response.cookies.set(
+    "optibid_user",
+    `${user.role}:${user.id}`,
+    sessionCookieOptions(request, 60 * 60 * 24 * 30),
+  );
   return response;
 }
 
@@ -141,6 +141,7 @@ async function demoSocialLogin(
   provider: Provider,
   role: "buyer" | "seller",
   redirect: string,
+  request: Request,
 ) {
   const providerFa = provider === "google" ? "گوگل" : "فیسبوک";
   try {
@@ -162,7 +163,7 @@ async function demoSocialLogin(
       }),
       { headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
-    setUserSession(response, { id: user.id, role: user.role });
+    setUserSession(response, request, { id: user.id, role: user.role });
     return response;
   } catch (error) {
     const detail = error instanceof Error ? error.message : "خطای ناشناخته";
@@ -191,7 +192,7 @@ export async function GET(request: Request, context: RouteContext) {
     const config = await clientConfig(provider);
     const credentialsMissing = !config.clientId || !config.clientSecret;
     if (credentialsMissing) {
-      return await demoSocialLogin(provider, role, redirect);
+      return await demoSocialLogin(provider, role, redirect, request);
     }
     if (!config.enabled) {
       const message = encodeURIComponent(

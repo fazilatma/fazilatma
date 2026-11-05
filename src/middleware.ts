@@ -24,6 +24,7 @@ const publicApiPrefixes = [
   "/api/shop/prices",
   "/api/torob",
   "/api/health",
+  "/api/session",
 ];
 
 function isPublicPath(pathname: string) {
