@@ -99,8 +99,14 @@ export default function LoginPage() {
 
       // اگر مسیر بازگشت مشخصی وجود داشته باشد همان باز می‌شود؛ در غیر این صورت
       // ادمین مستقیم به پنل مدیریت و بقیه نقش‌ها به صفحه اصلی می‌روند.
-      const roleHome =
-        role === "admin" ? "/admin/dashboard" : String(result.redirectTo || "");
+      const adminToken = String(result.adminToken || "");
+      const adminHome =
+        role === "admin"
+          ? adminToken
+            ? `/admin/dashboard?at=${encodeURIComponent(adminToken)}`
+            : "/admin/dashboard"
+          : "";
+      const roleHome = adminHome || String(result.redirectTo || "");
       window.location.assign(safeRedirect || roleHome || "/");
     } catch {
       alert("خطا در ارتباط با سرور هنگام ورود.");

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticateJsonUser } from "@/lib/json-store";
 import { sessionCookieOptions } from "@/lib/session-cookie-options";
+import { createPreviewAdminToken } from "@/lib/preview-admin-token";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +38,13 @@ export async function POST(request: Request) {
     // حساب مدیر سامانه، مستقل از داده‌های کاربران.
     const normalizedPassword = normalizeDigits(password).trim();
     if (identifier.toLowerCase() === "admin" && normalizedPassword === "1234") {
+      const adminToken = await createPreviewAdminToken();
       const response = NextResponse.json({
         success: true,
         user: { id: 0, fullName: "مدیر OptiBid", role: "admin" },
         redirectTo: "/admin/dashboard",
+        // فقط در محیط توسعه؛ در production رشتهٔ خالی است.
+        adminToken,
       });
       response.cookies.set(
         "optibid_admin",

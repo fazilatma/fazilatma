@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { verifyPreviewAdminToken } from "@/lib/preview-admin-token";
 
 const publicPagePrefixes = [
   "/login",
@@ -55,7 +56,7 @@ function unauthorizedApi() {
   );
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // عیب‌یابی محلی: نشان می‌دهد آیا کوکی نشست از مرورگر می‌رسد یا نه.
@@ -76,7 +77,14 @@ export function middleware(request: NextRequest) {
   }
   if (isPublicPath(pathname)) return NextResponse.next();
 
-  const isAdmin = request.cookies.get("optibid_admin")?.value === "1";
+  // در محیط پیش‌نمایش ممکن است کوکی در iframe ذخیره نشود؛ توکن کوتاه‌عمر
+  // جایگزین فقط در توسعه پذیرفته می‌شود.
+  const previewAdminTokenOk = await verifyPreviewAdminToken(
+    request.headers.get("x-optibid-admin-token") ||
+      request.nextUrl.searchParams.get("at"),
+  );
+  const isAdmin =
+    request.cookies.get("optibid_admin")?.value === "1" || previewAdminTokenOk;
   const hasUserSession = Boolean(request.cookies.get("optibid_user")?.value);
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
@@ -85,6 +93,13 @@ export function middleware(request: NextRequest) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+    // توکن پیش‌نمایش: به لایه‌های سمت سرور (layout/header) اعلام می‌کنیم که
+    // این درخواست ادمین است، چون کوکی در iframe ذخیره نشده است.
+    if (previewAdminTokenOk) {
+      const headers = new Headers(request.headers);
+      headers.set("x-optibid-preview-admin", "1");
+      return NextResponse.next({ request: { headers } });
     }
     return NextResponse.next();
   }
