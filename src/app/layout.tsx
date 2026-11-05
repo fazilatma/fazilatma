@@ -83,7 +83,10 @@ export const revalidate = 0;
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
-  const hasUserSession = Boolean(cookieStore.get("optibid_user")?.value);
+  const userSessionValue = cookieStore.get("optibid_user")?.value || "";
+  const hasUserSession = Boolean(userSessionValue);
+  // مقدار کوکی نشست به شکل "role:id" است؛ نقش را برای رندر اولیه هدر می‌خوانیم.
+  const sessionRole = userSessionValue.split(":")[0] || null;
   const useStaticStoreHeader = !isAdmin && !hasUserSession;
   const DynamicHeader = useStaticStoreHeader
     ? null
@@ -105,7 +108,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
-        {useStaticStoreHeader ? <StoreStaticHeader /> : DynamicHeader ? <DynamicHeader /> : null}
+        {useStaticStoreHeader ? (
+          <StoreStaticHeader />
+        ) : DynamicHeader ? (
+          <DynamicHeader initialUserRole={sessionRole} isAdminSession={isAdmin} />
+        ) : null}
         {DynamicSellerRadar ? <DynamicSellerRadar /> : null}
         <main className="flex-grow">{children}</main>
         <Footer />

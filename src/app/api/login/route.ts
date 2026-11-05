@@ -3,6 +3,16 @@ import { authenticateJsonUser } from "@/lib/json-store";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * ارقام فارسی/عربی را به لاتین تبدیل می‌کند تا رمز ادمین با کیبورد فارسی
+ * (۱۲۳۴) هم پذیرفته شود.
+ */
+function normalizeDigits(value: string) {
+  return value
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+}
+
 function setUserSession(
   response: NextResponse,
   user: { id: number; role: string },
@@ -21,14 +31,16 @@ function setUserSession(
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const identifier = String(body.identifier || "");
+    const identifier = String(body.identifier || "").trim();
     const password = String(body.password || "");
 
     // حساب مدیر سامانه، مستقل از داده‌های کاربران.
-    if (identifier.toLowerCase() === "admin" && password === "1234") {
+    const normalizedPassword = normalizeDigits(password).trim();
+    if (identifier.toLowerCase() === "admin" && normalizedPassword === "1234") {
       const response = NextResponse.json({
         success: true,
         user: { id: 0, fullName: "مدیر OptiBid", role: "admin" },
+        redirectTo: "/admin/dashboard",
       });
       response.cookies.set("optibid_admin", "1", {
         httpOnly: true,

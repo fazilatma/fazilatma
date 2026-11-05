@@ -3,6 +3,28 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+// مسیرهایی که بعد از ورود مجاز به بازگشت هستند.
+// مسیرهای ادمین هم باید باشند؛ وگرنه کاربری که از /admin/dashboard به لاگین
+// هدایت شده، بعد از ورود به صفحه اصلی پرتاب می‌شد و به نظر می‌رسید ورود نشده است.
+const safeNextPaths = [
+  "/requests",
+  "/request-purchase",
+  "/sellers",
+  "/shop",
+  "/cart",
+  "/buyer/dashboard",
+  "/seller/dashboard",
+  "/admin",
+];
+
+function isSafeNextPath(path: string) {
+  if (!path.startsWith("/") || path.startsWith("//")) return false;
+  return safeNextPaths.some(
+    (base) =>
+      path === base || path.startsWith(`${base}/`) || path.startsWith(`${base}?`),
+  );
+}
+
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
@@ -17,19 +39,7 @@ export default function LoginPage() {
     const pendingUsername = params.get("pending");
     const socialError = params.get("social_error");
     const nextUrl = params.get("next") || "";
-    const isSafeNext =
-      nextUrl.startsWith("/") &&
-      !nextUrl.startsWith("//") &&
-      [
-        "/requests",
-        "/request-purchase",
-        "/sellers",
-        "/shop",
-        "/cart",
-        "/buyer/dashboard",
-        "/seller/dashboard",
-      ].some((path) => nextUrl === path || nextUrl.startsWith(`${path}/`) || nextUrl.startsWith(`${path}?`));
-    if (isSafeNext) {
+    if (isSafeNextPath(nextUrl)) {
       sessionStorage.setItem("redirectAfterAuth", nextUrl);
     } else if (nextUrl) {
       sessionStorage.removeItem("redirectAfterAuth");
@@ -84,29 +94,14 @@ export default function LoginPage() {
       localStorage.setItem("userDisplayName", result.user.fullName);
 
       const redirectUrl = sessionStorage.getItem("redirectAfterAuth") || "";
-      const safeRedirect =
-        redirectUrl.startsWith("/") &&
-        !redirectUrl.startsWith("//") &&
-        [
-          "/requests",
-          "/request-purchase",
-          "/sellers",
-          "/shop",
-          "/cart",
-          "/buyer/dashboard",
-          "/seller/dashboard",
-        ].some(
-          (path) =>
-            redirectUrl === path ||
-            redirectUrl.startsWith(`${path}/`) ||
-            redirectUrl.startsWith(`${path}?`),
-        )
-          ? redirectUrl
-          : "";
+      const safeRedirect = isSafeNextPath(redirectUrl) ? redirectUrl : "";
       sessionStorage.removeItem("redirectAfterAuth");
 
-      // بعد از ورود عادی، همه نقش‌ها به صفحه اصلی برگردند؛ فقط اگر ورود از صفحه درخواست خرید شروع شده باشد، همان صفحه باز شود.
-      window.location.assign(safeRedirect || "/");
+      // اگر مسیر بازگشت مشخصی وجود داشته باشد همان باز می‌شود؛ در غیر این صورت
+      // ادمین مستقیم به پنل مدیریت و بقیه نقش‌ها به صفحه اصلی می‌روند.
+      const roleHome =
+        role === "admin" ? "/admin/dashboard" : String(result.redirectTo || "");
+      window.location.assign(safeRedirect || roleHome || "/");
     } catch {
       alert("خطا در ارتباط با سرور هنگام ورود.");
     } finally {

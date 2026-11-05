@@ -261,9 +261,19 @@ function readStoreCartCount() {
   }
 }
 
-export default function Header() {
+export default function Header({
+  initialUserRole = null,
+  isAdminSession = false,
+}: {
+  /** نقشی که سرور از کوکی نشست خوانده است؛ تا قبل از خواندن localStorage هم درست باشد. */
+  initialUserRole?: string | null;
+  /** اگر کوکی ادمین وجود داشته باشد، هدر باید بدون اتکا به localStorage حالت ادمین را نشان دهد. */
+  isAdminSession?: boolean;
+} = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(
+    isAdminSession ? "admin" : initialUserRole,
+  );
   const [previousUserRole, setPreviousUserRole] = useState<string | null>(null);
   const [siteMode, setSiteMode] = useState<"store" | "request" | "hybrid">("store");
   const [laptopCatalogEnabled, setLaptopCatalogEnabled] = useState(false);
@@ -281,8 +291,15 @@ export default function Header() {
     !userRole && !["/login", "/register"].includes(pathname);
 
   useEffect(() => {
-    // خواندن نقش کاربر از لوکال استوریج در کلاینت‌ساید
-    setUserRole(localStorage.getItem("userRole"));
+    // خواندن نقش کاربر؛ اولویت با کوکی نشست سرور است تا اگر localStorage خالی
+    // بود (تب جدید، مرورگر دیگر یا پاک شدن داده‌ها) هدر «ورود» نشان ندهد.
+    const storedRole = localStorage.getItem("userRole");
+    if (isAdminSession) {
+      if (storedRole !== "admin") localStorage.setItem("userRole", "admin");
+      setUserRole("admin");
+    } else {
+      setUserRole(storedRole || initialUserRole);
+    }
     setPreviousUserRole(localStorage.getItem("previousUserRole"));
     const refreshCartCount = () => setCartCount(readStoreCartCount());
     refreshCartCount();
