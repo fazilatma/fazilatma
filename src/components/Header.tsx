@@ -271,6 +271,7 @@ export default function Header({
   isAdminSession?: boolean;
 } = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [adminPanelHref, setAdminPanelHref] = useState("/admin/dashboard");
   const [userRole, setUserRole] = useState<string | null>(
     isAdminSession ? "admin" : initialUserRole,
   );
@@ -293,6 +294,13 @@ export default function Header({
   useEffect(() => {
     // خواندن نقش کاربر؛ اولویت با کوکی نشست سرور است تا اگر localStorage خالی
     // بود (تب جدید، مرورگر دیگر یا پاک شدن داده‌ها) هدر «ورود» نشان ندهد.
+    // لینک پنل ادمین در محیط پیش‌نمایش باید توکن را همراه داشته باشد.
+    try {
+      const token = window.sessionStorage.getItem("optibidAdminToken");
+      if (token) setAdminPanelHref(`/admin/dashboard?at=${encodeURIComponent(token)}`);
+    } catch {
+      // دسترسی به sessionStorage همیشه ممکن نیست.
+    }
     const storedRole = localStorage.getItem("userRole");
     if (isAdminSession) {
       if (storedRole !== "admin") localStorage.setItem("userRole", "admin");
@@ -559,7 +567,7 @@ export default function Header({
               <div className="flex items-center gap-3 border-r border-gray-200 pr-3">
                 {effectiveUserRole === "admin" && (
                   <Link
-                    href="/admin/dashboard"
+                    href={adminPanelHref}
                     className="text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-lg transition font-bold text-sm"
                   >
                     پنل مدیریت
@@ -829,7 +837,7 @@ export default function Header({
                   </Link>
                 )}
                 <Link
-                  href="/admin/dashboard"
+                  href={adminPanelHref}
                   className="text-purple-700 bg-purple-50 px-2 py-1 rounded hover:bg-purple-100 transition flex items-center gap-2 mt-1"
                 >
                   <span>👑</span> پنل مدیریت پلتفرم (ادمین)
