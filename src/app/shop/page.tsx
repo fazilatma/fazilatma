@@ -9,6 +9,7 @@ import {
   filterProductsByCatalogSections,
   isComputerPartsCatalogProduct,
   isLaptopCatalogProduct,
+  matchesStoreCatalogCategory,
 } from "@/lib/store-catalog-sections";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
@@ -293,6 +294,15 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   if (!matchesProductSearch(product, searchQuery)) return false;
   if (catalogCategory === "computer-parts" && !isComputerPartsCatalogProduct(product)) return false;
   if (catalogCategory === "laptop" && !isLaptopCatalogProduct(product)) return false;
+  // بقیهٔ دسته‌های منو (لوازم جانبی، کنسول، شبکه، ماشین‌های اداری، کامپیوتر آماده…)
+  // تا قبل از این نادیده گرفته می‌شدند و کل کاتالوگ را نشان می‌دادند.
+  if (
+    catalogCategory &&
+    catalogCategory !== "laptop" &&
+    catalogCategory !== "computer-parts" &&
+    !matchesStoreCatalogCategory(product, catalogCategory)
+  )
+    return false;
   if (part) {
     const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler"]);
     if (allowedParts.has(part) && storeComputerPartKind(product) !== part) return false;

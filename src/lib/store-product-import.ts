@@ -356,9 +356,23 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey | "
   const otherPhoneSeries = /nokia\s*\d|نوکیا\s*\d|moto\s*g\s*\d|motorola\s*(edge|g)\s*\d|موتورولا|realme\s*(c|gt|note|narzo)?\s*\d|ریلمی|oneplus|وان\s*پلاس|nothing\s*phone|infinix|اینفینیکس|tecno|تکنو/.test(lower);
   if (explicitPhoneWords || samsungGalaxyPhone || xiaomiPhone || honorHuaweiPhone || otherPhoneSeries) return "mobile";
 
-  const isLaptop = textMatchesLaptop(lower);
+  // نام سری‌هایی مثل AORUS، TUF، ROG، Nitro و Predator هم روی لپ‌تاپ و هم روی
+  // مادربرد و کارت گرافیک استفاده می‌شوند؛ اگر نشانهٔ روشنِ «قطعه» در متن باشد
+  // نباید کالا را لپ‌تاپ حساب کنیم (باگ نمایش مادربرد در دستهٔ لپ‌تاپ).
+  const explicitLaptopWord = /لپ ?تاپ|لپ‌تاپ|لپتاپ|laptop|notebook|ultrabook|chromebook|macbook|نوت ?بوک|نو تب?بوک/.test(lower);
+  // فقط اسم‌های قطعیِ قطعه؛ واژهٔ «پردازنده» عمداً نیست چون در عنوان لپ‌تاپ هم می‌آید.
+  const strongComputerPart =
+    /مادربرد|motherboard|کارت گرافیک|گرافیک کامپیوتر|منبع تغذیه|پاور کامپیوتر|کیس کامپیوتر|خمیر سیلیکون|هیتسینک|حافظه رم|رم کامپیوتر|ماژول رم|ram module|memory module|computer case|power supply|\bpsu\b|\bgpu\b|\bcpu\b|کارت صدا|فن کیس|قطعات کامپیوتر/.test(lower);
+  // چیپست‌های مادربرد (B760، Z790، X670، H610، B650 …) نشانهٔ قطعی قطعه هستند.
+  // فهرست صریح است تا کد مدل لپ‌تاپ‌هایی مثل A515/A715 با چیپست اشتباه نشود.
+  const motherboardChipset =
+    /\b(?:h110|b150|b250|z270|h310|b360|b365|z370|z390|h410|b460|h470|z490|h510|b560|h570|z590|h610|b660|b760|z690|z790|x470|b450|x570|b550|x670|b650|a520|a620|x870|b840|z890|trx40|x299|w680|w790)\b/.test(lower);
+  const partFirst = (strongComputerPart || motherboardChipset) && !explicitLaptopWord;
+
+  const isLaptop = !partFirst && (explicitLaptopWord || textMatchesLaptop(lower));
   if (isLaptop && /gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (isLaptop) return "laptop";
+  if (partFirst) return "components";
   if (/server|سرور/.test(lower)) return "server";
   if (/monitor|مانیتور|display/.test(lower)) return "monitor";
   if (/printer|پرینتر|چاپگر|scanner|اسکنر|کارتریج|تونر/.test(lower)) return "printer";
@@ -1005,9 +1019,19 @@ export function normalizeProductImportCategories(value: unknown): ProductImportC
 }
 
 export function productImportCategoryKey(draft: Pick<ImportedStoreProductDraft, "title" | "brand" | "category" | "specs">) {
-  return productCategoryKeyFromText(
-    `${draft.title} ${draft.brand} ${draft.category} ${Object.values(draft.specs || {}).join(" ")}`,
-  );
+  // اول با عنوان/برند/دسته تصمیم می‌گیریم؛ مشخصات فنی لپ‌تاپ‌ها عبارت‌هایی مثل
+  // «پردازنده» و «کارت گرافیک» دارد و اگر از ابتدا وارد شود، لپ‌تاپ را قطعه می‌کند.
+  const titleText = `${draft.title} ${draft.brand} ${draft.category}`;
+  const primary = productCategoryKeyFromText(titleText);
+  if (primary !== "unknown" && primary !== "gaming") return primary;
+  const specsText = Object.values(draft.specs || {}).join(" ");
+  if (!specsText.trim()) return primary;
+  const withSpecs = productCategoryKeyFromText(`${titleText} ${specsText}`);
+  if (primary === "unknown") return withSpecs;
+  // فقط وقتی عنوان چیزی جز «گیمینگ» نمی‌گوید و مشخصات، قطعیت قطعه را ثابت می‌کند
+  // (مثل «کارت گرافیک RTX 4060» یا «چیپست B760») از مشخصات کمک می‌گیریم.
+  if (withSpecs === "components" || withSpecs === "storage") return withSpecs;
+  return primary;
 }
 
 export function productMatchesImportCategories(
