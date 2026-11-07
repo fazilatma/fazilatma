@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CART_KEY } from "@/components/StoreAddToCartButton";
 import OptiBidLogo from "@/components/OptiBidLogo";
@@ -185,16 +185,70 @@ function storeLaptopHref(label: string) {
 
 
 function StoreTopNavItem({ menu }: { menu: StoreTopNavMenu }) {
+  // باز و بسته شدن با تایمر انجام می‌شود؛ قبلاً باز شدن فقط با hover خالص CSS بود
+  // و فاصلهٔ چند پیکسلی بین عنوان منو و خودِ پنل باعث می‌شد با حرکت ماوس به سمت
+  // پایین، منو بسته شود و کاربر نتواند روی آیتم‌ها کلیک کند.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const openMenu = () => {
+    cancelClose();
+    setMenuOpen(true);
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setMenuOpen(false), 250);
+  };
+  const closeNow = () => {
+    cancelClose();
+    setMenuOpen(false);
+  };
+
+  useEffect(() => cancelClose, []);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
   return (
-    <div className="group relative py-5">
+    <div
+      className="group relative flex h-16 items-center"
+      onMouseEnter={openMenu}
+      onMouseLeave={scheduleClose}
+      onFocus={openMenu}
+      onBlur={scheduleClose}
+    >
       <Link
         href={menu.href}
         className="flex items-center gap-1 text-sm font-bold text-gray-700 transition hover:text-rose-600"
       >
         {menu.title}
-        <span className="text-xs text-gray-400 transition group-hover:rotate-180">⌄</span>
+        <span
+          className={`text-xs text-gray-400 transition ${menuOpen ? "rotate-180" : ""}`}
+        >
+          ⌄
+        </span>
       </Link>
-      <div className="invisible fixed left-1/2 top-16 z-50 w-[min(78rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-b-[2rem] border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+      <div
+        onMouseEnter={openMenu}
+        onMouseLeave={scheduleClose}
+        onClick={closeNow}
+        className={`fixed left-1/2 top-16 z-50 w-[min(78rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-b-[2rem] border border-gray-100 bg-white text-right shadow-2xl transition ${
+          menuOpen
+            ? "visible opacity-100"
+            : "pointer-events-none invisible opacity-0"
+        }`}
+      >
         <div className="grid min-h-[360px] grid-cols-12">
           <div className="col-span-3 border-l border-gray-100 bg-gray-50 p-4">
             <Link
