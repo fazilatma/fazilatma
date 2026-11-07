@@ -695,7 +695,7 @@ export default async function ShopPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pt-7 sm:px-6 lg:px-8">
+      <section id="brand-search" className="mx-auto max-w-7xl px-4 pt-7 sm:px-6 lg:px-8">
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
           {quickCategoryItems.map((item) => {
             const itemBrand = "brand" in item ? item.brand : undefined;
@@ -766,7 +766,7 @@ export default async function ShopPage({
           subtitle="برای نمایش فیلترهای کامل، این منو را لمس کنید"
         />
 
-        <main className="min-w-0 flex-1">
+        <main id="all-laptops" className="min-w-0 flex-1 scroll-mt-24">
           <div className="mb-5 flex flex-col gap-3 rounded-[1.5rem] bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-black text-slate-900">
