@@ -28,10 +28,12 @@ export function isComputerPartsCatalogProduct(
 ) {
   const text = productText(product);
   const key = productImportCategoryKey(product);
-  const explicitComputerPart = /قطعات کامپیوتر|پردازنده|\bcpu\b|کارت گرافیک|\bgpu\b|مادربرد|\bram\b|حافظه رم|رم کامپیوتر|رم دسکتاپ|ماژول رم|\bssd\b|اس\s*اس\s*دی|\bnvme\b|هارد(?:دیسک)?\s*(?:اینترنال|اکسترنال)|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک.?کننده پردازنده|فن کیس|خمیر سیلیکون/.test(text);
-  // وجود عباراتی مثل «مناسب لپ‌تاپ» در مشخصات RAM/SSD نباید قطعه را لپ‌تاپ حساب کند.
-  if (explicitComputerPart) return true;
+  // اگر کالا واقعاً یک لپ‌تاپ است، نباید در دستهٔ قطعات بیاید (حتی اگر در عنوانش
+  // از هارد/SSD/پردازنده حرف زده باشد). رم و هاردی که با «رم لپ‌تاپ» یا
+  // «مخصوص لپ‌تاپ» شروع می‌شوند در isLaptopCatalogProduct رد می‌شوند.
   if (isLaptopCatalogProduct(product)) return false;
+  const explicitComputerPart = /قطعات کامپیوتر|پردازنده|\bcpu\b|کارت گرافیک|\bgpu\b|مادربرد|\bram\b|حافظه رم|رم کامپیوتر|رم دسکتاپ|ماژول رم|\bssd\b|اس\s*اس\s*دی|\bnvme\b|هارد(?:دیسک)?\s*(?:اینترنال|اکسترنال)|پاور کامپیوتر|منبع تغذیه|کیس کامپیوتر|خنک.?کننده پردازنده|فن کیس|خمیر سیلیکون/.test(text);
+  if (explicitComputerPart) return true;
   return key === "components" || key === "storage";
 }
 

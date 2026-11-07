@@ -367,12 +367,22 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey | "
   // فهرست صریح است تا کد مدل لپ‌تاپ‌هایی مثل A515/A715 با چیپست اشتباه نشود.
   const motherboardChipset =
     /\b(?:h110|b150|b250|z270|h310|b360|b365|z370|z390|h410|b460|h470|z490|h510|b560|h570|z590|h610|b660|b760|z690|z790|x470|b450|x570|b550|x670|b650|a520|a620|x870|b840|z890|trx40|x299|w680|w790)\b/.test(lower);
-  const partFirst = (strongComputerPart || motherboardChipset) && !explicitLaptopWord;
+  // «قطعهٔ قطعی» حتی اگر واژهٔ لپ‌تاپ هم در متن باشد باز قطعه است؛ چون عنوان
+  // قطعات زیاد می‌نویسد «مخصوص لپ‌تاپ» یا «رم لپ‌تاپ». قبلاً همین «لپ‌تاپ» باعث
+  // می‌شد رم و هارددیسک داخل دستهٔ لپ‌تاپ نمایش داده شوند.
+  const definitePart =
+    /مادربرد|motherboard|mainboard|کارت گرافیک|graphics card|video card|رم دسکتاپ|رم لپ ?تاپ|رم کامپیوتر|حافظه رم|ماژول رم|ram module|memory module|منبع تغذیه|پاور کامپیوتر|power supply|کیس کامپیوتر|computer case|خمیر سیلیکون|هیتسینک|فن کیس|کارت صدا/.test(lower);
+  const partFirst =
+    definitePart || ((strongComputerPart || motherboardChipset) && !explicitLaptopWord);
 
   const isLaptop = !partFirst && (explicitLaptopWord || textMatchesLaptop(lower));
   if (isLaptop && /gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (isLaptop) return "laptop";
-  if (partFirst) return "components";
+  if (partFirst) {
+    // حافظه و ذخیره‌سازی در ویترین، دستهٔ جدا دارد.
+    if (/\bssd\b|\bhdd\b|\bnvme\b|هارد|حافظه\s*(?:اس\s?اس\s?دی|ssd|داخلی)|فلش|مموری|memory card/.test(lower)) return "storage";
+    return "components";
+  }
   if (/server|سرور/.test(lower)) return "server";
   if (/monitor|مانیتور|display/.test(lower)) return "monitor";
   if (/printer|پرینتر|چاپگر|scanner|اسکنر|کارتریج|تونر/.test(lower)) return "printer";
@@ -1021,6 +1031,25 @@ export function normalizeProductImportCategories(value: unknown): ProductImportC
 export function productImportCategoryKey(draft: Pick<ImportedStoreProductDraft, "title" | "brand" | "category" | "specs">) {
   // اول با عنوان/برند/دسته تصمیم می‌گیریم؛ مشخصات فنی لپ‌تاپ‌ها عبارت‌هایی مثل
   // «پردازنده» و «کارت گرافیک» دارد و اگر از ابتدا وارد شود، لپ‌تاپ را قطعه می‌کند.
+  // اگر عنوان کالا با اسم قطعه شروع شود، همان قطعه است — حتی اگر در ادامه
+  // نوشته شده باشد «مخصوص لپ‌تاپ» (مثل «هارددیسک اینترنال مخصوص لپ‌تاپ» یا
+  // «رم لپ‌تاپ DDR4»). لپ‌تاپ‌ها با «لپ‌تاپ/نوتبوک/مک‌بوک» یا نام سری شروع می‌شوند.
+  const titleLead = String(draft.title || "")
+    .toLowerCase()
+    .replace(/[\u200c\s]+/g, " ")
+    .trim();
+  const partLead = /^(?:رم|ماژول|حافظه|هارد|هارددیسک|هارد دیسک|اس\s?اس\s?دی|ssd|nvme|کارت گرافیک|کارت گرافيک|گرافیک|مادربرد|پردازنده|پاور|منبع تغذیه|کیس|فن|خنک|cooler|ram\b|ddr)/.test(titleLead);
+  const laptopLead = /^(?:لپ|نوت|lap|macbook|مک ?بوک|thinkpad|ideapad|elitebook|probook|vivobook|zenbook|victus|legion|nitro|aspire|latitude|inspiron|xps|aorus|tuf|rog)/.test(titleLead);
+  if (
+    /^(?:باتری|شارژر|آداپتور|کیبورد|ماوس|موس|پد ماوس|کول ?پد|فن لپ ?تاپ|کوله|کیف)/.test(titleLead) &&
+    !laptopLead
+  ) {
+    return "accessories";
+  }
+  if (partLead && !laptopLead) {
+    if (/هارد|اس\s?اس\s?دی|ssd|nvme|حافظه\s*(?:داخلی|اس\s?اس\s?دی)|فلش|مموری/.test(titleLead)) return "storage";
+    return "components";
+  }
   const titleText = `${draft.title} ${draft.brand} ${draft.category}`;
   const primary = productCategoryKeyFromText(titleText);
   if (primary !== "unknown" && primary !== "gaming") return primary;
