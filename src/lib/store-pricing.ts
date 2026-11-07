@@ -83,14 +83,32 @@ export function isSuspiciousStoreProductPrice(product: StorePriceSanityProduct) 
     .toLowerCase()
     .replace(/[‌\s]+/g, " ");
 
+  // «سیستم کامل» (لپ‌تاپ، کامپیوتر آماده، آل‌این‌وان، مینی‌پی‌سی) قیمتش شامل صفحه‌نمایش،
+  // باتری، کارت گرافیک و بدنه است و با سقف قیمت «قطعهٔ CPU» قابل مقایسه نیست؛ وگرنه
+  // لپ‌تاپ‌های واقعی و گران به‌اشتباه «قیمت مشکوک» و از فروشگاه پنهان می‌شدند.
+  const assembledDevice = new RegExp(
+    [
+      "لپ ?تاپ", "laptop", "notebook", "ultrabook", "chromebook", "macbook",
+      "thinkpad", "thinkbook", "ideapad", "legion", "yoga", "vivobook", "zenbook",
+      "expertbook", "latitude", "inspiron", "vostro", "alienware", "elitebook",
+      "probook", "pavilion", "envy", "victus", "omen", "zbook", "spectre", "aspire",
+      "nitro", "predator", "swift", "travelmate", "matebook", "surface ?laptop",
+      "galaxy ?book", "lg ?gram", "aorus", "razer ?blade",
+      "کامپیوتر آماده", "آل ?این ?وان", "all ?in ?one", "desktop computer",
+      "mini ?pc", "مینی ?پی ?سی",
+    ].join("|"),
+  ).test(text);
+
   // این کف‌ها فقط برای تشخیص خطاهای واضحِ واحد/ستون قیمت هستند؛ نمونه‌های واقعیِ خراب
   // ۱۲۰، ۳۱۰ و ۵۱۰ هزار تومانی CPU نباید در کارت یا سبد خرید نمایش داده شوند.
   const modernCpu = /(?:core\s*)?i[3579]\s*-?\s*\d{4,5}[a-z]{0,3}|ryzen\s*[3579]\s*-?\s*\d{4}[a-z0-9]*/i.test(text);
   if (modernCpu && price < 3_000_000) return true;
-  if (/core\s*i3|\bi3\s*-?\s*\d{4,5}/.test(text) && price > 80_000_000) return true;
-  if (/core\s*i5|\bi5\s*-?\s*\d{4,5}/.test(text) && price > 120_000_000) return true;
-  if (/core\s*i7|\bi7\s*-?\s*\d{4,5}/.test(text) && price > 150_000_000) return true;
-  if (/core\s*i9|\bi9\s*-?\s*\d{4,5}/.test(text) && price > 250_000_000) return true;
+  if (!assembledDevice) {
+    if (/core\s*i3|\bi3\s*-?\s*\d{4,5}/.test(text) && price > 80_000_000) return true;
+    if (/core\s*i5|\bi5\s*-?\s*\d{4,5}/.test(text) && price > 120_000_000) return true;
+    if (/core\s*i7|\bi7\s*-?\s*\d{4,5}/.test(text) && price > 150_000_000) return true;
+    if (/core\s*i9|\bi9\s*-?\s*\d{4,5}/.test(text) && price > 250_000_000) return true;
+  }
   const gpuAccessory = /پایه\s*(?:نگهدارنده)?\s*کارت\s*گرافیک|نگهدارنده\s*کارت\s*گرافیک|gpu\s*(?:support|holder|brace)/i.test(text);
   if (!gpuAccessory && /کارت گرافیک|\bgpu\b|\brtx\s*\d|\bgtx\s*\d|radeon\s+rx/.test(text) && price < 3_000_000) return true;
   if (/مادربرد|motherboard/.test(text) && price < 1_500_000) return true;

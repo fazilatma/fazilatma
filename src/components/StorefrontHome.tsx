@@ -366,11 +366,11 @@ export default function StorefrontHome({
 
 
 const brandCircleItems = [
-  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?brand=Asus&ref=brand-asus", color: "from-indigo-500 to-fuchsia-500" },
-  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?brand=Lenovo&ref=brand-lenovo", color: "from-red-500 to-slate-800" },
-  { title: "HP", subtitle: "EliteBook", href: "/shop?brand=HP&ref=brand-hp", color: "from-sky-500 to-blue-700" },
-  { title: "Dell", subtitle: "Latitude", href: "/shop?brand=Dell&ref=brand-dell", color: "from-cyan-500 to-slate-700" },
-  { title: "Apple", subtitle: "MacBook", href: "/shop?brand=Apple&ref=brand-apple", color: "from-slate-500 to-slate-900" },
+  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?category=laptop&brand=Asus&ref=brand-asus", color: "from-indigo-500 to-fuchsia-500" },
+  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?category=laptop&brand=Lenovo&ref=brand-lenovo", color: "from-red-500 to-slate-800" },
+  { title: "HP", subtitle: "EliteBook", href: "/shop?category=laptop&brand=HP&ref=brand-hp", color: "from-sky-500 to-blue-700" },
+  { title: "Dell", subtitle: "Latitude", href: "/shop?category=laptop&brand=Dell&ref=brand-dell", color: "from-cyan-500 to-slate-700" },
+  { title: "Apple", subtitle: "MacBook", href: "/shop?category=laptop&brand=Apple&ref=brand-apple", color: "from-slate-500 to-slate-900" },
   { title: "RTX", subtitle: "گیمینگ", href: "/shop?gpuType=rtx&ref=rtx", color: "from-rose-500 to-orange-500" },
   { title: "SSD", subtitle: "سرعت بالا", href: "/shop?ssd=512GB&ref=ssd", color: "from-emerald-500 to-teal-700" },
   { title: "i7", subtitle: "حرفه‌ای", href: "/shop?cpu=i7&ref=cpu-i7", color: "from-violet-500 to-[#003b5c]" },

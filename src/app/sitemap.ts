@@ -20,11 +20,11 @@ function entry(
 }
 
 const strategicShopUrls = [
-  { path: "/shop?brand=Lenovo", priority: 0.78 },
-  { path: "/shop?brand=HP", priority: 0.78 },
-  { path: "/shop?brand=Dell", priority: 0.78 },
-  { path: "/shop?brand=Asus", priority: 0.78 },
-  { path: "/shop?brand=Apple", priority: 0.76 },
+  { path: "/shop?category=laptop&brand=Lenovo", priority: 0.78 },
+  { path: "/shop?category=laptop&brand=HP", priority: 0.78 },
+  { path: "/shop?category=laptop&brand=Dell", priority: 0.78 },
+  { path: "/shop?category=laptop&brand=Asus", priority: 0.78 },
+  { path: "/shop?category=laptop&brand=Apple", priority: 0.76 },
   { path: "/shop?condition=stock", priority: 0.8 },
   { path: "/shop?condition=used", priority: 0.74 },
   { path: "/shop?use=business", priority: 0.82 },

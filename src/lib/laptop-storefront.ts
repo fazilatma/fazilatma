@@ -42,11 +42,11 @@ export type LaptopCollectionItem = {
 };
 
 export const laptopCategoryItems: LaptopCategoryItem[] = [
-  { title: "لپ‌تاپ لنوو", href: "/shop?brand=Lenovo", badge: "Lenovo", brand: "Lenovo" },
-  { title: "لپ‌تاپ اچ‌پی", href: "/shop?brand=HP", badge: "HP", brand: "HP" },
-  { title: "لپ‌تاپ دل", href: "/shop?brand=Dell", badge: "Dell", brand: "Dell" },
-  { title: "لپ‌تاپ ایسوس", href: "/shop?brand=Asus", badge: "Asus", brand: "Asus" },
-  { title: "مک‌بوک اپل", href: "/shop?brand=Apple", badge: "Apple", brand: "Apple" },
+  { title: "لپ‌تاپ لنوو", href: "/shop?category=laptop&brand=Lenovo", badge: "Lenovo", brand: "Lenovo" },
+  { title: "لپ‌تاپ اچ‌پی", href: "/shop?category=laptop&brand=HP", badge: "HP", brand: "HP" },
+  { title: "لپ‌تاپ دل", href: "/shop?category=laptop&brand=Dell", badge: "Dell", brand: "Dell" },
+  { title: "لپ‌تاپ ایسوس", href: "/shop?category=laptop&brand=Asus", badge: "Asus", brand: "Asus" },
+  { title: "مک‌بوک اپل", href: "/shop?category=laptop&brand=Apple", badge: "Apple", brand: "Apple" },
   { title: "لپ‌تاپ استوک", href: "/shop?condition=stock", badge: "Stock" },
   { title: "لپ‌تاپ کارکرده تمیز", href: "/shop?condition=used", badge: "Clean" },
   { title: "لپ‌تاپ سبک", href: "/shop?use=student&display=14", badge: "Light" },

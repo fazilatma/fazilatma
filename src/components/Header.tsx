@@ -168,11 +168,11 @@ function storeLaptopHref(label: string) {
   if (text.includes("خنک") || text.includes("فن کیس") || text.includes("خمیر سیلیکون")) return withFragment(`${partsBase}&part=cooler`);
   if (text === "کیس" || text.includes("کیس کامپیوتر")) return withFragment(`${partsBase}&part=case`);
   if (text.includes("قطعات")) return withFragment(partsBase);
-  if (text.includes("لنوو") || text.includes("thinkpad") || text.includes("legion")) return withFragment("/shop?brand=Lenovo");
-  if (text.includes("اچ") || text.includes("hp") || text.includes("elitebook")) return withFragment("/shop?brand=HP");
-  if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return withFragment("/shop?brand=Dell");
-  if (text.includes("ایسوس") || text.includes("asus") || text.includes("tuf")) return withFragment("/shop?brand=Asus");
-  if (text.includes("اپل") || text.includes("مک") || text.includes("apple") || text.includes("m1")) return withFragment("/shop?brand=Apple");
+  if (text.includes("لنوو") || text.includes("thinkpad") || text.includes("legion")) return withFragment("/shop?category=laptop&brand=Lenovo");
+  if (text.includes("اچ") || text.includes("hp") || text.includes("elitebook")) return withFragment("/shop?category=laptop&brand=HP");
+  if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return withFragment("/shop?category=laptop&brand=Dell");
+  if (text.includes("ایسوس") || text.includes("asus") || text.includes("tuf")) return withFragment("/shop?category=laptop&brand=Asus");
+  if (text.includes("اپل") || text.includes("مک") || text.includes("apple") || text.includes("m1")) return withFragment("/shop?category=laptop&brand=Apple");
   if (text.includes("استوک")) return withFragment("/shop?condition=stock");
   if (text.includes("کارکرده")) return withFragment("/shop?condition=used");
   if (text.includes("نو")) return withFragment("/shop?condition=new");

@@ -249,6 +249,10 @@ function productFilterTags(product: JsonStoreProduct) {
   return tags;
 }
 
+// برندهایی که در فروشگاه عمدتاً با لپ‌تاپ شناخته می‌شوند؛ برای آدرس‌های قدیمی
+// بدون دسته (مثل /shop?brand=HP) پیش‌فرض «لپ‌تاپ» در نظر گرفته می‌شود.
+const laptopBrandDefaults = new Set(["hp", "lenovo", "dell", "asus", "apple", "msi", "acer", "microsoft"]);
+
 function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const text = lowerSearchText(product);
   const brand = getParam(params, "brand");
@@ -256,7 +260,20 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const minPrice = Number(getParam(params, "minPrice") || 0);
   const maxPrice = Number(getParam(params, "maxPrice") || 0);
   const tags = productFilterTags(product);
-  const catalogCategory = getParam(params, "category");
+  // لینک‌های برند در منو و کارت‌های صفحهٔ اصلی، لپ‌تاپی هستند. اگر آدرس قدیمی
+  // بدون «category» باشد (مثل /shop?brand=HP)، پیش‌فرض را لپ‌تاپ می‌گیریم تا
+  // به‌جای هارد و رم و مینی‌کیس همان برند، فقط لپ‌تاپ‌های آن برند نمایش داده شود.
+  // با پارامتر all=1 این پیش‌فرض غیرفعال می‌شود (برای دیدن همهٔ محصولات برند).
+  const requestedCategory = getParam(params, "category");
+  const catalogCategory = requestedCategory
+    ? requestedCategory
+    : getParam(params, "all") !== "1" &&
+        laptopBrandDefaults.has(String(brand || "").trim().toLowerCase()) &&
+        !getParam(params, "part") &&
+        !getParam(params, "partGroup") &&
+        !getParam(params, "q")
+      ? "laptop"
+      : "";
   const part = getParam(params, "part").toLowerCase();
   const partGroup = getParam(params, "partGroup").toLowerCase();
   const searchQuery = getParam(params, "q").slice(0, 120);
@@ -517,6 +534,15 @@ export default async function ShopPage({
     (product) => matchesFilter(product, params) && !isSuspiciousStoreProductPrice(product),
   );
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
+  const brandParam = getParam(params, "brand").trim();
+  const laptopBrandDefaultActive =
+    !getParam(params, "category") &&
+    getParam(params, "all") !== "1" &&
+    Boolean(brandParam) &&
+    laptopBrandDefaults.has(brandParam.toLowerCase()) &&
+    !getParam(params, "part") &&
+    !getParam(params, "partGroup") &&
+    !searchQuery;
   const pageSize = 60;
   const requestedPage = Math.max(1, Math.floor(Number(getParam(params, "page") || 1)));
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
@@ -738,13 +764,31 @@ export default async function ShopPage({
           </div>
           {filteredProducts.length === 0 ? (
             <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-              {searchQuery ? `کالایی برای «${searchQuery}» پیدا نشد.` : "کالایی با این فیلتر پیدا نشد."}
-              <Link
-                href={searchQuery ? buildHref(params, "q", "") : "/shop"}
-                className="mt-4 block font-black text-rose-600"
-              >
-                {searchQuery ? "پاک کردن جستجو و نمایش کالاها" : "حذف فیلترها و مشاهده همه کالاها"}
-              </Link>
+              {laptopBrandDefaultActive
+                ? `در حال حاضر لپ‌تاپی از برند «${brandParam}» موجود نیست.`
+                : searchQuery
+                  ? `کالایی برای «${searchQuery}» پیدا نشد.`
+                  : "کالایی با این فیلتر پیدا نشد."}
+              {laptopBrandDefaultActive ? (
+                <div className="mt-4 flex flex-col items-center gap-3">
+                  <Link
+                    href={`/shop?brand=${encodeURIComponent(brandParam)}&all=1`}
+                    className="font-black text-rose-600"
+                  >
+                    مشاهدهٔ همهٔ محصولات برند {brandParam} (شامل قطعات)
+                  </Link>
+                  <Link href="/shop?category=laptop" className="font-black text-slate-700">
+                    مشاهدهٔ همهٔ لپ‌تاپ‌ها
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  href={searchQuery ? buildHref(params, "q", "") : "/shop"}
+                  className="mt-4 block font-black text-rose-600"
+                >
+                  {searchQuery ? "پاک کردن جستجو و نمایش کالاها" : "حذف فیلترها و مشاهده همه کالاها"}
+                </Link>
+              )}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
