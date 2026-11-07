@@ -494,7 +494,7 @@ export default function AdminDashboardClient({
   const [clearingStoreProducts, setClearingStoreProducts] = useState(false);
   // به‌روزرسانی قیمت به تفکیک هر لینک: وضعیت اجرای هر باکس.
   const [sourceRefreshState, setSourceRefreshState] = useState<
-    Record<string, { running: boolean; message: string }>
+    Record<string, { running: boolean; message: string; mode?: "refresh" | "extract" }>
   >({});
   const [savingReverseAuctionPilot, setSavingReverseAuctionPilot] = useState(false);
   const [enamadLogoFile, setEnamadLogoFile] = useState<File | null>(null);
@@ -1172,12 +1172,21 @@ export default function AdminDashboardClient({
     setProductImportMessage("لینک مرجع قطعات در فرم قرار گرفت؛ اکنون «اسکن و پیش‌نمایش» را بزنید.");
   };
 
-  const importComputerPartsFromSource = async () => {
-    const sourceEntries = computerPartSources
+  const importComputerPartsFromSource = async (onlySourceId?: string) => {
+    const allSourceEntries = computerPartSources
       .map((entry) => ({ ...entry, url: entry.url.trim() }))
       .filter((entry) => entry.url && entry.parts.length > 0)
       .slice(0, 8);
-    const sourceText = serializeComputerPartSourceEntries(sourceEntries);
+    // استخراج تک‌لینکی فقط همان باکس را می‌خواند، اما تنظیمات ذخیره‌شده باید
+    // همهٔ باکس‌ها را نگه دارد تا بقیهٔ لینک‌ها پاک نشوند.
+    const sourceEntries = onlySourceId
+      ? allSourceEntries.filter((entry) => entry.id === onlySourceId)
+      : allSourceEntries;
+    const sourceText = serializeComputerPartSourceEntries(allSourceEntries);
+    if (onlySourceId && sourceEntries.length === 0) {
+      alert("برای این لینک، آدرس معتبر و حداقل یک گروه محصول انتخاب کنید.");
+      return;
+    }
     if (!sourceEntries.length) {
       alert("حداقل یک لینک معتبر و یک نوع محصول برای آن انتخاب کنید.");
       return;
@@ -1192,6 +1201,9 @@ export default function AdminDashboardClient({
     }
     setImportingComputerParts(true);
     setProductImportMessage("");
+    if (onlySourceId) {
+      setSourceRefresh(onlySourceId, { running: true, mode: "extract", message: "در حال استخراج قیمت از این لینک..." });
+    }
     try {
       await fetch("/api/admin/finance", {
         method: "PATCH",
@@ -1235,9 +1247,14 @@ export default function AdminDashboardClient({
           maxProducts: sourceLimit,
           maxPagesPerCategory: 45,
           concurrency: 3,
-          onProgress: (progress) => setProductImportMessage(
-            `لینک ${(sourceIndex + 1).toLocaleString("fa-IR")}: ${progress.message}`,
-          ),
+          onProgress: (progress) => {
+            setProductImportMessage(
+              `لینک ${(sourceIndex + 1).toLocaleString("fa-IR")}: ${progress.message}`,
+            );
+            if (onlySourceId) {
+              setSourceRefresh(onlySourceId, { running: true, mode: "extract", message: progress.message });
+            }
+          },
         });
         warnings.push(...scan.warnings.map((warning) => `لینک ${sourceIndex + 1}: ${warning}`));
         if (scan.products.length === 0) {
@@ -1315,10 +1332,12 @@ export default function AdminDashboardClient({
         : "";
       const message = `${scanText}${created.toLocaleString("fa-IR")} محصول اضافه، ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی و ${skipped.toLocaleString("fa-IR")} مورد تکراری/نامعتبر حذف شد. اکنون ${activeStoreProducts.toLocaleString("fa-IR")} محصول فعال در فروشگاه وجود دارد.`;
       setProductImportMessage(message);
+      if (onlySourceId) setSourceRefresh(onlySourceId, { running: false, mode: "extract", message });
       alert(message);
     } catch (error) {
       const message = error instanceof Error ? error.message : "درون‌ریزی قطعات کامپیوتر ناموفق بود.";
       setProductImportMessage(message);
+      if (onlySourceId) setSourceRefresh(onlySourceId, { running: false, mode: "extract", message });
       alert(message);
     } finally {
       setImportingComputerParts(false);
@@ -1374,10 +1393,10 @@ export default function AdminDashboardClient({
 
   const setSourceRefresh = (
     sourceId: string,
-    patch: Partial<{ running: boolean; message: string }>,
+    patch: Partial<{ running: boolean; message: string; mode: "refresh" | "extract" }>,
   ) => {
     setSourceRefreshState((current) => {
-      const previous = current[sourceId] ?? { running: false, message: "" };
+      const previous = current[sourceId] ?? { running: false, message: "", mode: "refresh" as const };
       return { ...current, [sourceId]: { ...previous, ...patch } };
     });
   };
@@ -1398,7 +1417,7 @@ export default function AdminDashboardClient({
       return;
     }
     const limit = Math.max(1, Math.min(defaultSourceLimit, Number(source.limit) || defaultSourceLimit));
-    setSourceRefresh(source.id, { running: true, message: "در حال بررسی قیمت محصولات این لینک..." });
+    setSourceRefresh(source.id, { running: true, mode: "refresh", message: "در حال بررسی قیمت محصولات این لینک..." });
     try {
       let checked = 0;
       let cursor = 0;
@@ -1423,8 +1442,7 @@ export default function AdminDashboardClient({
             sourceUrl,
           }),
         });
-        const result = await response.json();
-        if (!result.success) throw new Error(result.message || "به‌روزرسانی قیمت این لینک ناموفق بود.");
+        const result = await readJsonResponse(response, "به‌روزرسانی قیمت این لینک ناموفق بود.");
         const batchChecked = Number(result.totalChecked || 0);
         totalProducts = Number(result.totalProducts || totalProducts);
         checked += batchChecked;
@@ -3328,16 +3346,30 @@ export default function AdminDashboardClient({
                                     );
                                   })}
                                 </div>
-                                <button
-                                  type="button"
-                                  disabled={Boolean(sourceRefreshState[source.id]?.running)}
-                                  onClick={() => refreshSourcePrices(source)}
-                                  className="rounded-xl bg-emerald-600 px-4 py-2 text-[11px] font-black text-white transition hover:bg-emerald-700 disabled:bg-slate-300"
-                                >
-                                  {sourceRefreshState[source.id]?.running
-                                    ? "در حال به‌روزرسانی..."
-                                    : "به‌روزرسانی قیمت این لینک"}
-                                </button>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(sourceRefreshState[source.id]?.running) || importingComputerParts}
+                                    onClick={() => importComputerPartsFromSource(source.id)}
+                                    className="rounded-xl bg-cyan-700 px-4 py-2 text-[11px] font-black text-white transition hover:bg-cyan-800 disabled:bg-slate-300"
+                                  >
+                                    {sourceRefreshState[source.id]?.running &&
+                                    sourceRefreshState[source.id]?.mode === "extract"
+                                      ? "در حال استخراج قیمت..."
+                                      : "استخراج قیمت این لینک"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(sourceRefreshState[source.id]?.running) || importingComputerParts}
+                                    onClick={() => refreshSourcePrices(source)}
+                                    className="rounded-xl bg-emerald-600 px-4 py-2 text-[11px] font-black text-white transition hover:bg-emerald-700 disabled:bg-slate-300"
+                                  >
+                                    {sourceRefreshState[source.id]?.running &&
+                                    sourceRefreshState[source.id]?.mode !== "extract"
+                                      ? "در حال به‌روزرسانی..."
+                                      : "به‌روزرسانی قیمت این لینک"}
+                                  </button>
+                                </div>
                               </div>
                               {sourceRefreshState[source.id]?.message && (
                                 <div className="mt-2 rounded-xl bg-white p-2 text-[11px] font-bold leading-5 text-emerald-800">
@@ -3361,7 +3393,7 @@ export default function AdminDashboardClient({
                       <button
                         type="button"
                         disabled={importingComputerParts}
-                        onClick={importComputerPartsFromSource}
+                        onClick={() => importComputerPartsFromSource()}
                         className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:bg-slate-300"
                       >
                         {importingComputerParts ? "ربات در حال دریافت قطعات..." : "دریافت و ذخیره مستقیم قطعات از این لینک"}
