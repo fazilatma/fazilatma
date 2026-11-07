@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
 import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
@@ -10,10 +11,12 @@ import {
   filterProductsByCatalogSections,
   isComputerPartsCatalogProduct,
   isLaptopCatalogProduct,
+  looksLikeLaptopProduct,
   matchesStoreCatalogCategory,
 } from "@/lib/store-catalog-sections";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
+import { productImportCategoryKey } from "@/lib/store-product-import";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
 import { applyStorePriceOverrides, getStorePriceOverrides } from "@/lib/store-price-overrides";
@@ -575,6 +578,30 @@ export default async function ShopPage({
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
   const brandParam = getParam(params, "brand").trim();
   const laptopDefaultActive = wantsLaptopCatalog(params);
+  // گزارش کوتاه مخصوص ادمین: چند کالا از کلِ کاتالوگ لپ‌تاپ‌اند و چند کالای
+  // «شبیه لپ‌تاپ» بیرون از دسته مانده است. برای دیدن جزئیات هر کالا:
+  // /admin/diagnostics/laptop-catalog
+  const isAdminViewer = (await cookies()).get("optibid_admin")?.value === "1";
+  let laptopDiagnostics: {
+    total: number;
+    laptops: number;
+    missed: { title: string; key: string }[];
+  } | null = null;
+  const effectiveCatalogCategory =
+    getParam(params, "category") || (laptopDefaultActive ? "laptop" : "");
+  if (isAdminViewer && effectiveCatalogCategory === "laptop") {
+    const allStored = data.storeProducts;
+    const laptopCount = allStored.filter((product) => isLaptopCatalogProduct(product)).length;
+    const missedItems = allStored
+      .filter((product) => looksLikeLaptopProduct(product) && !isLaptopCatalogProduct(product))
+      .slice(0, 5)
+      .map((product) => ({ title: product.title, key: productImportCategoryKey(product) }));
+    laptopDiagnostics = {
+      total: allStored.length,
+      laptops: laptopCount,
+      missed: missedItems,
+    };
+  }
   const pageSize = 60;
   const requestedPage = Math.max(1, Math.floor(Number(getParam(params, "page") || 1)));
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
@@ -767,6 +794,32 @@ export default async function ShopPage({
         />
 
         <main id="all-laptops" className="min-w-0 flex-1 scroll-mt-24">
+          {laptopDiagnostics && (
+            <div className="mb-4 rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-900">
+              <div className="font-black">
+                گزارش ادمین: {laptopDiagnostics.laptops.toLocaleString("fa-IR")} لپ‌تاپ شناسایی‌شده از{" "}
+                {laptopDiagnostics.total.toLocaleString("fa-IR")} کالای ذخیره‌شده —{" "}
+                {laptopDiagnostics.missed.length > 0
+                  ? `${laptopDiagnostics.missed.length.toLocaleString("fa-IR")} نمونه از کالاهای شبیه لپ‌تاپ که داخل دسته نیستند:`
+                  : "همهٔ کالاهای شبیه لپ‌تاپ داخل دسته هستند."}
+              </div>
+              {laptopDiagnostics.missed.length > 0 && (
+                <ul className="mt-2 list-disc space-y-1 pr-5">
+                  {laptopDiagnostics.missed.map((item) => (
+                    <li key={item.title}>
+                      {item.title} <span className="text-amber-700">[{item.key}]</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link
+                href="/admin/diagnostics/laptop-catalog"
+                className="mt-2 inline-flex rounded-xl bg-amber-600 px-3 py-1.5 font-bold text-white"
+              >
+                گزارش کامل
+              </Link>
+            </div>
+          )}
           <div className="mb-5 flex flex-col gap-3 rounded-[1.5rem] bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-black text-slate-900">

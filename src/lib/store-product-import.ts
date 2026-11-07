@@ -333,8 +333,10 @@ function brandFromTitle(title: string, fallback = "OptiBid") {
 
 function textMatchesLaptop(lower: string) {
   const explicitLaptopWords = /laptop|notebook|ultrabook|chromebook|macbook|لپ\s?تاپ|لپ‌تاپ|لپتاپ|نوت\s?بوک|نوت‌بوک|اولترابوک|الترابوک|کروم\s?بوک|مک\s?بوک/.test(lower);
-  const laptopSeries = /thinkpad|thinkbook|ideapad|legion|lenovo\s*loq|yoga|vivobook|zenbook|expertbook|proart|asus\s*tuf|rog\s*(strix|zephyrus|flow)?|latitude|inspiron|vostro|xps\s*\d|precision|alienware|elitebook|probook|pavilion|envy|victus|omen|zbook|spectre|aspire|nitro|predator|swift|travelmate|msi\s*(modern|cyborg|katana|thin|pulse|vector|raider|stealth|prestige|summit|bravo|creator|venturepro)|modern\s*\d|cyborg\s*\d|katana\s*\d|venturepro\s*\d|matebook|surface\s*laptop|galaxy\s*book|lg\s*gram|aorus|gigabyte\s*(g5|g6|aero)|razer\s*blade/.test(lower);
-  const laptopScreenSize = /(?:11\.6|12\.5|13(?:\.3|\.4|\.5)?|14(?:\.0)?|15(?:\.6)?|16(?:\.0)?|17(?:\.3)?|18(?:\.0)?)\s*(?:inch|اینچ|اینچی)/.test(lower);
+  const laptopSeries = /thinkpad|thinkbook|ideapad|legion|lenovo\s*loq|yoga|vivobook|zenbook|expertbook|proart|asus\s*tuf|rog\s*(strix|zephyrus|flow)?|latitude|inspiron|vostro|xps\s*\d|precision|alienware|elitebook|probook|pavilion|envy|victus|omen|zbook|spectre|aspire|nitro|predator|swift|travelmate|msi\s*(modern|cyborg|katana|thin|pulse|vector|raider|stealth|prestige|summit|bravo|creator|venturepro)|modern\s*\d|cyborg\s*\d|katana\s*\d|venturepro\s*\d|matebook|surface\s*laptop|galaxy\s*book|lg\s*gram|aorus|gigabyte\s*(g5|g6|aero)|razer\s*blade|مک\s?بوک|مکبوک|ایده\s?پد|آیدیاپد|وایو\s?بوک|زن\s?بوک|تینک\s?پد|تینک\s?بوک|الیت\s?بوک|پروب\s?بوک|پاویلیون|ویکتوس|لجیون|نایترو|اسپایر|لتیتیود|اسپکتر|اومن|زنبوک|سرفیس|میت\s?بوک/.test(lower);
+  // هر اندازهٔ ۱۰ تا ۱۹ اینچ (۱۳.۶ اینچی، ۱۴، ۱۵.۶، ۱۶، ۱۷.۳ …) نشانهٔ صفحه‌نمایش
+  // لپ‌تاپ است؛ مانیتورها معمولاً ۲۱ اینچ و بالاترند.
+  const laptopScreenSize = /(?:1[0-9])(?:\.\d)?\s*(?:inch|اینچ|اینچی)/.test(lower);
   const laptopSpecs = /core\s*(?:i[3579]|ultra|3|5|7|9)|ryzen\s*[3579]|celeron|pentium|intel|amd|rtx\s*\d{3,4}|gtx\s*\d{3,4}|mx\s*\d{3}|iris\s*xe|radeon|رم\s*\d|\d+\s*gb\s*(?:ram|ddr)|ssd|nvme|پردازنده|گرافیک/.test(lower);
   return explicitLaptopWords || laptopSeries || (laptopScreenSize && laptopSpecs);
 }
@@ -2233,6 +2235,17 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
   };
 }
 
+/**
+ * «سیستم کامل» (لپ‌تاپ، کامپیوتر آماده، مینی‌پی‌سی) با اثر انگشت قطعه‌ای
+ * (مدل CPU/GPU یا اشتراک عنوان) نباید ادغام شود؛ وگرنه ده‌ها لپ‌تاپ با یک CPU
+ * روی هم نوشته می‌شوند و تعداد کالاهای فروشگاه به‌شدت کم می‌شود.
+ */
+export function looksLikeAssembledDevice(value: string) {
+  return /لپ ?تاپ|لپ‌تاپ|lپتاپ|laptop|notebook|ultrabook|chromebook|macbook|مک ?بوک|thinkpad|thinkbook|ideapad|legion|yoga|vivobook|zenbook|expertbook|elitebook|probook|pavilion|envy|victus|omen|zbook|spectre|aspire|nitro|predator|latitude|inspiron|vostro|alienware|matebook|surface|galaxy ?book|lg ?gram|razer ?blade|aorus|اینچ|inch|کامپیوتر آماده|آل ?این ?وان|all ?in ?one|mini ?pc|مینی ?پی ?سی/.test(
+    String(value || "").toLowerCase(),
+  );
+}
+
 function normalizedMatchTokens(value: string) {
   return toEnglishDigits(value)
     .toLowerCase()
@@ -2271,6 +2284,9 @@ export function storeProductIdentityKey(product: Pick<JsonStoreProduct, "title" 
 export function findMatchingStoreProductIndex(products: JsonStoreProduct[], imported: JsonStoreProduct) {
   const importedIdentity = storeProductIdentityKey(imported);
   const importedTokens = new Set(normalizedMatchTokens(imported.title));
+  const importedAssembled = looksLikeAssembledDevice(
+    `${imported.title} ${imported.category || ""}`,
+  );
   let bestIndex = -1;
   let bestScore = 0;
   products.forEach((product, index) => {
@@ -2286,6 +2302,11 @@ export function findMatchingStoreProductIndex(products: JsonStoreProduct[], impo
     }
     const productTokens = normalizedMatchTokens(product.title);
     const shared = productTokens.filter((token) => importedTokens.has(token));
+    // برای لپ‌تاپ و سیستم کامل، اشتراک واژه‌های عمومی («لپ تاپ لنوو ideapad») کافی
+    // نیست؛ باید کد مدل (توکن دارای رقم و دست‌کم ۴ نویسه) هم یکی باشد.
+    if (importedAssembled && !shared.some((token) => /\d/.test(token) && token.length >= 4)) {
+      return;
+    }
     const brandScore = product.brand.toLowerCase() === imported.brand.toLowerCase() ? 2 : 0;
     const score = shared.length + brandScore;
     if (score > bestScore) {

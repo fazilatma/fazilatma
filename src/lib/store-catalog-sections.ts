@@ -38,6 +38,20 @@ export function isComputerPartsCatalogProduct(
 }
 
 /**
+ * آیا عنوان/دستهٔ کالا شبیه لپ‌تاپ است؟ (فقط برای عیب‌یابی و شمارش)
+ * این تابع تصمیم نمایش نمی‌گیرد؛ فقط نشان می‌دهد چه کالاهایی از نظر کاربر
+ * «لپ‌تاپ» به حساب می‌آیند تا بتوانیم موارد جاافتاده را پیدا کنیم.
+ */
+const laptopLookingPattern =
+  /لپ ?تاپ|لپ‌تاپ|lپتاپ|laptop|notebook|نوت ?بوک|ultrabook|macbook|مک ?بوک|thinkpad|thinkbook|ideapad|elitebook|probook|vivobook|zenbook|expertbook|victus|legion|nitro|aspire|latitude|inspiron|pavilion|omen|spectre|envy|surface|galaxy ?book|lg ?gram|aorus|razer ?blade|strix|zephyrus|ideapad|swift|travelmate|matebook/i;
+
+export function looksLikeLaptopProduct(
+  product: Pick<JsonStoreProduct, "title" | "category">,
+) {
+  return laptopLookingPattern.test(`${product.title} ${product.category}`);
+}
+
+/**
  * دسته‌های دیگر منوی سایت (لوازم جانبی، کنسول، شبکه، ماشین‌های اداری، کامپیوتر
  * آماده). قبلاً این پارامترها نادیده گرفته می‌شدند و لینک‌هایی مثل
  * `/shop?category=console` کل کاتالوگ را نشان می‌دادند.
