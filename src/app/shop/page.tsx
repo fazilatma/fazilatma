@@ -4,6 +4,7 @@ import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/Laptop
 import StoreProductCard from "@/components/StoreProductCard";
 import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
+import LegacyLaptopLinkRedirect from "@/components/LegacyLaptopLinkRedirect";
 import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import {
   filterProductsByCatalogSections,
@@ -268,6 +269,22 @@ function wantsLaptopCatalog(params: ShopSearchParams) {
   const ref = getParam(params, "ref").trim().toLowerCase();
   if (laptopBrandDefaults.has(brand)) return true;
   if (getParam(params, "use") || getParam(params, "condition")) return true;
+  // فیلترهای مشخصات فنی (رم/پردازنده/حافظه/نمایشگر/گرافیک) در این فروشگاه
+  // مربوط به لپ‌تاپ هستند؛ بدون این قاعده، کلیک روی چیپ‌های فیلتر در صفحهٔ
+  // `/shop` کل کاتالوگ را نشان می‌داد و بین نتیجه‌ها قطعه هم می‌آمد.
+  const specParamKeys = [
+    "ram",
+    "cpu",
+    "cpuGen",
+    "gpuType",
+    "gpu",
+    "ssd",
+    "hdd",
+    "display",
+    "panel",
+    "touch",
+  ];
+  if (specParamKeys.some((key) => getParam(params, key))) return true;
   if (ref.startsWith("brand-") || ref === "brand-search") return true;
   return ["laptop-menu", "all-laptops"].some((key) =>
     Object.prototype.hasOwnProperty.call(params, key),
@@ -600,6 +617,7 @@ export default async function ShopPage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <LegacyLaptopLinkRedirect />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
