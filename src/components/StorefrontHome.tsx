@@ -429,7 +429,7 @@ function StoreLaptopBrandSlider() {
             برندهای محبوب و گزینه‌های پرجستجو
           </h2>
         </div>
-        <Link href="/shop?ref=brand-search#brand-search" className="text-xs font-black text-rose-600 md:text-sm">
+        <Link href="/shop?category=laptop&ref=brand-search#brand-search" className="text-xs font-black text-rose-600 md:text-sm">
           مشاهده همه لپ‌تاپ‌ها ←
         </Link>
       </div>

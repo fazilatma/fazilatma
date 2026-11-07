@@ -444,7 +444,7 @@ export default function Header({
                     {activeHeaderCategory && (
                       <>
                         <Link
-                          href={storeExperienceEnabled ? "/shop#all-laptops" : categoryHref(activeHeaderCategory)}
+                          href={storeExperienceEnabled ? "/shop?category=laptop#all-laptops" : categoryHref(activeHeaderCategory)}
                           className="mb-5 inline-flex items-center gap-2 text-sm font-black text-[#003b5c] hover:text-[#00a8e8]"
                         >
                           {storeExperienceEnabled

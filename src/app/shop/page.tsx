@@ -253,6 +253,26 @@ function productFilterTags(product: JsonStoreProduct) {
 // بدون دسته (مثل /shop?brand=HP) پیش‌فرض «لپ‌تاپ» در نظر گرفته می‌شود.
 const laptopBrandDefaults = new Set(["hp", "lenovo", "dell", "asus", "apple", "msi", "acer", "microsoft"]);
 
+/**
+ * آیا این آدرس از منوی «لپ‌تاپ» آمده است؟
+ * لینک‌های منوی لپ‌تاپ (برند، کاربری، وضعیت، «همه لپ‌تاپ‌ها») دسته را همراه
+ * ندارند؛ اگر دسته صریحاً ذکر نشده باشد، آن‌ها را لپ‌تاپی در نظر می‌گیریم تا
+ * به‌جای پردازنده و هارد، لپ‌تاپ‌ها نمایش داده شوند.
+ */
+function wantsLaptopCatalog(params: ShopSearchParams) {
+  if (getParam(params, "category")) return false;
+  if (getParam(params, "all") === "1") return false;
+  if (getParam(params, "part") || getParam(params, "partGroup") || getParam(params, "q")) return false;
+  const brand = getParam(params, "brand").trim().toLowerCase();
+  const ref = getParam(params, "ref").trim().toLowerCase();
+  if (laptopBrandDefaults.has(brand)) return true;
+  if (getParam(params, "use") || getParam(params, "condition")) return true;
+  if (ref.startsWith("brand-") || ref === "brand-search") return true;
+  return ["laptop-menu", "all-laptops"].some((key) =>
+    Object.prototype.hasOwnProperty.call(params, key),
+  );
+}
+
 function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const text = lowerSearchText(product);
   const brand = getParam(params, "brand");
@@ -265,15 +285,7 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   // به‌جای هارد و رم و مینی‌کیس همان برند، فقط لپ‌تاپ‌های آن برند نمایش داده شود.
   // با پارامتر all=1 این پیش‌فرض غیرفعال می‌شود (برای دیدن همهٔ محصولات برند).
   const requestedCategory = getParam(params, "category");
-  const catalogCategory = requestedCategory
-    ? requestedCategory
-    : getParam(params, "all") !== "1" &&
-        laptopBrandDefaults.has(String(brand || "").trim().toLowerCase()) &&
-        !getParam(params, "part") &&
-        !getParam(params, "partGroup") &&
-        !getParam(params, "q")
-      ? "laptop"
-      : "";
+  const catalogCategory = requestedCategory || (wantsLaptopCatalog(params) ? "laptop" : "");
   const part = getParam(params, "part").toLowerCase();
   const partGroup = getParam(params, "partGroup").toLowerCase();
   const searchQuery = getParam(params, "q").slice(0, 120);
@@ -535,14 +547,7 @@ export default async function ShopPage({
   );
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
   const brandParam = getParam(params, "brand").trim();
-  const laptopBrandDefaultActive =
-    !getParam(params, "category") &&
-    getParam(params, "all") !== "1" &&
-    Boolean(brandParam) &&
-    laptopBrandDefaults.has(brandParam.toLowerCase()) &&
-    !getParam(params, "part") &&
-    !getParam(params, "partGroup") &&
-    !searchQuery;
+  const laptopDefaultActive = wantsLaptopCatalog(params);
   const pageSize = 60;
   const requestedPage = Math.max(1, Math.floor(Number(getParam(params, "page") || 1)));
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
@@ -764,21 +769,28 @@ export default async function ShopPage({
           </div>
           {filteredProducts.length === 0 ? (
             <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-              {laptopBrandDefaultActive
-                ? `در حال حاضر لپ‌تاپی از برند «${brandParam}» موجود نیست.`
+              {laptopDefaultActive
+                ? brandParam
+                  ? `در حال حاضر لپ‌تاپی از برند «${brandParam}» موجود نیست.`
+                  : "در حال حاضر لپ‌تاپی با این فیلتر موجود نیست."
                 : searchQuery
                   ? `کالایی برای «${searchQuery}» پیدا نشد.`
                   : "کالایی با این فیلتر پیدا نشد."}
-              {laptopBrandDefaultActive ? (
+              {laptopDefaultActive ? (
                 <div className="mt-4 flex flex-col items-center gap-3">
-                  <Link
-                    href={`/shop?brand=${encodeURIComponent(brandParam)}&all=1`}
-                    className="font-black text-rose-600"
-                  >
-                    مشاهدهٔ همهٔ محصولات برند {brandParam} (شامل قطعات)
-                  </Link>
+                  {brandParam ? (
+                    <Link
+                      href={`/shop?brand=${encodeURIComponent(brandParam)}&all=1`}
+                      className="font-black text-rose-600"
+                    >
+                      مشاهدهٔ همهٔ محصولات برند {brandParam} (شامل قطعات)
+                    </Link>
+                  ) : null}
                   <Link href="/shop?category=laptop" className="font-black text-slate-700">
                     مشاهدهٔ همهٔ لپ‌تاپ‌ها
+                  </Link>
+                  <Link href="/shop" className="font-black text-slate-500">
+                    مشاهدهٔ همهٔ کالاها
                   </Link>
                 </div>
               ) : (

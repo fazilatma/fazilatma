@@ -4,7 +4,7 @@ import StoreSessionLinks from "@/components/StoreSessionLinks";
 import { getOptiBidData } from "@/lib/json-store";
 
 const laptopQuickLinks = [
-  { href: "/shop?ref=brand-search#brand-search", label: "همه لپ‌تاپ‌ها" },
+  { href: "/shop?category=laptop#brand-search", label: "همه لپ‌تاپ‌ها" },
   { href: "/shop?use=business&ref=business#static-header", label: "اداری" },
   { href: "/shop?use=student&ref=student#static-header", label: "دانشجویی" },
   { href: "/shop?use=gaming&ref=gaming#static-header", label: "گیمینگ" },
