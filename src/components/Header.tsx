@@ -407,8 +407,10 @@ export default function Header({
   );
   const router = useRouter();
   const pathname = usePathname();
-  const showMobileAuthDock =
-    !userRole && !["/login", "/register"].includes(pathname);
+  const onAuthPage = ["/login", "/register", "/forgot-password"].some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+  const showMobileAuthDock = !userRole && !onAuthPage;
 
   useEffect(() => {
     // خواندن نقش کاربر؛ اولویت با کوکی نشست سرور است تا اگر localStorage خالی
@@ -702,7 +704,7 @@ export default function Header({
               )}
             </Link>
 
-            {userRole ? (
+            {!onAuthPage && (userRole ? (
               <div className="flex items-center gap-3 border-r border-gray-200 pr-3">
                 {effectiveUserRole === "admin" && (
                   <Link
@@ -775,7 +777,7 @@ export default function Header({
                   ثبت‌نام
                 </Link>
               </>
-            )}
+            ))}
           </div>
 
           {/* Mobile quick action buttons - visible like desktop */}

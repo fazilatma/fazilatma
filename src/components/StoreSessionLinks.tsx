@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type Role = "admin" | "buyer" | "seller" | null;
 
@@ -14,6 +15,26 @@ function readRole(): Role {
   } catch {
     return null;
   }
+}
+
+function clearStoredSession() {
+  try {
+    window.localStorage.removeItem("userRole");
+    window.localStorage.removeItem("userId");
+    window.localStorage.removeItem("userDisplayName");
+    window.localStorage.removeItem("previousUserRole");
+    window.sessionStorage.removeItem("redirectAfterAuth");
+    window.sessionStorage.removeItem("optibidAdminToken");
+  } catch {
+    // دسترسی به storage همیشه ممکن نیست.
+  }
+}
+
+const AUTH_PATHS = ["/login", "/register", "/forgot-password"];
+
+function isAuthPath(pathname: string | null) {
+  if (!pathname) return false;
+  return AUTH_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 function readAdminToken() {
@@ -40,17 +61,56 @@ export default function StoreSessionLinks({
 }) {
   const [role, setRole] = useState<Role>(null);
   const [adminHref, setAdminHref] = useState("/admin/dashboard");
+  const pathname = usePathname();
+  const onAuthPage = isAuthPath(pathname);
+  const verifiedRef = useRef(false);
 
   useEffect(() => {
     const sync = () => {
       const nextRole = readRole();
-      setRole(nextRole);
       const token = readAdminToken();
       setAdminHref(
         token
           ? `/admin/dashboard?at=${encodeURIComponent(token)}`
           : "/admin/dashboard",
       );
+      // localStorage می‌تواند نقشِ یک نشست تمام‌شده را نگه دارد؛ اگر همین‌طور
+      // نشانش دهیم، «پنل مدیریت» و «خروج» روی صفحهٔ ورود هم دیده می‌شود.
+      // پس نقش ذخیره‌شده را تا تأیید سرور نمایش نمی‌دهیم.
+      if (!nextRole) {
+        setRole(null);
+        return;
+      }
+      if (verifiedRef.current) {
+        setRole(nextRole);
+        return;
+      }
+      setRole(null);
+      fetch("/api/session", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((result) => {
+          const serverRole: Role =
+            result?.hasSession && result?.role === "admin"
+              ? "admin"
+              : result?.role === "buyer" || result?.role === "seller"
+                ? result.role
+                : null;
+          verifiedRef.current = true;
+          if (!serverRole) {
+            clearStoredSession();
+            setRole(null);
+            return;
+          }
+          if (serverRole === "admin") {
+            try {
+              window.localStorage.setItem("userRole", "admin");
+            } catch {
+              // دسترسی به storage همیشه ممکن نیست.
+            }
+          }
+          setRole(serverRole);
+        })
+        .catch(() => setRole(null));
     };
     sync();
     window.addEventListener("storage", sync);
@@ -65,27 +125,20 @@ export default function StoreSessionLinks({
 
   const logout = async () => {
     await fetch("/api/logout", { method: "POST" }).catch(() => undefined);
-    try {
-      window.localStorage.removeItem("userRole");
-      window.localStorage.removeItem("userId");
-      window.localStorage.removeItem("userDisplayName");
-      window.localStorage.removeItem("previousUserRole");
-      window.sessionStorage.removeItem("redirectAfterAuth");
-      window.sessionStorage.removeItem("optibidAdminToken");
-    } catch {
-      // دسترسی به storage همیشه ممکن نیست.
-    }
+    clearStoredSession();
     window.location.assign("/");
   };
 
+  // روی صفحهٔ ورود/ثبت‌نام هیچ‌وقت «پنل مدیریت» یا «خروج» نشان داده نمی‌شود.
+  const visibleRole: Role = onAuthPage ? null : role;
   const dashboardHref =
-    role === "admin" ? adminHref : role ? `/${role}/dashboard` : "/login";
-  const dashboardLabel = role === "admin" ? "پنل مدیریت" : "داشبورد من";
+    visibleRole === "admin" ? adminHref : visibleRole ? `/${visibleRole}/dashboard` : "/login";
+  const dashboardLabel = visibleRole === "admin" ? "پنل مدیریت" : "داشبورد من";
 
   if (layout === "mobile") {
     return (
       <div className="grid gap-2">
-        {role ? (
+        {visibleRole ? (
           <>
             <Link
               href={dashboardHref}
@@ -123,7 +176,7 @@ export default function StoreSessionLinks({
 
   return (
     <>
-      {role ? (
+      {visibleRole ? (
         <>
           <Link
             href={dashboardHref}
