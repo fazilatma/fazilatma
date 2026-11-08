@@ -6,6 +6,9 @@ import StoreProductCard from "@/components/StoreProductCard";
 import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
 import LegacyLaptopLinkRedirect from "@/components/LegacyLaptopLinkRedirect";
+import LaptopCatalogAdminNotice, {
+  type LaptopCatalogNoticeData,
+} from "@/components/LaptopCatalogAdminNotice";
 import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import {
   filterProductsByCatalogSections,
@@ -582,24 +585,23 @@ export default async function ShopPage({
   // «شبیه لپ‌تاپ» بیرون از دسته مانده است. برای دیدن جزئیات هر کالا:
   // /admin/diagnostics/laptop-catalog
   const isAdminViewer = (await cookies()).get("optibid_admin")?.value === "1";
-  let laptopDiagnostics: {
-    total: number;
-    laptops: number;
-    missed: { title: string; key: string }[];
-  } | null = null;
   const effectiveCatalogCategory =
     getParam(params, "category") || (laptopDefaultActive ? "laptop" : "");
+  let laptopDiagnostics: LaptopCatalogNoticeData | null = null;
   if (isAdminViewer && effectiveCatalogCategory === "laptop") {
     const allStored = data.storeProducts;
-    const laptopCount = allStored.filter((product) => isLaptopCatalogProduct(product)).length;
-    const missedItems = allStored
-      .filter((product) => looksLikeLaptopProduct(product) && !isLaptopCatalogProduct(product))
-      .slice(0, 5)
-      .map((product) => ({ title: product.title, key: productImportCategoryKey(product) }));
+    const missedProducts = allStored.filter(
+      (product) => looksLikeLaptopProduct(product) && !isLaptopCatalogProduct(product),
+    );
     laptopDiagnostics = {
       total: allStored.length,
-      laptops: laptopCount,
-      missed: missedItems,
+      laptops: allStored.filter((product) => isLaptopCatalogProduct(product)).length,
+      laptopLook: allStored.filter((product) => looksLikeLaptopProduct(product)).length,
+      missed: missedProducts.length,
+      categoryLaptops: allStored.filter((product) => /لپ/.test(product.category || "")).length,
+      samples: missedProducts
+        .slice(0, 5)
+        .map((product) => ({ title: product.title, key: productImportCategoryKey(product) })),
     };
   }
   const pageSize = 60;
@@ -794,32 +796,7 @@ export default async function ShopPage({
         />
 
         <main id="all-laptops" className="min-w-0 flex-1 scroll-mt-24">
-          {laptopDiagnostics && (
-            <div className="mb-4 rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-900">
-              <div className="font-black">
-                گزارش ادمین: {laptopDiagnostics.laptops.toLocaleString("fa-IR")} لپ‌تاپ شناسایی‌شده از{" "}
-                {laptopDiagnostics.total.toLocaleString("fa-IR")} کالای ذخیره‌شده —{" "}
-                {laptopDiagnostics.missed.length > 0
-                  ? `${laptopDiagnostics.missed.length.toLocaleString("fa-IR")} نمونه از کالاهای شبیه لپ‌تاپ که داخل دسته نیستند:`
-                  : "همهٔ کالاهای شبیه لپ‌تاپ داخل دسته هستند."}
-              </div>
-              {laptopDiagnostics.missed.length > 0 && (
-                <ul className="mt-2 list-disc space-y-1 pr-5">
-                  {laptopDiagnostics.missed.map((item) => (
-                    <li key={item.title}>
-                      {item.title} <span className="text-amber-700">[{item.key}]</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Link
-                href="/admin/diagnostics/laptop-catalog"
-                className="mt-2 inline-flex rounded-xl bg-amber-600 px-3 py-1.5 font-bold text-white"
-              >
-                گزارش کامل
-              </Link>
-            </div>
-          )}
+          {laptopDiagnostics && <LaptopCatalogAdminNotice data={laptopDiagnostics} />}
           <div className="mb-5 flex flex-col gap-3 rounded-[1.5rem] bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-black text-slate-900">

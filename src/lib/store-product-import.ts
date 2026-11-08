@@ -372,8 +372,13 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey | "
   // «قطعهٔ قطعی» حتی اگر واژهٔ لپ‌تاپ هم در متن باشد باز قطعه است؛ چون عنوان
   // قطعات زیاد می‌نویسد «مخصوص لپ‌تاپ» یا «رم لپ‌تاپ». قبلاً همین «لپ‌تاپ» باعث
   // می‌شد رم و هارددیسک داخل دستهٔ لپ‌تاپ نمایش داده شوند.
+  // فقط قطعه‌هایی که «واژهٔ لپ‌تاپ» در متنشان نشانهٔ خودِ کالا نیست (رم ماژول و
+  // حافظه). کارت گرافیک/مادربرد/پاور/کیس با قاعدهٔ «عنوان با اسم قطعه شروع شودُ
+  // در productImportCategoryKey و همچنین strongComputerPart پوشش داده می‌شوند؛
+  // اگر اینجا هم بیایند، لپ‌تاپی که در عنوانش «کارت گرافیک RTX 4060» دارد
+  // به‌اشتباه قطعه حساب می‌شود و از دستهٔ لپ‌تاپ حذف می‌گردد.
   const definitePart =
-    /مادربرد|motherboard|mainboard|کارت گرافیک|graphics card|video card|رم دسکتاپ|رم لپ ?تاپ|رم کامپیوتر|حافظه رم|ماژول رم|ram module|memory module|منبع تغذیه|پاور کامپیوتر|power supply|کیس کامپیوتر|computer case|خمیر سیلیکون|هیتسینک|فن کیس|کارت صدا/.test(lower);
+    /رم دسکتاپ|رم لپ ?تاپ|رم کامپیوتر|حافظه رم|ماژول رم|ram module|memory module/.test(lower);
   const partFirst =
     definitePart || ((strongComputerPart || motherboardChipset) && !explicitLaptopWord);
 
