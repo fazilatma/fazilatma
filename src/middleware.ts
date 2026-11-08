@@ -48,6 +48,16 @@ function isPublicPath(pathname: string) {
   return false;
 }
 
+/**
+ * مسیر فعلی را در هدر درخواست به لایهٔ سرور (layout) می‌رساند؛ layout در App Router
+ * خودش pathname ندارد و برای «صفحهٔ ورود/ثبت‌نام هرگز هدر ادمین نبیند» لازم است.
+ */
+function forwardWithPath(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  headers.set("x-optibid-pathname", request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
+}
+
 function unauthorizedApi() {
   return NextResponse.json(
     {
@@ -77,7 +87,7 @@ export async function middleware(request: NextRequest) {
     canonicalUrl.port = "";
     return NextResponse.redirect(canonicalUrl, 308);
   }
-  if (isPublicPath(pathname)) return NextResponse.next();
+  if (isPublicPath(pathname)) return forwardWithPath(request);
 
   // در محیط پیش‌نمایش ممکن است کوکی در iframe ذخیره نشود؛ توکن کوتاه‌عمر
   // جایگزین فقط در توسعه پذیرفته می‌شود.
@@ -101,9 +111,10 @@ export async function middleware(request: NextRequest) {
     if (previewAdminTokenOk) {
       const headers = new Headers(request.headers);
       headers.set("x-optibid-preview-admin", "1");
+      headers.set("x-optibid-pathname", pathname);
       return NextResponse.next({ request: { headers } });
     }
-    return NextResponse.next();
+    return forwardWithPath(request);
   }
 
   if (!hasUserSession && !isAdmin) {
@@ -113,7 +124,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return forwardWithPath(request);
 }
 
 export const config = {

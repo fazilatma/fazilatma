@@ -85,12 +85,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // در محیط پیش‌نمایش، میدل‌ور ممکن است با توکن (بدون کوکی) ادمین را تایید کند.
   const requestHeaders = await headers();
   const previewAdmin = requestHeaders.get("x-optibid-preview-admin") === "1";
+  // صفحه‌های ورود/ثبت‌نام همیشه هدر عمومی فروشگاه را نشان می‌دهند؛ حتی اگر کوکی
+  // ادمین یا نشست کاربری باقی مانده باشد، نباید «پنل مدیریت» و «خروج» بالای
+  // صفحهٔ ورود دیده شود.
+  const currentPath = requestHeaders.get("x-optibid-pathname") || "";
+  const isAuthPage = /^\/(?:login|register|forgot-password)(?:\/|$)/.test(currentPath);
   const isAdmin = cookieStore.get("optibid_admin")?.value === "1" || previewAdmin;
   const userSessionValue = cookieStore.get("optibid_user")?.value || "";
   const hasUserSession = Boolean(userSessionValue) || previewAdmin;
   // مقدار کوکی نشست به شکل "role:id" است؛ نقش را برای رندر اولیه هدر می‌خوانیم.
   const sessionRole = previewAdmin ? "admin" : userSessionValue.split(":")[0] || null;
-  const useStaticStoreHeader = !isAdmin && !hasUserSession;
+  const useStaticStoreHeader = isAuthPage || (!isAdmin && !hasUserSession);
   const DynamicHeader = useStaticStoreHeader
     ? null
     : (await import("@/components/Header")).default;

@@ -424,6 +424,26 @@ export default function Header({
     if (isAdminSession) {
       if (storedRole !== "admin") localStorage.setItem("userRole", "admin");
       setUserRole("admin");
+    } else if (storedRole === "admin") {
+      // localStorage ممکن است نقش «admin» را از یک نشست قبلی نگه داشته باشد،
+      // در حالی که کوکی نشست سرور منقضی یا پاک شده است. تا تأیید سرور چیزی
+      // نشان نمی‌دهیم و بعد از پاسخ، نقش قدیمی را پاک می‌کنیم؛ وگرنه «پنل مدیریت»
+      // و «خروج» روی صفحهٔ ورود هم دیده می‌شد.
+      setUserRole(null);
+      fetch("/api/session", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((result) => {
+          if (result?.hasSession && result?.role === "admin") {
+            setUserRole("admin");
+            return;
+          }
+          localStorage.removeItem("userRole");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("userDisplayName");
+          localStorage.removeItem("previousUserRole");
+          setUserRole(null);
+        })
+        .catch(() => setUserRole(null));
     } else {
       setUserRole(storedRole || initialUserRole);
     }
