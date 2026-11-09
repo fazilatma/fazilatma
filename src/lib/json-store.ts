@@ -247,6 +247,8 @@ export type JsonOrder = {
   buyerArchived: boolean;
   sellerArchived: boolean;
   createdAt: string;
+  /** یادداشت داخلی ادمین دربارهٔ این سفارش. */
+  adminNote?: string;
 };
 
 export type JsonWalletTransaction = {
@@ -453,6 +455,13 @@ export type JsonStoreOrder = {
   gatewayAuthority?: string;
   gatewayRefId?: string;
   paidAt?: string;
+  trackingCode?: string;
+  processingAt?: string;
+  shippedAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  /** یادداشت داخلی ادمین دربارهٔ این سفارش. */
+  adminNote?: string;
   createdAt: string;
 };
 
@@ -1387,6 +1396,12 @@ function normalizeStoreOrders(value: unknown): JsonStoreOrder[] {
       gatewayAuthority: String(order.gatewayAuthority || ""),
       gatewayRefId: String(order.gatewayRefId || ""),
       paidAt: String(order.paidAt || ""),
+      trackingCode: String(order.trackingCode || ""),
+      processingAt: String(order.processingAt || ""),
+      shippedAt: String(order.shippedAt || ""),
+      completedAt: String(order.completedAt || ""),
+      cancelledAt: String(order.cancelledAt || ""),
+      adminNote: String(order.adminNote || ""),
       createdAt: String(order.createdAt || new Date().toISOString()),
     });
   }
@@ -6006,4 +6021,345 @@ export async function updateJsonCatalogCategories(input: unknown) {
   data.catalogCategories = normalizeCatalogCategories(input);
   await writeOptiBidData(data);
   return data.catalogCategories;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                    عملیات ادمین روی سفارش‌ها (خرید/ارسال)                     */
+/* -------------------------------------------------------------------------- */
+
+export type AdminMarketOrderAction = "mark_paid" | "ship" | "complete" | "cancel" | "note";
+
+export type AdminStoreOrderAction =
+  | "confirm_payment"
+  | "processing"
+  | "ship"
+  | "complete"
+  | "cancel"
+  | "note";
+
+function restoreStoreOrderStock(data: OptiBidJsonData, order: JsonStoreOrder) {
+  for (const item of order.items) {
+    const product = data.storeProducts.find((storeProduct) => storeProduct.id === item.productId);
+    if (product) product.stock = Math.max(0, product.stock + item.quantity);
+  }
+}
+
+function orderSellerMetricsForShipment(data: OptiBidJsonData, sellerId: number) {
+  const seller = data.users.find((user) => user.id === sellerId);
+  if (!seller) return;
+  const metrics = seller.sellerMetrics || createDefaultSellerMetrics();
+  seller.sellerMetrics = {
+    ...metrics,
+    shippedOrders90d: metrics.shippedOrders90d + 1,
+    onTimeShipments90d: metrics.onTimeShipments90d + 1,
+    trackedShipments90d: metrics.trackedShipments90d + 1,
+    validTrackedShipments90d: metrics.validTrackedShipments90d + 1,
+  };
+}
+
+function orderSellerMetricsForCompletion(data: OptiBidJsonData, sellerId: number) {
+  const seller = data.users.find((user) => user.id === sellerId);
+  if (!seller) return;
+  const metrics = seller.sellerMetrics || createDefaultSellerMetrics();
+  seller.sellerMetrics = {
+    ...metrics,
+    completedOrders90d: metrics.completedOrders90d + 1,
+    completedOrdersLifetime: metrics.completedOrdersLifetime + 1,
+    activeInLast30Days: true,
+  };
+}
+
+/**
+ * ادمین روی سفارش بازار (خریدار ↔ فروشنده) عمل می‌کند:
+ * ثبت پرداخت دستی/امانی، ارسال با کد رهگیری، تأیید تحویل و آزادسازی وجه،
+ * یا لغو و بازپرداخت مبلغ به کیف پول خریدار.
+ */
+export async function adminUpdateJsonMarketOrder(input: {
+  orderId: string;
+  action: AdminMarketOrderAction;
+  trackingCode?: string;
+  note?: string;
+}) {
+  const data = await getOptiBidData();
+  const order = data.orders.find((item) => item.id === input.orderId);
+  if (!order) throw new Error("سفارش پیدا نشد");
+  const now = new Date().toISOString();
+  const amount = money(order.totalAmount);
+  const request = data.requests.find((item) => item.id === order.requestId);
+  const offer = data.offers.find((item) => item.id === order.offerId);
+  const buyer = data.users.find((user) => user.id === order.buyerId);
+  const seller = data.users.find((user) => user.id === order.sellerId);
+  const heldEscrow = data.transactions.find(
+    (item) => item.orderId === order.id && item.status === "held",
+  );
+
+  if (input.note?.trim()) order.adminNote = input.note.trim().slice(0, 500);
+
+  if (input.action === "note") {
+    await writeOptiBidData(data);
+    return { id: order.id, status: order.status };
+  }
+
+  if (input.action === "mark_paid") {
+    if (order.status !== "pending_payment")
+      throw new Error("فقط سفارش «در انتظار پرداخت» را می‌توان پرداخت‌شده کرد");
+    order.status = "paid";
+    order.paymentMethod = order.paymentMethod || "gateway";
+    order.paymentAt = now;
+    if (!heldEscrow) {
+      data.transactions.unshift({
+        id: nextStringId("ESC"),
+        orderId: order.id,
+        buyerId: order.buyerId,
+        sellerId: order.sellerId,
+        amount,
+        platformFee: money(order.platformFee),
+        sellerAmount: money(order.sellerAmount),
+        status: "held",
+        createdAt: now,
+      });
+    }
+    if (request) request.status = "paid";
+    addNotification(data, {
+      userId: order.sellerId,
+      type: "payment",
+      title: "پرداخت سفارش توسط پشتیبانی تأیید شد",
+      body: `پرداخت سفارش «${order.title}» تأیید شد. کالا را به آدرس خریدار ارسال کنید.`,
+      href: "/seller/dashboard",
+    });
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "payment",
+      title: "پرداخت سفارش شما تأیید شد",
+      body: `پرداخت سفارش «${order.title}» تأیید و وجه آن امانی شد.`,
+      href: "/buyer/dashboard",
+    });
+  }
+
+  if (input.action === "ship") {
+    if (order.status !== "paid")
+      throw new Error("برای ثبت ارسال، سفارش باید در وضعیت «پرداخت‌شده» باشد");
+    const trackingCode = input.trackingCode?.trim();
+    if (!trackingCode) throw new Error("کد رهگیری مرسوله الزامی است");
+    order.status = "shipped";
+    order.trackingCode = trackingCode;
+    order.shippedAt = now;
+    if (request) request.status = "shipped";
+    orderSellerMetricsForShipment(data, order.sellerId);
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "shipment",
+      title: "سفارش شما ارسال شد",
+      body: `سفارش «${order.title}» ارسال شد. کد رهگیری: ${trackingCode}`,
+      href: "/buyer/dashboard",
+    });
+    addMessage(data, {
+      senderId: order.sellerId || order.buyerId,
+      receiverId: order.buyerId,
+      orderId: order.id,
+      content: `سفارش شما ارسال شد. کد رهگیری: ${trackingCode}`,
+    });
+  }
+
+  if (input.action === "complete") {
+    if (!["paid", "shipped"].includes(order.status))
+      throw new Error("برای تکمیل، سفارش باید پرداخت‌شده یا ارسال‌شده باشد");
+    order.status = "completed";
+    order.deliveredAt = now;
+    if (request) request.status = "completed";
+    if (heldEscrow) {
+      heldEscrow.status = "released";
+      heldEscrow.releasedAt = now;
+      if (seller) {
+        seller.walletBalance += money(order.sellerAmount);
+        addWalletTransaction(data, {
+          userId: seller.id,
+          type: "escrow_release",
+          amount: money(order.sellerAmount),
+          balanceAfter: seller.walletBalance,
+          description: `آزادسازی وجه امانی توسط پشتیبانی؛ سفارش ${order.id}`,
+          orderId: order.id,
+        });
+        orderSellerMetricsForCompletion(data, order.sellerId);
+      }
+      addPlatformTransaction(data, {
+        type: "commission_credit",
+        amount: money(order.platformFee),
+        description: `دریافت کمیسیون سفارش ${order.id}`,
+        orderId: order.id,
+      });
+    }
+    addNotification(data, {
+      userId: order.sellerId,
+      type: "delivery",
+      title: "وجه سفارش آزاد شد",
+      body: `${money(order.sellerAmount).toLocaleString("fa-IR")} تومان به کیف پول شما واریز شد.`,
+      href: "/seller/dashboard",
+    });
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "delivery",
+      title: "سفارش تکمیل شد",
+      body: `سفارش «${order.title}» تحویل‌شده ثبت شد.`,
+      href: "/buyer/dashboard",
+    });
+  }
+
+  if (input.action === "cancel") {
+    if (!["pending_payment", "paid"].includes(order.status))
+      throw new Error("سفارش‌های ارسال‌شده یا تکمیل‌شده قابل لغو نیستند");
+    order.status = "cancelled";
+    order.cancelledAt = now;
+    if (request) request.status = "open";
+    if (offer) offer.status = "pending";
+    if (heldEscrow) {
+      heldEscrow.status = "refunded";
+      heldEscrow.releasedAt = now;
+      if (buyer) {
+        buyer.walletBalance += heldEscrow.amount;
+        addWalletTransaction(data, {
+          userId: buyer.id,
+          type: "refund",
+          amount: heldEscrow.amount,
+          balanceAfter: buyer.walletBalance,
+          description: `بازپرداخت سفارش ${order.id} به کیف پول`,
+          orderId: order.id,
+        });
+      }
+    }
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "order",
+      title: "سفارش شما لغو شد",
+      body: `سفارش «${order.title}» توسط پشتیبانی لغو شد${
+        heldEscrow ? " و مبلغ آن به کیف پول شما بازگشت" : ""
+      }.`,
+      href: "/buyer/dashboard",
+    });
+    addNotification(data, {
+      userId: order.sellerId,
+      type: "order",
+      title: "یک سفارش لغو شد",
+      body: `سفارش «${order.title}» لغو شد.`,
+      href: "/seller/dashboard",
+    });
+  }
+
+  await writeOptiBidData(data);
+  return { id: order.id, status: order.status };
+}
+
+/** ادمین وضعیت سفارش فروشگاهی (سبد خرید) را جلو می‌برد یا آن را لغو/بازپرداخت می‌کند. */
+export async function adminUpdateJsonStoreOrder(input: {
+  orderId: string;
+  action: AdminStoreOrderAction;
+  trackingCode?: string;
+  note?: string;
+}) {
+  const data = await getOptiBidData();
+  const order = data.storeOrders.find((item) => item.id === input.orderId);
+  if (!order) throw new Error("سفارش فروشگاهی پیدا نشد");
+  const now = new Date().toISOString();
+  const amount = money(order.totalAmount);
+  const buyer = data.users.find((user) => user.id === order.buyerId);
+
+  if (input.note?.trim()) order.adminNote = input.note.trim().slice(0, 500);
+
+  if (input.action === "note") {
+    await writeOptiBidData(data);
+    return { id: order.id, status: order.status };
+  }
+
+  if (input.action === "confirm_payment") {
+    if (order.status !== "pending_payment")
+      throw new Error("فقط سفارش «در انتظار پرداخت» را می‌توان تأیید کرد");
+    decrementStoreOrderStock(data, order);
+    order.status = "paid";
+    order.paymentMethod = order.paymentMethod || "gateway";
+    order.paidAt = now;
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "payment",
+      title: "پرداخت سفارش فروشگاهی تأیید شد",
+      body: `پرداخت سفارش ${order.id} با مبلغ ${amount.toLocaleString("fa-IR")} تومان تأیید شد.`,
+      href: "/buyer/dashboard?tab=storeOrders",
+    });
+  }
+
+  if (input.action === "processing") {
+    if (order.status !== "paid")
+      throw new Error("برای «در حال آماده‌سازی»، سفارش باید پرداخت‌شده باشد");
+    order.status = "processing";
+    order.processingAt = now;
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "order",
+      title: "سفارش شما در حال آماده‌سازی است",
+      body: `سفارش ${order.id} در حال بسته‌بندی و آماده‌سازی برای ارسال است.`,
+      href: "/buyer/dashboard?tab=storeOrders",
+    });
+  }
+
+  if (input.action === "ship") {
+    if (!["paid", "processing"].includes(order.status))
+      throw new Error("برای ثبت ارسال، سفارش باید پرداخت‌شده یا در حال آماده‌سازی باشد");
+    const trackingCode = input.trackingCode?.trim();
+    if (!trackingCode) throw new Error("کد رهگیری مرسوله الزامی است");
+    order.status = "shipped";
+    order.trackingCode = trackingCode;
+    order.shippedAt = now;
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "shipment",
+      title: "سفارش فروشگاهی شما ارسال شد",
+      body: `سفارش ${order.id} ارسال شد. کد رهگیری: ${trackingCode}`,
+      href: "/buyer/dashboard?tab=storeOrders",
+    });
+  }
+
+  if (input.action === "complete") {
+    if (!["paid", "processing", "shipped"].includes(order.status))
+      throw new Error("این سفارش قابل تکمیل نیست");
+    order.status = "completed";
+    order.completedAt = now;
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "delivery",
+      title: "سفارش فروشگاهی تکمیل شد",
+      body: `سفارش ${order.id} تحویل‌شده ثبت شد.`,
+      href: "/buyer/dashboard?tab=storeOrders",
+    });
+  }
+
+  if (input.action === "cancel") {
+    if (["completed", "cancelled"].includes(order.status))
+      throw new Error("این سفارش قابل لغو نیست");
+    const wasPaid = order.status !== "pending_payment";
+    if (wasPaid) {
+      restoreStoreOrderStock(data, order);
+      if (buyer) {
+        buyer.walletBalance += amount;
+        addWalletTransaction(data, {
+          userId: buyer.id,
+          type: "refund",
+          amount,
+          balanceAfter: buyer.walletBalance,
+          description: `بازپرداخت سفارش فروشگاهی ${order.id}`,
+          orderId: order.id,
+        });
+      }
+    }
+    order.status = "cancelled";
+    order.cancelledAt = now;
+    addNotification(data, {
+      userId: order.buyerId,
+      type: "order",
+      title: "سفارش فروشگاهی لغو شد",
+      body: `سفارش ${order.id} لغو شد${wasPaid ? " و مبلغ آن به کیف پول شما بازگشت" : ""}.`,
+      href: "/buyer/dashboard?tab=storeOrders",
+    });
+  }
+
+  await writeOptiBidData(data);
+  return { id: order.id, status: order.status };
 }

@@ -59,6 +59,15 @@ const maskSheba = (value = "") =>
   value
     ? `${value.slice(0, 4)} **** **** **** **** ${value.slice(-4)}`
     : "ثبت نشده";
+const storeOrderStatusLabel: Record<string, string> = {
+  pending_payment: "در انتظار پرداخت",
+  paid: "پرداخت‌شده",
+  processing: "در حال آماده‌سازی",
+  shipped: "ارسال‌شده",
+  completed: "تحویل‌شده",
+  cancelled: "لغو‌شده",
+};
+
 const dateLabel = (value?: string) =>
   value
     ? new Date(value).toLocaleString("fa-IR", {
@@ -992,10 +1001,16 @@ export default function BuyerDashboardPage() {
                           {money(order.totalAmount)}
                         </p>
                         <p className="mt-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-                          {order.status === "pending_payment"
-                            ? "در انتظار پرداخت/هماهنگی"
-                            : order.status}
+                          {storeOrderStatusLabel[order.status as string] || order.status}
                         </p>
+                        {order.trackingCode ? (
+                          <p className="mt-1 text-xs font-bold text-[#003b5c]">
+                            کد رهگیری:{" "}
+                            <span className="font-mono" dir="ltr">
+                              {order.trackingCode}
+                            </span>
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     <div className="space-y-2 rounded-2xl bg-gray-50 p-4">

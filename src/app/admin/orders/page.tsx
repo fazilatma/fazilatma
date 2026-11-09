@@ -5,6 +5,7 @@ import {
   type StoreOrderRow,
 } from "@/lib/admin-orders";
 import type { JsonOrder, JsonStoreOrder } from "@/lib/json-store";
+import AdminOrderActions from "@/components/AdminOrderActions";
 
 export const dynamic = "force-dynamic";
 
@@ -254,6 +255,7 @@ export default async function AdminOrdersPage({
                 <th className="p-3 font-bold">کمیسیون</th>
                 <th className="p-3 font-bold">سهم فروشنده</th>
                 <th className="p-3 font-bold">وضعیت</th>
+                <th className="p-3 font-bold">عملیات</th>
                 <th className="p-3 font-bold">جزئیات</th>
               </tr>
             </thead>
@@ -279,6 +281,15 @@ export default async function AdminOrdersPage({
                     <Badge
                       label={MARKET_STATUS[order.status]?.label ?? order.status}
                       tone={MARKET_STATUS[order.status]?.tone ?? "bg-gray-50 text-gray-600 border-gray-200"}
+                    />
+                  </td>
+                  <td className="p-3">
+                    <AdminOrderActions
+                      kind="market"
+                      orderId={order.id}
+                      status={order.status}
+                      trackingCode={order.trackingCode}
+                      adminNote={order.adminNote}
                     />
                   </td>
                   <td className="p-3 text-[11px] text-gray-500">
@@ -310,6 +321,7 @@ export default async function AdminOrdersPage({
                 <th className="p-3 font-bold">اقلام</th>
                 <th className="p-3 font-bold">مبلغ</th>
                 <th className="p-3 font-bold">وضعیت</th>
+                <th className="p-3 font-bold">عملیات</th>
                 <th className="p-3 font-bold">ارسال</th>
               </tr>
             </thead>
@@ -345,8 +357,18 @@ export default async function AdminOrdersPage({
                       tone={STORE_STATUS[order.status]?.tone ?? "bg-gray-50 text-gray-600 border-gray-200"}
                     />
                   </td>
+                  <td className="p-3">
+                    <AdminOrderActions
+                      kind="store"
+                      orderId={order.id}
+                      status={order.status}
+                      trackingCode={order.trackingCode}
+                      adminNote={order.adminNote}
+                    />
+                  </td>
                   <td className="p-3 text-[11px] text-gray-500">
                     <div>پرداخت: {faDate(order.paidAt)}</div>
+                    <div>رهگیری: {order.trackingCode || "—"}</div>
                     <div>{order.shippingAddress || "—"}</div>
                   </td>
                 </tr>

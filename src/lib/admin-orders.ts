@@ -26,6 +26,7 @@ export type MarketOrderRow = {
   paidAt?: string;
   deliveredAt?: string;
   shippingAddress: string;
+  adminNote?: string;
 };
 
 export type StoreOrderRow = {
@@ -39,6 +40,8 @@ export type StoreOrderRow = {
   shippingAddress: string;
   paidAt?: string;
   paymentMethod?: JsonStoreOrder["paymentMethod"];
+  trackingCode?: string;
+  adminNote?: string;
 };
 
 export type SellerSummaryRow = {
@@ -99,6 +102,7 @@ export async function getAdminOrdersOverview(): Promise<AdminOrdersOverview> {
     paidAt: order.paymentAt,
     deliveredAt: order.deliveredAt,
     shippingAddress: order.shippingAddress,
+    adminNote: order.adminNote,
   }));
 
   const storeOrders: StoreOrderRow[] = data.storeOrders.map((order) => ({
@@ -116,6 +120,8 @@ export async function getAdminOrdersOverview(): Promise<AdminOrdersOverview> {
     shippingAddress: order.shippingAddress,
     paidAt: order.paidAt,
     paymentMethod: order.paymentMethod,
+    trackingCode: order.trackingCode,
+    adminNote: order.adminNote,
   }));
 
   const sellerMap = new Map<number, SellerSummaryRow>();
