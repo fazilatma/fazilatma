@@ -2025,6 +2025,12 @@ export default function AdminDashboardClient({
                 >
                   💰 تراکنش‌های امانی (Escrow)
                 </button>
+                <Link
+                  href="/admin/orders"
+                  className="block text-right px-5 py-4 text-sm font-bold border-b border-gray-100 text-gray-600 transition hover:bg-gray-50"
+                >
+                  🧾 سفارش‌ها، خریدها و فروش فروشندگان
+                </Link>
                 <button
                   onClick={() => setActiveTab("verifications")}
                   className={`text-right px-5 py-4 text-sm font-bold border-b border-gray-100 transition flex justify-between items-center ${activeTab === "verifications" ? "bg-purple-50 text-purple-700 border-r-4 border-r-purple-600" : "text-gray-600 hover:bg-gray-50"}`}
