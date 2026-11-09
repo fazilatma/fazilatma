@@ -2821,6 +2821,12 @@ export async function updateJsonAdminUser(input: {
     input.kycStatus &&
     ["pending", "approved", "rejected"].includes(input.kycStatus)
   ) {
+    if (
+      input.kycStatus === "approved" &&
+      !(user.kycDocuments?.length ?? 0)
+    ) {
+      throw new Error("KYC documents are required before approval");
+    }
     user.kycStatus = input.kycStatus;
     if (input.kycStatus === "approved") user.isActive = true;
     if (input.kycStatus === "rejected") user.isActive = false;

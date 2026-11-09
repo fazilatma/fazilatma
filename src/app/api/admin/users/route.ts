@@ -71,7 +71,9 @@ export async function PATCH(request: Request) {
       error instanceof Error
         ? error.message
         : "Unknown admin user update error";
-    const message = detail.includes("Username already")
+    const message = detail.includes("documents are required")
+      ? "این کاربر هیچ مدرکی بارگذاری نکرده است؛ ابتدا باید مدارک را بارگذاری کند."
+      : detail.includes("Username already")
       ? "این نام کاربری قبلاً ثبت شده است."
       : detail.includes("Email already")
         ? "این ایمیل قبلاً ثبت شده است."
