@@ -302,8 +302,11 @@ export default function AdminDashboardClient({
   const [indicatorSearch, setIndicatorSearch] = useState("");
   const [selectedIndicators, setSelectedIndicators] =
     useState<Record<IndicatorId, boolean>>(defaultIndicators);
-  const [pendingVerifications, setPendingVerifications] =
-    useState<any[]>(initialKycUsers);
+  const [pendingVerifications, setPendingVerifications] = useState<any[]>(
+    (initialKycUsers || []).filter(
+      (user: any) => (user.kycDocuments?.length || 0) > 0,
+    ),
+  );
   const [kycReasons, setKycReasons] = useState<Record<number, string>>({});
   const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>(
     initialCatalogCategories,
@@ -904,6 +907,13 @@ export default function AdminDashboardClient({
     status: "approved" | "rejected",
   ) => {
     const reason = kycReasons[userId] || "";
+    const target = pendingVerifications.find((user: any) => user.id === userId);
+    if (status === "approved" && !(target?.kycDocuments?.length || 0)) {
+      alert(
+        "این کاربر هنوز هیچ مدرکی بارگذاری نکرده است؛ تا زمانی که مدارک بارگذاری نشود تایید ممکن نیست.",
+      );
+      return;
+    }
     if (status === "rejected" && !reason.trim()) {
       alert("برای رد مدارک، علت را وارد کنید.");
       return;
@@ -5485,15 +5495,30 @@ export default function AdminDashboardClient({
                   </h2>
                   <p className="mt-2 text-sm leading-7 text-gray-600">
                     تصویر کارت ملی، صفحات شناسنامه و کارت بانکی را بررسی کنید.
-                    پس از تایید، حساب و نام کاربری فعال می‌شوند.
+                    پس از تایید، حساب و نام کاربری فعال می‌شوند. فقط کاربرانی که
+                    مدارک بارگذاری کرده‌اند در این صف نمایش داده می‌شوند.
                   </p>
+                  {(initialManagedUsers?.summary?.awaitingKycDocumentsCount || 0) >
+                    0 && (
+                    <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800">
+                      {
+                        initialManagedUsers.summary.awaitingKycDocumentsCount
+                      }{" "}
+                      کاربر هنوز مدرکی بارگذاری نکرده‌اند و در این صف نمایش داده
+                      نمی‌شوند.
+                    </p>
+                  )}
                 </div>
 
                 {pendingVerifications.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-12 text-center">
                     <div className="mb-3 text-4xl">✅</div>
                     <p className="font-bold text-gray-700">
-                      کاربری در انتظار بررسی مدارک نیست.
+                      کاربری با مدارک بارگذاری‌شده در انتظار بررسی نیست.
+                    </p>
+                    <p className="mt-2 text-xs text-gray-500">
+                      کاربرانی که ثبت‌نام کرده‌اند ولی هنوز مدرکی بارگذاری نکرده‌اند
+                      اینجا نمایش داده نمی‌شوند.
                     </p>
                   </div>
                 ) : (
@@ -5589,6 +5614,12 @@ export default function AdminDashboardClient({
                           </div>
                         </div>
 
+                        {(user.kycDocuments?.length || 0) === 0 ? (
+                          <div className="mt-5 rounded-xl border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-800">
+                            ⚠️ این کاربر هیچ مدرکی بارگذاری نکرده است؛ تا بارگذاری
+                            مدارک، تایید یا رد او ممکن نیست.
+                          </div>
+                        ) : (
                         <div className="mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row">
                           <input
                             value={kycReasons[user.id] || ""}
@@ -5614,6 +5645,7 @@ export default function AdminDashboardClient({
                             رد مدارک
                           </button>
                         </div>
+                        )}
                       </article>
                     ))}
                   </div>

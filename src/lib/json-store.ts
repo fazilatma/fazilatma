@@ -2745,8 +2745,12 @@ export async function getJsonAdminUsers() {
         (user) => user.role === "seller" || user.sellerModeEnabled,
       ).length,
       activeUsersCount: users.filter((user) => user.isActive).length,
-      pendingKycCount: users.filter((user) => user.kycStatus === "pending")
-        .length,
+      pendingKycCount: users.filter(
+        (user) => user.kycStatus === "pending" && user.kycDocumentsCount > 0,
+      ).length,
+      awaitingKycDocumentsCount: users.filter(
+        (user) => user.kycStatus !== "approved" && user.kycDocumentsCount === 0,
+      ).length,
       blockedUsersCount: users.filter((user) => !user.isActive).length,
       socialUsersCount: users.filter((user) => user.socialProviders.length > 0)
         .length,
@@ -2911,7 +2915,13 @@ export async function enableJsonSellerMode(input: {
 export async function getJsonKycUsers() {
   const data = await getOptiBidData();
   return data.users
-    .filter((user) => user.role !== "admin" && user.kycStatus !== "approved")
+    .filter(
+      (user) =>
+        user.role !== "admin" &&
+        user.kycStatus !== "approved" &&
+        // کاربری که هنوز هیچ مدرکی بارگذاری نکرده در صف بررسی ادمین نمی‌آید.
+        (user.kycDocuments?.length ?? 0) > 0,
+    )
     .map((user) => {
       const {
         password: _password,
@@ -2940,6 +2950,9 @@ export async function updateJsonKycStatus(input: {
   if (!user) throw new Error("KYC user not found");
   if (input.status === "rejected" && !input.reason?.trim()) {
     throw new Error("Rejection reason is required");
+  }
+  if (input.status === "approved" && !(user.kycDocuments?.length ?? 0)) {
+    throw new Error("KYC documents are required before approval");
   }
 
   user.kycStatus = input.status;

@@ -28,6 +28,7 @@ export default async function AdminDashboardPage() {
       sellersCount: 0,
       activeUsersCount: 0,
       pendingKycCount: 0,
+      awaitingKycDocumentsCount: 0,
       blockedUsersCount: 0,
       socialUsersCount: 0,
     },
