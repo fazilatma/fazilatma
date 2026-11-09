@@ -180,12 +180,13 @@ export async function POST(request: Request) {
     }
 
     const files = pickRegistrationFiles(form);
-    // تصویر روی کارت ملی برای همهٔ کاربران (خریدار و فروشنده) الزامی است.
-    if (!files.nationalCard) {
+    // فروشنده باید کارت ملی و مدرک فعالیت فروشگاه را همان موقع ثبت‌نام بفرستد؛
+    // خریدار می‌تواند مدارک را بعداً هم بارگذاری کند.
+    if (role === "seller" && !files.nationalCard) {
       return NextResponse.json(
         {
           success: false,
-          message: "برای ثبت‌نام، بارگذاری تصویر روی کارت ملی الزامی است.",
+          message: "برای ثبت‌نام فروشنده، بارگذاری تصویر روی کارت ملی الزامی است.",
         },
         { status: 400 },
       );

@@ -81,8 +81,8 @@ export default function RegisterPage() {
       alert("برای ثبت‌نام باید قوانین و حریم خصوصی را بپذیرید.");
       return;
     }
-    if (!nationalCard) {
-      alert("بارگذاری تصویر روی کارت ملی برای ثبت‌نام الزامی است.");
+    if (accountType === "seller" && !nationalCard) {
+      alert("برای ثبت‌نام فروشنده، تصویر روی کارت ملی را بارگذاری کنید.");
       return;
     }
     if (accountType === "seller" && !businessLicense && !onlineStoreProof) {
@@ -189,8 +189,8 @@ export default function RegisterPage() {
           ثبت‌نام با <b>شماره موبایل یا ایمیل</b> انجام می‌شود. اگر فروشنده
           هستید، همان موقع ثبت‌نام باید <b>تصویر روی کارت ملی</b> و{" "}
           <b>پروانه کسب یا مدرک فروشگاه اینترنتی</b> را بارگذاری کنید تا حساب
-          شما بررسی شود. خریدار هم تصویر روی کارت ملی را بارگذاری می‌کند؛ بقیهٔ
-          مدارک (پشت کارت، شناسنامه، کارت بانکی) اختیاری است.
+          شما بررسی شود. اگر خریدار هستید، با بارگذاری تصویر کارت ملی حساب شما
+          سریع‌تر تایید می‌شود.
         </div>
 
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
@@ -198,9 +198,9 @@ export default function RegisterPage() {
             نوع حساب را انتخاب کنید
           </h2>
           <p className="mb-5 text-center text-xs leading-6 text-gray-500">
-            همهٔ کاربران تصویر روی کارت ملی را بارگذاری می‌کنند؛ فروشنده علاوه بر
-            آن، مدرک فعالیت فروشگاه (پروانه کسب یا مدرک فروشگاه اینترنتی) را هم
-            ارسال می‌کند.
+            فروشنده برای شروع فروش باید کارت ملی و مدرک فعالیت فروشگاه (پروانه کسب
+            یا مدرک فروشگاه اینترنتی) را بارگذاری کند؛ خریدار می‌تواند کارت ملی را
+            برای تایید حساب ارسال کند.
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             <button
@@ -211,10 +211,11 @@ export default function RegisterPage() {
               <div className="text-4xl">🛒</div>
               <h3 className="mt-3 font-bold">خریدار</h3>
               <p className="mt-2 text-xs leading-6 text-gray-500">
-                خرید از فروشگاه و ثبت درخواست خرید؛ فقط تصویر کارت ملی لازم است.
+                خرید از فروشگاه و ثبت درخواست خرید؛ با ارسال کارت ملی، حساب شما
+                تایید می‌شود.
               </p>
               <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-[11px] font-bold text-green-700">
-                کارت ملی الزامی
+                تایید هویت با کارت ملی
               </span>
             </button>
             <button
@@ -235,9 +236,9 @@ export default function RegisterPage() {
           </div>
           {siteMode === "store" && (
             <p className="mt-4 rounded-xl bg-blue-50 px-4 py-2 text-[11px] leading-5 text-blue-800">
-              سایت در حالت فروشگاهی است؛ خریدارها با تصویر کارت ملی خرید می‌کنند.
-              حساب فروشنده هم ساخته می‌شود ولی تا تایید مدارک توسط پشتیبانی،
-              امکان فروش فعال نیست.
+              سایت در حالت فروشگاهی است؛ خریدارها می‌توانند خرید کنند و برای تایید
+              حساب کارت ملی را ارسال کنند. حساب فروشنده هم ساخته می‌شود ولی تا
+              تایید مدارک توسط پشتیبانی، امکان فروش فعال نیست.
             </p>
           )}
         </div>
@@ -312,7 +313,7 @@ export default function RegisterPage() {
                 <span
                   className={`rounded-full px-3 py-1 text-[11px] font-bold ${accountType === "seller" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
                 >
-                  {accountType === "seller" ? "مدارک الزامی فروشنده" : "کارت ملی الزامی"}
+                  {accountType === "seller" ? "مدارک الزامی فروشنده" : "برای تایید حساب"}
                 </span>
               </div>
               <p className="mt-1 text-[11px] leading-5 text-gray-500">
@@ -323,7 +324,7 @@ export default function RegisterPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <label className="block text-xs font-bold text-gray-700">
                   تصویر روی کارت ملی{" "}
-                  <span className="text-rose-600">*</span>
+                  {accountType === "seller" && <span className="text-rose-600">*</span>}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -338,8 +339,7 @@ export default function RegisterPage() {
                 </label>
 
                 <label className="block text-xs font-bold text-gray-700">
-                  تصویر پشت کارت ملی{" "}
-                  <span className="text-gray-400">(اختیاری)</span>
+                  تصویر پشت کارت ملی
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
