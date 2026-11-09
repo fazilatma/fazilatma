@@ -81,8 +81,8 @@ export default function RegisterPage() {
       alert("برای ثبت‌نام باید قوانین و حریم خصوصی را بپذیرید.");
       return;
     }
-    if (accountType === "seller" && !nationalCard) {
-      alert("برای ثبت‌نام فروشنده، بارگذاری تصویر روی کارت ملی الزامی است.");
+    if (!nationalCard) {
+      alert("بارگذاری تصویر روی کارت ملی برای ثبت‌نام الزامی است.");
       return;
     }
     if (accountType === "seller" && !businessLicense && !onlineStoreProof) {
@@ -189,8 +189,8 @@ export default function RegisterPage() {
           ثبت‌نام با <b>شماره موبایل یا ایمیل</b> انجام می‌شود. اگر فروشنده
           هستید، همان موقع ثبت‌نام باید <b>تصویر روی کارت ملی</b> و{" "}
           <b>پروانه کسب یا مدرک فروشگاه اینترنتی</b> را بارگذاری کنید تا حساب
-          شما بررسی شود. خریدار می‌تواند این مرحله را رد کند و بعداً از «تکمیل
-          اطلاعات حساب» مدارک را بفرستد.
+          شما بررسی شود. خریدار هم تصویر روی کارت ملی را بارگذاری می‌کند؛ بقیهٔ
+          مدارک (پشت کارت، شناسنامه، کارت بانکی) اختیاری است.
         </div>
 
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
@@ -198,8 +198,9 @@ export default function RegisterPage() {
             نوع حساب را انتخاب کنید
           </h2>
           <p className="mb-5 text-center text-xs leading-6 text-gray-500">
-            خریدار بدون مدرک هم می‌تواند خرید کند؛ فروشنده برای شروع فروش باید
-            کارت ملی و مدرک فعالیت فروشگاه را بارگذاری کند.
+            همهٔ کاربران تصویر روی کارت ملی را بارگذاری می‌کنند؛ فروشنده علاوه بر
+            آن، مدرک فعالیت فروشگاه (پروانه کسب یا مدرک فروشگاه اینترنتی) را هم
+            ارسال می‌کند.
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             <button
@@ -210,10 +211,10 @@ export default function RegisterPage() {
               <div className="text-4xl">🛒</div>
               <h3 className="mt-3 font-bold">خریدار</h3>
               <p className="mt-2 text-xs leading-6 text-gray-500">
-                خرید از فروشگاه و ثبت درخواست خرید؛ بارگذاری مدارک اختیاری است.
+                خرید از فروشگاه و ثبت درخواست خرید؛ فقط تصویر کارت ملی لازم است.
               </p>
               <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-[11px] font-bold text-green-700">
-                مدارک اختیاری
+                کارت ملی الزامی
               </span>
             </button>
             <button
@@ -234,7 +235,7 @@ export default function RegisterPage() {
           </div>
           {siteMode === "store" && (
             <p className="mt-4 rounded-xl bg-blue-50 px-4 py-2 text-[11px] leading-5 text-blue-800">
-              سایت در حالت فروشگاهی است؛ خریدارها می‌توانند بدون مدرک خرید کنند.
+              سایت در حالت فروشگاهی است؛ خریدارها با تصویر کارت ملی خرید می‌کنند.
               حساب فروشنده هم ساخته می‌شود ولی تا تایید مدارک توسط پشتیبانی،
               امکان فروش فعال نیست.
             </p>
@@ -311,7 +312,7 @@ export default function RegisterPage() {
                 <span
                   className={`rounded-full px-3 py-1 text-[11px] font-bold ${accountType === "seller" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
                 >
-                  {accountType === "seller" ? "الزامی برای فروشنده" : "اختیاری برای خریدار"}
+                  {accountType === "seller" ? "مدارک الزامی فروشنده" : "کارت ملی الزامی"}
                 </span>
               </div>
               <p className="mt-1 text-[11px] leading-5 text-gray-500">
@@ -322,11 +323,7 @@ export default function RegisterPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <label className="block text-xs font-bold text-gray-700">
                   تصویر روی کارت ملی{" "}
-                  {accountType === "seller" ? (
-                    <span className="text-rose-600">*</span>
-                  ) : (
-                    <span className="text-gray-400">(اختیاری)</span>
-                  )}
+                  <span className="text-rose-600">*</span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
