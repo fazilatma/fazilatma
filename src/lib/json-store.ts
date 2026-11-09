@@ -85,7 +85,15 @@ export type JsonRequest = {
 
 export type JsonKycDocument = {
   id: string;
-  type: "national_card" | "birth_certificate" | "bank_card";
+  type:
+    | "national_card"
+    | "national_card_back"
+    | "birth_certificate"
+    | "bank_card"
+    /** پروانه کسب یا جواز فعالیت صنفی فروشنده. */
+    | "business_license"
+    /** مدرک فعالیت فروشگاه اینترنتی (اینماد، صفحه فروشگاه آنلاین و مانند آن). */
+    | "online_store_proof";
   label: string;
   originalName: string;
   storedName: string;
