@@ -136,6 +136,13 @@ export async function generateMetadata({
   });
 }
 
+/** آیا زمان داده‌شده در بازهٔ مشخصی از «حالا» قرار دارد؟ */
+function isWithinWindow(timestamp: number, windowMs: number) {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return false;
+  const delta = Date.now() - timestamp;
+  return delta >= 0 && delta < windowMs;
+}
+
 export default async function StoreProductPage({
   params,
 }: {
@@ -162,15 +169,11 @@ export default async function StoreProductPage({
     .filter((value, index, values) => values.indexOf(value) === index)
     .slice(0, 3);
   const verifiedAt = Date.parse(String(storedProduct.priceVerifiedAt || ""));
-  const recentlyVerified =
-    Number.isFinite(verifiedAt) &&
-    Date.now() - verifiedAt >= 0 &&
-    Date.now() - verifiedAt <= 60 * 1000;
+  const recentlyVerified = isWithinWindow(verifiedAt, 60 * 1000);
   // قیمتی که ادمین دستی/از لینک مرجع تثبیت کرده، تا ۳ روز با خواندن خودکار بازار
   // بازنویسی نمی‌شود؛ وگرنه همان لحظه با یک استخراج نادرست پایین می‌افتاد.
   const lockedAt = Date.parse(String(storedProduct.priceLockedAt || ""));
-  const priceLocked =
-    Number.isFinite(lockedAt) && lockedAt > 0 && Date.now() - lockedAt < 3 * 24 * 60 * 60 * 1000;
+  const priceLocked = isWithinWindow(lockedAt, 3 * 24 * 60 * 60 * 1000);
   // یک کش توزیع‌شدهٔ کوتاه مانع فراخوانی هم‌زمان APIهای بازار می‌شود، اما تغییر
   // واقعی قیمت حداکثر یک دقیقه بعد دوباره مقایسه خواهد شد.
   const liveSnapshot = recentlyVerified || priceLocked
