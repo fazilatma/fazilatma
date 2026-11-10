@@ -222,15 +222,29 @@ async function fetchText(url: string, accept = "text/html,application/xhtml+xml,
     typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
       ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(14000)
       : undefined;
-  const response = await fetch(url, {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (compatible; OptiBidPriceUpdater/1.0; +https://optibid.ir)",
-      accept,
-    },
-    signal: timeoutSignal,
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const request = () =>
+    fetch(url, {
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (compatible; OptiBidPriceUpdater/1.0; +https://optibid.ir)",
+        accept,
+      },
+      signal: timeoutSignal,
+    });
+  let response = await request();
+  // ترب و دیجی‌کالا درخواست‌های پیاپی از IPهای مشترک Cloudflare را با 429
+  // محدود می‌کنند؛ یک تلاش دوبارهٔ کوتاه نرخ موفقیت استخراج را بالا می‌برد.
+  if (response.status === 429 || response.status === 503) {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    response = await request();
+  }
+  if (!response.ok) {
+    throw new Error(
+      response.status === 429
+        ? "HTTP 429 (محدودیت نرخ موقت منبع)"
+        : `HTTP ${response.status}`,
+    );
+  }
   return response.text();
 }
 
