@@ -96,7 +96,13 @@ export async function runStorePriceRefresh(
       };
     }
 
-    const multiplier = normalizeMultiplier(options.priceMultiplier);
+    const data = await getOptiBidData();
+    // اگر ضریب مشخصی داده نشده باشد، همین ضریبِ تعیین‌شدهٔ مدیر در تنظیمات
+    // فروشگاه اعمال می‌شود؛ قبلاً پیش‌فرض ۱ بود و قیمت فروشگاه دقیقاً برابر
+    // قیمت بازار می‌شد.
+    const multiplier = normalizeMultiplier(
+      options.priceMultiplier ?? data.settings.storePriceMultiplier,
+    );
     const requestedMaxProducts = Math.max(1, Number(options.maxProducts || 20));
     const requestWeight = references.reduce((total, source) => {
       if (source === "torob" || source === "digikala") return total + 2;
@@ -109,7 +115,6 @@ export async function runStorePriceRefresh(
       ? new Set(options.productIds.map(String))
       : null;
     const requestedOffset = productIdFilter ? 0 : Math.max(0, Math.floor(Number(options.offset || 0)));
-    const data = await getOptiBidData();
     const sourceUrl = String(options.sourceUrl || "").trim();
     const shouldUpdateGlobalMultiplier =
       typeof options.updateGlobalMultiplier === "boolean" ? options.updateGlobalMultiplier : !sourceUrl;

@@ -9,7 +9,7 @@ import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import StoreProductGallery from "@/components/StoreProductGallery";
 import StoreVerifiedPriceSync from "@/components/StoreVerifiedPriceSync";
 import StorePriceFreshness from "@/components/StorePriceFreshness";
-import AdminQuickPriceFix from "@/components/AdminQuickPriceFix";
+import AdminAutoPriceRefresh from "@/components/AdminAutoPriceRefresh";
 import {
   getOptiBidData,
   type JsonStoreProduct,
@@ -337,11 +337,10 @@ export default async function StoreProductPage({
                     )}
                     <p className="text-3xl font-black text-rose-600">{money(product.price)}</p>
                     {isAdmin && (
-                      <AdminQuickPriceFix
+                      <AdminAutoPriceRefresh
                         productId={product.id}
-                        marketPrice={Math.round(Number(product.marketPrice || 0))}
-                        multiplier={Number(product.priceMultiplier || 1)}
                         price={Number(product.price || 0)}
+                        multiplier={Number(product.priceMultiplier || 1)}
                       />
                     )}
                     <p className="mt-2 text-xs leading-6 text-slate-500">
