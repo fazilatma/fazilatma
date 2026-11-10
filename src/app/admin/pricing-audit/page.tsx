@@ -6,6 +6,7 @@ import StorePriceAuditFixer from "@/components/StorePriceAuditFixer";
 import StorePriceReferenceSync from "@/components/StorePriceReferenceSync";
 import StorePriceBulkRefresh from "@/components/StorePriceBulkRefresh";
 import StorePriceManualReference from "@/components/StorePriceManualReference";
+import StorePriceMultiplier from "@/components/StorePriceMultiplier";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,9 @@ export default async function PriceAuditPage({
 
       <div className="mb-6">
         <StorePriceBulkRefresh total={summary.total} />
+      </div>
+      <div className="mb-6">
+        <StorePriceMultiplier globalMultiplier={fallbackMultiplier} />
       </div>
       <div className="mb-6">
         <StorePriceManualReference />
