@@ -32,8 +32,12 @@ export async function POST(request: Request) {
     const data = await getOptiBidData();
     const fallbackMultiplier = normalizeStorePriceMultiplier(data.settings.storePriceMultiplier, 1);
 
+    // هر درخواست حداکثر ۱۰۰ کالا را اصلاح می‌کند؛ بیشتر از این، تعداد
+    // عملیات KV از سقف Cloudflare Worker می‌گذرد. کلاینت تا پایان ادامه می‌دهد.
+    const MAX_FIX_PER_REQUEST = 100;
     const fixed: Array<{ id: string; slug: string; title: string; from: number; to: number }> = [];
     for (let index = 0; index < data.storeProducts.length; index += 1) {
+      if (fixed.length >= MAX_FIX_PER_REQUEST) break;
       const product = data.storeProducts[index];
       if (!fixAll && !requestedIds.includes(product.id)) continue;
       const next = repriceStoreProduct(product, fallbackMultiplier);
@@ -68,13 +72,17 @@ export async function POST(request: Request) {
     }
 
     const { summary } = auditStoreProductPrices(data.storeProducts, fallbackMultiplier);
+    const remaining = summary.mismatch;
     return NextResponse.json({
       success: true,
       fixed: fixed.length,
+      remaining,
       details: fixed.slice(0, 50),
       summary,
       message: fixed.length
-        ? `قیمت ${fixed.length.toLocaleString("fa-IR")} محصول با فرمول «قیمت مرجع × ضریب» بازنویسی شد.`
+        ? `قیمت ${fixed.length.toLocaleString("fa-IR")} محصول با فرمول «قیمت مرجع × ضریب» بازنویسی شد${
+            remaining > 0 ? `؛ ${remaining.toLocaleString("fa-IR")} کالا باقی مانده است` : ""
+          }.`
         : "مغایرتی برای اصلاح پیدا نشد.",
     });
   } catch (error) {

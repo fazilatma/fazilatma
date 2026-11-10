@@ -1,4 +1,5 @@
 import { kvGetText, kvPutText } from "@/lib/kv-storage";
+import { saveStorePriceOverride } from "@/lib/store-price-overrides";
 import {
   getOptiBidData,
   writeOptiBidData,
@@ -199,6 +200,21 @@ export async function runStorePriceRefresh(
 
     if (updated > 0 || historyRecorded > 0 || multiplierSettingChanged) {
       await writeOptiBidData(data);
+      // لایهٔ «قیمت تأییدشده» (KV) هم باید با همین اعداد هم‌گام شود؛ وگرنه کارت
+      // فروشگاه و صفحهٔ محصول قیمت قبلی را نشان می‌دهند و مغایرت باقی می‌ماند.
+      const syncIds = new Set(
+        results.filter((item) => item.status === "updated").map((item) => String(item.productId || "")),
+      );
+      const pricedProducts = data.storeProducts.filter((product) => syncIds.has(product.id));
+      for (const product of pricedProducts) {
+        await saveStorePriceOverride(product.id, {
+          price: Number(product.price || 0),
+          marketPrice: Math.round(Number(product.marketPrice || 0)),
+          priceMultiplier: normalizeMultiplier(product.priceMultiplier ?? multiplier),
+          updatedAt: new Date().toISOString(),
+          available: product.priceAvailable !== false,
+        }).catch(() => undefined);
+      }
     }
 
     return {

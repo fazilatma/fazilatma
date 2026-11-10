@@ -5,6 +5,7 @@ import { normalizeStorePriceMultiplier } from "@/lib/store-pricing";
 import StorePriceAuditFixer from "@/components/StorePriceAuditFixer";
 import StorePriceReferenceSync from "@/components/StorePriceReferenceSync";
 import StorePriceBulkRefresh from "@/components/StorePriceBulkRefresh";
+import StorePriceManualReference from "@/components/StorePriceManualReference";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,9 @@ export default async function PriceAuditPage({
 
       <div className="mb-6">
         <StorePriceBulkRefresh total={summary.total} />
+      </div>
+      <div className="mb-6">
+        <StorePriceManualReference />
       </div>
       {summary.unverified > 0 && (
         <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-900">

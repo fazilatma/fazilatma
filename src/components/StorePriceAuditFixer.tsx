@@ -22,17 +22,29 @@ export default function StorePriceAuditFixer({
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch("/api/admin/store-products/price-audit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productId ? { productIds: [productId] } : { productIds: productIds || [] }),
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.success) {
-        setMessage(result?.message || "اصلاح ناموفق بود.");
-        return;
+      // اصلاح گروهی ممکن است چند دسته شود (سقف عملیات KV در هر درخواست)؛
+      // تا وقتی کالای مغایر باقی مانده، ادامه می‌دهیم.
+      let total = 0;
+      for (let round = 0; round < 40; round += 1) {
+        const response = await fetch("/api/admin/store-products/price-audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(productId ? { productIds: [productId] } : { productIds: productIds || [] }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success) {
+          setMessage(result?.message || "اصلاح ناموفق بود.");
+          return;
+        }
+        total += Number(result.fixed || 0);
+        const remaining = Number(result.remaining || 0);
+        setMessage(
+          remaining > 0
+            ? `${total.toLocaleString("fa-IR")} کالا اصلاح شد؛ ${remaining.toLocaleString("fa-IR")} باقی مانده…`
+            : result.message || `${total.toLocaleString("fa-IR")} کالا اصلاح شد.`,
+        );
+        if (remaining <= 0 || productId) break;
       }
-      setMessage(result.message || "انجام شد.");
       router.refresh();
     } catch {
       setMessage("ارتباط با سرور برقرار نشد.");

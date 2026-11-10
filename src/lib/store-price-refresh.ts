@@ -574,3 +574,51 @@ export function applyRefreshedPrice(
     badges: Array.from(new Set([...(product.badges || []).filter((badge) => badge !== "قیمت ثبت‌شده"), "قیمت به‌روز"])).slice(0, 6),
   };
 }
+
+function toLatinPriceDigits(value: string) {
+  return String(value || "")
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+}
+
+/**
+ * کمترین قیمت معتبرِ یک لینک مرجع (صفحهٔ محصول ترب/دیجی‌کالا یا هر فروشگاه دیگر).
+ *
+ * اگر ساختار صفحه شناخته‌شده باشد از همان استخراج همیشگی استفاده می‌شود؛ وگرنه
+ * عددهای «تومان» صفحه خوانده و پس از حذف قیمت‌های غیرواقعی، کمترین آن‌ها
+ * برگردانده می‌شود. این تابع همان چیزی است که دکمهٔ «اعمال قیمت لینک» صدا می‌زند.
+ */
+export async function lowestPriceFromReferenceUrl(url: string) {
+  const raw = await fetchText(url);
+  const source = referenceHosts.torob.some((host) => url.includes(host))
+    ? "torob" as PriceReferenceKey
+    : referenceHosts.digikala.some((host) => url.includes(host))
+      ? "digikala" as PriceReferenceKey
+      : "google" as PriceReferenceKey;
+  const json = parseJsonLoose(raw);
+  const structured = [
+    ...(json ? candidatesFromJson(json, source, url) : []),
+    ...candidatesFromHtml(raw, source, url),
+  ].filter((candidate) => candidate.price >= 100_000);
+
+  const scanned: number[] = [];
+  if (!structured.length) {
+    const text = toLatinPriceDigits(raw.replace(/<[^>]+>/g, " "));
+    for (const match of text.matchAll(/(\d{1,3}(?:[,٬]\d{3})+|\d{6,12})(?:\s*(?:تومان|ریال))?/g)) {
+      const price = Number(String(match[1]).replace(/[,٬]/g, ""));
+      if (Number.isFinite(price) && price >= 100_000 && price <= 5_000_000_000) scanned.push(price);
+    }
+  }
+
+  const prices = structured.length ? structured.map((candidate) => candidate.price) : scanned;
+  if (!prices.length) return { price: 0, candidates: structured, scannedCount: scanned.length };
+
+  const sorted = [...prices].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const reliable = sorted.filter((price) => price >= median * 0.55);
+  return {
+    price: reliable[0] || sorted[0],
+    candidates: structured,
+    scannedCount: scanned.length,
+  };
+}
