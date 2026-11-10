@@ -211,7 +211,9 @@ function brandFromTitle(title: string, fallback = "Digikala") {
   if (/lenovo|لنوو/.test(lower)) return "Lenovo";
   if (/dell|(^|[\s،,\-])دل($|[\s،,\-])/.test(lower)) return "Dell";
   if (/asus|ایسوس/.test(lower)) return "Asus";
-  if (/apple|macbook|مک|اپل|iphone|آیفون/.test(lower)) return "Apple";
+  if (/kingmax|کینگ ?مکس/.test(lower)) return "Kingmax";
+  if (/raidmax|ریدمکس/.test(lower)) return "Raidmax";
+  if (/apple|macbook|اپل|آیفون|iphone|(^|[\s،,\-])مک($|[\s،,\-])/.test(lower)) return "Apple";
   if (/hp|اچ ?پی|اچ‌پی/.test(lower)) return "HP";
   if (/acer|ایسر/.test(lower)) return "Acer";
   if (/msi/.test(lower)) return "MSI";

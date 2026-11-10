@@ -307,12 +307,14 @@ export function storeProductSlugFromTitle(title: string, sourceHost = "") {
   return `${prefix}-${stableHash(`${sourceHost}:${title}`).slice(0, 6)}`.replace(/-+/g, "-");
 }
 
-function brandFromTitle(title: string, fallback = "OptiBid") {
+export function brandFromTitle(title: string, fallback = "OptiBid") {
   const lower = title.toLowerCase();
   if (/lenovo|لنوو/.test(lower)) return "Lenovo";
   if (/dell|(^|[\s،,\-])دل($|[\s،,\-])/.test(lower)) return "Dell";
   if (/asus|ایسوس/.test(lower)) return "Asus";
-  if (/apple|macbook|مک|اپل/.test(lower)) return "Apple";
+  if (/kingmax|کینگ ?مکس/.test(lower)) return "Kingmax";
+  if (/raidmax|ریدمکس/.test(lower)) return "Raidmax";
+  if (/apple|macbook|اپل|(^|[\s،,\-])مک($|[\s،,\-])/.test(lower)) return "Apple";
   if (/hp|اچ ?پی|اچ‌پی/.test(lower)) return "HP";
   if (/acer|ایسر/.test(lower)) return "Acer";
   if (/msi/.test(lower)) return "MSI";

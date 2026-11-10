@@ -278,6 +278,12 @@
       "namedRegex": "^/api/admin/store\\-products/digikala\\-page(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/fix-brands",
+      "regex": "^/api/admin/store\\-products/fix\\-brands(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/fix\\-brands(?:/)?$"
+    },
+    {
       "page": "/api/admin/store-products/import",
       "regex": "^/api/admin/store\\-products/import(?:/)?$",
       "routeKeys": {},
