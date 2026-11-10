@@ -12,6 +12,7 @@ import {
 } from "@/lib/laptop-storefront";
 import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
 import { itemListJsonLd, jsonLd } from "@/lib/seo";
+import StorePriceFreshness from "@/components/StorePriceFreshness";
 
 export default function StorefrontHome({
   products,
@@ -36,6 +37,13 @@ export default function StorefrontHome({
   };
 }) {
   const featured = products.filter((product) => product.isFeatured).slice(0, 4);
+  const brandChips = Array.from(
+    new Set(
+      products
+        .map((product) => String(product.brand || "").trim())
+        .filter((brand) => brand && !/^(?:optibid|نامشخص|digikala|torob)$/i.test(brand)),
+    ),
+  ).slice(0, 6);
   const bannerProducts = products.filter((product) => Boolean(product.imageUrl)).slice(0, 2);
   const computerPartsOnly = computerPartsCatalogEnabled && !laptopCatalogEnabled;
   const effectiveHeroSlides = computerPartsOnly
@@ -83,10 +91,12 @@ export default function StorefrontHome({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <StorePriceFreshness />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
       />
+
       <section className="bg-white">
         <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="min-w-0 space-y-5">
@@ -101,6 +111,68 @@ export default function StorefrontHome({
               fallbackImageUrl={bannerProducts[1]?.imageUrl || bannerProducts[0]?.imageUrl}
               focus={computerPartsOnly ? "components" : "laptop"}
             />
+
+      {/* جستجوی کالا — وسط صفحه اصلی */}
+      <section className="pt-2">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-lg md:p-8">
+          <h2 className="text-xl font-black text-slate-900 md:text-2xl">
+            دنبال چه کالایی هستید؟
+          </h2>
+          <p className="mt-2 text-xs leading-6 text-slate-500">
+            نام، برند یا مدل دقیق کالا را بنویسید؛ مثلاً «RTX 5060»، «H610» یا «IdeaPad».
+          </p>
+          <form
+            action="/shop"
+            method="get"
+            className="mx-auto mt-5 flex w-full max-w-xl flex-col gap-2 sm:flex-row"
+          >
+            <label className="relative min-w-0 flex-1">
+              <span className="sr-only">جستجوی کالا</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+              >
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                <path d="m16.5 16.5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <input
+                type="search"
+                name="q"
+                maxLength={120}
+                autoComplete="off"
+                placeholder="نام کالا، برند یا مدل…"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-12 pl-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-2xl bg-rose-600 px-8 py-3 text-sm font-black text-white transition hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-200"
+            >
+              جستجوی کالا
+            </button>
+          </form>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {(brandChips.length
+              ? brandChips
+              : ["لپ‌تاپ", "مادربرد", "کارت گرافیک", "SSD", "رم"]
+            ).map((chip) => (
+              <Link
+                key={chip}
+                href={`/shop?q=${encodeURIComponent(chip)}`}
+                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+              >
+                {chip}
+              </Link>
+            ))}
+            <Link href="/shop" className="text-[11px] font-bold text-rose-600 underline">
+              مشاهدهٔ همهٔ کالاها
+            </Link>
+          </div>
+        </div>
+      </section>
+
             {laptopCatalogEnabled && <StoreLaptopBrandSlider />}
             {computerPartsCatalogEnabled && <StoreComputerPartsSlider />}
             {laptopCatalogEnabled && <SmartLaptopPickStrip />}
@@ -366,11 +438,11 @@ export default function StorefrontHome({
 
 
 const brandCircleItems = [
-  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?brand=Asus&ref=brand-asus", color: "from-indigo-500 to-fuchsia-500" },
-  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?brand=Lenovo&ref=brand-lenovo", color: "from-red-500 to-slate-800" },
-  { title: "HP", subtitle: "EliteBook", href: "/shop?brand=HP&ref=brand-hp", color: "from-sky-500 to-blue-700" },
-  { title: "Dell", subtitle: "Latitude", href: "/shop?brand=Dell&ref=brand-dell", color: "from-cyan-500 to-slate-700" },
-  { title: "Apple", subtitle: "MacBook", href: "/shop?brand=Apple&ref=brand-apple", color: "from-slate-500 to-slate-900" },
+  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?category=laptop&brand=Asus&ref=brand-asus", color: "from-indigo-500 to-fuchsia-500" },
+  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?category=laptop&brand=Lenovo&ref=brand-lenovo", color: "from-red-500 to-slate-800" },
+  { title: "HP", subtitle: "EliteBook", href: "/shop?category=laptop&brand=HP&ref=brand-hp", color: "from-sky-500 to-blue-700" },
+  { title: "Dell", subtitle: "Latitude", href: "/shop?category=laptop&brand=Dell&ref=brand-dell", color: "from-cyan-500 to-slate-700" },
+  { title: "Apple", subtitle: "MacBook", href: "/shop?category=laptop&brand=Apple&ref=brand-apple", color: "from-slate-500 to-slate-900" },
   { title: "RTX", subtitle: "گیمینگ", href: "/shop?gpuType=rtx&ref=rtx", color: "from-rose-500 to-orange-500" },
   { title: "SSD", subtitle: "سرعت بالا", href: "/shop?ssd=512GB&ref=ssd", color: "from-emerald-500 to-teal-700" },
   { title: "i7", subtitle: "حرفه‌ای", href: "/shop?cpu=i7&ref=cpu-i7", color: "from-violet-500 to-[#003b5c]" },
@@ -429,7 +501,7 @@ function StoreLaptopBrandSlider() {
             برندهای محبوب و گزینه‌های پرجستجو
           </h2>
         </div>
-        <Link href="/shop?ref=brand-search#brand-search" className="text-xs font-black text-rose-600 md:text-sm">
+        <Link href="/shop?category=laptop&ref=brand-search#brand-search" className="text-xs font-black text-rose-600 md:text-sm">
           مشاهده همه لپ‌تاپ‌ها ←
         </Link>
       </div>

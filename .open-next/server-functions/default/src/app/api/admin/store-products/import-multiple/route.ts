@@ -178,9 +178,29 @@ function applyCurrentAggregatedPrice(existing: JsonStoreProduct, candidate: Json
   } satisfies JsonStoreProduct;
 }
 
-function normalizeSourceConfigs(body: Record<string, unknown>) {
-  const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler"]);
-  const configured = Array.isArray(body.sources)
+type SourceConfig = {
+  url: string;
+  parts: string[];
+  /** سقف محصول همین لینک؛ صفر یعنی سقف سراسری درخواست. */
+  limit: number;
+  /** ضریب قیمت همین لینک؛ صفر یعنی ضریب سراسری درخواست. */
+  priceMultiplier: number;
+};
+
+function normalizeSourceConfigs(body: Record<string, unknown>): SourceConfig[] {
+  const allowedParts = new Set([
+    "laptop",
+    "desktop",
+    "cpu",
+    "gpu",
+    "ram",
+    "ssd",
+    "motherboard",
+    "power",
+    "case",
+    "cooler",
+  ]);
+  const configured: SourceConfig[] = Array.isArray(body.sources)
     ? body.sources.flatMap((item) => {
         if (!item || typeof item !== "object" || Array.isArray(item)) return [];
         const record = item as Record<string, unknown>;
@@ -189,11 +209,18 @@ function normalizeSourceConfigs(body: Record<string, unknown>) {
         const parts = Array.isArray(record.parts)
           ? [...new Set(record.parts.map((part) => String(part).toLowerCase()).filter((part) => allowedParts.has(part)))]
           : [];
-        return [{ url, parts }];
+        const limit = Math.max(0, Math.min(10_000, Number(record.limit) || 0));
+        const priceMultiplier = Math.max(0, Math.min(10, Number(record.priceMultiplier) || 0));
+        return [{ url, parts, limit, priceMultiplier }];
       })
     : [];
   if (configured.length) return configured.slice(0, 8);
-  return parseSourceLinks(body.links, 8).map((url) => ({ url, parts: [] as string[] }));
+  return parseSourceLinks(body.links, 8).map((url) => ({
+    url,
+    parts: [] as string[],
+    limit: 0,
+    priceMultiplier: 0,
+  }));
 }
 
 export async function POST(request: Request) {
@@ -219,29 +246,50 @@ export async function POST(request: Request) {
 
     // هر منبع در مسیر مستقل اجرا می‌شود؛ بنابراین رد شدن ترب، اسکن دیجی‌کالا
     // را متوقف نمی‌کند. داخل هر منبع، صفحه‌ها همچنان ترتیبی خوانده می‌شوند.
-    const sourceScans = await Promise.all(
-      sourceConfigs.map(async (sourceConfig) => {
+    // منابع یکی‌یکی خوانده می‌شوند؛ اجرای هم‌زمان چند لینک سنگین حافظهٔ Worker را
+    // پر می‌کرد و خطای 1102 «سقف منابع» می‌داد.
+    const sourceScans: Array<{
+      host: string;
+      url: string;
+      parts: string[];
+      priceMultiplier: number;
+      scan: Awaited<ReturnType<typeof scanStoreProductsFromUrl>> | null;
+      error: string;
+    }> = [];
+    const requestedMaxPages = Math.max(1, Math.min(12, Number(body.maxPages || 6)));
+    for (const sourceConfig of sourceConfigs) {
+      const runSource = async () => {
         const host = new URL(sourceConfig.url).hostname;
         const specializedSource = /(?:^|\.)(?:digikala\.com|torob\.com)$/i.test(host.replace(/^www\./, ""));
         try {
           const scan = await scanStoreProductsFromUrl(sourceConfig.url, {
-            limit: requestedLimit,
+            limit: sourceConfig.limit || requestedLimit,
             fullSite: specializedSource,
-            maxPages: specializedSource ? 12 : 6,
-            categoryFilters: ["components", "storage"],
+            maxPages: requestedMaxPages,
+            categoryFilters: ["components", "storage", "laptop", "desktop"],
             partFilters: sourceConfig.parts,
           });
-          return { host, parts: sourceConfig.parts, scan, error: "" };
+          return {
+            host,
+            url: sourceConfig.url,
+            parts: sourceConfig.parts,
+            priceMultiplier: sourceConfig.priceMultiplier,
+            scan,
+            error: "",
+          };
         } catch (error) {
           return {
             host,
+            url: sourceConfig.url,
             parts: sourceConfig.parts,
+            priceMultiplier: sourceConfig.priceMultiplier,
             scan: null,
             error: error instanceof Error ? error.message : "خطای نامشخص",
           };
         }
-      }),
-    );
+      };
+      sourceScans.push(await runSource());
+    }
 
     for (const source of sourceScans) {
       if (!source.scan) {
@@ -251,13 +299,15 @@ export async function POST(request: Request) {
       warnings.push(...source.scan.warnings.map((warning) => `${source.host}: ${warning}`));
       scannedUrls.push(...source.scan.scannedUrls);
       const drafts = source.scan.products.filter((draft) =>
-        productMatchesImportCategories(draft, ["components", "storage"]) &&
+        productMatchesImportCategories(draft, ["components", "storage", "laptop", "desktop"]) &&
         productMatchesComputerPartFilters(draft, source.parts),
       );
       rawProducts += drafts.length;
 
+      const sourceMultiplier = source.priceMultiplier || multiplier;
       for (const draft of drafts) {
-        const product = applyMultiplier(importedDraftToStoreProduct(draft), multiplier);
+        const product = applyMultiplier(importedDraftToStoreProduct(draft), sourceMultiplier);
+        product.sourceLink = source.url;
         const matchIndex = findMultiSourceMatch(aggregated, product, aggregatedMatchIndex);
         if (matchIndex >= 0) {
           aggregated[matchIndex] = mergeLowestPrice(aggregated[matchIndex], product);

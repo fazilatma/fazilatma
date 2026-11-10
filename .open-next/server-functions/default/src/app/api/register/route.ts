@@ -1,25 +1,24 @@
 import { NextResponse } from "next/server";
 import {
   createJsonUser,
-  getJsonSiteMode,
   type JsonKycDocument,
 } from "@/lib/json-store";
 import { removeKycFiles, saveKycFile } from "@/lib/kyc-storage";
 import { removeAvatarFile, saveAvatarFile } from "@/lib/avatar-storage";
+import { sessionCookieOptions } from "@/lib/session-cookie-options";
 
 export const dynamic = "force-dynamic";
 
 function setUserSession(
   response: NextResponse,
+  request: Request,
   user: { id: number; role: string },
 ) {
-  response.cookies.set("optibid_user", `${user.role}:${user.id}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  response.cookies.set(
+    "optibid_user",
+    `${user.role}:${user.id}`,
+    sessionCookieOptions(request, 60 * 60 * 24 * 30),
+  );
   return response;
 }
 
@@ -50,35 +49,71 @@ function isMobile(value: string) {
   return /^09\d{9}$/.test(normalizePhone(value));
 }
 
-async function saveOptionalKycDocuments(form: FormData) {
-  const savedDocuments: JsonKycDocument[] = [];
-  const nationalCard = asFile(form.get("nationalCard"));
-  const bankCardImage = asFile(form.get("bankCardImage"));
-  const birthCertificatePages = form
-    .getAll("birthCertificatePages")
-    .filter((value): value is File => value instanceof File && value.size > 0);
+type RegistrationFiles = {
+  nationalCard: File | null;
+  nationalCardBack: File | null;
+  businessLicense: File | null;
+  onlineStoreProof: File | null;
+  bankCardImage: File | null;
+  birthCertificatePages: File[];
+};
 
-  if (nationalCard) {
+function pickRegistrationFiles(form: FormData): RegistrationFiles {
+  return {
+    nationalCard: asFile(form.get("nationalCard")),
+    nationalCardBack: asFile(form.get("nationalCardBack")),
+    businessLicense: asFile(form.get("businessLicense")),
+    onlineStoreProof: asFile(form.get("onlineStoreProof")),
+    bankCardImage: asFile(form.get("bankCardImage")),
+    birthCertificatePages: form
+      .getAll("birthCertificatePages")
+      .filter((value): value is File => value instanceof File && value.size > 0),
+  };
+}
+
+async function saveOptionalKycDocuments(files: RegistrationFiles) {
+  const savedDocuments: JsonKycDocument[] = [];
+
+  if (files.nationalCard) {
     savedDocuments.push(
-      await saveKycFile(nationalCard, "national_card", "تصویر کارت ملی"),
+      await saveKycFile(files.nationalCard, "national_card", "تصویر روی کارت ملی"),
+    );
+  }
+  if (files.nationalCardBack) {
+    savedDocuments.push(
+      await saveKycFile(files.nationalCardBack, "national_card_back", "تصویر پشت کارت ملی"),
     );
   }
   for (
     let index = 0;
-    index < Math.min(8, birthCertificatePages.length);
+    index < Math.min(8, files.birthCertificatePages.length);
     index += 1
   ) {
     savedDocuments.push(
       await saveKycFile(
-        birthCertificatePages[index],
+        files.birthCertificatePages[index],
         "birth_certificate",
         `صفحه ${index + 1} شناسنامه`,
       ),
     );
   }
-  if (bankCardImage) {
+  if (files.bankCardImage) {
     savedDocuments.push(
-      await saveKycFile(bankCardImage, "bank_card", "تصویر کارت بانکی"),
+      await saveKycFile(files.bankCardImage, "bank_card", "تصویر کارت بانکی"),
+    );
+  }
+  if (files.businessLicense) {
+    savedDocuments.push(
+      await saveKycFile(files.businessLicense, "business_license", "پروانه کسب"),
+    );
+  }
+  if (files.onlineStoreProof) {
+    savedDocuments.push(
+      await saveKycFile(
+        files.onlineStoreProof,
+        "online_store_proof",
+        "مدرک فروشگاه اینترنتی",
+      ),
     );
   }
 
@@ -96,13 +131,9 @@ export async function POST(request: Request) {
     const explicitEmail = text(form, "email").toLowerCase();
     const explicitPhone = text(form, "phone");
     const password = text(form, "password");
-    const siteMode = await getJsonSiteMode();
-    const role =
-      siteMode === "store"
-        ? "buyer"
-        : text(form, "role") === "seller"
-          ? "seller"
-          : "buyer";
+    // ثبت‌نام فروشنده در همهٔ حالت‌های سایت ممکن است؛ فروشنده باید مدارک
+    // هویتی و مدرک فعالیت فروشگاه را همان‌جا بارگذاری کند.
+    const role = text(form, "role") === "seller" ? "seller" : "buyer";
 
     const email =
       explicitEmail || (isEmail(identifier) ? identifier.toLowerCase() : "");
@@ -148,7 +179,32 @@ export async function POST(request: Request) {
       categories = [];
     }
 
-    savedDocuments.push(...(await saveOptionalKycDocuments(form)));
+    const files = pickRegistrationFiles(form);
+    // فروشنده باید کارت ملی و مدرک فعالیت فروشگاه را همان موقع ثبت‌نام بفرستد؛
+    // خریدار می‌تواند مدارک را بعداً هم بارگذاری کند.
+    if (role === "seller" && !files.nationalCard) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "برای ثبت‌نام فروشنده، بارگذاری تصویر روی کارت ملی الزامی است.",
+        },
+        { status: 400 },
+      );
+    }
+    if (role === "seller") {
+      if (!files.businessLicense && !files.onlineStoreProof) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "برای ثبت‌نام فروشنده، تصویر پروانه کسب یا مدرک فروشگاه اینترنتی (اینماد، صفحه فروشگاه آنلاین) الزامی است.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    savedDocuments.push(...(await saveOptionalKycDocuments(files)));
     const profileImage = asFile(form.get("profileImage"));
     if (profileImage) savedAvatarName = await saveAvatarFile(profileImage);
 
@@ -186,9 +242,13 @@ export async function POST(request: Request) {
         kycStatus: user.kycStatus,
       },
       message:
-        "ثبت‌نام سریع انجام شد. حالا می‌توانید وارد حساب شوید و اطلاعات تکمیلی، حساب بانکی و مدارک را مرحله‌به‌مرحله کامل کنید.",
+        role === "seller"
+          ? "ثبت‌نام فروشنده انجام شد. مدارک هویتی و مدرک فعالیت فروشگاه شما برای بررسی به پنل مدیریت ارسال شد و پس از تایید، امکان ثبت پیشنهاد و فروش فعال می‌شود."
+          : savedDocuments.length > 0
+            ? "ثبت‌نام انجام شد. مدارک بارگذاری‌شده برای بررسی به پنل مدیریت ارسال شد."
+            : "ثبت‌نام سریع انجام شد. حالا می‌توانید وارد حساب شوید و اطلاعات تکمیلی، حساب بانکی و مدارک را مرحله‌به‌مرحله کامل کنید.",
     });
-    setUserSession(response, { id: user.id, role: user.role });
+    setUserSession(response, request, { id: user.id, role: user.role });
     return response;
   } catch (error) {
     await removeKycFiles(savedDocuments);

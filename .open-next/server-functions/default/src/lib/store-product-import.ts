@@ -333,8 +333,10 @@ function brandFromTitle(title: string, fallback = "OptiBid") {
 
 function textMatchesLaptop(lower: string) {
   const explicitLaptopWords = /laptop|notebook|ultrabook|chromebook|macbook|لپ\s?تاپ|لپ‌تاپ|لپتاپ|نوت\s?بوک|نوت‌بوک|اولترابوک|الترابوک|کروم\s?بوک|مک\s?بوک/.test(lower);
-  const laptopSeries = /thinkpad|thinkbook|ideapad|legion|lenovo\s*loq|yoga|vivobook|zenbook|expertbook|proart|asus\s*tuf|rog\s*(strix|zephyrus|flow)?|latitude|inspiron|vostro|xps\s*\d|precision|alienware|elitebook|probook|pavilion|envy|victus|omen|zbook|spectre|aspire|nitro|predator|swift|travelmate|msi\s*(modern|cyborg|katana|thin|pulse|vector|raider|stealth|prestige|summit|bravo|creator|venturepro)|modern\s*\d|cyborg\s*\d|katana\s*\d|venturepro\s*\d|matebook|surface\s*laptop|galaxy\s*book|lg\s*gram|aorus|gigabyte\s*(g5|g6|aero)|razer\s*blade/.test(lower);
-  const laptopScreenSize = /(?:11\.6|12\.5|13(?:\.3|\.4|\.5)?|14(?:\.0)?|15(?:\.6)?|16(?:\.0)?|17(?:\.3)?|18(?:\.0)?)\s*(?:inch|اینچ|اینچی)/.test(lower);
+  const laptopSeries = /thinkpad|thinkbook|ideapad|legion|lenovo\s*loq|yoga|vivobook|zenbook|expertbook|proart|asus\s*tuf|rog\s*(strix|zephyrus|flow)?|latitude|inspiron|vostro|xps\s*\d|precision|alienware|elitebook|probook|pavilion|envy|victus|omen|zbook|spectre|aspire|nitro|predator|swift|travelmate|msi\s*(modern|cyborg|katana|thin|pulse|vector|raider|stealth|prestige|summit|bravo|creator|venturepro)|modern\s*\d|cyborg\s*\d|katana\s*\d|venturepro\s*\d|matebook|surface\s*laptop|galaxy\s*book|lg\s*gram|aorus|gigabyte\s*(g5|g6|aero)|razer\s*blade|مک\s?بوک|مکبوک|ایده\s?پد|آیدیاپد|وایو\s?بوک|زن\s?بوک|تینک\s?پد|تینک\s?بوک|الیت\s?بوک|پروب\s?بوک|پاویلیون|ویکتوس|لجیون|نایترو|اسپایر|لتیتیود|اسپکتر|اومن|زنبوک|سرفیس|میت\s?بوک/.test(lower);
+  // هر اندازهٔ ۱۰ تا ۱۹ اینچ (۱۳.۶ اینچی، ۱۴، ۱۵.۶، ۱۶، ۱۷.۳ …) نشانهٔ صفحه‌نمایش
+  // لپ‌تاپ است؛ مانیتورها معمولاً ۲۱ اینچ و بالاترند.
+  const laptopScreenSize = /(?:1[0-9])(?:\.\d)?\s*(?:inch|اینچ|اینچی)/.test(lower);
   const laptopSpecs = /core\s*(?:i[3579]|ultra|3|5|7|9)|ryzen\s*[3579]|celeron|pentium|intel|amd|rtx\s*\d{3,4}|gtx\s*\d{3,4}|mx\s*\d{3}|iris\s*xe|radeon|رم\s*\d|\d+\s*gb\s*(?:ram|ddr)|ssd|nvme|پردازنده|گرافیک/.test(lower);
   return explicitLaptopWords || laptopSeries || (laptopScreenSize && laptopSpecs);
 }
@@ -356,9 +358,38 @@ function productCategoryKeyFromText(value: string): ProductImportCategoryKey | "
   const otherPhoneSeries = /nokia\s*\d|نوکیا\s*\d|moto\s*g\s*\d|motorola\s*(edge|g)\s*\d|موتورولا|realme\s*(c|gt|note|narzo)?\s*\d|ریلمی|oneplus|وان\s*پلاس|nothing\s*phone|infinix|اینفینیکس|tecno|تکنو/.test(lower);
   if (explicitPhoneWords || samsungGalaxyPhone || xiaomiPhone || honorHuaweiPhone || otherPhoneSeries) return "mobile";
 
-  const isLaptop = textMatchesLaptop(lower);
+  // نام سری‌هایی مثل AORUS، TUF، ROG، Nitro و Predator هم روی لپ‌تاپ و هم روی
+  // مادربرد و کارت گرافیک استفاده می‌شوند؛ اگر نشانهٔ روشنِ «قطعه» در متن باشد
+  // نباید کالا را لپ‌تاپ حساب کنیم (باگ نمایش مادربرد در دستهٔ لپ‌تاپ).
+  const explicitLaptopWord = /لپ ?تاپ|لپ‌تاپ|لپتاپ|laptop|notebook|ultrabook|chromebook|macbook|نوت ?بوک|نو تب?بوک/.test(lower);
+  // فقط اسم‌های قطعیِ قطعه؛ واژهٔ «پردازنده» عمداً نیست چون در عنوان لپ‌تاپ هم می‌آید.
+  const strongComputerPart =
+    /مادربرد|motherboard|کارت گرافیک|گرافیک کامپیوتر|منبع تغذیه|پاور کامپیوتر|کیس کامپیوتر|خمیر سیلیکون|هیتسینک|حافظه رم|رم کامپیوتر|ماژول رم|ram module|memory module|computer case|power supply|\bpsu\b|\bgpu\b|\bcpu\b|کارت صدا|فن کیس|قطعات کامپیوتر/.test(lower);
+  // چیپست‌های مادربرد (B760، Z790، X670، H610، B650 …) نشانهٔ قطعی قطعه هستند.
+  // فهرست صریح است تا کد مدل لپ‌تاپ‌هایی مثل A515/A715 با چیپست اشتباه نشود.
+  const motherboardChipset =
+    /\b(?:h110|b150|b250|z270|h310|b360|b365|z370|z390|h410|b460|h470|z490|h510|b560|h570|z590|h610|b660|b760|z690|z790|x470|b450|x570|b550|x670|b650|a520|a620|x870|b840|z890|trx40|x299|w680|w790)\b/.test(lower);
+  // «قطعهٔ قطعی» حتی اگر واژهٔ لپ‌تاپ هم در متن باشد باز قطعه است؛ چون عنوان
+  // قطعات زیاد می‌نویسد «مخصوص لپ‌تاپ» یا «رم لپ‌تاپ». قبلاً همین «لپ‌تاپ» باعث
+  // می‌شد رم و هارددیسک داخل دستهٔ لپ‌تاپ نمایش داده شوند.
+  // فقط قطعه‌هایی که «واژهٔ لپ‌تاپ» در متنشان نشانهٔ خودِ کالا نیست (رم ماژول و
+  // حافظه). کارت گرافیک/مادربرد/پاور/کیس با قاعدهٔ «عنوان با اسم قطعه شروع شودُ
+  // در productImportCategoryKey و همچنین strongComputerPart پوشش داده می‌شوند؛
+  // اگر اینجا هم بیایند، لپ‌تاپی که در عنوانش «کارت گرافیک RTX 4060» دارد
+  // به‌اشتباه قطعه حساب می‌شود و از دستهٔ لپ‌تاپ حذف می‌گردد.
+  const definitePart =
+    /رم دسکتاپ|رم لپ ?تاپ|رم کامپیوتر|حافظه رم|ماژول رم|ram module|memory module/.test(lower);
+  const partFirst =
+    definitePart || ((strongComputerPart || motherboardChipset) && !explicitLaptopWord);
+
+  const isLaptop = !partFirst && (explicitLaptopWord || textMatchesLaptop(lower));
   if (isLaptop && /gaming|گیم|rtx|legion|tuf|rog|گیمینگ/.test(lower)) return "gaming";
   if (isLaptop) return "laptop";
+  if (partFirst) {
+    // حافظه و ذخیره‌سازی در ویترین، دستهٔ جدا دارد.
+    if (/\bssd\b|\bhdd\b|\bnvme\b|هارد|حافظه\s*(?:اس\s?اس\s?دی|ssd|داخلی)|فلش|مموری|memory card/.test(lower)) return "storage";
+    return "components";
+  }
   if (/server|سرور/.test(lower)) return "server";
   if (/monitor|مانیتور|display/.test(lower)) return "monitor";
   if (/printer|پرینتر|چاپگر|scanner|اسکنر|کارتریج|تونر/.test(lower)) return "printer";
@@ -1005,9 +1036,38 @@ export function normalizeProductImportCategories(value: unknown): ProductImportC
 }
 
 export function productImportCategoryKey(draft: Pick<ImportedStoreProductDraft, "title" | "brand" | "category" | "specs">) {
-  return productCategoryKeyFromText(
-    `${draft.title} ${draft.brand} ${draft.category} ${Object.values(draft.specs || {}).join(" ")}`,
-  );
+  // اول با عنوان/برند/دسته تصمیم می‌گیریم؛ مشخصات فنی لپ‌تاپ‌ها عبارت‌هایی مثل
+  // «پردازنده» و «کارت گرافیک» دارد و اگر از ابتدا وارد شود، لپ‌تاپ را قطعه می‌کند.
+  // اگر عنوان کالا با اسم قطعه شروع شود، همان قطعه است — حتی اگر در ادامه
+  // نوشته شده باشد «مخصوص لپ‌تاپ» (مثل «هارددیسک اینترنال مخصوص لپ‌تاپ» یا
+  // «رم لپ‌تاپ DDR4»). لپ‌تاپ‌ها با «لپ‌تاپ/نوتبوک/مک‌بوک» یا نام سری شروع می‌شوند.
+  const titleLead = String(draft.title || "")
+    .toLowerCase()
+    .replace(/[\u200c\s]+/g, " ")
+    .trim();
+  const partLead = /^(?:رم|ماژول|حافظه|هارد|هارددیسک|هارد دیسک|اس\s?اس\s?دی|ssd|nvme|کارت گرافیک|کارت گرافيک|گرافیک|مادربرد|پردازنده|پاور|منبع تغذیه|کیس|فن|خنک|cooler|ram\b|ddr)/.test(titleLead);
+  const laptopLead = /^(?:لپ|نوت|lap|macbook|مک ?بوک|thinkpad|ideapad|elitebook|probook|vivobook|zenbook|victus|legion|nitro|aspire|latitude|inspiron|xps|aorus|tuf|rog)/.test(titleLead);
+  if (
+    /^(?:باتری|شارژر|آداپتور|کیبورد|ماوس|موس|پد ماوس|کول ?پد|فن لپ ?تاپ|کوله|کیف)/.test(titleLead) &&
+    !laptopLead
+  ) {
+    return "accessories";
+  }
+  if (partLead && !laptopLead) {
+    if (/هارد|اس\s?اس\s?دی|ssd|nvme|حافظه\s*(?:داخلی|اس\s?اس\s?دی)|فلش|مموری/.test(titleLead)) return "storage";
+    return "components";
+  }
+  const titleText = `${draft.title} ${draft.brand} ${draft.category}`;
+  const primary = productCategoryKeyFromText(titleText);
+  if (primary !== "unknown" && primary !== "gaming") return primary;
+  const specsText = Object.values(draft.specs || {}).join(" ");
+  if (!specsText.trim()) return primary;
+  const withSpecs = productCategoryKeyFromText(`${titleText} ${specsText}`);
+  if (primary === "unknown") return withSpecs;
+  // فقط وقتی عنوان چیزی جز «گیمینگ» نمی‌گوید و مشخصات، قطعیت قطعه را ثابت می‌کند
+  // (مثل «کارت گرافیک RTX 4060» یا «چیپست B760») از مشخصات کمک می‌گیریم.
+  if (withSpecs === "components" || withSpecs === "storage") return withSpecs;
+  return primary;
 }
 
 export function productMatchesImportCategories(
@@ -1032,6 +1092,16 @@ export function productMatchesComputerPartFilters(
 ) {
   const filters = [...new Set(partFilters.map((item) => String(item).trim().toLowerCase()).filter(Boolean))];
   if (!filters.length) return true;
+
+  // «لپ‌تاپ» و «کامپیوتر آماده» قطعه نیستند و تشخیص آن‌ها بر اساس متن عنوان/دسته است.
+  const text = `${draft.title || ""} ${draft.category || ""}`
+    .toLowerCase()
+    .replace(/[\u200c\s]+/g, " ");
+  const isLaptop = /لپ ?تاپ|laptop|notebook|macbook|ultrabook|thinkpad|ideapad|latitude|elitebook/.test(text);
+  const isDesktop = /کامپیوتر آماده|آل ?این ?وان|all ?in ?one|desktop computer|mini ?pc|مینی ?پی ?سی/.test(text);
+  if (filters.includes("laptop") && isLaptop) return true;
+  if (filters.includes("desktop") && isDesktop) return true;
+
   const kind = storeComputerPartKind(draft);
   return Boolean(kind && filters.includes(kind));
 }
@@ -2170,6 +2240,17 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
   };
 }
 
+/**
+ * «سیستم کامل» (لپ‌تاپ، کامپیوتر آماده، مینی‌پی‌سی) با اثر انگشت قطعه‌ای
+ * (مدل CPU/GPU یا اشتراک عنوان) نباید ادغام شود؛ وگرنه ده‌ها لپ‌تاپ با یک CPU
+ * روی هم نوشته می‌شوند و تعداد کالاهای فروشگاه به‌شدت کم می‌شود.
+ */
+export function looksLikeAssembledDevice(value: string) {
+  return /لپ ?تاپ|لپ‌تاپ|lپتاپ|laptop|notebook|ultrabook|chromebook|macbook|مک ?بوک|thinkpad|thinkbook|ideapad|legion|yoga|vivobook|zenbook|expertbook|elitebook|probook|pavilion|envy|victus|omen|zbook|spectre|aspire|nitro|predator|latitude|inspiron|vostro|alienware|matebook|surface|galaxy ?book|lg ?gram|razer ?blade|aorus|اینچ|inch|کامپیوتر آماده|آل ?این ?وان|all ?in ?one|mini ?pc|مینی ?پی ?سی/.test(
+    String(value || "").toLowerCase(),
+  );
+}
+
 function normalizedMatchTokens(value: string) {
   return toEnglishDigits(value)
     .toLowerCase()
@@ -2208,6 +2289,9 @@ export function storeProductIdentityKey(product: Pick<JsonStoreProduct, "title" 
 export function findMatchingStoreProductIndex(products: JsonStoreProduct[], imported: JsonStoreProduct) {
   const importedIdentity = storeProductIdentityKey(imported);
   const importedTokens = new Set(normalizedMatchTokens(imported.title));
+  const importedAssembled = looksLikeAssembledDevice(
+    `${imported.title} ${imported.category || ""}`,
+  );
   let bestIndex = -1;
   let bestScore = 0;
   products.forEach((product, index) => {
@@ -2223,6 +2307,11 @@ export function findMatchingStoreProductIndex(products: JsonStoreProduct[], impo
     }
     const productTokens = normalizedMatchTokens(product.title);
     const shared = productTokens.filter((token) => importedTokens.has(token));
+    // برای لپ‌تاپ و سیستم کامل، اشتراک واژه‌های عمومی («لپ تاپ لنوو ideapad») کافی
+    // نیست؛ باید کد مدل (توکن دارای رقم و دست‌کم ۴ نویسه) هم یکی باشد.
+    if (importedAssembled && !shared.some((token) => /\d/.test(token) && token.length >= 4)) {
+      return;
+    }
     const brandScore = product.brand.toLowerCase() === imported.brand.toLowerCase() ? 2 : 0;
     const score = shared.length + brandScore;
     if (score > bestScore) {

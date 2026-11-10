@@ -1,0 +1,3 @@
+module.exports=[72093,t=>{"use strict";let e;async function n(){if(void 0!==e)return e;try{let n=await t.A(77757);if("function"!=typeof n.getCloudflareContext)return e=null;let l=n.getCloudflareContext();e=l?.env?.OPTIBID_KV||null}catch{e=null}return e}async function l(t){let e=await n();return e?e.get(t,"text"):null}async function u(t,e){let l=await n();l&&await l.put(t,e)}t.s(["getKvNamespace",0,n,"kvGetText",0,l,"kvPutText",0,u])},77757,t=>{t.v(e=>Promise.all(["server/chunks/node_modules_@opennextjs_cloudflare_dist_api_index_0ljt4d3.js"].map(e=>t.l(e))).then(()=>e(32489)))}];
+
+//# sourceMappingURL=_0c5a4ow._.js.map

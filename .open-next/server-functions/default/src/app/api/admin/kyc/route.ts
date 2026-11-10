@@ -44,8 +44,17 @@ export async function PATCH(request: Request) {
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown KYC update error";
     const missingReason = detail.includes("Rejection reason");
+    const missingDocuments = detail.includes("documents are required");
     return NextResponse.json(
-      { success: false, message: missingReason ? "برای رد مدارک، درج علت الزامی است." : "تعیین وضعیت احراز هویت ناموفق بود.", detail },
+      {
+        success: false,
+        message: missingDocuments
+          ? "این کاربر هنوز هیچ مدرکی بارگذاری نکرده است؛ تا بارگذاری مدارک، تایید ممکن نیست."
+          : missingReason
+            ? "برای رد مدارک، درج علت الزامی است."
+            : "تعیین وضعیت احراز هویت ناموفق بود.",
+        detail,
+      },
       { status: 400 }
     );
   }

@@ -30,6 +30,10 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nationalCard, setNationalCard] = useState<File | null>(null);
+  const [nationalCardBack, setNationalCardBack] = useState<File | null>(null);
+  const [businessLicense, setBusinessLicense] = useState<File | null>(null);
+  const [onlineStoreProof, setOnlineStoreProof] = useState<File | null>(null);
 
   useEffect(() => {
     fetch("/api/site-mode", { cache: "no-store" })
@@ -37,7 +41,7 @@ export default function RegisterPage() {
       .then((result) => {
         if (result.success && ["store", "request", "hybrid"].includes(result.siteMode)) {
           setSiteMode(result.siteMode);
-          if (result.siteMode === "store") setAccountType("buyer");
+          setAccountType("buyer");
         }
       })
       .catch(() => undefined);
@@ -51,7 +55,7 @@ export default function RegisterPage() {
 
   const startSocialRegister = (provider: "google" | "facebook") => {
     const query = new URLSearchParams({
-      role: siteMode === "store" ? "buyer" : accountType,
+      role: accountType,
       redirect: "/account/completion",
     });
     window.location.assign(`/api/auth/social/${provider}?${query.toString()}`);
@@ -77,11 +81,28 @@ export default function RegisterPage() {
       alert("برای ثبت‌نام باید قوانین و حریم خصوصی را بپذیرید.");
       return;
     }
+    if (accountType === "seller" && !nationalCard) {
+      alert("برای ثبت‌نام فروشنده، تصویر روی کارت ملی را بارگذاری کنید.");
+      return;
+    }
+    if (accountType === "seller" && !businessLicense && !onlineStoreProof) {
+      alert(
+        "برای ثبت‌نام فروشنده، تصویر پروانه کسب یا مدرک فروشگاه اینترنتی (اینماد، صفحه فروشگاه آنلاین) را بارگذاری کنید.",
+      );
+      return;
+    }
+    const oversized = [nationalCard, nationalCardBack, businessLicense, onlineStoreProof]
+      .filter((file): file is File => Boolean(file))
+      .find((file) => file.size > 5 * 1024 * 1024);
+    if (oversized) {
+      alert(`حجم فایل «${oversized.name}» بیشتر از ۵ مگابایت است.`);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const form = new FormData();
-      form.append("role", siteMode === "store" ? "buyer" : accountType);
+      form.append("role", accountType);
       form.append("identifier", identifier.trim());
       if (identifierType === "email")
         form.append("email", identifier.trim().toLowerCase());
@@ -89,6 +110,10 @@ export default function RegisterPage() {
         form.append("phone", normalizePhone(identifier));
       form.append("fullName", fullName.trim());
       form.append("password", password);
+      if (nationalCard) form.append("nationalCard", nationalCard);
+      if (nationalCardBack) form.append("nationalCardBack", nationalCardBack);
+      if (businessLicense) form.append("businessLicense", businessLicense);
+      if (onlineStoreProof) form.append("onlineStoreProof", onlineStoreProof);
 
       const response = await fetch("/api/register", {
         method: "POST",
@@ -161,52 +186,60 @@ export default function RegisterPage() {
         </div>
 
         <div className="mb-6 rounded-3xl border border-white/20 bg-white/10 p-4 text-sm leading-7 text-white backdrop-blur">
-          مثل سایت‌های بزرگ، اول فقط با <b>شماره موبایل یا ایمیل</b> حساب
-          می‌سازید. بعد داخل «تکمیل اطلاعات حساب کاربری» نشانی، حساب بانکی، عکس
-          پروفایل و مدارک را مرحله‌به‌مرحله کامل می‌کنید.
+          ثبت‌نام با <b>شماره موبایل یا ایمیل</b> انجام می‌شود. اگر فروشنده
+          هستید، همان موقع ثبت‌نام باید <b>تصویر روی کارت ملی</b> و{" "}
+          <b>پروانه کسب یا مدرک فروشگاه اینترنتی</b> را بارگذاری کنید تا حساب
+          شما بررسی شود. اگر خریدار هستید، با بارگذاری تصویر کارت ملی حساب شما
+          سریع‌تر تایید می‌شود.
         </div>
 
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
-          {siteMode === "store" ? (
-            <div className="rounded-3xl border-2 border-green-200 bg-green-50 p-5 text-center">
+          <h2 className="mb-2 text-center text-xl font-bold text-gray-900">
+            نوع حساب را انتخاب کنید
+          </h2>
+          <p className="mb-5 text-center text-xs leading-6 text-gray-500">
+            فروشنده برای شروع فروش باید کارت ملی و مدرک فعالیت فروشگاه (پروانه کسب
+            یا مدرک فروشگاه اینترنتی) را بارگذاری کند؛ خریدار می‌تواند کارت ملی را
+            برای تایید حساب ارسال کند.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setAccountType("buyer")}
+              className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "buyer" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
+            >
               <div className="text-4xl">🛒</div>
-              <h2 className="mt-3 text-xl font-black text-gray-900">
-                ثبت‌نام خریدار فروشگاه
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-gray-600">
-                در فاز فروشگاهی، فقط حساب خریدار ساخته می‌شود تا بتوانید لپ‌تاپ‌ها را به سبد خرید اضافه کنید، سفارش ثبت کنید و پرداخت بانکی انجام دهید.
+              <h3 className="mt-3 font-bold">خریدار</h3>
+              <p className="mt-2 text-xs leading-6 text-gray-500">
+                خرید از فروشگاه و ثبت درخواست خرید؛ با ارسال کارت ملی، حساب شما
+                تایید می‌شود.
               </p>
-            </div>
-          ) : (
-            <>
-              <h2 className="mb-5 text-center text-xl font-bold text-gray-900">
-                نوع حساب را انتخاب کنید
-              </h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setAccountType("buyer")}
-                  className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "buyer" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
-                >
-                  <div className="text-4xl">🛒</div>
-                  <h3 className="mt-3 font-bold">خریدار</h3>
-                  <p className="mt-2 text-xs leading-6 text-gray-500">
-                    درخواست خرید ثبت می‌کنم و پیشنهاد فروشندگان را مقایسه می‌کنم.
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccountType("seller")}
-                  className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "seller" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
-                >
-                  <div className="text-4xl">🏪</div>
-                  <h3 className="mt-3 font-bold">فروشنده</h3>
-                  <p className="mt-2 text-xs leading-6 text-gray-500">
-                    بعد از تکمیل اطلاعات فروشگاه، روی درخواست‌های مرتبط پیشنهاد می‌دهم.
-                  </p>
-                </button>
-              </div>
-            </>
+              <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-[11px] font-bold text-green-700">
+                تایید هویت با کارت ملی
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountType("seller")}
+              className={`rounded-2xl border-2 p-5 text-center transition ${accountType === "seller" ? "border-green-600 bg-green-50" : "border-gray-200 hover:border-green-300"}`}
+            >
+              <div className="text-4xl">🏪</div>
+              <h3 className="mt-3 font-bold">فروشنده</h3>
+              <p className="mt-2 text-xs leading-6 text-gray-500">
+                ثبت کالا و پیشنهاد روی درخواست‌ها؛ کارت ملی و مدرک فعالیت فروشگاه
+                الزامی است.
+              </p>
+              <span className="mt-2 inline-block rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700">
+                مدارک الزامی
+              </span>
+            </button>
+          </div>
+          {siteMode === "store" && (
+            <p className="mt-4 rounded-xl bg-blue-50 px-4 py-2 text-[11px] leading-5 text-blue-800">
+              سایت در حالت فروشگاهی است؛ خریدارها می‌توانند خرید کنند و برای تایید
+              حساب کارت ملی را ارسال کنند. حساب فروشنده هم ساخته می‌شود ولی تا
+              تایید مدارک توسط پشتیبانی، امکان فروش فعال نیست.
+            </p>
           )}
         </div>
 
@@ -272,6 +305,95 @@ export default function RegisterPage() {
                   required
                 />
               </label>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-black text-gray-900">مدارک هویتی</h3>
+                <span
+                  className={`rounded-full px-3 py-1 text-[11px] font-bold ${accountType === "seller" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
+                >
+                  {accountType === "seller" ? "مدارک الزامی فروشنده" : "برای تایید حساب"}
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] leading-5 text-gray-500">
+                فقط تصویر JPG، PNG یا WEBP تا ۵ مگابایت. مدارک رمزنگاری‌شده ذخیره
+                می‌شوند و فقط ادمین برای بررسی به آن‌ها دسترسی دارد.
+              </p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-bold text-gray-700">
+                  تصویر روی کارت ملی{" "}
+                  {accountType === "seller" && <span className="text-rose-600">*</span>}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => setNationalCard(event.target.files?.[0] || null)}
+                    className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-normal outline-none file:me-3 file:rounded-lg file:border-0 file:bg-green-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:ring-2 focus:ring-green-500"
+                  />
+                  {nationalCard && (
+                    <span className="mt-1 block truncate text-[11px] font-normal text-green-700">
+                      ✓ {nationalCard.name}
+                    </span>
+                  )}
+                </label>
+
+                <label className="block text-xs font-bold text-gray-700">
+                  تصویر پشت کارت ملی
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => setNationalCardBack(event.target.files?.[0] || null)}
+                    className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-normal outline-none file:me-3 file:rounded-lg file:border-0 file:bg-gray-700 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:ring-2 focus:ring-green-500"
+                  />
+                  {nationalCardBack && (
+                    <span className="mt-1 block truncate text-[11px] font-normal text-green-700">
+                      ✓ {nationalCardBack.name}
+                    </span>
+                  )}
+                </label>
+              </div>
+
+              {accountType === "seller" && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs font-bold text-amber-900">
+                    مدرک فعالیت فروشگاه — یکی از این دو مورد الزامی است
+                  </p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="block text-xs font-bold text-gray-700">
+                      پروانه کسب / جواز صنفی
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(event) => setBusinessLicense(event.target.files?.[0] || null)}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-normal outline-none file:me-3 file:rounded-lg file:border-0 file:bg-amber-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:ring-2 focus:ring-amber-500"
+                      />
+                      {businessLicense && (
+                        <span className="mt-1 block truncate text-[11px] font-normal text-green-700">
+                          ✓ {businessLicense.name}
+                        </span>
+                      )}
+                    </label>
+                    <label className="block text-xs font-bold text-gray-700">
+                      مدرک فروشگاه اینترنتی
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(event) => setOnlineStoreProof(event.target.files?.[0] || null)}
+                        className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-normal outline-none file:me-3 file:rounded-lg file:border-0 file:bg-amber-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:ring-2 focus:ring-amber-500"
+                      />
+                      {onlineStoreProof && (
+                        <span className="mt-1 block truncate text-[11px] font-normal text-green-700">
+                          ✓ {onlineStoreProof.name}
+                        </span>
+                      )}
+                      <span className="mt-1 block text-[10px] font-normal leading-4 text-gray-500">
+                        برای فروشندگان آنلاین: اینماد، صفحهٔ فروشگاه یا مدرک مشابه
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
 
             <label className="flex cursor-pointer items-start gap-2 text-sm text-gray-600">

@@ -1,0 +1,3 @@
+module.exports=[65697,e=>{"use strict";let r=!1;e.s(["startStoreAutoRefreshScheduler",0,function(){if(r)return;r=!0;let t=async()=>{try{let{runDueSourceAutoRefreshes:r}=await e.A(78975),t=await r();t.ranLinks>0&&console.log(`[auto-refresh] ${t.ranLinks} لینک در ساعت ${t.hour}:${t.minute} تهران به‌روزرسانی شد.`)}catch(e){console.error("[auto-refresh] اجرای زمان‌بند ناموفق بود:",e)}};setTimeout(t,6e4);let s=setInterval(t,6e5);s.unref?.()}])},78975,e=>{e.v(r=>Promise.all(["server/chunks/[root-of-the-server]__080fscn._.js","server/chunks/src_lib_store-source-auto-refresh_ts_09fbtwy._.js"].map(r=>e.l(r))).then(()=>r(74366)))}];
+
+//# sourceMappingURL=src_lib_1ea3ar8._.js.map

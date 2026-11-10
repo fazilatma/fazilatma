@@ -1,19 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import LaptopFilterSidebar, { MobileLaptopFilterMenu } from "@/components/LaptopFilterSidebar";
 import StoreProductCard from "@/components/StoreProductCard";
 import ComputerPartVisual, { type ComputerPartVisualKind } from "@/components/ComputerPartVisual";
 import StoreProductRemoteImage from "@/components/StoreProductRemoteImage";
+import LegacyLaptopLinkRedirect from "@/components/LegacyLaptopLinkRedirect";
+import LaptopCatalogAdminNotice, {
+  type LaptopCatalogNoticeData,
+} from "@/components/LaptopCatalogAdminNotice";
 import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import {
   filterProductsByCatalogSections,
   isComputerPartsCatalogProduct,
   isLaptopCatalogProduct,
+  looksLikeLaptopProduct,
+  matchesStoreCatalogCategory,
 } from "@/lib/store-catalog-sections";
 import { laptopCategoryItems } from "@/lib/laptop-storefront";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
+import { productImportCategoryKey } from "@/lib/store-product-import";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
+import StorePriceFreshness from "@/components/StorePriceFreshness";
 import { applyStorePriceOverrides, getStorePriceOverrides } from "@/lib/store-price-overrides";
 
 export const dynamic = "force-dynamic";
@@ -249,6 +258,46 @@ function productFilterTags(product: JsonStoreProduct) {
   return tags;
 }
 
+// برندهایی که در فروشگاه عمدتاً با لپ‌تاپ شناخته می‌شوند؛ برای آدرس‌های قدیمی
+// بدون دسته (مثل /shop?brand=HP) پیش‌فرض «لپ‌تاپ» در نظر گرفته می‌شود.
+const laptopBrandDefaults = new Set(["hp", "lenovo", "dell", "asus", "apple", "msi", "acer", "microsoft"]);
+
+/**
+ * آیا این آدرس از منوی «لپ‌تاپ» آمده است؟
+ * لینک‌های منوی لپ‌تاپ (برند، کاربری، وضعیت، «همه لپ‌تاپ‌ها») دسته را همراه
+ * ندارند؛ اگر دسته صریحاً ذکر نشده باشد، آن‌ها را لپ‌تاپی در نظر می‌گیریم تا
+ * به‌جای پردازنده و هارد، لپ‌تاپ‌ها نمایش داده شوند.
+ */
+function wantsLaptopCatalog(params: ShopSearchParams) {
+  if (getParam(params, "category")) return false;
+  if (getParam(params, "all") === "1") return false;
+  if (getParam(params, "part") || getParam(params, "partGroup") || getParam(params, "q")) return false;
+  const brand = getParam(params, "brand").trim().toLowerCase();
+  const ref = getParam(params, "ref").trim().toLowerCase();
+  if (laptopBrandDefaults.has(brand)) return true;
+  if (getParam(params, "use") || getParam(params, "condition")) return true;
+  // فیلترهای مشخصات فنی (رم/پردازنده/حافظه/نمایشگر/گرافیک) در این فروشگاه
+  // مربوط به لپ‌تاپ هستند؛ بدون این قاعده، کلیک روی چیپ‌های فیلتر در صفحهٔ
+  // `/shop` کل کاتالوگ را نشان می‌داد و بین نتیجه‌ها قطعه هم می‌آمد.
+  const specParamKeys = [
+    "ram",
+    "cpu",
+    "cpuGen",
+    "gpuType",
+    "gpu",
+    "ssd",
+    "hdd",
+    "display",
+    "panel",
+    "touch",
+  ];
+  if (specParamKeys.some((key) => getParam(params, key))) return true;
+  if (ref.startsWith("brand-") || ref === "brand-search") return true;
+  return ["laptop-menu", "all-laptops"].some((key) =>
+    Object.prototype.hasOwnProperty.call(params, key),
+  );
+}
+
 function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const text = lowerSearchText(product);
   const brand = getParam(params, "brand");
@@ -256,7 +305,12 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   const minPrice = Number(getParam(params, "minPrice") || 0);
   const maxPrice = Number(getParam(params, "maxPrice") || 0);
   const tags = productFilterTags(product);
-  const catalogCategory = getParam(params, "category");
+  // لینک‌های برند در منو و کارت‌های صفحهٔ اصلی، لپ‌تاپی هستند. اگر آدرس قدیمی
+  // بدون «category» باشد (مثل /shop?brand=HP)، پیش‌فرض را لپ‌تاپ می‌گیریم تا
+  // به‌جای هارد و رم و مینی‌کیس همان برند، فقط لپ‌تاپ‌های آن برند نمایش داده شود.
+  // با پارامتر all=1 این پیش‌فرض غیرفعال می‌شود (برای دیدن همهٔ محصولات برند).
+  const requestedCategory = getParam(params, "category");
+  const catalogCategory = requestedCategory || (wantsLaptopCatalog(params) ? "laptop" : "");
   const part = getParam(params, "part").toLowerCase();
   const partGroup = getParam(params, "partGroup").toLowerCase();
   const searchQuery = getParam(params, "q").slice(0, 120);
@@ -264,6 +318,15 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   if (!matchesProductSearch(product, searchQuery)) return false;
   if (catalogCategory === "computer-parts" && !isComputerPartsCatalogProduct(product)) return false;
   if (catalogCategory === "laptop" && !isLaptopCatalogProduct(product)) return false;
+  // بقیهٔ دسته‌های منو (لوازم جانبی، کنسول، شبکه، ماشین‌های اداری، کامپیوتر آماده…)
+  // تا قبل از این نادیده گرفته می‌شدند و کل کاتالوگ را نشان می‌دادند.
+  if (
+    catalogCategory &&
+    catalogCategory !== "laptop" &&
+    catalogCategory !== "computer-parts" &&
+    !matchesStoreCatalogCategory(product, catalogCategory)
+  )
+    return false;
   if (part) {
     const allowedParts = new Set(["cpu", "gpu", "ram", "ssd", "motherboard", "power", "case", "cooler"]);
     if (allowedParts.has(part) && storeComputerPartKind(product) !== part) return false;
@@ -517,6 +580,31 @@ export default async function ShopPage({
     (product) => matchesFilter(product, params) && !isSuspiciousStoreProductPrice(product),
   );
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
+  const brandParam = getParam(params, "brand").trim();
+  const laptopDefaultActive = wantsLaptopCatalog(params);
+  // گزارش کوتاه مخصوص ادمین: چند کالا از کلِ کاتالوگ لپ‌تاپ‌اند و چند کالای
+  // «شبیه لپ‌تاپ» بیرون از دسته مانده است. برای دیدن جزئیات هر کالا:
+  // /admin/diagnostics/laptop-catalog
+  const isAdminViewer = (await cookies()).get("optibid_admin")?.value === "1";
+  const effectiveCatalogCategory =
+    getParam(params, "category") || (laptopDefaultActive ? "laptop" : "");
+  let laptopDiagnostics: LaptopCatalogNoticeData | null = null;
+  if (isAdminViewer && effectiveCatalogCategory === "laptop") {
+    const allStored = data.storeProducts;
+    const missedProducts = allStored.filter(
+      (product) => looksLikeLaptopProduct(product) && !isLaptopCatalogProduct(product),
+    );
+    laptopDiagnostics = {
+      total: allStored.length,
+      laptops: allStored.filter((product) => isLaptopCatalogProduct(product)).length,
+      laptopLook: allStored.filter((product) => looksLikeLaptopProduct(product)).length,
+      missed: missedProducts.length,
+      categoryLaptops: allStored.filter((product) => /لپ/.test(product.category || "")).length,
+      samples: missedProducts
+        .slice(0, 5)
+        .map((product) => ({ title: product.title, key: productImportCategoryKey(product) })),
+    };
+  }
   const pageSize = 60;
   const requestedPage = Math.max(1, Math.floor(Number(getParam(params, "page") || 1)));
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
@@ -559,6 +647,8 @@ export default async function ShopPage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <StorePriceFreshness />
+      <LegacyLaptopLinkRedirect />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
@@ -636,7 +726,7 @@ export default async function ShopPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pt-7 sm:px-6 lg:px-8">
+      <section id="brand-search" className="mx-auto max-w-7xl px-4 pt-7 sm:px-6 lg:px-8">
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
           {quickCategoryItems.map((item) => {
             const itemBrand = "brand" in item ? item.brand : undefined;
@@ -707,7 +797,8 @@ export default async function ShopPage({
           subtitle="برای نمایش فیلترهای کامل، این منو را لمس کنید"
         />
 
-        <main className="min-w-0 flex-1">
+        <main id="all-laptops" className="min-w-0 flex-1 scroll-mt-24">
+          {laptopDiagnostics && <LaptopCatalogAdminNotice data={laptopDiagnostics} />}
           <div className="mb-5 flex flex-col gap-3 rounded-[1.5rem] bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-black text-slate-900">
@@ -738,13 +829,38 @@ export default async function ShopPage({
           </div>
           {filteredProducts.length === 0 ? (
             <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-              {searchQuery ? `کالایی برای «${searchQuery}» پیدا نشد.` : "کالایی با این فیلتر پیدا نشد."}
-              <Link
-                href={searchQuery ? buildHref(params, "q", "") : "/shop"}
-                className="mt-4 block font-black text-rose-600"
-              >
-                {searchQuery ? "پاک کردن جستجو و نمایش کالاها" : "حذف فیلترها و مشاهده همه کالاها"}
-              </Link>
+              {laptopDefaultActive
+                ? brandParam
+                  ? `در حال حاضر لپ‌تاپی از برند «${brandParam}» موجود نیست.`
+                  : "در حال حاضر لپ‌تاپی با این فیلتر موجود نیست."
+                : searchQuery
+                  ? `کالایی برای «${searchQuery}» پیدا نشد.`
+                  : "کالایی با این فیلتر پیدا نشد."}
+              {laptopDefaultActive ? (
+                <div className="mt-4 flex flex-col items-center gap-3">
+                  {brandParam ? (
+                    <Link
+                      href={`/shop?brand=${encodeURIComponent(brandParam)}&all=1`}
+                      className="font-black text-rose-600"
+                    >
+                      مشاهدهٔ همهٔ محصولات برند {brandParam} (شامل قطعات)
+                    </Link>
+                  ) : null}
+                  <Link href="/shop?category=laptop" className="font-black text-slate-700">
+                    مشاهدهٔ همهٔ لپ‌تاپ‌ها
+                  </Link>
+                  <Link href="/shop" className="font-black text-slate-500">
+                    مشاهدهٔ همهٔ کالاها
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  href={searchQuery ? buildHref(params, "q", "") : "/shop"}
+                  className="mt-4 block font-black text-rose-600"
+                >
+                  {searchQuery ? "پاک کردن جستجو و نمایش کالاها" : "حذف فیلترها و مشاهده همه کالاها"}
+                </Link>
+              )}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

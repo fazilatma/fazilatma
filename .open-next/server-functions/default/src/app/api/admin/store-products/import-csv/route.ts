@@ -71,12 +71,25 @@ function crossSourceProductKey(product: Pick<JsonStoreProduct, "title" | "brand"
   const usefulBrand = /^(?:optibid|digikala|torob|نامشخص)?$/.test(brand) ? "" : brand;
   const packageType = /\btray\b|بدون جعبه/.test(text) ? "tray" : /\bbox\b|با جعبه/.test(text) ? "box" : "";
 
+  // لپ‌تاپ و کامپیوتر آماده «سیستم کامل» هستند؛ اثر انگشت قطعه‌ای (مثل مدل CPU)
+  // برای آن‌ها خطرناک است، چون همهٔ لپ‌تاپ‌های هم‌پردازنده را یک کالا فرض می‌کند
+  // و در زمان ورود، آن‌ها را روی هم می‌نویسد (باعث کم شدن شدید تعداد لپ‌تاپ‌ها
+  // در فروشگاه می‌شد). برای این کالاها فقط آدرس منبع یا شناسهٔ یکتا ملاک است.
+  const assembledDevice =
+    /لپ ?تاپ|lپتاپ|laptop|notebook|ultrabook|chromebook|macbook|مک ?بوک|thinkpad|thinkbook|ideapad|legion|yoga|vivobook|zenbook|expertbook|elitebook|probook|pavilion|envy|victus|omen|zbook|spectre|aspire|nitro|predator|latitude|inspiron|vostro|alienware|matebook|surface|galaxy ?book|lg ?gram|razer ?blade|aorus|اینچ|inch|کامپیوتر آماده|آل ?این ?وان|all ?in ?one|mini ?pc|مینی ?پی ?سی/.test(text);
+  if (assembledDevice) return "";
+
   const intelCpu = text.match(/\b(i[3579]-\d{4,5}[a-z]{0,2})\b/)?.[1];
   const ryzenCpu = text.match(/\b(ryzen[3579]-\d{4}[a-z0-9]*)\b/)?.[1];
-  if (intelCpu || ryzenCpu) return `cpu:${intelCpu || ryzenCpu}:${packageType}`;
+  // اثر انگشت CPU فقط برای خودِ پردازنده معنا دارد؛ اگر رم یا هارد یا مادربرد
+  // در مشخصاتش نام CPU داشته باشد نباید با پردازنده‌ها ادغام شود.
+  const isCpuKind =
+    /پردازنده|\bcpu\b|processor|core\s*(?:i[3579]|ultra)|ryzen\s*[3579]/.test(text) &&
+    !/رم|حافظه|هارد|\bssd\b|\bnvme\b|مادربرد|کارت گرافیک/.test(text);
+  if (isCpuKind && (intelCpu || ryzenCpu)) return `cpu:${intelCpu || ryzenCpu}:${packageType}`;
 
   const gpu = text.match(/\b(rtx\d{3,4}|gtx\d{3,4}|rx\d{3,4})\b/)?.[1];
-  if (gpu) {
+  if (gpu && /کارت گرافیک|graphics card|\bgpu\b/.test(text)) {
     const suffix = text.match(new RegExp(`\\b${gpu}\\s*(ti|super|xtx|xt)\\b`))?.[1] || "";
     const family = text.match(/\b(dual|prime|tuf|rog|strix|aorus|ventus|gaming|eagle|windforce|nitro|pulse|mech)\b/)?.[1] || "";
     const capacity = capacityKey(text);
@@ -369,10 +382,12 @@ async function importPreparedCsvBatch(request: Request) {
     }
 
     const sourceLabel = String(payload.sourceLabel || "digikala-easy-scraper").slice(0, 160);
+    const sourceLink = String(payload.sourceLink || "").trim().slice(0, 1000);
     const importedProducts = filteredDrafts.map((draft) => {
       const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, multiplier));
       product.marketPrice = Math.round(draft.price);
       product.priceMultiplier = multiplier;
+      if (sourceLink) product.sourceLink = sourceLink;
       if (multiplier !== 1) {
         product.marketReferenceNote = `${product.marketReferenceNote}؛ اعمال ضریب قیمت ${multiplier.toLocaleString("fa-IR")}`;
         product.badges = Array.from(new Set([...(product.badges || []), `ضریب ${multiplier.toLocaleString("fa-IR")}`])).slice(0, 6);

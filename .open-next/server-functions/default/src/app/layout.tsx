@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 import StoreStaticHeader from "@/components/StoreStaticHeader";
 import Footer from "@/components/Footer";
@@ -82,9 +82,20 @@ export const revalidate = 0;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
-  const isAdmin = cookieStore.get("optibid_admin")?.value === "1";
-  const hasUserSession = Boolean(cookieStore.get("optibid_user")?.value);
-  const useStaticStoreHeader = !isAdmin && !hasUserSession;
+  // در محیط پیش‌نمایش، میدل‌ور ممکن است با توکن (بدون کوکی) ادمین را تایید کند.
+  const requestHeaders = await headers();
+  const previewAdmin = requestHeaders.get("x-optibid-preview-admin") === "1";
+  // صفحه‌های ورود/ثبت‌نام همیشه هدر عمومی فروشگاه را نشان می‌دهند؛ حتی اگر کوکی
+  // ادمین یا نشست کاربری باقی مانده باشد، نباید «پنل مدیریت» و «خروج» بالای
+  // صفحهٔ ورود دیده شود.
+  const currentPath = requestHeaders.get("x-optibid-pathname") || "";
+  const isAuthPage = /^\/(?:login|register|forgot-password)(?:\/|$)/.test(currentPath);
+  const isAdmin = cookieStore.get("optibid_admin")?.value === "1" || previewAdmin;
+  const userSessionValue = cookieStore.get("optibid_user")?.value || "";
+  const hasUserSession = Boolean(userSessionValue) || previewAdmin;
+  // مقدار کوکی نشست به شکل "role:id" است؛ نقش را برای رندر اولیه هدر می‌خوانیم.
+  const sessionRole = previewAdmin ? "admin" : userSessionValue.split(":")[0] || null;
+  const useStaticStoreHeader = isAuthPage || (!isAdmin && !hasUserSession);
   const DynamicHeader = useStaticStoreHeader
     ? null
     : (await import("@/components/Header")).default;
@@ -105,7 +116,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
-        {useStaticStoreHeader ? <StoreStaticHeader /> : DynamicHeader ? <DynamicHeader /> : null}
+        {useStaticStoreHeader ? (
+          <StoreStaticHeader />
+        ) : DynamicHeader ? (
+          <DynamicHeader initialUserRole={sessionRole} isAdminSession={isAdmin} />
+        ) : null}
         {DynamicSellerRadar ? <DynamicSellerRadar /> : null}
         <main className="flex-grow">{children}</main>
         <Footer />

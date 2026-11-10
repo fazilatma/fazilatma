@@ -106,6 +106,12 @@
       }
     },
     "outputFileTracingRoot": "/home/user/fazilatma",
+    "allowedDevOrigins": [
+      "*.e2b.app",
+      "*.arena.site",
+      "localhost",
+      "127.0.0.1"
+    ],
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -328,7 +334,8 @@
     ".next/BUILD_ID",
     ".next/server/next-font-manifest.js",
     ".next/server/next-font-manifest.json",
-    ".next/required-server-files.json"
+    ".next/required-server-files.json",
+    ".next/server/instrumentation.js"
   ],
   "ignore": []
 }

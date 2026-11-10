@@ -164,6 +164,30 @@
       "namedRegex": "^/admin/dashboard(?:/)?$"
     },
     {
+      "page": "/admin/diagnostics/laptop-catalog",
+      "regex": "^/admin/diagnostics/laptop\\-catalog(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/diagnostics/laptop\\-catalog(?:/)?$"
+    },
+    {
+      "page": "/admin/orders",
+      "regex": "^/admin/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/orders(?:/)?$"
+    },
+    {
+      "page": "/admin/price-check",
+      "regex": "^/admin/price\\-check(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/price\\-check(?:/)?$"
+    },
+    {
+      "page": "/admin/pricing-audit",
+      "regex": "^/admin/pricing\\-audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/pricing\\-audit(?:/)?$"
+    },
+    {
       "page": "/api/account/seller-mode",
       "regex": "^/api/account/seller\\-mode(?:/)?$",
       "routeKeys": {},
@@ -206,6 +230,18 @@
       "namedRegex": "^/api/admin/kyc\\-document(?:/)?$"
     },
     {
+      "page": "/api/admin/laptop-catalog-report",
+      "regex": "^/api/admin/laptop\\-catalog\\-report(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/laptop\\-catalog\\-report(?:/)?$"
+    },
+    {
+      "page": "/api/admin/orders",
+      "regex": "^/api/admin/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/orders(?:/)?$"
+    },
+    {
       "page": "/api/admin/reverse-auction/dispatch",
       "regex": "^/api/admin/reverse\\-auction/dispatch(?:/)?$",
       "routeKeys": {},
@@ -216,6 +252,12 @@
       "regex": "^/api/admin/seller\\-metrics(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/admin/seller\\-metrics(?:/)?$"
+    },
+    {
+      "page": "/api/admin/store-products/apply-multiplier",
+      "regex": "^/api/admin/store\\-products/apply\\-multiplier(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/apply\\-multiplier(?:/)?$"
     },
     {
       "page": "/api/admin/store-products/clear",
@@ -252,6 +294,18 @@
       "regex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$"
+    },
+    {
+      "page": "/api/admin/store-products/market-reference",
+      "regex": "^/api/admin/store\\-products/market\\-reference(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/market\\-reference(?:/)?$"
+    },
+    {
+      "page": "/api/admin/store-products/price-audit",
+      "regex": "^/api/admin/store\\-products/price\\-audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/price\\-audit(?:/)?$"
     },
     {
       "page": "/api/admin/store-products/refresh-prices",
@@ -470,6 +524,12 @@
       "namedRegex": "^/api/seller\\-score(?:/)?$"
     },
     {
+      "page": "/api/session",
+      "regex": "^/api/session(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/session(?:/)?$"
+    },
+    {
       "page": "/api/shop/orders",
       "regex": "^/api/shop/orders(?:/)?$",
       "routeKeys": {},
@@ -498,6 +558,18 @@
       "regex": "^/api/source\\-files(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/source\\-files(?:/)?$"
+    },
+    {
+      "page": "/api/store/price-refresh-tick",
+      "regex": "^/api/store/price\\-refresh\\-tick(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/store/price\\-refresh\\-tick(?:/)?$"
+    },
+    {
+      "page": "/api/store-products/auto-refresh",
+      "regex": "^/api/store\\-products/auto\\-refresh(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/store\\-products/auto\\-refresh(?:/)?$"
     },
     {
       "page": "/api/submit-offer",

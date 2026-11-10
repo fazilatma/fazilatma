@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CART_KEY } from "@/components/StoreAddToCartButton";
 import OptiBidLogo from "@/components/OptiBidLogo";
@@ -21,7 +21,7 @@ type StoreTopNavMenu = {
 const storeTopNavMenus: StoreTopNavMenu[] = [
   {
     title: "لپ‌تاپ",
-    href: "/shop#laptop-menu",
+    href: "/shop?category=laptop#all-laptops",
     groups: [
       { title: "بر اساس برند", items: ["لپ‌تاپ لنوو", "لپ‌تاپ اچ‌پی", "لپ‌تاپ دل", "لپ‌تاپ ایسوس", "مک‌بوک اپل"] },
       { title: "بر اساس کاربری", items: ["لپ‌تاپ اداری", "لپ‌تاپ استوک", "لپ‌تاپ گیمینگ", "لپ‌تاپ مهندسی", "لپ‌تاپ دانشجویی"] },
@@ -149,52 +149,171 @@ const storeLaptopCategories: CatalogCategory[] = [
   },
 ];
 
-function storeLaptopHref(label: string) {
-  const text = label.toLowerCase();
-  const fragment = encodeURIComponent(
-    text
-      .replace(/[\s\u200c]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 70) || "shop",
-  );
-  const withFragment = (href: string) => `${href}#${fragment}`;
-  const partsBase = "/shop?category=computer-parts";
-  if (text.includes("کارت گرافیک") || text.includes("gpu") || text.includes("rtx") || text.includes("gtx") || text.includes("radeon")) return withFragment(`${partsBase}&part=gpu`);
-  if (text.includes("مادربرد") || text.includes("motherboard")) return withFragment(`${partsBase}&part=motherboard`);
-  if (text.includes("پردازنده") || text.includes("intel") || text.includes("amd") || text.includes("ryzen") || text.includes("core ultra")) return withFragment(`${partsBase}&part=cpu`);
-  if (text.includes("رم کامپیوتر") || text.includes("ram") || text.includes("ddr")) return withFragment(`${partsBase}&part=ram`);
-  if (text.includes("ssd") || text.includes("هارد")) return withFragment(`${partsBase}&part=ssd`);
-  if (text.includes("پاور") || text.includes("منبع تغذیه")) return withFragment(`${partsBase}&part=power`);
-  if (text.includes("خنک") || text.includes("فن کیس") || text.includes("خمیر سیلیکون")) return withFragment(`${partsBase}&part=cooler`);
-  if (text === "کیس" || text.includes("کیس کامپیوتر")) return withFragment(`${partsBase}&part=case`);
-  if (text.includes("قطعات")) return withFragment(partsBase);
-  if (text.includes("لنوو") || text.includes("thinkpad") || text.includes("legion")) return withFragment("/shop?brand=Lenovo");
-  if (text.includes("اچ") || text.includes("hp") || text.includes("elitebook")) return withFragment("/shop?brand=HP");
-  if (text.includes("دل") || text.includes("dell") || text.includes("latitude")) return withFragment("/shop?brand=Dell");
-  if (text.includes("ایسوس") || text.includes("asus") || text.includes("tuf")) return withFragment("/shop?brand=Asus");
-  if (text.includes("اپل") || text.includes("مک") || text.includes("apple") || text.includes("m1")) return withFragment("/shop?brand=Apple");
-  if (text.includes("استوک")) return withFragment("/shop?condition=stock");
-  if (text.includes("کارکرده")) return withFragment("/shop?condition=used");
-  if (text.includes("نو")) return withFragment("/shop?condition=new");
-  if (text.includes("گیم") || text.includes("rtx") || text.includes("144")) return withFragment("/shop?use=gaming");
-  if (text.includes("دانشجو") || text.includes("سبک")) return withFragment("/shop?use=student");
-  if (text.includes("مهندس") || text.includes("رندر") || text.includes("تدوین") || text.includes("طراحی")) return withFragment("/shop?use=engineering");
-  if (text.includes("اداری") || text.includes("شرکتی") || text.includes("برنامه")) return withFragment("/shop?use=business");
-  return withFragment("/shop");
+type StoreNavContext = "laptop" | "parts" | "other";
+
+/** دستهٔ هر منو را از لینک خودش می‌فهمیم تا آیتم‌های هر منو داخل همان دسته بمانند. */
+function storeNavContext(menu: StoreTopNavMenu): StoreNavContext {
+  if (menu.title.includes("لپ")) return "laptop";
+  const href = menu.href.toLowerCase();
+  if (href.includes("category=computer-parts")) return "parts";
+  if (href.includes("category=laptop")) return "laptop";
+  return "other";
 }
 
+function withQueryParam(href: string, key: string, value: string) {
+  const [pathAndQuery, hash = ""] = href.split("#");
+  const [pathname, queryString = ""] = pathAndQuery.split("?");
+  const query = new URLSearchParams(queryString);
+  query.set(key, value);
+  return `${pathname}?${query.toString()}${hash ? `#${hash}` : ""}`;
+}
+
+/**
+ * لینک آیتم‌های منو.
+ *
+ * قبلاً همهٔ آیتم‌های همهٔ منوها از یک تابع مشترک ساخته می‌شدند که انتهایش
+ * `/shop` بود یا برای واژه‌هایی مثل «RTX»، «Core i5»، «رم 16GB» و «SSD» کاربر را
+ * به دستهٔ «قطعات کامپیوتر» می‌فرستاد؛ نتیجه این بود که داخل منوی لپ‌تاپ،
+ * پردازنده و کارت گرافیک دسکتاپ و در بدترین حالت کل ۱۳۱۸ کالا نمایش داده می‌شد.
+ * حالا هر منو فقط داخل دستهٔ خودش جست‌وجو می‌کند و مشخصات فنی لپ‌تاپ به
+ * فیلترهای همان صفحهٔ لپ‌تاپ تبدیل می‌شود.
+ */
+function storeLaptopHref(label: string, context: StoreNavContext = "laptop") {
+  const text = label.toLowerCase();
+  const laptopBase = "/shop?category=laptop";
+  const partsBase = "/shop?category=computer-parts";
+
+  if (context === "parts") {
+    if (/کارت گرافیک|\bgpu\b|rtx|gtx|radeon/.test(text)) return `${partsBase}&part=gpu`;
+    if (/مادربرد|motherboard/.test(text)) return `${partsBase}&part=motherboard`;
+    if (/پردازنده|intel|\bamd\b|ryzen|core ultra/.test(text)) return `${partsBase}&part=cpu`;
+    if (/رم کامپیوتر|\bram\b|ddr/.test(text)) return `${partsBase}&part=ram`;
+    if (/ssd|هارد/.test(text)) return `${partsBase}&part=ssd`;
+    if (/پاور|منبع تغذیه/.test(text)) return `${partsBase}&part=power`;
+    if (/خنک|فن کیس|خمیر سیلیکون/.test(text)) return `${partsBase}&part=cooler`;
+    if (text === "کیس" || text.includes("کیس کامپیوتر")) return `${partsBase}&part=case`;
+    return partsBase;
+  }
+
+  // از اینجا به بعد فقط لپ‌تاپ؛ هیچ مسیری به دستهٔ قطعات باز نمی‌شود.
+  if (/لنوو|thinkpad|legion/.test(text)) return `${laptopBase}&brand=Lenovo`;
+  if (/اچ\s?پی|\bhp\b|elitebook|probook|victus|omen/.test(text)) return `${laptopBase}&brand=HP`;
+  if (/دل|\bdell\b|latitude|inspiron|xps/.test(text)) return `${laptopBase}&brand=Dell`;
+  if (/ایسوس|\basus\b|tuf|rog|vivobook|zenbook/.test(text)) return `${laptopBase}&brand=Asus`;
+  if (/اپل|apple|مک\s?بوک|macbook|\bm1\b|\bm2\b|\bm3\b/.test(text)) return `${laptopBase}&brand=Apple`;
+  if (/ایسر|acer|aspire|nitro/.test(text)) return `${laptopBase}&brand=Acer`;
+  if (/ام\s?اس\s?آی|\bmsi\b|katana|cyborg/.test(text)) return `${laptopBase}&brand=MSI`;
+
+  if (text.includes("استوک")) return `${laptopBase}&condition=stock`;
+  if (text.includes("کارکرده")) return `${laptopBase}&condition=used`;
+  if (text.includes("مهلت تست")) return `${laptopBase}&condition=used`;
+  if (/\bنو\b/.test(text)) return `${laptopBase}&condition=new`;
+  if (text.includes("موجود")) return `${laptopBase}&available=1`;
+
+  if (/مهندس|رندر|تدوین|طراحی|حرفه/.test(text)) return `${laptopBase}&use=engineering`;
+  if (/اداری|شرکتی|برنامه/.test(text)) return `${laptopBase}&use=business`;
+  if (/دانشجو|سبک|روزمره|کار خانگی/.test(text)) return `${laptopBase}&use=student`;
+  if (/گیم/.test(text)) return `${laptopBase}&use=gaming`;
+
+  // مشخصات فنی، فیلتر همان صفحهٔ لپ‌تاپ است (نه قطعات).
+  if (/\brtx\b|geforce/.test(text)) return `${laptopBase}&q=RTX`;
+  if (/\bips\b/.test(text)) return `${laptopBase}&panel=IPS`;
+  if (/full\s*hd/.test(text)) return `${laptopBase}&panel=${encodeURIComponent("Full HD")}`;
+  if (/retina|رتینا/.test(text)) return `${laptopBase}&panel=Retina`;
+  if (/144/.test(text)) return `${laptopBase}&panel=144Hz`;
+  if (/13(\.3)?\s*اینچ/.test(text)) return `${laptopBase}&display=13`;
+  if (/14\s*اینچ/.test(text)) return `${laptopBase}&display=14`;
+  if (/15(\.6)?(\s*اینچ|\u200c)/.test(text)) return `${laptopBase}&display=15.6`;
+  if (/رم\s*(8|۸)|8\s*gb/.test(text)) return `${laptopBase}&ram=8GB`;
+  if (/رم\s*(16|۱۶)|16\s*gb/.test(text)) return `${laptopBase}&ram=16GB`;
+  if (/رم\s*(32|۳۲)|32\s*gb/.test(text)) return `${laptopBase}&ram=32GB`;
+  if (/256\s*gb/.test(text)) return `${laptopBase}&ssd=256GB`;
+  if (/512\s*gb/.test(text)) return `${laptopBase}&ssd=512GB`;
+  if (/1\s*tb/.test(text)) return `${laptopBase}&ssd=1TB`;
+  if (/core\s*i5|\bi5\b/.test(text)) return `${laptopBase}&cpu=i5`;
+  if (/core\s*i7|\bi7\b/.test(text)) return `${laptopBase}&cpu=i7`;
+  if (/core\s*ultra/.test(text)) return `${laptopBase}&q=${encodeURIComponent("Core Ultra")}`;
+  if (/ryzen/.test(text)) return `${laptopBase}&q=${encodeURIComponent(label)}`;
+  if (/apple\s*m1|\bm1\b/.test(text)) return `${laptopBase}&cpu=M1`;
+  if (text.includes("پرفروش") || text.includes("پیشنهاد")) return laptopBase;
+  return laptopBase;
+}
+
+/** لینک آیتم‌های هر منو با توجه به دستهٔ همان منو. */
+function storeNavItemHref(label: string, menu: StoreTopNavMenu) {
+  const context = storeNavContext(menu);
+  if (context !== "other") return storeLaptopHref(label, context);
+  // منوهایی مثل لوازم جانبی/کنسول/شبکه/گیمینگ: اگر آیتم دربارهٔ لپ‌تاپ است،
+  // به دستهٔ لپ‌تاپ می‌رود؛ در غیر این صورت همان دستهٔ منو با جست‌وجوی نام آیتم.
+  if (/لپ[\s\u200c]?تاپ/.test(label)) return storeLaptopHref(label, "laptop");
+  return withQueryParam(menu.href, "q", label);
+}
 
 function StoreTopNavItem({ menu }: { menu: StoreTopNavMenu }) {
+  // باز و بسته شدن با تایمر انجام می‌شود؛ قبلاً باز شدن فقط با hover خالص CSS بود
+  // و فاصلهٔ چند پیکسلی بین عنوان منو و خودِ پنل باعث می‌شد با حرکت ماوس به سمت
+  // پایین، منو بسته شود و کاربر نتواند روی آیتم‌ها کلیک کند.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const openMenu = () => {
+    cancelClose();
+    setMenuOpen(true);
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setMenuOpen(false), 250);
+  };
+  const closeNow = () => {
+    cancelClose();
+    setMenuOpen(false);
+  };
+
+  useEffect(() => cancelClose, []);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
   return (
-    <div className="group relative py-5">
+    <div
+      className="group relative flex h-16 items-center"
+      onMouseEnter={openMenu}
+      onMouseLeave={scheduleClose}
+      onFocus={openMenu}
+      onBlur={scheduleClose}
+    >
       <Link
         href={menu.href}
         className="flex items-center gap-1 text-sm font-bold text-gray-700 transition hover:text-rose-600"
       >
         {menu.title}
-        <span className="text-xs text-gray-400 transition group-hover:rotate-180">⌄</span>
+        <span
+          className={`text-xs text-gray-400 transition ${menuOpen ? "rotate-180" : ""}`}
+        >
+          ⌄
+        </span>
       </Link>
-      <div className="invisible fixed left-1/2 top-16 z-50 w-[min(78rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-b-[2rem] border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+      <div
+        onMouseEnter={openMenu}
+        onMouseLeave={scheduleClose}
+        onClick={closeNow}
+        className={`fixed left-1/2 top-16 z-50 w-[min(78rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-b-[2rem] border border-gray-100 bg-white text-right shadow-2xl transition ${
+          menuOpen
+            ? "visible opacity-100"
+            : "pointer-events-none invisible opacity-0"
+        }`}
+      >
         <div className="grid min-h-[360px] grid-cols-12">
           <div className="col-span-3 border-l border-gray-100 bg-gray-50 p-4">
             <Link
@@ -220,7 +339,7 @@ function StoreTopNavItem({ menu }: { menu: StoreTopNavMenu }) {
               {menu.groups.map((group) => (
                 <div key={group.title} id={group.title}>
                   <Link
-                    href={storeLaptopHref(group.title)}
+                    href={storeNavItemHref(group.title, menu)}
                     className="mb-3 block border-r-2 border-rose-500 pr-2 text-sm font-black text-gray-900 hover:text-rose-600"
                   >
                     <span className="ml-1 text-rose-500">•</span>
@@ -230,7 +349,7 @@ function StoreTopNavItem({ menu }: { menu: StoreTopNavMenu }) {
                     {group.items.map((item) => (
                       <Link
                         key={item}
-                        href={storeLaptopHref(item)}
+                        href={storeNavItemHref(item, menu)}
                         className="block text-xs leading-6 text-gray-500 transition hover:text-rose-600"
                       >
                         {item}
@@ -261,9 +380,20 @@ function readStoreCartCount() {
   }
 }
 
-export default function Header() {
+export default function Header({
+  initialUserRole = null,
+  isAdminSession = false,
+}: {
+  /** نقشی که سرور از کوکی نشست خوانده است؛ تا قبل از خواندن localStorage هم درست باشد. */
+  initialUserRole?: string | null;
+  /** اگر کوکی ادمین وجود داشته باشد، هدر باید بدون اتکا به localStorage حالت ادمین را نشان دهد. */
+  isAdminSession?: boolean;
+} = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [adminPanelHref, setAdminPanelHref] = useState("/admin/dashboard");
+  const [userRole, setUserRole] = useState<string | null>(
+    isAdminSession ? "admin" : initialUserRole,
+  );
   const [previousUserRole, setPreviousUserRole] = useState<string | null>(null);
   const [siteMode, setSiteMode] = useState<"store" | "request" | "hybrid">("store");
   const [laptopCatalogEnabled, setLaptopCatalogEnabled] = useState(false);
@@ -277,12 +407,48 @@ export default function Header() {
   );
   const router = useRouter();
   const pathname = usePathname();
-  const showMobileAuthDock =
-    !userRole && !["/login", "/register"].includes(pathname);
+  const onAuthPage = ["/login", "/register", "/forgot-password"].some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+  const showMobileAuthDock = !userRole && !onAuthPage;
 
   useEffect(() => {
-    // خواندن نقش کاربر از لوکال استوریج در کلاینت‌ساید
-    setUserRole(localStorage.getItem("userRole"));
+    // خواندن نقش کاربر؛ اولویت با کوکی نشست سرور است تا اگر localStorage خالی
+    // بود (تب جدید، مرورگر دیگر یا پاک شدن داده‌ها) هدر «ورود» نشان ندهد.
+    // لینک پنل ادمین در محیط پیش‌نمایش باید توکن را همراه داشته باشد.
+    try {
+      const token = window.sessionStorage.getItem("optibidAdminToken");
+      if (token) setAdminPanelHref(`/admin/dashboard?at=${encodeURIComponent(token)}`);
+    } catch {
+      // دسترسی به sessionStorage همیشه ممکن نیست.
+    }
+    const storedRole = localStorage.getItem("userRole");
+    if (isAdminSession) {
+      if (storedRole !== "admin") localStorage.setItem("userRole", "admin");
+      setUserRole("admin");
+    } else if (storedRole === "admin") {
+      // localStorage ممکن است نقش «admin» را از یک نشست قبلی نگه داشته باشد،
+      // در حالی که کوکی نشست سرور منقضی یا پاک شده است. تا تأیید سرور چیزی
+      // نشان نمی‌دهیم و بعد از پاسخ، نقش قدیمی را پاک می‌کنیم؛ وگرنه «پنل مدیریت»
+      // و «خروج» روی صفحهٔ ورود هم دیده می‌شد.
+      setUserRole(null);
+      fetch("/api/session", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((result) => {
+          if (result?.hasSession && result?.role === "admin") {
+            setUserRole("admin");
+            return;
+          }
+          localStorage.removeItem("userRole");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("userDisplayName");
+          localStorage.removeItem("previousUserRole");
+          setUserRole(null);
+        })
+        .catch(() => setUserRole(null));
+    } else {
+      setUserRole(storedRole || initialUserRole);
+    }
     setPreviousUserRole(localStorage.getItem("previousUserRole"));
     const refreshCartCount = () => setCartCount(readStoreCartCount());
     refreshCartCount();
@@ -419,7 +585,7 @@ export default function Header() {
                     {activeHeaderCategory && (
                       <>
                         <Link
-                          href={storeExperienceEnabled ? "/shop#all-laptops" : categoryHref(activeHeaderCategory)}
+                          href={storeExperienceEnabled ? "/shop?category=laptop#all-laptops" : categoryHref(activeHeaderCategory)}
                           className="mb-5 inline-flex items-center gap-2 text-sm font-black text-[#003b5c] hover:text-[#00a8e8]"
                         >
                           {storeExperienceEnabled
@@ -538,11 +704,11 @@ export default function Header() {
               )}
             </Link>
 
-            {userRole ? (
+            {!onAuthPage && (userRole ? (
               <div className="flex items-center gap-3 border-r border-gray-200 pr-3">
                 {effectiveUserRole === "admin" && (
                   <Link
-                    href="/admin/dashboard"
+                    href={adminPanelHref}
                     className="text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-lg transition font-bold text-sm"
                   >
                     پنل مدیریت
@@ -611,7 +777,7 @@ export default function Header() {
                   ثبت‌نام
                 </Link>
               </>
-            )}
+            ))}
           </div>
 
           {/* Mobile quick action buttons - visible like desktop */}
@@ -812,7 +978,7 @@ export default function Header() {
                   </Link>
                 )}
                 <Link
-                  href="/admin/dashboard"
+                  href={adminPanelHref}
                   className="text-purple-700 bg-purple-50 px-2 py-1 rounded hover:bg-purple-100 transition flex items-center gap-2 mt-1"
                 >
                   <span>👑</span> پنل مدیریت پلتفرم (ادمین)

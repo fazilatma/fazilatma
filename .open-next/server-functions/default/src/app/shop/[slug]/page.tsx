@@ -8,6 +8,8 @@ import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
 import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import StoreProductGallery from "@/components/StoreProductGallery";
 import StoreVerifiedPriceSync from "@/components/StoreVerifiedPriceSync";
+import StorePriceFreshness from "@/components/StorePriceFreshness";
+import AdminAutoPriceRefresh from "@/components/AdminAutoPriceRefresh";
 import {
   getOptiBidData,
   type JsonStoreProduct,
@@ -135,6 +137,13 @@ export async function generateMetadata({
   });
 }
 
+/** آیا زمان داده‌شده در بازهٔ مشخصی از «حالا» قرار دارد؟ */
+function isWithinWindow(timestamp: number, windowMs: number) {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return false;
+  const delta = Date.now() - timestamp;
+  return delta >= 0 && delta < windowMs;
+}
+
 export default async function StoreProductPage({
   params,
 }: {
@@ -161,17 +170,19 @@ export default async function StoreProductPage({
     .filter((value, index, values) => values.indexOf(value) === index)
     .slice(0, 3);
   const verifiedAt = Date.parse(String(storedProduct.priceVerifiedAt || ""));
-  const recentlyVerified =
-    Number.isFinite(verifiedAt) &&
-    Date.now() - verifiedAt >= 0 &&
-    Date.now() - verifiedAt <= 60 * 1000;
+  const recentlyVerified = isWithinWindow(verifiedAt, 60 * 1000);
+  // قیمتی که ادمین دستی/از لینک مرجع تثبیت کرده، تا ۳ روز با خواندن خودکار بازار
+  // بازنویسی نمی‌شود؛ وگرنه همان لحظه با یک استخراج نادرست پایین می‌افتاد.
+  const lockedAt = Date.parse(String(storedProduct.priceLockedAt || ""));
+  const priceLocked = isWithinWindow(lockedAt, 3 * 24 * 60 * 60 * 1000);
   // یک کش توزیع‌شدهٔ کوتاه مانع فراخوانی هم‌زمان APIهای بازار می‌شود، اما تغییر
   // واقعی قیمت حداکثر یک دقیقه بعد دوباره مقایسه خواهد شد.
-  const liveSnapshot = recentlyVerified
+  const liveSnapshot = recentlyVerified || priceLocked
     ? null
     : await getLiveStoreProductPriceSnapshot(
         storedProduct,
-        data.settings.storePriceMultiplier,
+        // ضریبِ خودِ کالا بر ضریب سراسری اولویت دارد تا قیمت صفحه با فرمول بخواند.
+        storedProduct.priceMultiplier ?? data.settings.storePriceMultiplier,
         duplicateSourceUrls,
       );
   // خطای موقت یا timeout یکی از منابع نباید قیمت تأییدشدهٔ قبلی را ناموجود کند.
@@ -250,6 +261,7 @@ export default async function StoreProductPage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <StorePriceFreshness />
       {verifiedPriceAt ? (
         <StoreVerifiedPriceSync
           productId={product.id}
@@ -324,6 +336,13 @@ export default async function StoreProductPage({
                       <p className="text-sm text-slate-400 line-through">{money(product.originalPrice)}</p>
                     )}
                     <p className="text-3xl font-black text-rose-600">{money(product.price)}</p>
+                    {isAdmin && (
+                      <AdminAutoPriceRefresh
+                        productId={product.id}
+                        price={Number(product.price || 0)}
+                        multiplier={Number(product.priceMultiplier || 1)}
+                      />
+                    )}
                     <p className="mt-2 text-xs leading-6 text-slate-500">
                       {product.warranty} · قیمت روز از منابع فعال تأیید شد
                     </p>

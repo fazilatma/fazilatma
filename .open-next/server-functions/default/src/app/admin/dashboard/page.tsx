@@ -1,4 +1,5 @@
 import AdminDashboardClient from "./AdminDashboardClient";
+import AdminPreviewTokenBridge from "@/components/AdminPreviewTokenBridge";
 import {
   getJsonAdminReports,
   getJsonAdminStats,
@@ -27,6 +28,7 @@ export default async function AdminDashboardPage() {
       sellersCount: 0,
       activeUsersCount: 0,
       pendingKycCount: 0,
+      awaitingKycDocumentsCount: 0,
       blockedUsersCount: 0,
       socialUsersCount: 0,
     },
@@ -69,13 +71,16 @@ export default async function AdminDashboardPage() {
   }
 
   return (
-    <AdminDashboardClient
-      realStats={realStats}
-      sellerRankings={sellerRankings}
-      initialKycUsers={kycUsers}
-      initialManagedUsers={adminUsers}
-      adminReports={adminReports}
-      initialCatalogCategories={catalogCategories}
-    />
+    <>
+      <AdminPreviewTokenBridge />
+      <AdminDashboardClient
+        realStats={realStats}
+        sellerRankings={sellerRankings}
+        initialKycUsers={kycUsers}
+        initialManagedUsers={adminUsers}
+        adminReports={adminReports}
+        initialCatalogCategories={catalogCategories}
+      />
+    </>
   );
 }

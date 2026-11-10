@@ -1,9 +1,11 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
-import { marketVariantMatches } from "@/lib/store-product-live";
+import { fetchMarketText } from "@/lib/market-fetch";
+import { marketVariantMatches, preferSameMemoryGeneration } from "@/lib/store-product-live";
 import {
   applyStorePriceFormula,
   normalizeStorePriceMultiplier,
+  storedProductPriceMultiplier,
 } from "@/lib/store-pricing";
 
 export type PriceReferenceKey = "torob" | "digikala" | "instagram" | "telegram" | "google";
@@ -216,21 +218,9 @@ function absoluteUrl(value: string, baseUrl: string) {
   }
 }
 
-async function fetchText(url: string, accept = "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8") {
-  const timeoutSignal =
-    typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
-      ? (AbortSignal as unknown as { timeout: (milliseconds: number) => AbortSignal }).timeout(14000)
-      : undefined;
-  const response = await fetch(url, {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (compatible; OptiBidPriceUpdater/1.0; +https://optibid.ir)",
-      accept,
-    },
-    signal: timeoutSignal,
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.text();
+async function fetchText(url: string, accept?: string) {
+  const { text } = await fetchMarketText(url, accept);
+  return text;
 }
 
 function extractJsonLdObjects(html: string) {
@@ -396,16 +386,28 @@ function candidatesFromGoogleSearch(
 }
 
 async function directSourceCandidates(product: JsonStoreProduct, source: PriceReferenceKey) {
-  if (!product.externalSourceUrl) return [];
-  let host = "";
-  try {
-    host = new URL(product.externalSourceUrl).hostname.replace(/^www\./, "");
-  } catch {
-    return [];
+  // هم «لینک مرجع» کالا و هم «لینک مبدأ» آن بررسی می‌شود تا اگر کاربر قیمت را
+  // در یکی از این دو ثبت کرده باشد، همان قیمت (و کمترین بین منابع) مرجع شود.
+  const urls = [product.externalSourceUrl, product.sourceLink]
+    .map((value) => String(value || "").trim())
+    .filter((value, index, items) => value && items.indexOf(value) === index);
+  const results: Omit<PriceCandidate, "score">[] = [];
+  for (const url of urls) {
+    let host = "";
+    try {
+      host = new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      continue;
+    }
+    if (!referenceHosts[source].some((item) => host.includes(item))) continue;
+    try {
+      const html = await fetchText(url);
+      results.push(...candidatesFromHtml(html, source, url));
+    } catch {
+      // منبع بعدی امتحان شود.
+    }
   }
-  if (!referenceHosts[source].some((item) => host.includes(item))) return [];
-  const html = await fetchText(product.externalSourceUrl);
-  return candidatesFromHtml(html, source, product.externalSourceUrl);
+  return results;
 }
 
 async function digikalaCandidates(product: JsonStoreProduct) {
@@ -495,9 +497,12 @@ export async function findProductPriceCandidates(
     marketVariantMatches(productIdentityText, candidate.title),
   );
   const requiresExactModel = exactModelTokens(productIdentityText).length > 0;
-  const candidatePool = strictVariants.length
-    ? strictVariants
-    : safeCandidates.filter((candidate) => candidateMatchesExactModel(product, candidate.title));
+  const candidatePool = preferSameMemoryGeneration(
+    productIdentityText,
+    strictVariants.length
+      ? strictVariants
+      : safeCandidates.filter((candidate) => candidateMatchesExactModel(product, candidate.title)),
+  );
   const scored = candidatePool
     .map((candidate) => ({ ...candidate, score: candidateScore(product, candidate.title) }))
     .filter((candidate) => strictVariants.length > 0 || candidate.score >= (requiresExactModel ? 3 : 5))
@@ -516,7 +521,16 @@ export function chooseBestPriceCandidate(candidates: PriceCandidate[]) {
   if (!candidates.length) return null;
   // نامزدها پیش از این مرحله از نظر مدل، برند، ظرفیت، وضعیت نو/کارکرده و خرابی
   // اعتبارسنجی شده‌اند؛ بنابراین فرمول فروشگاه دقیقاً کمترین قیمت معتبر است.
-  return [...candidates].sort((a, b) => a.price - b.price || b.score - a.score)[0] || null;
+  const sorted = [...candidates].sort((a, b) => a.price - b.price || b.score - a.score);
+  // آگهی‌های «قیمت‌شکن» (کمتر از ۵۵٪ میانهٔ بازار) معمولاً کالای دیگری، اجاره‌ای
+  // یا آگهی آزمایشی‌اند؛ مرجع قیمت فروشگاه نباید با آن‌ها پایین بیفتد.
+  if (sorted.length >= 3) {
+    const prices = sorted.map((candidate) => candidate.price).sort((a, b) => a - b);
+    const median = prices[Math.floor(prices.length / 2)];
+    const reliable = sorted.filter((candidate) => candidate.price >= median * 0.55);
+    if (reliable.length) return reliable[0];
+  }
+  return sorted[0] || null;
 }
 
 export function applyRefreshedPrice(
@@ -524,10 +538,17 @@ export function applyRefreshedPrice(
   candidate: PriceCandidate,
   multiplier = 1,
 ): JsonStoreProduct {
+  // ضریبِ خودِ محصول بر ضریب سراسری اولویت دارد؛ وگرنه هر بار به‌روزرسانی قیمت،
+  // محصولی که با ضریب لینک مبدأ وارد شده با ضریب دیگری بازقیمت‌گذاری می‌شد و
+  // قیمت فروشگاه با فرمول «قیمت مرجع × ضریب» نمی‌خواند.
+  const effectiveMultiplier = normalizeStorePriceMultiplier(
+    storedProductPriceMultiplier(product, multiplier),
+    1,
+  );
   const pricedProduct = applyStorePriceFormula(
     product,
     candidate.price,
-    normalizeStorePriceMultiplier(multiplier, 1),
+    effectiveMultiplier,
   );
   const price = pricedProduct.price;
   const checkedAt = new Date().toISOString();
@@ -543,5 +564,53 @@ export function applyRefreshedPrice(
     marketReferenceNote: `به‌روزرسانی قیمت از ${candidate.source}: ${candidate.title}`,
     externalSourceUrl: candidate.url || product.externalSourceUrl,
     badges: Array.from(new Set([...(product.badges || []).filter((badge) => badge !== "قیمت ثبت‌شده"), "قیمت به‌روز"])).slice(0, 6),
+  };
+}
+
+function toLatinPriceDigits(value: string) {
+  return String(value || "")
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+}
+
+/**
+ * کمترین قیمت معتبرِ یک لینک مرجع (صفحهٔ محصول ترب/دیجی‌کالا یا هر فروشگاه دیگر).
+ *
+ * اگر ساختار صفحه شناخته‌شده باشد از همان استخراج همیشگی استفاده می‌شود؛ وگرنه
+ * عددهای «تومان» صفحه خوانده و پس از حذف قیمت‌های غیرواقعی، کمترین آن‌ها
+ * برگردانده می‌شود. این تابع همان چیزی است که دکمهٔ «اعمال قیمت لینک» صدا می‌زند.
+ */
+export async function lowestPriceFromReferenceUrl(url: string) {
+  const raw = await fetchText(url);
+  const source = referenceHosts.torob.some((host) => url.includes(host))
+    ? "torob" as PriceReferenceKey
+    : referenceHosts.digikala.some((host) => url.includes(host))
+      ? "digikala" as PriceReferenceKey
+      : "google" as PriceReferenceKey;
+  const json = parseJsonLoose(raw);
+  const structured = [
+    ...(json ? candidatesFromJson(json, source, url) : []),
+    ...candidatesFromHtml(raw, source, url),
+  ].filter((candidate) => candidate.price >= 100_000);
+
+  const scanned: number[] = [];
+  if (!structured.length) {
+    const text = toLatinPriceDigits(raw.replace(/<[^>]+>/g, " "));
+    for (const match of text.matchAll(/(\d{1,3}(?:[,٬]\d{3})+|\d{6,12})(?:\s*(?:تومان|ریال))?/g)) {
+      const price = Number(String(match[1]).replace(/[,٬]/g, ""));
+      if (Number.isFinite(price) && price >= 100_000 && price <= 5_000_000_000) scanned.push(price);
+    }
+  }
+
+  const prices = structured.length ? structured.map((candidate) => candidate.price) : scanned;
+  if (!prices.length) return { price: 0, candidates: structured, scannedCount: scanned.length };
+
+  const sorted = [...prices].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const reliable = sorted.filter((price) => price >= median * 0.55);
+  return {
+    price: reliable[0] || sorted[0],
+    candidates: structured,
+    scannedCount: scanned.length,
   };
 }

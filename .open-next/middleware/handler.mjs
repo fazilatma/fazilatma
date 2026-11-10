@@ -711,6 +711,411 @@ var init_fetch = __esm({
   }
 });
 
+// .next/server/edge/chunks/_1s0wgnu._.js
+var require_s0wgnu = __commonJS({
+  ".next/server/edge/chunks/_1s0wgnu._.js"() {
+    "use strict";
+    (globalThis.TURBOPACK || (globalThis.TURBOPACK = [])).push(["chunks/_1s0wgnu._.js", 32714, (e) => {
+      "use strict";
+      async function t() {
+      }
+      e.s(["register", 0, t]);
+    }, 85841, (e, t, n) => {
+      self._ENTRIES ||= {};
+      let s = Promise.resolve().then(() => e.i(32714));
+      s.catch(() => {
+      }), self._ENTRIES.middleware_instrumentation = new Proxy(s, { get(e2, t2) {
+        if ("then" === t2) return (t3, n3) => e2.then(t3, n3);
+        let n2 = (...n3) => e2.then((e3) => (0, e3[t2])(...n3));
+        return n2.then = (n3, s2) => e2.then((e3) => e3[t2]).then(n3, s2), n2;
+      } });
+    }]);
+  }
+});
+
+// .next/server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_1x1n1fx.js
+var require_turbopack_node_modules_next_dist_esm_build_templates_edge_wrapper_1x1n1fx = __commonJS({
+  ".next/server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_1x1n1fx.js"() {
+    "use strict";
+    (globalThis.TURBOPACK || (globalThis.TURBOPACK = [])).push(["chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_1x1n1fx.js", { otherChunks: ["chunks/_1s0wgnu._.js"], runtimeModuleIds: [85841] }]), (() => {
+      let e;
+      if (!Array.isArray(globalThis.TURBOPACK)) return;
+      let t = ["NEXT_DEPLOYMENT_ID", "NEXT_CLIENT_ASSET_SUFFIX"];
+      var r, n = ((r = n || {})[r.Runtime = 0] = "Runtime", r[r.Parent = 1] = "Parent", r[r.Update = 2] = "Update", r);
+      let o = /* @__PURE__ */ new WeakMap();
+      function u(e2, t2) {
+        this.m = e2, this.e = t2;
+      }
+      let l = u.prototype, i = Object.prototype.hasOwnProperty, a = "u" > typeof Symbol && Symbol.toStringTag;
+      function s(e2, t2, r2) {
+        i.call(e2, t2) || Object.defineProperty(e2, t2, r2);
+      }
+      function c(e2, t2) {
+        let r2 = e2[t2];
+        return r2 || (r2 = f(t2), e2[t2] = r2), r2;
+      }
+      function f(e2) {
+        return { exports: {}, error: void 0, id: e2, namespaceObject: void 0 };
+      }
+      function d(e2, t2) {
+        s(e2, "__esModule", { value: true }), a && s(e2, a, { value: "Module" });
+        let r2 = 0;
+        for (; r2 < t2.length; ) {
+          let n2 = t2[r2++], o2 = t2[r2++];
+          if ("number" == typeof o2) if (0 === o2) s(e2, n2, { value: t2[r2++], enumerable: true, writable: false });
+          else throw Error(`unexpected tag: ${o2}`);
+          else "function" == typeof t2[r2] ? s(e2, n2, { get: o2, set: t2[r2++], enumerable: true }) : s(e2, n2, { get: o2, enumerable: true });
+        }
+        Object.seal(e2);
+      }
+      function h(e2, t2) {
+        (null != t2 ? c(this.c, t2) : this.m).exports = e2;
+      }
+      l.s = function(e2, t2) {
+        let r2, n2;
+        null != t2 ? n2 = (r2 = c(this.c, t2)).exports : (r2 = this.m, n2 = this.e), r2.namespaceObject = n2, d(n2, e2);
+      }, l.j = function(e2, t2) {
+        var r2, n2;
+        let u2, l2, a2;
+        null != t2 ? l2 = (u2 = c(this.c, t2)).exports : (u2 = this.m, l2 = this.e);
+        let s2 = (r2 = u2, n2 = l2, (a2 = o.get(r2)) || (o.set(r2, a2 = []), r2.exports = r2.namespaceObject = new Proxy(n2, { get(e3, t3) {
+          if (i.call(e3, t3) || "default" === t3 || "__esModule" === t3) return Reflect.get(e3, t3);
+          for (let e4 of a2) {
+            let r3 = Reflect.get(e4, t3);
+            if (void 0 !== r3) return r3;
+          }
+        }, ownKeys(e3) {
+          let t3 = Reflect.ownKeys(e3);
+          for (let e4 of a2) for (let r3 of Reflect.ownKeys(e4)) "default" === r3 || t3.includes(r3) || t3.push(r3);
+          return t3;
+        } })), a2);
+        "object" == typeof e2 && null !== e2 && s2.push(e2);
+      }, l.v = h, l.n = function(e2, t2) {
+        let r2;
+        (r2 = null != t2 ? c(this.c, t2) : this.m).exports = r2.namespaceObject = e2;
+      };
+      let p = Object.getPrototypeOf ? (e2) => Object.getPrototypeOf(e2) : (e2) => e2.__proto__, m = [null, p({}), p([]), p(p)];
+      function b(e2, t2, r2) {
+        let n2 = [], o2 = -1;
+        for (let t3 = e2; ("object" == typeof t3 || "function" == typeof t3) && !m.includes(t3); t3 = p(t3)) for (let r3 of Object.getOwnPropertyNames(t3)) n2.push(r3, /* @__PURE__ */ function(e3, t4) {
+          return () => e3[t4];
+        }(e2, r3)), -1 === o2 && "default" === r3 && (o2 = n2.length - 1);
+        return r2 && o2 >= 0 || (o2 >= 0 ? n2.splice(o2, 1, 0, e2) : n2.push("default", 0, e2)), d(t2, n2), t2;
+      }
+      function y(e2) {
+        return "function" == typeof e2 ? function(...t2) {
+          return e2.apply(this, t2);
+        } : /* @__PURE__ */ Object.create(null);
+      }
+      function g(e2) {
+        let t2 = K(e2, this.m);
+        if (t2.namespaceObject) return t2.namespaceObject;
+        let r2 = t2.exports;
+        return t2.namespaceObject = b(r2, y(r2), r2 && r2.__esModule);
+      }
+      function w(e2) {
+        let t2 = e2.indexOf("#");
+        -1 !== t2 && (e2 = e2.substring(0, t2));
+        let r2 = e2.indexOf("?");
+        return -1 !== r2 && (e2 = e2.substring(0, r2)), e2;
+      }
+      function O(e2) {
+        return "string" == typeof e2 ? e2 : e2.path;
+      }
+      function k() {
+        let e2, t2;
+        return { promise: new Promise((r2, n2) => {
+          t2 = n2, e2 = r2;
+        }), resolve: e2, reject: t2 };
+      }
+      l.i = g, l.A = function(e2) {
+        return this.r(e2)(g.bind(this));
+      }, l.t = "function" == typeof __require ? __require : function() {
+        throw Error("Unexpected use of runtime require");
+      }, l.r = function(e2) {
+        return K(e2, this.m).exports;
+      }, l.f = function(e2) {
+        function t2(t3) {
+          if (t3 = w(t3), i.call(e2, t3)) return e2[t3].module();
+          let r2 = Error(`Cannot find module '${t3}'`);
+          throw r2.code = "MODULE_NOT_FOUND", r2;
+        }
+        return t2.keys = () => Object.keys(e2), t2.resolve = (t3) => {
+          if (t3 = w(t3), i.call(e2, t3)) return e2[t3].id();
+          let r2 = Error(`Cannot find module '${t3}'`);
+          throw r2.code = "MODULE_NOT_FOUND", r2;
+        }, t2.import = async (e3) => await t2(e3), t2;
+      };
+      let _ = Symbol("turbopack queues"), j = Symbol("turbopack exports"), C = Symbol("turbopack error");
+      function P(e2) {
+        e2 && 1 !== e2.status && (e2.status = 1, e2.forEach((e3) => e3.queueCount--), e2.forEach((e3) => e3.queueCount-- ? e3.queueCount++ : e3()));
+      }
+      l.a = function(e2, t2) {
+        let r2 = this.m, n2 = t2 ? Object.assign([], { status: -1 }) : void 0, o2 = /* @__PURE__ */ new Set(), { resolve: u2, reject: l2, promise: i2 } = k(), a2 = Object.assign(i2, { [j]: r2.exports, [_]: (e3) => {
+          n2 && e3(n2), o2.forEach(e3), a2.catch(() => {
+          });
+        } }), s2 = { get: () => a2, set(e3) {
+          e3 !== a2 && (a2[j] = e3);
+        } };
+        Object.defineProperty(r2, "exports", s2), Object.defineProperty(r2, "namespaceObject", s2), e2(function(e3) {
+          let t3 = e3.map((e4) => {
+            if (null !== e4 && "object" == typeof e4) {
+              if (_ in e4) return e4;
+              if (null != e4 && "object" == typeof e4 && "then" in e4 && "function" == typeof e4.then) {
+                let t4 = Object.assign([], { status: 0 }), r4 = { [j]: {}, [_]: (e5) => e5(t4) };
+                return e4.then((e5) => {
+                  r4[j] = e5, P(t4);
+                }, (e5) => {
+                  r4[C] = e5, P(t4);
+                }), r4;
+              }
+            }
+            return { [j]: e4, [_]: () => {
+            } };
+          }), r3 = () => t3.map((e4) => {
+            if (e4[C]) throw e4[C];
+            return e4[j];
+          }), { promise: u3, resolve: l3 } = k(), i3 = Object.assign(() => l3(r3), { queueCount: 0 });
+          function a3(e4) {
+            e4 !== n2 && !o2.has(e4) && (o2.add(e4), e4 && 0 === e4.status && (i3.queueCount++, e4.push(i3)));
+          }
+          return t3.map((e4) => e4[_](a3)), i3.queueCount ? u3 : r3();
+        }, function(e3) {
+          e3 ? l2(a2[C] = e3) : u2(a2[j]), P(n2);
+        }), n2 && -1 === n2.status && (n2.status = 0);
+      };
+      let v = function(e2) {
+        let t2 = new URL(e2, "x:/"), r2 = {};
+        for (let e3 in t2) r2[e3] = t2[e3];
+        for (let t3 in r2.href = e2, r2.pathname = e2.replace(/[?#].*/, ""), r2.origin = r2.protocol = "", r2.toString = r2.toJSON = (...t4) => e2, r2) Object.defineProperty(this, t3, { enumerable: true, configurable: true, value: r2[t3] });
+      };
+      function E(e2, t2) {
+        throw Error(`Invariant: ${t2(e2)}`);
+      }
+      v.prototype = URL.prototype, l.U = v, l.z = function(e2) {
+        throw Error("dynamic usage of require is not supported");
+      }, l.g = globalThis;
+      let U = u.prototype, x = /* @__PURE__ */ new Map();
+      l.M = x;
+      let R = /* @__PURE__ */ new Map(), M = /* @__PURE__ */ new Map();
+      async function $(e2, t2, r2) {
+        let n2;
+        if ("string" == typeof r2) return A(e2, t2, q(r2));
+        let o2 = r2.included || [], u2 = o2.map((e3) => !!x.has(e3) || R.get(e3));
+        if (u2.length > 0 && u2.every((e3) => e3)) return void await Promise.all(u2);
+        let l2 = r2.moduleChunks || [], i2 = l2.map((e3) => M.get(e3)).filter((e3) => e3);
+        if (i2.length > 0) {
+          if (i2.length === l2.length) return void await Promise.all(i2);
+          let r3 = /* @__PURE__ */ new Set();
+          for (let e3 of l2) M.has(e3) || r3.add(e3);
+          for (let n3 of r3) {
+            let r4 = A(e2, t2, q(n3));
+            M.set(n3, r4), i2.push(r4);
+          }
+          n2 = Promise.all(i2);
+        } else {
+          for (let o3 of (n2 = A(e2, t2, q(r2.path)), l2)) M.has(o3) || M.set(o3, n2);
+        }
+        for (let e3 of o2) R.has(e3) || R.set(e3, n2);
+        await n2;
+      }
+      U.l = function(e2) {
+        return $(n.Parent, this.m.id, e2);
+      };
+      let T = Promise.resolve(void 0), S = /* @__PURE__ */ new WeakMap();
+      function A(t2, r2, o2) {
+        let u2 = e.loadChunkCached(t2, o2), l2 = S.get(u2);
+        if (void 0 === l2) {
+          let e2 = S.set.bind(S, u2, T);
+          l2 = u2.then(e2).catch((e3) => {
+            let u3;
+            switch (t2) {
+              case n.Runtime:
+                u3 = `as a runtime dependency of chunk ${r2}`;
+                break;
+              case n.Parent:
+                u3 = `from module ${r2}`;
+                break;
+              case n.Update:
+                u3 = "from an HMR update";
+                break;
+              default:
+                E(t2, (e4) => `Unknown source type: ${e4}`);
+            }
+            let l3 = Error(`Failed to load chunk ${o2} ${u3}${e3 ? `: ${e3}` : ""}`, e3 ? { cause: e3 } : void 0);
+            throw l3.name = "ChunkLoadError", l3;
+          }), S.set(u2, l2);
+        }
+        return l2;
+      }
+      function q(e2) {
+        return `${e2.split("/").map((e3) => encodeURIComponent(e3)).join("/")}`;
+      }
+      U.L = function(e2) {
+        return A(n.Parent, this.m.id, e2);
+      }, U.R = function(e2) {
+        let t2 = this.r(e2);
+        return t2?.default ?? t2;
+      }, U.P = function(e2) {
+        return `/ROOT/${e2 ?? ""}`;
+      }, U.q = function(e2, t2) {
+        h.call(this, `${e2}`, t2);
+      }, U.b = function(e2, r2, n2, o2) {
+        let u2 = "SharedWorker" === e2.name, l2 = [n2.map((e3) => q(e3)).reverse(), ""];
+        for (let e3 of t) l2.push(globalThis[e3]);
+        let i2 = new URL(q(r2), location.origin), a2 = JSON.stringify(l2);
+        return u2 ? i2.searchParams.set("params", a2) : i2.hash = "#params=" + encodeURIComponent(a2), new e2(i2, o2 ? { ...o2, type: void 0 } : void 0);
+      };
+      let N = /\.js(?:\?[^#]*)?(?:#.*)?$/;
+      l.w = function(t2, r2, o2) {
+        return e.loadWebAssembly(n.Parent, this.m.id, t2, r2, o2);
+      }, l.u = function(t2, r2) {
+        return e.loadWebAssemblyModule(n.Parent, this.m.id, t2, r2);
+      };
+      let I = {};
+      l.c = I;
+      let K = (e2, t2) => {
+        let r2 = I[e2];
+        if (r2) {
+          if (r2.error) throw r2.error;
+          return r2;
+        }
+        return L(e2, n.Parent, t2.id);
+      };
+      function L(e2, t2, r2) {
+        let n2 = x.get(e2);
+        if ("function" != typeof n2) throw Error(function(e3, t3, r3) {
+          let n3;
+          switch (t3) {
+            case 0:
+              n3 = `as a runtime entry of chunk ${r3}`;
+              break;
+            case 1:
+              n3 = `because it was required from module ${r3}`;
+              break;
+            case 2:
+              n3 = "because of an HMR update";
+              break;
+            default:
+              E(t3, (e4) => `Unknown source type: ${e4}`);
+          }
+          return `Module ${e3} was instantiated ${n3}, but the module factory is not available.`;
+        }(e2, t2, r2));
+        let o2 = f(e2), l2 = o2.exports;
+        I[e2] = o2;
+        let i2 = new u(o2, l2);
+        try {
+          n2(i2, o2, l2);
+        } catch (e3) {
+          throw o2.error = e3, e3;
+        }
+        return o2.namespaceObject && o2.exports !== o2.namespaceObject && b(o2.exports, o2.namespaceObject), o2;
+      }
+      function W(t2) {
+        let r2, n2 = function(e2) {
+          if ("string" == typeof e2) return e2;
+          if (e2) return { src: e2.getAttribute("src") };
+          if ("u" > typeof TURBOPACK_NEXT_CHUNK_URLS) return { src: TURBOPACK_NEXT_CHUNK_URLS.pop() };
+          throw Error("chunk path empty but not in a worker");
+        }(t2[0]);
+        return 2 === t2.length ? r2 = t2[1] : (r2 = void 0, !function(e2, t3) {
+          let r3 = 1;
+          for (; r3 < e2.length; ) {
+            let n3, o2 = r3 + 1;
+            for (; o2 < e2.length && "function" != typeof e2[o2]; ) o2++;
+            if (o2 === e2.length) throw Error("malformed chunk format, expected a factory function");
+            let u2 = e2[o2];
+            for (let u3 = r3; u3 < o2; u3++) {
+              let r4 = e2[u3], o3 = t3.get(r4);
+              if (o3) {
+                n3 = o3;
+                break;
+              }
+            }
+            let l2 = n3 ?? u2, i2 = false;
+            for (let n4 = r3; n4 < o2; n4++) {
+              let r4 = e2[n4];
+              t3.has(r4) || (i2 || (l2 === u2 && Object.defineProperty(u2, "name", { value: "module evaluation" }), i2 = true), t3.set(r4, l2));
+            }
+            r3 = o2 + 1;
+          }
+        }(t2, x)), e.registerChunk(n2, r2);
+      }
+      function B(e2, t2, r2 = false) {
+        let n2;
+        try {
+          n2 = t2();
+        } catch (t3) {
+          throw Error(`Failed to load external module ${e2}: ${t3}`);
+        }
+        return !r2 || n2.__esModule ? n2 : b(n2, y(n2), true);
+      }
+      l.y = async function(e2) {
+        let t2;
+        try {
+          t2 = await import(e2);
+        } catch (t3) {
+          throw Error(`Failed to load external module ${e2}: ${t3}`);
+        }
+        return t2 && t2.__esModule && t2.default && "default" in t2.default ? b(t2.default, y(t2), true) : t2;
+      }, B.resolve = (e2, t2) => __require.resolve(e2, t2), l.x = B, e = { registerChunk(e2, t2) {
+        let r2 = function(e3) {
+          if ("string" == typeof e3) return e3;
+          let t3 = decodeURIComponent(e3.src.replace(/[?#].*$/, ""));
+          return t3.startsWith("") ? t3.slice(0) : t3;
+        }(e2);
+        F.add(r2), function(e3) {
+          let t3 = D.get(e3);
+          if (null != t3) {
+            for (let r3 of t3) r3.requiredChunks.delete(e3), 0 === r3.requiredChunks.size && X(r3.runtimeModuleIds, r3.chunkPath);
+            D.delete(e3);
+          }
+        }(r2), null != t2 && (0 === t2.otherChunks.length ? X(t2.runtimeModuleIds, r2) : function(e3, t3, r3) {
+          let n2 = /* @__PURE__ */ new Set(), o2 = { runtimeModuleIds: r3, chunkPath: e3, requiredChunks: n2 };
+          for (let e4 of t3) {
+            let t4 = O(e4);
+            if (F.has(t4)) continue;
+            n2.add(t4);
+            let r4 = D.get(t4);
+            null == r4 && (r4 = /* @__PURE__ */ new Set(), D.set(t4, r4)), r4.add(o2);
+          }
+          0 === o2.requiredChunks.size && X(o2.runtimeModuleIds, o2.chunkPath);
+        }(r2, t2.otherChunks.filter((e3) => {
+          var t3;
+          return t3 = O(e3), N.test(t3);
+        }), t2.runtimeModuleIds));
+      }, loadChunkCached(e2, t2) {
+        throw Error("chunk loading is not supported");
+      }, async loadWebAssembly(e2, t2, r2, n2, o2) {
+        let u2 = await H(r2, n2);
+        return await WebAssembly.instantiate(u2, o2);
+      }, loadWebAssemblyModule: async (e2, t2, r2, n2) => H(r2, n2) };
+      let F = /* @__PURE__ */ new Set(), D = /* @__PURE__ */ new Map();
+      function X(e2, t2) {
+        for (let r2 of e2) !function(e3, t3) {
+          let r3 = I[t3];
+          if (r3) {
+            if (r3.error) throw r3.error;
+            return;
+          }
+          L(t3, n.Runtime, e3);
+        }(t2, r2);
+      }
+      async function H(e2, t2) {
+        let r2;
+        try {
+          r2 = t2();
+        } catch (e3) {
+        }
+        if (!r2) throw Error(`dynamically loading WebAssembly is not supported in this runtime as global was not injected for chunk '${e2}'`);
+        return r2;
+      }
+      let z = globalThis.TURBOPACK;
+      globalThis.TURBOPACK = { push: W }, z.forEach(W);
+    })();
+  }
+});
+
 // .next/server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_0_kjzx3.js
 var require_node_modules_next_dist_esm_build_templates_edge_wrapper_0_kjzx3 = __commonJS({
   ".next/server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_0_kjzx3.js"() {
@@ -1563,74 +1968,74 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
         }, 521: (e2, t2) => {
           Object.defineProperty(t2, "__esModule", { value: true }), t2.VERSION = void 0, t2.VERSION = "1.6.0";
         } }, C = {};
-        function R(e2) {
+        function O(e2) {
           var t2 = C[e2];
           if (void 0 !== t2) return t2.exports;
           var r3 = C[e2] = { exports: {} }, n2 = true;
           try {
-            E[e2].call(r3.exports, r3, r3.exports, R), n2 = false;
+            E[e2].call(r3.exports, r3, r3.exports, O), n2 = false;
           } finally {
             n2 && delete C[e2];
           }
           return r3.exports;
         }
-        R.ab = "/ROOT/node_modules/next/dist/compiled/@opentelemetry/api/";
-        var O = {};
-        Object.defineProperty(O, "__esModule", { value: true }), O.trace = O.propagation = O.metrics = O.diag = O.context = O.INVALID_SPAN_CONTEXT = O.INVALID_TRACEID = O.INVALID_SPANID = O.isValidSpanId = O.isValidTraceId = O.isSpanContextValid = O.createTraceState = O.TraceFlags = O.SpanStatusCode = O.SpanKind = O.SamplingDecision = O.ProxyTracerProvider = O.ProxyTracer = O.defaultTextMapSetter = O.defaultTextMapGetter = O.ValueType = O.createNoopMeter = O.DiagLogLevel = O.DiagConsoleLogger = O.ROOT_CONTEXT = O.createContextKey = O.baggageEntryMetadataFromString = void 0, s = R(369), Object.defineProperty(O, "baggageEntryMetadataFromString", { enumerable: true, get: function() {
+        O.ab = "/ROOT/node_modules/next/dist/compiled/@opentelemetry/api/";
+        var R = {};
+        Object.defineProperty(R, "__esModule", { value: true }), R.trace = R.propagation = R.metrics = R.diag = R.context = R.INVALID_SPAN_CONTEXT = R.INVALID_TRACEID = R.INVALID_SPANID = R.isValidSpanId = R.isValidTraceId = R.isSpanContextValid = R.createTraceState = R.TraceFlags = R.SpanStatusCode = R.SpanKind = R.SamplingDecision = R.ProxyTracerProvider = R.ProxyTracer = R.defaultTextMapSetter = R.defaultTextMapGetter = R.ValueType = R.createNoopMeter = R.DiagLogLevel = R.DiagConsoleLogger = R.ROOT_CONTEXT = R.createContextKey = R.baggageEntryMetadataFromString = void 0, s = O(369), Object.defineProperty(R, "baggageEntryMetadataFromString", { enumerable: true, get: function() {
           return s.baggageEntryMetadataFromString;
-        } }), l = R(780), Object.defineProperty(O, "createContextKey", { enumerable: true, get: function() {
+        } }), l = O(780), Object.defineProperty(R, "createContextKey", { enumerable: true, get: function() {
           return l.createContextKey;
-        } }), Object.defineProperty(O, "ROOT_CONTEXT", { enumerable: true, get: function() {
+        } }), Object.defineProperty(R, "ROOT_CONTEXT", { enumerable: true, get: function() {
           return l.ROOT_CONTEXT;
-        } }), u = R(972), Object.defineProperty(O, "DiagConsoleLogger", { enumerable: true, get: function() {
+        } }), u = O(972), Object.defineProperty(R, "DiagConsoleLogger", { enumerable: true, get: function() {
           return u.DiagConsoleLogger;
-        } }), c = R(957), Object.defineProperty(O, "DiagLogLevel", { enumerable: true, get: function() {
+        } }), c = O(957), Object.defineProperty(R, "DiagLogLevel", { enumerable: true, get: function() {
           return c.DiagLogLevel;
-        } }), d = R(102), Object.defineProperty(O, "createNoopMeter", { enumerable: true, get: function() {
+        } }), d = O(102), Object.defineProperty(R, "createNoopMeter", { enumerable: true, get: function() {
           return d.createNoopMeter;
-        } }), h = R(901), Object.defineProperty(O, "ValueType", { enumerable: true, get: function() {
+        } }), h = O(901), Object.defineProperty(R, "ValueType", { enumerable: true, get: function() {
           return h.ValueType;
-        } }), p = R(194), Object.defineProperty(O, "defaultTextMapGetter", { enumerable: true, get: function() {
+        } }), p = O(194), Object.defineProperty(R, "defaultTextMapGetter", { enumerable: true, get: function() {
           return p.defaultTextMapGetter;
-        } }), Object.defineProperty(O, "defaultTextMapSetter", { enumerable: true, get: function() {
+        } }), Object.defineProperty(R, "defaultTextMapSetter", { enumerable: true, get: function() {
           return p.defaultTextMapSetter;
-        } }), f = R(125), Object.defineProperty(O, "ProxyTracer", { enumerable: true, get: function() {
+        } }), f = O(125), Object.defineProperty(R, "ProxyTracer", { enumerable: true, get: function() {
           return f.ProxyTracer;
-        } }), g = R(846), Object.defineProperty(O, "ProxyTracerProvider", { enumerable: true, get: function() {
+        } }), g = O(846), Object.defineProperty(R, "ProxyTracerProvider", { enumerable: true, get: function() {
           return g.ProxyTracerProvider;
-        } }), v = R(996), Object.defineProperty(O, "SamplingDecision", { enumerable: true, get: function() {
+        } }), v = O(996), Object.defineProperty(R, "SamplingDecision", { enumerable: true, get: function() {
           return v.SamplingDecision;
-        } }), m = R(357), Object.defineProperty(O, "SpanKind", { enumerable: true, get: function() {
+        } }), m = O(357), Object.defineProperty(R, "SpanKind", { enumerable: true, get: function() {
           return m.SpanKind;
-        } }), b = R(847), Object.defineProperty(O, "SpanStatusCode", { enumerable: true, get: function() {
+        } }), b = O(847), Object.defineProperty(R, "SpanStatusCode", { enumerable: true, get: function() {
           return b.SpanStatusCode;
-        } }), _ = R(475), Object.defineProperty(O, "TraceFlags", { enumerable: true, get: function() {
+        } }), _ = O(475), Object.defineProperty(R, "TraceFlags", { enumerable: true, get: function() {
           return _.TraceFlags;
-        } }), y = R(98), Object.defineProperty(O, "createTraceState", { enumerable: true, get: function() {
+        } }), y = O(98), Object.defineProperty(R, "createTraceState", { enumerable: true, get: function() {
           return y.createTraceState;
-        } }), w = R(139), Object.defineProperty(O, "isSpanContextValid", { enumerable: true, get: function() {
+        } }), w = O(139), Object.defineProperty(R, "isSpanContextValid", { enumerable: true, get: function() {
           return w.isSpanContextValid;
-        } }), Object.defineProperty(O, "isValidTraceId", { enumerable: true, get: function() {
+        } }), Object.defineProperty(R, "isValidTraceId", { enumerable: true, get: function() {
           return w.isValidTraceId;
-        } }), Object.defineProperty(O, "isValidSpanId", { enumerable: true, get: function() {
+        } }), Object.defineProperty(R, "isValidSpanId", { enumerable: true, get: function() {
           return w.isValidSpanId;
-        } }), x = R(476), Object.defineProperty(O, "INVALID_SPANID", { enumerable: true, get: function() {
+        } }), x = O(476), Object.defineProperty(R, "INVALID_SPANID", { enumerable: true, get: function() {
           return x.INVALID_SPANID;
-        } }), Object.defineProperty(O, "INVALID_TRACEID", { enumerable: true, get: function() {
+        } }), Object.defineProperty(R, "INVALID_TRACEID", { enumerable: true, get: function() {
           return x.INVALID_TRACEID;
-        } }), Object.defineProperty(O, "INVALID_SPAN_CONTEXT", { enumerable: true, get: function() {
+        } }), Object.defineProperty(R, "INVALID_SPAN_CONTEXT", { enumerable: true, get: function() {
           return x.INVALID_SPAN_CONTEXT;
-        } }), r2 = R(67), Object.defineProperty(O, "context", { enumerable: true, get: function() {
+        } }), r2 = O(67), Object.defineProperty(R, "context", { enumerable: true, get: function() {
           return r2.context;
-        } }), n = R(506), Object.defineProperty(O, "diag", { enumerable: true, get: function() {
+        } }), n = O(506), Object.defineProperty(R, "diag", { enumerable: true, get: function() {
           return n.diag;
-        } }), i = R(886), Object.defineProperty(O, "metrics", { enumerable: true, get: function() {
+        } }), i = O(886), Object.defineProperty(R, "metrics", { enumerable: true, get: function() {
           return i.metrics;
-        } }), a = R(939), Object.defineProperty(O, "propagation", { enumerable: true, get: function() {
+        } }), a = O(939), Object.defineProperty(R, "propagation", { enumerable: true, get: function() {
           return a.propagation;
-        } }), o = R(845), Object.defineProperty(O, "trace", { enumerable: true, get: function() {
+        } }), o = O(845), Object.defineProperty(R, "trace", { enumerable: true, get: function() {
           return o.trace;
-        } }), O.default = { context: r2.context, diag: n.diag, metrics: i.metrics, propagation: a.propagation, trace: o.trace }, t.exports = O;
+        } }), R.default = { context: r2.context, diag: n.diag, metrics: i.metrics, propagation: a.propagation, trace: o.trace }, t.exports = R;
       })();
     }, 71498, (e, t, r) => {
       (() => {
@@ -2481,7 +2886,7 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
       var n = { 226: function(t2, r2) {
         !function(n2) {
           "use strict";
-          var i2 = "function", a2 = "undefined", o = "object", s = "string", l = "major", u = "model", c = "name", d = "type", h = "vendor", p = "version", f = "architecture", g = "console", v = "mobile", m = "tablet", b = "smarttv", _ = "wearable", y = "embedded", w = "Amazon", x = "Apple", E = "ASUS", C = "BlackBerry", R = "Browser", O = "Chrome", S = "Firefox", T = "Google", P = "Huawei", N = "Microsoft", A = "Motorola", k = "Opera", I = "Samsung", M = "Sharp", j = "Sony", D = "Xiaomi", L = "Zebra", $ = "Facebook", U = "Chromium OS", q = "Mac OS", B = function(e2, t3) {
+          var i2 = "function", a2 = "undefined", o = "object", s = "string", l = "major", u = "model", c = "name", d = "type", h = "vendor", p = "version", f = "architecture", g = "console", v = "mobile", m = "tablet", b = "smarttv", _ = "wearable", y = "embedded", w = "Amazon", x = "Apple", E = "ASUS", C = "BlackBerry", O = "Browser", R = "Chrome", T = "Firefox", S = "Google", P = "Huawei", N = "Microsoft", A = "Motorola", k = "Opera", I = "Samsung", M = "Sharp", j = "Sony", D = "Xiaomi", L = "Zebra", U = "Facebook", $ = "Chromium OS", q = "Mac OS", B = function(e2, t3) {
             var r3 = {};
             for (var n3 in e2) t3[n3] && t3[n3].length % 2 == 0 ? r3[n3] = t3[n3].concat(e2[n3]) : r3[n3] = e2[n3];
             return r3;
@@ -2505,7 +2910,7 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
               for (var n3 = 0; n3 < t3[r3].length; n3++) if (V(t3[r3][n3], e2)) return "?" === r3 ? void 0 : r3;
             } else if (V(t3[r3], e2)) return "?" === r3 ? void 0 : r3;
             return e2;
-          }, W = { ME: "4.90", "NT 3.11": "NT3.51", "NT 4.0": "NT4.0", 2e3: "NT 5.0", XP: ["NT 5.1", "NT 5.2"], Vista: "NT 6.0", 7: "NT 6.1", 8: "NT 6.2", 8.1: "NT 6.3", 10: ["NT 6.4", "NT 10.0"], RT: "ARM" }, K = { browser: [[/\b(?:crmo|crios)\/([\w\.]+)/i], [p, [c, "Chrome"]], [/edg(?:e|ios|a)?\/([\w\.]+)/i], [p, [c, "Edge"]], [/(opera mini)\/([-\w\.]+)/i, /(opera [mobiletab]{3,6})\b.+version\/([-\w\.]+)/i, /(opera)(?:.+version\/|[\/ ]+)([\w\.]+)/i], [c, p], [/opios[\/ ]+([\w\.]+)/i], [p, [c, k + " Mini"]], [/\bopr\/([\w\.]+)/i], [p, [c, k]], [/(kindle)\/([\w\.]+)/i, /(lunascape|maxthon|netfront|jasmine|blazer)[\/ ]?([\w\.]*)/i, /(avant |iemobile|slim)(?:browser)?[\/ ]?([\w\.]*)/i, /(ba?idubrowser)[\/ ]?([\w\.]+)/i, /(?:ms|\()(ie) ([\w\.]+)/i, /(flock|rockmelt|midori|epiphany|silk|skyfire|bolt|iron|vivaldi|iridium|phantomjs|bowser|quark|qupzilla|falkon|rekonq|puffin|brave|whale(?!.+naver)|qqbrowserlite|qq|duckduckgo)\/([-\w\.]+)/i, /(heytap|ovi)browser\/([\d\.]+)/i, /(weibo)__([\d\.]+)/i], [c, p], [/(?:\buc? ?browser|(?:juc.+)ucweb)[\/ ]?([\w\.]+)/i], [p, [c, "UC" + R]], [/microm.+\bqbcore\/([\w\.]+)/i, /\bqbcore\/([\w\.]+).+microm/i], [p, [c, "WeChat(Win) Desktop"]], [/micromessenger\/([\w\.]+)/i], [p, [c, "WeChat"]], [/konqueror\/([\w\.]+)/i], [p, [c, "Konqueror"]], [/trident.+rv[: ]([\w\.]{1,9})\b.+like gecko/i], [p, [c, "IE"]], [/ya(?:search)?browser\/([\w\.]+)/i], [p, [c, "Yandex"]], [/(avast|avg)\/([\w\.]+)/i], [[c, /(.+)/, "$1 Secure " + R], p], [/\bfocus\/([\w\.]+)/i], [p, [c, S + " Focus"]], [/\bopt\/([\w\.]+)/i], [p, [c, k + " Touch"]], [/coc_coc\w+\/([\w\.]+)/i], [p, [c, "Coc Coc"]], [/dolfin\/([\w\.]+)/i], [p, [c, "Dolphin"]], [/coast\/([\w\.]+)/i], [p, [c, k + " Coast"]], [/miuibrowser\/([\w\.]+)/i], [p, [c, "MIUI " + R]], [/fxios\/([-\w\.]+)/i], [p, [c, S]], [/\bqihu|(qi?ho?o?|360)browser/i], [[c, "360 " + R]], [/(oculus|samsung|sailfish|huawei)browser\/([\w\.]+)/i], [[c, /(.+)/, "$1 " + R], p], [/(comodo_dragon)\/([\w\.]+)/i], [[c, /_/g, " "], p], [/(electron)\/([\w\.]+) safari/i, /(tesla)(?: qtcarbrowser|\/(20\d\d\.[-\w\.]+))/i, /m?(qqbrowser|baiduboxapp|2345Explorer)[\/ ]?([\w\.]+)/i], [c, p], [/(metasr)[\/ ]?([\w\.]+)/i, /(lbbrowser)/i, /\[(linkedin)app\]/i], [c], [/((?:fban\/fbios|fb_iab\/fb4a)(?!.+fbav)|;fbav\/([\w\.]+);)/i], [[c, $], p], [/(kakao(?:talk|story))[\/ ]([\w\.]+)/i, /(naver)\(.*?(\d+\.[\w\.]+).*\)/i, /safari (line)\/([\w\.]+)/i, /\b(line)\/([\w\.]+)\/iab/i, /(chromium|instagram)[\/ ]([-\w\.]+)/i], [c, p], [/\bgsa\/([\w\.]+) .*safari\//i], [p, [c, "GSA"]], [/musical_ly(?:.+app_?version\/|_)([\w\.]+)/i], [p, [c, "TikTok"]], [/headlesschrome(?:\/([\w\.]+)| )/i], [p, [c, O + " Headless"]], [/ wv\).+(chrome)\/([\w\.]+)/i], [[c, O + " WebView"], p], [/droid.+ version\/([\w\.]+)\b.+(?:mobile safari|safari)/i], [p, [c, "Android " + R]], [/(chrome|omniweb|arora|[tizenoka]{5} ?browser)\/v?([\w\.]+)/i], [c, p], [/version\/([\w\.\,]+) .*mobile\/\w+ (safari)/i], [p, [c, "Mobile Safari"]], [/version\/([\w(\.|\,)]+) .*(mobile ?safari|safari)/i], [p, c], [/webkit.+?(mobile ?safari|safari)(\/[\w\.]+)/i], [c, [p, X, { "1.0": "/8", 1.2: "/1", 1.3: "/3", "2.0": "/412", "2.0.2": "/416", "2.0.3": "/417", "2.0.4": "/419", "?": "/" }]], [/(webkit|khtml)\/([\w\.]+)/i], [c, p], [/(navigator|netscape\d?)\/([-\w\.]+)/i], [[c, "Netscape"], p], [/mobile vr; rv:([\w\.]+)\).+firefox/i], [p, [c, S + " Reality"]], [/ekiohf.+(flow)\/([\w\.]+)/i, /(swiftfox)/i, /(icedragon|iceweasel|camino|chimera|fennec|maemo browser|minimo|conkeror|klar)[\/ ]?([\w\.\+]+)/i, /(seamonkey|k-meleon|icecat|iceape|firebird|phoenix|palemoon|basilisk|waterfox)\/([-\w\.]+)$/i, /(firefox)\/([\w\.]+)/i, /(mozilla)\/([\w\.]+) .+rv\:.+gecko\/\d+/i, /(polaris|lynx|dillo|icab|doris|amaya|w3m|netsurf|sleipnir|obigo|mosaic|(?:go|ice|up)[\. ]?browser)[-\/ ]?v?([\w\.]+)/i, /(links) \(([\w\.]+)/i, /panasonic;(viera)/i], [c, p], [/(cobalt)\/([\w\.]+)/i], [c, [p, /master.|lts./, ""]]], cpu: [[/(?:(amd|x(?:(?:86|64)[-_])?|wow|win)64)[;\)]/i], [[f, "amd64"]], [/(ia32(?=;))/i], [[f, F]], [/((?:i[346]|x)86)[;\)]/i], [[f, "ia32"]], [/\b(aarch64|arm(v?8e?l?|_?64))\b/i], [[f, "arm64"]], [/\b(arm(?:v[67])?ht?n?[fl]p?)\b/i], [[f, "armhf"]], [/windows (ce|mobile); ppc;/i], [[f, "arm"]], [/((?:ppc|powerpc)(?:64)?)(?: mac|;|\))/i], [[f, /ower/, "", F]], [/(sun4\w)[;\)]/i], [[f, "sparc"]], [/((?:avr32|ia64(?=;))|68k(?=\))|\barm(?=v(?:[1-7]|[5-7]1)l?|;|eabi)|(?=atmel )avr|(?:irix|mips|sparc)(?:64)?\b|pa-risc)/i], [[f, F]]], device: [[/\b(sch-i[89]0\d|shw-m380s|sm-[ptx]\w{2,4}|gt-[pn]\d{2,4}|sgh-t8[56]9|nexus 10)/i], [u, [h, I], [d, m]], [/\b((?:s[cgp]h|gt|sm)-\w+|sc[g-]?[\d]+a?|galaxy nexus)/i, /samsung[- ]([-\w]+)/i, /sec-(sgh\w+)/i], [u, [h, I], [d, v]], [/(?:\/|\()(ip(?:hone|od)[\w, ]*)(?:\/|;)/i], [u, [h, x], [d, v]], [/\((ipad);[-\w\),; ]+apple/i, /applecoremedia\/[\w\.]+ \((ipad)/i, /\b(ipad)\d\d?,\d\d?[;\]].+ios/i], [u, [h, x], [d, m]], [/(macintosh);/i], [u, [h, x]], [/\b(sh-?[altvz]?\d\d[a-ekm]?)/i], [u, [h, M], [d, v]], [/\b((?:ag[rs][23]?|bah2?|sht?|btv)-a?[lw]\d{2})\b(?!.+d\/s)/i], [u, [h, P], [d, m]], [/(?:huawei|honor)([-\w ]+)[;\)]/i, /\b(nexus 6p|\w{2,4}e?-[atu]?[ln][\dx][012359c][adn]?)\b(?!.+d\/s)/i], [u, [h, P], [d, v]], [/\b(poco[\w ]+)(?: bui|\))/i, /\b; (\w+) build\/hm\1/i, /\b(hm[-_ ]?note?[_ ]?(?:\d\w)?) bui/i, /\b(redmi[\-_ ]?(?:note|k)?[\w_ ]+)(?: bui|\))/i, /\b(mi[-_ ]?(?:a\d|one|one[_ ]plus|note lte|max|cc)?[_ ]?(?:\d?\w?)[_ ]?(?:plus|se|lite)?)(?: bui|\))/i], [[u, /_/g, " "], [h, D], [d, v]], [/\b(mi[-_ ]?(?:pad)(?:[\w_ ]+))(?: bui|\))/i], [[u, /_/g, " "], [h, D], [d, m]], [/; (\w+) bui.+ oppo/i, /\b(cph[12]\d{3}|p(?:af|c[al]|d\w|e[ar])[mt]\d0|x9007|a101op)\b/i], [u, [h, "OPPO"], [d, v]], [/vivo (\w+)(?: bui|\))/i, /\b(v[12]\d{3}\w?[at])(?: bui|;)/i], [u, [h, "Vivo"], [d, v]], [/\b(rmx[12]\d{3})(?: bui|;|\))/i], [u, [h, "Realme"], [d, v]], [/\b(milestone|droid(?:[2-4x]| (?:bionic|x2|pro|razr))?:?( 4g)?)\b[\w ]+build\//i, /\bmot(?:orola)?[- ](\w*)/i, /((?:moto[\w\(\) ]+|xt\d{3,4}|nexus 6)(?= bui|\)))/i], [u, [h, A], [d, v]], [/\b(mz60\d|xoom[2 ]{0,2}) build\//i], [u, [h, A], [d, m]], [/((?=lg)?[vl]k\-?\d{3}) bui| 3\.[-\w; ]{10}lg?-([06cv9]{3,4})/i], [u, [h, "LG"], [d, m]], [/(lm(?:-?f100[nv]?|-[\w\.]+)(?= bui|\))|nexus [45])/i, /\blg[-e;\/ ]+((?!browser|netcast|android tv)\w+)/i, /\blg-?([\d\w]+) bui/i], [u, [h, "LG"], [d, v]], [/(ideatab[-\w ]+)/i, /lenovo ?(s[56]000[-\w]+|tab(?:[\w ]+)|yt[-\d\w]{6}|tb[-\d\w]{6})/i], [u, [h, "Lenovo"], [d, m]], [/(?:maemo|nokia).*(n900|lumia \d+)/i, /nokia[-_ ]?([-\w\.]*)/i], [[u, /_/g, " "], [h, "Nokia"], [d, v]], [/(pixel c)\b/i], [u, [h, T], [d, m]], [/droid.+; (pixel[\daxl ]{0,6})(?: bui|\))/i], [u, [h, T], [d, v]], [/droid.+ (a?\d[0-2]{2}so|[c-g]\d{4}|so[-gl]\w+|xq-a\w[4-7][12])(?= bui|\).+chrome\/(?![1-6]{0,1}\d\.))/i], [u, [h, j], [d, v]], [/sony tablet [ps]/i, /\b(?:sony)?sgp\w+(?: bui|\))/i], [[u, "Xperia Tablet"], [h, j], [d, m]], [/ (kb2005|in20[12]5|be20[12][59])\b/i, /(?:one)?(?:plus)? (a\d0\d\d)(?: b|\))/i], [u, [h, "OnePlus"], [d, v]], [/(alexa)webm/i, /(kf[a-z]{2}wi|aeo[c-r]{2})( bui|\))/i, /(kf[a-z]+)( bui|\)).+silk\//i], [u, [h, w], [d, m]], [/((?:sd|kf)[0349hijorstuw]+)( bui|\)).+silk\//i], [[u, /(.+)/g, "Fire Phone $1"], [h, w], [d, v]], [/(playbook);[-\w\),; ]+(rim)/i], [u, h, [d, m]], [/\b((?:bb[a-f]|st[hv])100-\d)/i, /\(bb10; (\w+)/i], [u, [h, C], [d, v]], [/(?:\b|asus_)(transfo[prime ]{4,10} \w+|eeepc|slider \w+|nexus 7|padfone|p00[cj])/i], [u, [h, E], [d, m]], [/ (z[bes]6[027][012][km][ls]|zenfone \d\w?)\b/i], [u, [h, E], [d, v]], [/(nexus 9)/i], [u, [h, "HTC"], [d, m]], [/(htc)[-;_ ]{1,2}([\w ]+(?=\)| bui)|\w+)/i, /(zte)[- ]([\w ]+?)(?: bui|\/|\))/i, /(alcatel|geeksphone|nexian|panasonic(?!(?:;|\.))|sony(?!-bra))[-_ ]?([-\w]*)/i], [h, [u, /_/g, " "], [d, v]], [/droid.+; ([ab][1-7]-?[0178a]\d\d?)/i], [u, [h, "Acer"], [d, m]], [/droid.+; (m[1-5] note) bui/i, /\bmz-([-\w]{2,})/i], [u, [h, "Meizu"], [d, v]], [/(blackberry|benq|palm(?=\-)|sonyericsson|acer|asus|dell|meizu|motorola|polytron)[-_ ]?([-\w]*)/i, /(hp) ([\w ]+\w)/i, /(asus)-?(\w+)/i, /(microsoft); (lumia[\w ]+)/i, /(lenovo)[-_ ]?([-\w]+)/i, /(jolla)/i, /(oppo) ?([\w ]+) bui/i], [h, u, [d, v]], [/(kobo)\s(ereader|touch)/i, /(archos) (gamepad2?)/i, /(hp).+(touchpad(?!.+tablet)|tablet)/i, /(kindle)\/([\w\.]+)/i, /(nook)[\w ]+build\/(\w+)/i, /(dell) (strea[kpr\d ]*[\dko])/i, /(le[- ]+pan)[- ]+(\w{1,9}) bui/i, /(trinity)[- ]*(t\d{3}) bui/i, /(gigaset)[- ]+(q\w{1,9}) bui/i, /(vodafone) ([\w ]+)(?:\)| bui)/i], [h, u, [d, m]], [/(surface duo)/i], [u, [h, N], [d, m]], [/droid [\d\.]+; (fp\du?)(?: b|\))/i], [u, [h, "Fairphone"], [d, v]], [/(u304aa)/i], [u, [h, "AT&T"], [d, v]], [/\bsie-(\w*)/i], [u, [h, "Siemens"], [d, v]], [/\b(rct\w+) b/i], [u, [h, "RCA"], [d, m]], [/\b(venue[\d ]{2,7}) b/i], [u, [h, "Dell"], [d, m]], [/\b(q(?:mv|ta)\w+) b/i], [u, [h, "Verizon"], [d, m]], [/\b(?:barnes[& ]+noble |bn[rt])([\w\+ ]*) b/i], [u, [h, "Barnes & Noble"], [d, m]], [/\b(tm\d{3}\w+) b/i], [u, [h, "NuVision"], [d, m]], [/\b(k88) b/i], [u, [h, "ZTE"], [d, m]], [/\b(nx\d{3}j) b/i], [u, [h, "ZTE"], [d, v]], [/\b(gen\d{3}) b.+49h/i], [u, [h, "Swiss"], [d, v]], [/\b(zur\d{3}) b/i], [u, [h, "Swiss"], [d, m]], [/\b((zeki)?tb.*\b) b/i], [u, [h, "Zeki"], [d, m]], [/\b([yr]\d{2}) b/i, /\b(dragon[- ]+touch |dt)(\w{5}) b/i], [[h, "Dragon Touch"], u, [d, m]], [/\b(ns-?\w{0,9}) b/i], [u, [h, "Insignia"], [d, m]], [/\b((nxa|next)-?\w{0,9}) b/i], [u, [h, "NextBook"], [d, m]], [/\b(xtreme\_)?(v(1[045]|2[015]|[3469]0|7[05])) b/i], [[h, "Voice"], u, [d, v]], [/\b(lvtel\-)?(v1[12]) b/i], [[h, "LvTel"], u, [d, v]], [/\b(ph-1) /i], [u, [h, "Essential"], [d, v]], [/\b(v(100md|700na|7011|917g).*\b) b/i], [u, [h, "Envizen"], [d, m]], [/\b(trio[-\w\. ]+) b/i], [u, [h, "MachSpeed"], [d, m]], [/\btu_(1491) b/i], [u, [h, "Rotor"], [d, m]], [/(shield[\w ]+) b/i], [u, [h, "Nvidia"], [d, m]], [/(sprint) (\w+)/i], [h, u, [d, v]], [/(kin\.[onetw]{3})/i], [[u, /\./g, " "], [h, N], [d, v]], [/droid.+; (cc6666?|et5[16]|mc[239][23]x?|vc8[03]x?)\)/i], [u, [h, L], [d, m]], [/droid.+; (ec30|ps20|tc[2-8]\d[kx])\)/i], [u, [h, L], [d, v]], [/smart-tv.+(samsung)/i], [h, [d, b]], [/hbbtv.+maple;(\d+)/i], [[u, /^/, "SmartTV"], [h, I], [d, b]], [/(nux; netcast.+smarttv|lg (netcast\.tv-201\d|android tv))/i], [[h, "LG"], [d, b]], [/(apple) ?tv/i], [h, [u, x + " TV"], [d, b]], [/crkey/i], [[u, O + "cast"], [h, T], [d, b]], [/droid.+aft(\w)( bui|\))/i], [u, [h, w], [d, b]], [/\(dtv[\);].+(aquos)/i, /(aquos-tv[\w ]+)\)/i], [u, [h, M], [d, b]], [/(bravia[\w ]+)( bui|\))/i], [u, [h, j], [d, b]], [/(mitv-\w{5}) bui/i], [u, [h, D], [d, b]], [/Hbbtv.*(technisat) (.*);/i], [h, u, [d, b]], [/\b(roku)[\dx]*[\)\/]((?:dvp-)?[\d\.]*)/i, /hbbtv\/\d+\.\d+\.\d+ +\([\w\+ ]*; *([\w\d][^;]*);([^;]*)/i], [[h, G], [u, G], [d, b]], [/\b(android tv|smart[- ]?tv|opera tv|tv; rv:)\b/i], [[d, b]], [/(ouya)/i, /(nintendo) ([wids3utch]+)/i], [h, u, [d, g]], [/droid.+; (shield) bui/i], [u, [h, "Nvidia"], [d, g]], [/(playstation [345portablevi]+)/i], [u, [h, j], [d, g]], [/\b(xbox(?: one)?(?!; xbox))[\); ]/i], [u, [h, N], [d, g]], [/((pebble))app/i], [h, u, [d, _]], [/(watch)(?: ?os[,\/]|\d,\d\/)[\d\.]+/i], [u, [h, x], [d, _]], [/droid.+; (glass) \d/i], [u, [h, T], [d, _]], [/droid.+; (wt63?0{2,3})\)/i], [u, [h, L], [d, _]], [/(quest( 2| pro)?)/i], [u, [h, $], [d, _]], [/(tesla)(?: qtcarbrowser|\/[-\w\.]+)/i], [h, [d, y]], [/(aeobc)\b/i], [u, [h, w], [d, y]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+? mobile safari/i], [u, [d, v]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+?(?! mobile) safari/i], [u, [d, m]], [/\b((tablet|tab)[;\/]|focus\/\d(?!.+mobile))/i], [[d, m]], [/(phone|mobile(?:[;\/]| [ \w\/\.]*safari)|pda(?=.+windows ce))/i], [[d, v]], [/(android[-\w\. ]{0,9});.+buil/i], [u, [h, "Generic"]]], engine: [[/windows.+ edge\/([\w\.]+)/i], [p, [c, "EdgeHTML"]], [/webkit\/537\.36.+chrome\/(?!27)([\w\.]+)/i], [p, [c, "Blink"]], [/(presto)\/([\w\.]+)/i, /(webkit|trident|netfront|netsurf|amaya|lynx|w3m|goanna)\/([\w\.]+)/i, /ekioh(flow)\/([\w\.]+)/i, /(khtml|tasman|links)[\/ ]\(?([\w\.]+)/i, /(icab)[\/ ]([23]\.[\d\.]+)/i, /\b(libweb)/i], [c, p], [/rv\:([\w\.]{1,9})\b.+(gecko)/i], [p, c]], os: [[/microsoft (windows) (vista|xp)/i], [c, p], [/(windows) nt 6\.2; (arm)/i, /(windows (?:phone(?: os)?|mobile))[\/ ]?([\d\.\w ]*)/i, /(windows)[\/ ]?([ntce\d\. ]+\w)(?!.+xbox)/i], [c, [p, X, W]], [/(win(?=3|9|n)|win 9x )([nt\d\.]+)/i], [[c, "Windows"], [p, X, W]], [/ip[honead]{2,4}\b(?:.*os ([\w]+) like mac|; opera)/i, /ios;fbsv\/([\d\.]+)/i, /cfnetwork\/.+darwin/i], [[p, /_/g, "."], [c, "iOS"]], [/(mac os x) ?([\w\. ]*)/i, /(macintosh|mac_powerpc\b)(?!.+haiku)/i], [[c, q], [p, /_/g, "."]], [/droid ([\w\.]+)\b.+(android[- ]x86|harmonyos)/i], [p, c], [/(android|webos|qnx|bada|rim tablet os|maemo|meego|sailfish)[-\/ ]?([\w\.]*)/i, /(blackberry)\w*\/([\w\.]*)/i, /(tizen|kaios)[\/ ]([\w\.]+)/i, /\((series40);/i], [c, p], [/\(bb(10);/i], [p, [c, C]], [/(?:symbian ?os|symbos|s60(?=;)|series60)[-\/ ]?([\w\.]*)/i], [p, [c, "Symbian"]], [/mozilla\/[\d\.]+ \((?:mobile|tablet|tv|mobile; [\w ]+); rv:.+ gecko\/([\w\.]+)/i], [p, [c, S + " OS"]], [/web0s;.+rt(tv)/i, /\b(?:hp)?wos(?:browser)?\/([\w\.]+)/i], [p, [c, "webOS"]], [/watch(?: ?os[,\/]|\d,\d\/)([\d\.]+)/i], [p, [c, "watchOS"]], [/crkey\/([\d\.]+)/i], [p, [c, O + "cast"]], [/(cros) [\w]+(?:\)| ([\w\.]+)\b)/i], [[c, U], p], [/panasonic;(viera)/i, /(netrange)mmh/i, /(nettv)\/(\d+\.[\w\.]+)/i, /(nintendo|playstation) ([wids345portablevuch]+)/i, /(xbox); +xbox ([^\);]+)/i, /\b(joli|palm)\b ?(?:os)?\/?([\w\.]*)/i, /(mint)[\/\(\) ]?(\w*)/i, /(mageia|vectorlinux)[; ]/i, /([kxln]?ubuntu|debian|suse|opensuse|gentoo|arch(?= linux)|slackware|fedora|mandriva|centos|pclinuxos|red ?hat|zenwalk|linpus|raspbian|plan 9|minix|risc os|contiki|deepin|manjaro|elementary os|sabayon|linspire)(?: gnu\/linux)?(?: enterprise)?(?:[- ]linux)?(?:-gnu)?[-\/ ]?(?!chrom|package)([-\w\.]*)/i, /(hurd|linux) ?([\w\.]*)/i, /(gnu) ?([\w\.]*)/i, /\b([-frentopcghs]{0,5}bsd|dragonfly)[\/ ]?(?!amd|[ix346]{1,2}86)([\w\.]*)/i, /(haiku) (\w+)/i], [c, p], [/(sunos) ?([\w\.\d]*)/i], [[c, "Solaris"], p], [/((?:open)?solaris)[-\/ ]?([\w\.]*)/i, /(aix) ((\d)(?=\.|\)| )[\w\.])*/i, /\b(beos|os\/2|amigaos|morphos|openvms|fuchsia|hp-ux|serenityos)/i, /(unix) ?([\w\.]*)/i], [c, p]] }, J = function(e2, t3) {
+          }, W = { ME: "4.90", "NT 3.11": "NT3.51", "NT 4.0": "NT4.0", 2e3: "NT 5.0", XP: ["NT 5.1", "NT 5.2"], Vista: "NT 6.0", 7: "NT 6.1", 8: "NT 6.2", 8.1: "NT 6.3", 10: ["NT 6.4", "NT 10.0"], RT: "ARM" }, K = { browser: [[/\b(?:crmo|crios)\/([\w\.]+)/i], [p, [c, "Chrome"]], [/edg(?:e|ios|a)?\/([\w\.]+)/i], [p, [c, "Edge"]], [/(opera mini)\/([-\w\.]+)/i, /(opera [mobiletab]{3,6})\b.+version\/([-\w\.]+)/i, /(opera)(?:.+version\/|[\/ ]+)([\w\.]+)/i], [c, p], [/opios[\/ ]+([\w\.]+)/i], [p, [c, k + " Mini"]], [/\bopr\/([\w\.]+)/i], [p, [c, k]], [/(kindle)\/([\w\.]+)/i, /(lunascape|maxthon|netfront|jasmine|blazer)[\/ ]?([\w\.]*)/i, /(avant |iemobile|slim)(?:browser)?[\/ ]?([\w\.]*)/i, /(ba?idubrowser)[\/ ]?([\w\.]+)/i, /(?:ms|\()(ie) ([\w\.]+)/i, /(flock|rockmelt|midori|epiphany|silk|skyfire|bolt|iron|vivaldi|iridium|phantomjs|bowser|quark|qupzilla|falkon|rekonq|puffin|brave|whale(?!.+naver)|qqbrowserlite|qq|duckduckgo)\/([-\w\.]+)/i, /(heytap|ovi)browser\/([\d\.]+)/i, /(weibo)__([\d\.]+)/i], [c, p], [/(?:\buc? ?browser|(?:juc.+)ucweb)[\/ ]?([\w\.]+)/i], [p, [c, "UC" + O]], [/microm.+\bqbcore\/([\w\.]+)/i, /\bqbcore\/([\w\.]+).+microm/i], [p, [c, "WeChat(Win) Desktop"]], [/micromessenger\/([\w\.]+)/i], [p, [c, "WeChat"]], [/konqueror\/([\w\.]+)/i], [p, [c, "Konqueror"]], [/trident.+rv[: ]([\w\.]{1,9})\b.+like gecko/i], [p, [c, "IE"]], [/ya(?:search)?browser\/([\w\.]+)/i], [p, [c, "Yandex"]], [/(avast|avg)\/([\w\.]+)/i], [[c, /(.+)/, "$1 Secure " + O], p], [/\bfocus\/([\w\.]+)/i], [p, [c, T + " Focus"]], [/\bopt\/([\w\.]+)/i], [p, [c, k + " Touch"]], [/coc_coc\w+\/([\w\.]+)/i], [p, [c, "Coc Coc"]], [/dolfin\/([\w\.]+)/i], [p, [c, "Dolphin"]], [/coast\/([\w\.]+)/i], [p, [c, k + " Coast"]], [/miuibrowser\/([\w\.]+)/i], [p, [c, "MIUI " + O]], [/fxios\/([-\w\.]+)/i], [p, [c, T]], [/\bqihu|(qi?ho?o?|360)browser/i], [[c, "360 " + O]], [/(oculus|samsung|sailfish|huawei)browser\/([\w\.]+)/i], [[c, /(.+)/, "$1 " + O], p], [/(comodo_dragon)\/([\w\.]+)/i], [[c, /_/g, " "], p], [/(electron)\/([\w\.]+) safari/i, /(tesla)(?: qtcarbrowser|\/(20\d\d\.[-\w\.]+))/i, /m?(qqbrowser|baiduboxapp|2345Explorer)[\/ ]?([\w\.]+)/i], [c, p], [/(metasr)[\/ ]?([\w\.]+)/i, /(lbbrowser)/i, /\[(linkedin)app\]/i], [c], [/((?:fban\/fbios|fb_iab\/fb4a)(?!.+fbav)|;fbav\/([\w\.]+);)/i], [[c, U], p], [/(kakao(?:talk|story))[\/ ]([\w\.]+)/i, /(naver)\(.*?(\d+\.[\w\.]+).*\)/i, /safari (line)\/([\w\.]+)/i, /\b(line)\/([\w\.]+)\/iab/i, /(chromium|instagram)[\/ ]([-\w\.]+)/i], [c, p], [/\bgsa\/([\w\.]+) .*safari\//i], [p, [c, "GSA"]], [/musical_ly(?:.+app_?version\/|_)([\w\.]+)/i], [p, [c, "TikTok"]], [/headlesschrome(?:\/([\w\.]+)| )/i], [p, [c, R + " Headless"]], [/ wv\).+(chrome)\/([\w\.]+)/i], [[c, R + " WebView"], p], [/droid.+ version\/([\w\.]+)\b.+(?:mobile safari|safari)/i], [p, [c, "Android " + O]], [/(chrome|omniweb|arora|[tizenoka]{5} ?browser)\/v?([\w\.]+)/i], [c, p], [/version\/([\w\.\,]+) .*mobile\/\w+ (safari)/i], [p, [c, "Mobile Safari"]], [/version\/([\w(\.|\,)]+) .*(mobile ?safari|safari)/i], [p, c], [/webkit.+?(mobile ?safari|safari)(\/[\w\.]+)/i], [c, [p, X, { "1.0": "/8", 1.2: "/1", 1.3: "/3", "2.0": "/412", "2.0.2": "/416", "2.0.3": "/417", "2.0.4": "/419", "?": "/" }]], [/(webkit|khtml)\/([\w\.]+)/i], [c, p], [/(navigator|netscape\d?)\/([-\w\.]+)/i], [[c, "Netscape"], p], [/mobile vr; rv:([\w\.]+)\).+firefox/i], [p, [c, T + " Reality"]], [/ekiohf.+(flow)\/([\w\.]+)/i, /(swiftfox)/i, /(icedragon|iceweasel|camino|chimera|fennec|maemo browser|minimo|conkeror|klar)[\/ ]?([\w\.\+]+)/i, /(seamonkey|k-meleon|icecat|iceape|firebird|phoenix|palemoon|basilisk|waterfox)\/([-\w\.]+)$/i, /(firefox)\/([\w\.]+)/i, /(mozilla)\/([\w\.]+) .+rv\:.+gecko\/\d+/i, /(polaris|lynx|dillo|icab|doris|amaya|w3m|netsurf|sleipnir|obigo|mosaic|(?:go|ice|up)[\. ]?browser)[-\/ ]?v?([\w\.]+)/i, /(links) \(([\w\.]+)/i, /panasonic;(viera)/i], [c, p], [/(cobalt)\/([\w\.]+)/i], [c, [p, /master.|lts./, ""]]], cpu: [[/(?:(amd|x(?:(?:86|64)[-_])?|wow|win)64)[;\)]/i], [[f, "amd64"]], [/(ia32(?=;))/i], [[f, F]], [/((?:i[346]|x)86)[;\)]/i], [[f, "ia32"]], [/\b(aarch64|arm(v?8e?l?|_?64))\b/i], [[f, "arm64"]], [/\b(arm(?:v[67])?ht?n?[fl]p?)\b/i], [[f, "armhf"]], [/windows (ce|mobile); ppc;/i], [[f, "arm"]], [/((?:ppc|powerpc)(?:64)?)(?: mac|;|\))/i], [[f, /ower/, "", F]], [/(sun4\w)[;\)]/i], [[f, "sparc"]], [/((?:avr32|ia64(?=;))|68k(?=\))|\barm(?=v(?:[1-7]|[5-7]1)l?|;|eabi)|(?=atmel )avr|(?:irix|mips|sparc)(?:64)?\b|pa-risc)/i], [[f, F]]], device: [[/\b(sch-i[89]0\d|shw-m380s|sm-[ptx]\w{2,4}|gt-[pn]\d{2,4}|sgh-t8[56]9|nexus 10)/i], [u, [h, I], [d, m]], [/\b((?:s[cgp]h|gt|sm)-\w+|sc[g-]?[\d]+a?|galaxy nexus)/i, /samsung[- ]([-\w]+)/i, /sec-(sgh\w+)/i], [u, [h, I], [d, v]], [/(?:\/|\()(ip(?:hone|od)[\w, ]*)(?:\/|;)/i], [u, [h, x], [d, v]], [/\((ipad);[-\w\),; ]+apple/i, /applecoremedia\/[\w\.]+ \((ipad)/i, /\b(ipad)\d\d?,\d\d?[;\]].+ios/i], [u, [h, x], [d, m]], [/(macintosh);/i], [u, [h, x]], [/\b(sh-?[altvz]?\d\d[a-ekm]?)/i], [u, [h, M], [d, v]], [/\b((?:ag[rs][23]?|bah2?|sht?|btv)-a?[lw]\d{2})\b(?!.+d\/s)/i], [u, [h, P], [d, m]], [/(?:huawei|honor)([-\w ]+)[;\)]/i, /\b(nexus 6p|\w{2,4}e?-[atu]?[ln][\dx][012359c][adn]?)\b(?!.+d\/s)/i], [u, [h, P], [d, v]], [/\b(poco[\w ]+)(?: bui|\))/i, /\b; (\w+) build\/hm\1/i, /\b(hm[-_ ]?note?[_ ]?(?:\d\w)?) bui/i, /\b(redmi[\-_ ]?(?:note|k)?[\w_ ]+)(?: bui|\))/i, /\b(mi[-_ ]?(?:a\d|one|one[_ ]plus|note lte|max|cc)?[_ ]?(?:\d?\w?)[_ ]?(?:plus|se|lite)?)(?: bui|\))/i], [[u, /_/g, " "], [h, D], [d, v]], [/\b(mi[-_ ]?(?:pad)(?:[\w_ ]+))(?: bui|\))/i], [[u, /_/g, " "], [h, D], [d, m]], [/; (\w+) bui.+ oppo/i, /\b(cph[12]\d{3}|p(?:af|c[al]|d\w|e[ar])[mt]\d0|x9007|a101op)\b/i], [u, [h, "OPPO"], [d, v]], [/vivo (\w+)(?: bui|\))/i, /\b(v[12]\d{3}\w?[at])(?: bui|;)/i], [u, [h, "Vivo"], [d, v]], [/\b(rmx[12]\d{3})(?: bui|;|\))/i], [u, [h, "Realme"], [d, v]], [/\b(milestone|droid(?:[2-4x]| (?:bionic|x2|pro|razr))?:?( 4g)?)\b[\w ]+build\//i, /\bmot(?:orola)?[- ](\w*)/i, /((?:moto[\w\(\) ]+|xt\d{3,4}|nexus 6)(?= bui|\)))/i], [u, [h, A], [d, v]], [/\b(mz60\d|xoom[2 ]{0,2}) build\//i], [u, [h, A], [d, m]], [/((?=lg)?[vl]k\-?\d{3}) bui| 3\.[-\w; ]{10}lg?-([06cv9]{3,4})/i], [u, [h, "LG"], [d, m]], [/(lm(?:-?f100[nv]?|-[\w\.]+)(?= bui|\))|nexus [45])/i, /\blg[-e;\/ ]+((?!browser|netcast|android tv)\w+)/i, /\blg-?([\d\w]+) bui/i], [u, [h, "LG"], [d, v]], [/(ideatab[-\w ]+)/i, /lenovo ?(s[56]000[-\w]+|tab(?:[\w ]+)|yt[-\d\w]{6}|tb[-\d\w]{6})/i], [u, [h, "Lenovo"], [d, m]], [/(?:maemo|nokia).*(n900|lumia \d+)/i, /nokia[-_ ]?([-\w\.]*)/i], [[u, /_/g, " "], [h, "Nokia"], [d, v]], [/(pixel c)\b/i], [u, [h, S], [d, m]], [/droid.+; (pixel[\daxl ]{0,6})(?: bui|\))/i], [u, [h, S], [d, v]], [/droid.+ (a?\d[0-2]{2}so|[c-g]\d{4}|so[-gl]\w+|xq-a\w[4-7][12])(?= bui|\).+chrome\/(?![1-6]{0,1}\d\.))/i], [u, [h, j], [d, v]], [/sony tablet [ps]/i, /\b(?:sony)?sgp\w+(?: bui|\))/i], [[u, "Xperia Tablet"], [h, j], [d, m]], [/ (kb2005|in20[12]5|be20[12][59])\b/i, /(?:one)?(?:plus)? (a\d0\d\d)(?: b|\))/i], [u, [h, "OnePlus"], [d, v]], [/(alexa)webm/i, /(kf[a-z]{2}wi|aeo[c-r]{2})( bui|\))/i, /(kf[a-z]+)( bui|\)).+silk\//i], [u, [h, w], [d, m]], [/((?:sd|kf)[0349hijorstuw]+)( bui|\)).+silk\//i], [[u, /(.+)/g, "Fire Phone $1"], [h, w], [d, v]], [/(playbook);[-\w\),; ]+(rim)/i], [u, h, [d, m]], [/\b((?:bb[a-f]|st[hv])100-\d)/i, /\(bb10; (\w+)/i], [u, [h, C], [d, v]], [/(?:\b|asus_)(transfo[prime ]{4,10} \w+|eeepc|slider \w+|nexus 7|padfone|p00[cj])/i], [u, [h, E], [d, m]], [/ (z[bes]6[027][012][km][ls]|zenfone \d\w?)\b/i], [u, [h, E], [d, v]], [/(nexus 9)/i], [u, [h, "HTC"], [d, m]], [/(htc)[-;_ ]{1,2}([\w ]+(?=\)| bui)|\w+)/i, /(zte)[- ]([\w ]+?)(?: bui|\/|\))/i, /(alcatel|geeksphone|nexian|panasonic(?!(?:;|\.))|sony(?!-bra))[-_ ]?([-\w]*)/i], [h, [u, /_/g, " "], [d, v]], [/droid.+; ([ab][1-7]-?[0178a]\d\d?)/i], [u, [h, "Acer"], [d, m]], [/droid.+; (m[1-5] note) bui/i, /\bmz-([-\w]{2,})/i], [u, [h, "Meizu"], [d, v]], [/(blackberry|benq|palm(?=\-)|sonyericsson|acer|asus|dell|meizu|motorola|polytron)[-_ ]?([-\w]*)/i, /(hp) ([\w ]+\w)/i, /(asus)-?(\w+)/i, /(microsoft); (lumia[\w ]+)/i, /(lenovo)[-_ ]?([-\w]+)/i, /(jolla)/i, /(oppo) ?([\w ]+) bui/i], [h, u, [d, v]], [/(kobo)\s(ereader|touch)/i, /(archos) (gamepad2?)/i, /(hp).+(touchpad(?!.+tablet)|tablet)/i, /(kindle)\/([\w\.]+)/i, /(nook)[\w ]+build\/(\w+)/i, /(dell) (strea[kpr\d ]*[\dko])/i, /(le[- ]+pan)[- ]+(\w{1,9}) bui/i, /(trinity)[- ]*(t\d{3}) bui/i, /(gigaset)[- ]+(q\w{1,9}) bui/i, /(vodafone) ([\w ]+)(?:\)| bui)/i], [h, u, [d, m]], [/(surface duo)/i], [u, [h, N], [d, m]], [/droid [\d\.]+; (fp\du?)(?: b|\))/i], [u, [h, "Fairphone"], [d, v]], [/(u304aa)/i], [u, [h, "AT&T"], [d, v]], [/\bsie-(\w*)/i], [u, [h, "Siemens"], [d, v]], [/\b(rct\w+) b/i], [u, [h, "RCA"], [d, m]], [/\b(venue[\d ]{2,7}) b/i], [u, [h, "Dell"], [d, m]], [/\b(q(?:mv|ta)\w+) b/i], [u, [h, "Verizon"], [d, m]], [/\b(?:barnes[& ]+noble |bn[rt])([\w\+ ]*) b/i], [u, [h, "Barnes & Noble"], [d, m]], [/\b(tm\d{3}\w+) b/i], [u, [h, "NuVision"], [d, m]], [/\b(k88) b/i], [u, [h, "ZTE"], [d, m]], [/\b(nx\d{3}j) b/i], [u, [h, "ZTE"], [d, v]], [/\b(gen\d{3}) b.+49h/i], [u, [h, "Swiss"], [d, v]], [/\b(zur\d{3}) b/i], [u, [h, "Swiss"], [d, m]], [/\b((zeki)?tb.*\b) b/i], [u, [h, "Zeki"], [d, m]], [/\b([yr]\d{2}) b/i, /\b(dragon[- ]+touch |dt)(\w{5}) b/i], [[h, "Dragon Touch"], u, [d, m]], [/\b(ns-?\w{0,9}) b/i], [u, [h, "Insignia"], [d, m]], [/\b((nxa|next)-?\w{0,9}) b/i], [u, [h, "NextBook"], [d, m]], [/\b(xtreme\_)?(v(1[045]|2[015]|[3469]0|7[05])) b/i], [[h, "Voice"], u, [d, v]], [/\b(lvtel\-)?(v1[12]) b/i], [[h, "LvTel"], u, [d, v]], [/\b(ph-1) /i], [u, [h, "Essential"], [d, v]], [/\b(v(100md|700na|7011|917g).*\b) b/i], [u, [h, "Envizen"], [d, m]], [/\b(trio[-\w\. ]+) b/i], [u, [h, "MachSpeed"], [d, m]], [/\btu_(1491) b/i], [u, [h, "Rotor"], [d, m]], [/(shield[\w ]+) b/i], [u, [h, "Nvidia"], [d, m]], [/(sprint) (\w+)/i], [h, u, [d, v]], [/(kin\.[onetw]{3})/i], [[u, /\./g, " "], [h, N], [d, v]], [/droid.+; (cc6666?|et5[16]|mc[239][23]x?|vc8[03]x?)\)/i], [u, [h, L], [d, m]], [/droid.+; (ec30|ps20|tc[2-8]\d[kx])\)/i], [u, [h, L], [d, v]], [/smart-tv.+(samsung)/i], [h, [d, b]], [/hbbtv.+maple;(\d+)/i], [[u, /^/, "SmartTV"], [h, I], [d, b]], [/(nux; netcast.+smarttv|lg (netcast\.tv-201\d|android tv))/i], [[h, "LG"], [d, b]], [/(apple) ?tv/i], [h, [u, x + " TV"], [d, b]], [/crkey/i], [[u, R + "cast"], [h, S], [d, b]], [/droid.+aft(\w)( bui|\))/i], [u, [h, w], [d, b]], [/\(dtv[\);].+(aquos)/i, /(aquos-tv[\w ]+)\)/i], [u, [h, M], [d, b]], [/(bravia[\w ]+)( bui|\))/i], [u, [h, j], [d, b]], [/(mitv-\w{5}) bui/i], [u, [h, D], [d, b]], [/Hbbtv.*(technisat) (.*);/i], [h, u, [d, b]], [/\b(roku)[\dx]*[\)\/]((?:dvp-)?[\d\.]*)/i, /hbbtv\/\d+\.\d+\.\d+ +\([\w\+ ]*; *([\w\d][^;]*);([^;]*)/i], [[h, G], [u, G], [d, b]], [/\b(android tv|smart[- ]?tv|opera tv|tv; rv:)\b/i], [[d, b]], [/(ouya)/i, /(nintendo) ([wids3utch]+)/i], [h, u, [d, g]], [/droid.+; (shield) bui/i], [u, [h, "Nvidia"], [d, g]], [/(playstation [345portablevi]+)/i], [u, [h, j], [d, g]], [/\b(xbox(?: one)?(?!; xbox))[\); ]/i], [u, [h, N], [d, g]], [/((pebble))app/i], [h, u, [d, _]], [/(watch)(?: ?os[,\/]|\d,\d\/)[\d\.]+/i], [u, [h, x], [d, _]], [/droid.+; (glass) \d/i], [u, [h, S], [d, _]], [/droid.+; (wt63?0{2,3})\)/i], [u, [h, L], [d, _]], [/(quest( 2| pro)?)/i], [u, [h, U], [d, _]], [/(tesla)(?: qtcarbrowser|\/[-\w\.]+)/i], [h, [d, y]], [/(aeobc)\b/i], [u, [h, w], [d, y]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+? mobile safari/i], [u, [d, v]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+?(?! mobile) safari/i], [u, [d, m]], [/\b((tablet|tab)[;\/]|focus\/\d(?!.+mobile))/i], [[d, m]], [/(phone|mobile(?:[;\/]| [ \w\/\.]*safari)|pda(?=.+windows ce))/i], [[d, v]], [/(android[-\w\. ]{0,9});.+buil/i], [u, [h, "Generic"]]], engine: [[/windows.+ edge\/([\w\.]+)/i], [p, [c, "EdgeHTML"]], [/webkit\/537\.36.+chrome\/(?!27)([\w\.]+)/i], [p, [c, "Blink"]], [/(presto)\/([\w\.]+)/i, /(webkit|trident|netfront|netsurf|amaya|lynx|w3m|goanna)\/([\w\.]+)/i, /ekioh(flow)\/([\w\.]+)/i, /(khtml|tasman|links)[\/ ]\(?([\w\.]+)/i, /(icab)[\/ ]([23]\.[\d\.]+)/i, /\b(libweb)/i], [c, p], [/rv\:([\w\.]{1,9})\b.+(gecko)/i], [p, c]], os: [[/microsoft (windows) (vista|xp)/i], [c, p], [/(windows) nt 6\.2; (arm)/i, /(windows (?:phone(?: os)?|mobile))[\/ ]?([\d\.\w ]*)/i, /(windows)[\/ ]?([ntce\d\. ]+\w)(?!.+xbox)/i], [c, [p, X, W]], [/(win(?=3|9|n)|win 9x )([nt\d\.]+)/i], [[c, "Windows"], [p, X, W]], [/ip[honead]{2,4}\b(?:.*os ([\w]+) like mac|; opera)/i, /ios;fbsv\/([\d\.]+)/i, /cfnetwork\/.+darwin/i], [[p, /_/g, "."], [c, "iOS"]], [/(mac os x) ?([\w\. ]*)/i, /(macintosh|mac_powerpc\b)(?!.+haiku)/i], [[c, q], [p, /_/g, "."]], [/droid ([\w\.]+)\b.+(android[- ]x86|harmonyos)/i], [p, c], [/(android|webos|qnx|bada|rim tablet os|maemo|meego|sailfish)[-\/ ]?([\w\.]*)/i, /(blackberry)\w*\/([\w\.]*)/i, /(tizen|kaios)[\/ ]([\w\.]+)/i, /\((series40);/i], [c, p], [/\(bb(10);/i], [p, [c, C]], [/(?:symbian ?os|symbos|s60(?=;)|series60)[-\/ ]?([\w\.]*)/i], [p, [c, "Symbian"]], [/mozilla\/[\d\.]+ \((?:mobile|tablet|tv|mobile; [\w ]+); rv:.+ gecko\/([\w\.]+)/i], [p, [c, T + " OS"]], [/web0s;.+rt(tv)/i, /\b(?:hp)?wos(?:browser)?\/([\w\.]+)/i], [p, [c, "webOS"]], [/watch(?: ?os[,\/]|\d,\d\/)([\d\.]+)/i], [p, [c, "watchOS"]], [/crkey\/([\d\.]+)/i], [p, [c, R + "cast"]], [/(cros) [\w]+(?:\)| ([\w\.]+)\b)/i], [[c, $], p], [/panasonic;(viera)/i, /(netrange)mmh/i, /(nettv)\/(\d+\.[\w\.]+)/i, /(nintendo|playstation) ([wids345portablevuch]+)/i, /(xbox); +xbox ([^\);]+)/i, /\b(joli|palm)\b ?(?:os)?\/?([\w\.]*)/i, /(mint)[\/\(\) ]?(\w*)/i, /(mageia|vectorlinux)[; ]/i, /([kxln]?ubuntu|debian|suse|opensuse|gentoo|arch(?= linux)|slackware|fedora|mandriva|centos|pclinuxos|red ?hat|zenwalk|linpus|raspbian|plan 9|minix|risc os|contiki|deepin|manjaro|elementary os|sabayon|linspire)(?: gnu\/linux)?(?: enterprise)?(?:[- ]linux)?(?:-gnu)?[-\/ ]?(?!chrom|package)([-\w\.]*)/i, /(hurd|linux) ?([\w\.]*)/i, /(gnu) ?([\w\.]*)/i, /\b([-frentopcghs]{0,5}bsd|dragonfly)[\/ ]?(?!amd|[ix346]{1,2}86)([\w\.]*)/i, /(haiku) (\w+)/i], [c, p], [/(sunos) ?([\w\.\d]*)/i], [[c, "Solaris"], p], [/((?:open)?solaris)[-\/ ]?([\w\.]*)/i, /(aix) ((\d)(?=\.|\)| )[\w\.])*/i, /\b(beos|os\/2|amigaos|morphos|openvms|fuchsia|hp-ux|serenityos)/i, /(unix) ?([\w\.]*)/i], [c, p]] }, J = function(e2, t3) {
             if (typeof e2 === o && (t3 = e2, e2 = void 0), !(this instanceof J)) return new J(e2, t3).getResult();
             var r3 = typeof n2 !== a2 && n2.navigator ? n2.navigator : void 0, g2 = e2 || (r3 && r3.userAgent ? r3.userAgent : ""), b2 = r3 && r3.userAgentData ? r3.userAgentData : void 0, _2 = t3 ? B(K, t3) : K, y2 = r3 && r3.userAgent == g2;
             return this.getBrowser = function() {
@@ -2522,7 +2927,7 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
               return e3[c] = void 0, e3[p] = void 0, z.call(e3, g2, _2.engine), e3;
             }, this.getOS = function() {
               var e3 = {};
-              return e3[c] = void 0, e3[p] = void 0, z.call(e3, g2, _2.os), y2 && !e3[c] && b2 && "Unknown" != b2.platform && (e3[c] = b2.platform.replace(/chrome os/i, U).replace(/macos/i, q)), e3;
+              return e3[c] = void 0, e3[p] = void 0, z.call(e3, g2, _2.os), y2 && !e3[c] && b2 && "Unknown" != b2.platform && (e3[c] = b2.platform.replace(/chrome os/i, $).replace(/macos/i, q)), e3;
             }, this.getResult = function() {
               return { ua: this.getUA(), browser: this.getBrowser(), engine: this.getEngine(), os: this.getOS(), device: this.getDevice(), cpu: this.getCPU() };
             }, this.getUA = function() {
@@ -2588,7 +2993,7 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
           return n2[e3];
         })) : t2.toString(36);
       }
-      function R(e2, t2, r2) {
+      function O(e2, t2, r2) {
         if (null == e2) return e2;
         var n2 = [], u2 = 0;
         return !function e3(t3, r3, n3, u3, c2) {
@@ -2647,7 +3052,7 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
           return t2.call(r2, e3, u2++);
         }), n2;
       }
-      function O(e2) {
+      function R(e2) {
         if (-1 === e2._status) {
           var t2 = (0, e2._result)();
           t2.then(function(r2) {
@@ -2659,23 +3064,23 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
         if (1 === e2._status) return e2._result.default;
         throw e2._result;
       }
-      function S() {
+      function T() {
         return /* @__PURE__ */ new WeakMap();
       }
-      function T() {
+      function S() {
         return { s: 0, v: void 0, o: null, p: null };
       }
-      r.Activity = v, r.Children = { map: R, forEach: function(e2, t2, r2) {
-        R(e2, function() {
+      r.Activity = v, r.Children = { map: O, forEach: function(e2, t2, r2) {
+        O(e2, function() {
           t2.apply(this, arguments);
         }, r2);
       }, count: function(e2) {
         var t2 = 0;
-        return R(e2, function() {
+        return O(e2, function() {
           t2++;
         }), t2;
       }, toArray: function(e2) {
-        return R(e2, function(e3) {
+        return O(e2, function(e3) {
           return e3;
         }) || [];
       }, only: function(e2) {
@@ -2685,14 +3090,14 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
         return function() {
           var t2 = n.A;
           if (!t2) return e2.apply(null, arguments);
-          var r2 = t2.getCacheForType(S);
-          void 0 === (t2 = r2.get(e2)) && (t2 = T(), r2.set(e2, t2)), r2 = 0;
+          var r2 = t2.getCacheForType(T);
+          void 0 === (t2 = r2.get(e2)) && (t2 = S(), r2.set(e2, t2)), r2 = 0;
           for (var i2 = arguments.length; r2 < i2; r2++) {
             var a2 = arguments[r2];
             if ("function" == typeof a2 || "object" == typeof a2 && null !== a2) {
               var o2 = t2.o;
-              null === o2 && (t2.o = o2 = /* @__PURE__ */ new WeakMap()), void 0 === (t2 = o2.get(a2)) && (t2 = T(), o2.set(a2, t2));
-            } else null === (o2 = t2.p) && (t2.p = o2 = /* @__PURE__ */ new Map()), void 0 === (t2 = o2.get(a2)) && (t2 = T(), o2.set(a2, t2));
+              null === o2 && (t2.o = o2 = /* @__PURE__ */ new WeakMap()), void 0 === (t2 = o2.get(a2)) && (t2 = S(), o2.set(a2, t2));
+            } else null === (o2 = t2.p) && (t2.p = o2 = /* @__PURE__ */ new Map()), void 0 === (t2 = o2.get(a2)) && (t2 = S(), o2.set(a2, t2));
           }
           if (1 === t2.s) return t2.v;
           if (2 === t2.s) throw t2.v;
@@ -2735,7 +3140,7 @@ var require_root_of_the_server_0emy_m4 = __commonJS({
       }, r.forwardRef = function(e2) {
         return { $$typeof: h, render: e2 };
       }, r.isValidElement = x, r.lazy = function(e2) {
-        return { $$typeof: g, _payload: { _status: -1, _result: e2 }, _init: O };
+        return { $$typeof: g, _payload: { _status: -1, _result: e2 }, _init: R };
       }, r.memo = function(e2, t2) {
         return { $$typeof: f, type: e2, compare: void 0 === t2 ? null : t2 };
       }, r.use = function(e2) {
@@ -2855,10 +3260,10 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         }
       }
       ({ ..._, GROUP: { builtinReact: [_.reactServerComponents, _.actionBrowser], serverOnly: [_.reactServerComponents, _.actionBrowser, _.instrument, _.middleware], neutralTarget: [_.apiNode, _.apiEdge], clientOnly: [_.serverSideRendering, _.appPagesBrowser], bundled: [_.reactServerComponents, _.actionBrowser, _.serverSideRendering, _.appPagesBrowser, _.shared, _.instrument, _.middleware], appPages: [_.reactServerComponents, _.serverSideRendering, _.appPagesBrowser, _.actionBrowser] } });
-      let E = Symbol("response"), C = Symbol("passThrough"), R = Symbol("waitUntil");
-      class O {
+      let E = Symbol("response"), C = Symbol("passThrough"), O = Symbol("waitUntil");
+      class R {
         constructor(e10, t10) {
-          this[C] = false, this[R] = t10 ? { kind: "external", function: t10 } : { kind: "internal", promises: [] };
+          this[C] = false, this[O] = t10 ? { kind: "external", function: t10 } : { kind: "internal", promises: [] };
         }
         respondWith(e10) {
           this[E] || (this[E] = Promise.resolve(e10));
@@ -2867,11 +3272,11 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           this[C] = true;
         }
         waitUntil(e10) {
-          if ("external" === this[R].kind) return (0, this[R].function)(e10);
-          this[R].promises.push(e10);
+          if ("external" === this[O].kind) return (0, this[O].function)(e10);
+          this[O].promises.push(e10);
         }
       }
-      class S extends O {
+      class T extends R {
         constructor(e10) {
           var t10;
           super(e10.request, null == (t10 = e10.context) ? void 0 : t10.waitUntil), this.sourcePage = e10.page;
@@ -2883,7 +3288,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           throw Object.defineProperty(new d({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
         }
       }
-      function T(e10) {
+      function S(e10) {
         return e10.replace(/\/$/, "") || "/";
       }
       function P(e10) {
@@ -2922,7 +3327,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         return j.test(r2.hostname) && (r2.hostname = "localhost"), r2;
       }
       let L = Symbol("NextURLInternal");
-      class $ {
+      class U {
         constructor(e10, t10, r2) {
           let n2, i2;
           "object" == typeof t10 && "pathname" in t10 || "string" == typeof t10 ? (n2 = t10, i2 = r2 || {}) : i2 = r2 || t10 || {}, this[L] = { url: D(e10, n2 ?? i2.base), options: i2, basePath: "" }, this.analyze();
@@ -2970,7 +3375,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
             if (!t11 || t11 === r2) return e11;
             let i2 = e11.toLowerCase();
             return !n2 && (k(i2, "/api") || k(i2, `/${t11.toLowerCase()}`)) ? e11 : N(e11, `/${t11}`);
-          }((e10 = { basePath: this[L].basePath, buildId: this[L].buildId, defaultLocale: this[L].options.forceLocale ? void 0 : this[L].defaultLocale, locale: this[L].locale, pathname: this[L].url.pathname, trailingSlash: this[L].trailingSlash }).pathname, e10.locale, e10.buildId ? void 0 : e10.defaultLocale, e10.ignorePrefix), (e10.buildId || !e10.trailingSlash) && (t10 = T(t10)), e10.buildId && (t10 = A(N(t10, `/_next/data/${e10.buildId}`), "/" === e10.pathname ? "index.json" : ".json")), t10 = N(t10, e10.basePath), !e10.buildId && e10.trailingSlash ? t10.endsWith("/") ? t10 : A(t10, "/") : T(t10);
+          }((e10 = { basePath: this[L].basePath, buildId: this[L].buildId, defaultLocale: this[L].options.forceLocale ? void 0 : this[L].defaultLocale, locale: this[L].locale, pathname: this[L].url.pathname, trailingSlash: this[L].trailingSlash }).pathname, e10.locale, e10.buildId ? void 0 : e10.defaultLocale, e10.ignorePrefix), (e10.buildId || !e10.trailingSlash) && (t10 = S(t10)), e10.buildId && (t10 = A(N(t10, `/_next/data/${e10.buildId}`), "/" === e10.pathname ? "index.json" : ".json")), t10 = N(t10, e10.basePath), !e10.buildId && e10.trailingSlash ? t10.endsWith("/") ? t10 : A(t10, "/") : S(t10);
         }
         formatSearch() {
           return this[L].url.search;
@@ -3078,16 +3483,16 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return { href: this.href, origin: this.origin, protocol: this.protocol, username: this.username, password: this.password, host: this.host, hostname: this.hostname, port: this.port, pathname: this.pathname, search: this.search, searchParams: this.searchParams, hash: this.hash };
         }
         clone() {
-          return new $(String(this), this[L].options);
+          return new U(String(this), this[L].options);
         }
       }
-      var U, q, B, H, V, F, G, z, X, W, K, J, Q, Y, Z, ee = e.i(28042);
+      var $, q, B, H, V, F, G, z, X, W, K, J, Q, Y, Z, ee = e.i(28042);
       let et = Symbol("internal request");
       class er extends Request {
         constructor(e10, t10 = {}) {
           const r2 = "string" != typeof e10 && "url" in e10 ? e10.url : String(e10);
           x(r2), e10 instanceof Request ? super(e10, t10) : super(r2, t10);
-          const n2 = new $(r2, { headers: w(this.headers), nextConfig: t10.nextConfig });
+          const n2 = new U(r2, { headers: w(this.headers), nextConfig: t10.nextConfig });
           this[et] = { cookies: new ee.RequestCookies(this.headers), nextUrl: n2, url: n2.toString() };
         }
         [Symbol.for("edge-runtime.inspect.custom")]() {
@@ -3149,7 +3554,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
                 return en.get(e11, n3, i2);
             }
           } });
-          this[ei] = { cookies: n2, url: t10.url ? new $(t10.url, { headers: w(r2), nextConfig: t10.nextConfig }) : void 0 };
+          this[ei] = { cookies: n2, url: t10.url ? new U(t10.url, { headers: w(r2), nextConfig: t10.nextConfig }) : void 0 };
         }
         [Symbol.for("edge-runtime.inspect.custom")]() {
           return { cookies: this.cookies, url: this.url, body: this.body, bodyUsed: this.bodyUsed, headers: Object.fromEntries(this.headers), ok: this.ok, redirected: this.redirected, status: this.status, statusText: this.statusText, type: this.type };
@@ -3366,11 +3771,11 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return o2;
         }
       }
-      function eR(e10, t10) {
+      function eO(e10, t10) {
         if ("action" !== e10.phase) throw new ew();
       }
-      var eO = ((U = eO || {}).handleRequest = "BaseServer.handleRequest", U.run = "BaseServer.run", U.pipe = "BaseServer.pipe", U.getStaticHTML = "BaseServer.getStaticHTML", U.render = "BaseServer.render", U.renderToResponseWithComponents = "BaseServer.renderToResponseWithComponents", U.renderToResponse = "BaseServer.renderToResponse", U.renderToHTML = "BaseServer.renderToHTML", U.renderError = "BaseServer.renderError", U.renderErrorToResponse = "BaseServer.renderErrorToResponse", U.renderErrorToHTML = "BaseServer.renderErrorToHTML", U.render404 = "BaseServer.render404", U), eS = ((q = eS || {}).loadDefaultErrorComponents = "LoadComponents.loadDefaultErrorComponents", q.loadComponents = "LoadComponents.loadComponents", q), eT = ((B = eT || {}).getRequestHandler = "NextServer.getRequestHandler", B.getRequestHandlerWithMetadata = "NextServer.getRequestHandlerWithMetadata", B.getServer = "NextServer.getServer", B.getServerRequestHandler = "NextServer.getServerRequestHandler", B.createServer = "createServer.createServer", B), eP = ((H = eP || {}).compression = "NextNodeServer.compression", H.getBuildId = "NextNodeServer.getBuildId", H.createComponentTree = "NextNodeServer.createComponentTree", H.clientComponentLoading = "NextNodeServer.clientComponentLoading", H.getLayoutOrPageModule = "NextNodeServer.getLayoutOrPageModule", H.generateStaticRoutes = "NextNodeServer.generateStaticRoutes", H.generateFsStaticRoutes = "NextNodeServer.generateFsStaticRoutes", H.generatePublicRoutes = "NextNodeServer.generatePublicRoutes", H.generateImageRoutes = "NextNodeServer.generateImageRoutes.route", H.sendRenderResult = "NextNodeServer.sendRenderResult", H.proxyRequest = "NextNodeServer.proxyRequest", H.runApi = "NextNodeServer.runApi", H.render = "NextNodeServer.render", H.renderHTML = "NextNodeServer.renderHTML", H.imageOptimizer = "NextNodeServer.imageOptimizer", H.getPagePath = "NextNodeServer.getPagePath", H.getRoutesManifest = "NextNodeServer.getRoutesManifest", H.findPageComponents = "NextNodeServer.findPageComponents", H.getFontManifest = "NextNodeServer.getFontManifest", H.getServerComponentManifest = "NextNodeServer.getServerComponentManifest", H.getRequestHandler = "NextNodeServer.getRequestHandler", H.renderToHTML = "NextNodeServer.renderToHTML", H.renderError = "NextNodeServer.renderError", H.renderErrorToHTML = "NextNodeServer.renderErrorToHTML", H.render404 = "NextNodeServer.render404", H.startResponse = "NextNodeServer.startResponse", H.route = "route", H.onProxyReq = "onProxyReq", H.apiResolver = "apiResolver", H.internalFetch = "internalFetch", H), eN = ((V = eN || {}).startServer = "startServer.startServer", V), eA = ((F = eA || {}).getServerSideProps = "Render.getServerSideProps", F.getStaticProps = "Render.getStaticProps", F.renderToString = "Render.renderToString", F.renderDocument = "Render.renderDocument", F.createBodyResult = "Render.createBodyResult", F), ek = ((G = ek || {}).renderToString = "AppRender.renderToString", G.renderToReadableStream = "AppRender.renderToReadableStream", G.getBodyResult = "AppRender.getBodyResult", G.fetch = "AppRender.fetch", G), eI = ((z = eI || {}).executeRoute = "Router.executeRoute", z), eM = ((X = eM || {}).runHandler = "Node.runHandler", X), ej = ((W = ej || {}).runHandler = "AppRouteRouteHandlers.runHandler", W), eD = ((K = eD || {}).generateMetadata = "ResolveMetadata.generateMetadata", K.generateViewport = "ResolveMetadata.generateViewport", K), eL = ((J = eL || {}).execute = "Middleware.execute", J);
-      let e$ = /* @__PURE__ */ new Set(["Middleware.execute", "BaseServer.handleRequest", "Render.getServerSideProps", "Render.getStaticProps", "AppRender.fetch", "AppRender.getBodyResult", "Render.renderDocument", "Node.runHandler", "AppRouteRouteHandlers.runHandler", "ResolveMetadata.generateMetadata", "ResolveMetadata.generateViewport", "NextNodeServer.createComponentTree", "NextNodeServer.findPageComponents", "NextNodeServer.getLayoutOrPageModule", "NextNodeServer.startResponse", "NextNodeServer.clientComponentLoading"]), eU = /* @__PURE__ */ new Set(["NextNodeServer.findPageComponents", "NextNodeServer.createComponentTree", "NextNodeServer.clientComponentLoading"]);
+      var eR = (($ = eR || {}).handleRequest = "BaseServer.handleRequest", $.run = "BaseServer.run", $.pipe = "BaseServer.pipe", $.getStaticHTML = "BaseServer.getStaticHTML", $.render = "BaseServer.render", $.renderToResponseWithComponents = "BaseServer.renderToResponseWithComponents", $.renderToResponse = "BaseServer.renderToResponse", $.renderToHTML = "BaseServer.renderToHTML", $.renderError = "BaseServer.renderError", $.renderErrorToResponse = "BaseServer.renderErrorToResponse", $.renderErrorToHTML = "BaseServer.renderErrorToHTML", $.render404 = "BaseServer.render404", $), eT = ((q = eT || {}).loadDefaultErrorComponents = "LoadComponents.loadDefaultErrorComponents", q.loadComponents = "LoadComponents.loadComponents", q), eS = ((B = eS || {}).getRequestHandler = "NextServer.getRequestHandler", B.getRequestHandlerWithMetadata = "NextServer.getRequestHandlerWithMetadata", B.getServer = "NextServer.getServer", B.getServerRequestHandler = "NextServer.getServerRequestHandler", B.createServer = "createServer.createServer", B), eP = ((H = eP || {}).compression = "NextNodeServer.compression", H.getBuildId = "NextNodeServer.getBuildId", H.createComponentTree = "NextNodeServer.createComponentTree", H.clientComponentLoading = "NextNodeServer.clientComponentLoading", H.getLayoutOrPageModule = "NextNodeServer.getLayoutOrPageModule", H.generateStaticRoutes = "NextNodeServer.generateStaticRoutes", H.generateFsStaticRoutes = "NextNodeServer.generateFsStaticRoutes", H.generatePublicRoutes = "NextNodeServer.generatePublicRoutes", H.generateImageRoutes = "NextNodeServer.generateImageRoutes.route", H.sendRenderResult = "NextNodeServer.sendRenderResult", H.proxyRequest = "NextNodeServer.proxyRequest", H.runApi = "NextNodeServer.runApi", H.render = "NextNodeServer.render", H.renderHTML = "NextNodeServer.renderHTML", H.imageOptimizer = "NextNodeServer.imageOptimizer", H.getPagePath = "NextNodeServer.getPagePath", H.getRoutesManifest = "NextNodeServer.getRoutesManifest", H.findPageComponents = "NextNodeServer.findPageComponents", H.getFontManifest = "NextNodeServer.getFontManifest", H.getServerComponentManifest = "NextNodeServer.getServerComponentManifest", H.getRequestHandler = "NextNodeServer.getRequestHandler", H.renderToHTML = "NextNodeServer.renderToHTML", H.renderError = "NextNodeServer.renderError", H.renderErrorToHTML = "NextNodeServer.renderErrorToHTML", H.render404 = "NextNodeServer.render404", H.startResponse = "NextNodeServer.startResponse", H.route = "route", H.onProxyReq = "onProxyReq", H.apiResolver = "apiResolver", H.internalFetch = "internalFetch", H), eN = ((V = eN || {}).startServer = "startServer.startServer", V), eA = ((F = eA || {}).getServerSideProps = "Render.getServerSideProps", F.getStaticProps = "Render.getStaticProps", F.renderToString = "Render.renderToString", F.renderDocument = "Render.renderDocument", F.createBodyResult = "Render.createBodyResult", F), ek = ((G = ek || {}).renderToString = "AppRender.renderToString", G.renderToReadableStream = "AppRender.renderToReadableStream", G.getBodyResult = "AppRender.getBodyResult", G.fetch = "AppRender.fetch", G), eI = ((z = eI || {}).executeRoute = "Router.executeRoute", z), eM = ((X = eM || {}).runHandler = "Node.runHandler", X), ej = ((W = ej || {}).runHandler = "AppRouteRouteHandlers.runHandler", W), eD = ((K = eD || {}).generateMetadata = "ResolveMetadata.generateMetadata", K.generateViewport = "ResolveMetadata.generateViewport", K), eL = ((J = eL || {}).execute = "Middleware.execute", J);
+      let eU = /* @__PURE__ */ new Set(["Middleware.execute", "BaseServer.handleRequest", "Render.getServerSideProps", "Render.getStaticProps", "AppRender.fetch", "AppRender.getBodyResult", "Render.renderDocument", "Node.runHandler", "AppRouteRouteHandlers.runHandler", "ResolveMetadata.generateMetadata", "ResolveMetadata.generateViewport", "NextNodeServer.createComponentTree", "NextNodeServer.findPageComponents", "NextNodeServer.getLayoutOrPageModule", "NextNodeServer.startResponse", "NextNodeServer.clientComponentLoading"]), e$ = /* @__PURE__ */ new Set(["NextNodeServer.findPageComponents", "NextNodeServer.createComponentTree", "NextNodeServer.clientComponentLoading"]);
       function eq(e10) {
         return null !== e10 && "object" == typeof e10 && "then" in e10 && "function" == typeof e10.then;
       }
@@ -3412,13 +3817,13 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         }
         trace(...e10) {
           let [t10, r2, n2] = e10, { fn: i2, options: a2 } = "function" == typeof r2 ? { fn: r2, options: {} } : { fn: n2, options: { ...r2 } }, o2 = a2.spanName ?? t10;
-          if (!e$.has(t10) && "1" !== process.env.NEXT_OTEL_VERBOSE || a2.hideSpan) return i2();
+          if (!eU.has(t10) && "1" !== process.env.NEXT_OTEL_VERBOSE || a2.hideSpan) return i2();
           let s2 = this.getSpanContext((null == a2 ? void 0 : a2.parentSpan) ?? this.getActiveScopeSpan());
           s2 || (s2 = (null == eH ? void 0 : eH.active()) ?? eX);
           let l2 = s2.getValue(eQ), u2 = "number" != typeof l2 || !eJ.has(l2), c2 = eY++;
           return a2.attributes = { "next.span_name": o2, "next.span_type": t10, ...a2.attributes }, eH.with(s2.setValue(eQ, c2), () => this.getTracerInstance().startActiveSpan(o2, a2, (e11) => {
             let r3;
-            eB && t10 && eU.has(t10) && (r3 = "performance" in globalThis && "measure" in performance ? globalThis.performance.now() : void 0);
+            eB && t10 && e$.has(t10) && (r3 = "performance" in globalThis && "measure" in performance ? globalThis.performance.now() : void 0);
             let n3 = false, o3 = () => {
               !n3 && (n3 = true, eJ.delete(c2), r3 && performance.measure(`${eB}:next-${(t10.split(".").pop() || "").replace(/[A-Z]/g, (e12) => "-" + e12.toLowerCase())}`, { start: r3, end: performance.now() }));
             };
@@ -3442,7 +3847,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         }
         wrap(...e10) {
           let t10 = this, [r2, n2, i2] = 3 === e10.length ? e10 : [e10[0], {}, e10[1]];
-          return e$.has(r2) || "1" === process.env.NEXT_OTEL_VERBOSE ? function() {
+          return eU.has(r2) || "1" === process.env.NEXT_OTEL_VERBOSE ? function() {
             let e11 = n2;
             "function" == typeof e11 && "function" == typeof i2 && (e11 = e11.apply(this, arguments));
             let a2 = arguments.length - 1, o2 = arguments[a2];
@@ -3712,7 +4117,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         }(), await u();
         let p2 = void 0 !== globalThis.__BUILD_MANIFEST;
         t10.request.url = t10.request.url.replace(/\.rsc($|\?)/, "$1");
-        let f2 = t10.bypassNextUrl ? new URL(t10.request.url) : new $(t10.request.url, { headers: t10.request.headers, nextConfig: t10.request.nextConfig });
+        let f2 = t10.bypassNextUrl ? new URL(t10.request.url) : new U(t10.request.url, { headers: t10.request.headers, nextConfig: t10.request.nextConfig });
         for (let e10 of [...f2.searchParams.keys()]) {
           let t11 = f2.searchParams.getAll(e10), r3 = function(e11) {
             for (let t12 of ["nxtP", "nxtI"]) if (e11 !== t12 && e11.startsWith(t12)) return e11.substring(t12.length);
@@ -3738,7 +4143,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         }
         let y2 = f2.searchParams.get(ed), w2 = new tb({ page: t10.page, input: ((d2 = (c2 = "string" == typeof f2) ? new URL(f2) : f2).searchParams.delete(ed), c2 ? d2.toString() : d2).toString(), init: { body: t10.request.body, headers: v2, method: t10.request.method, nextConfig: t10.request.nextConfig, signal: t10.request.signal } });
         t10.request.requestMeta && (o2 = t10.request.requestMeta, w2[tm] = o2), m2 && Object.defineProperty(w2, "__isData", { enumerable: false, value: true }), !globalThis.__incrementalCacheShared && t10.IncrementalCache && (globalThis.__incrementalCache = new t10.IncrementalCache({ CurCacheHandler: t10.incrementalCacheHandler, minimalMode: true, fetchCacheKeyPrefix: "", dev: false, requestHeaders: t10.request.headers, getPrerenderManifest: () => ({ version: -1, routes: {}, dynamicRoutes: {}, notFoundRoutes: [], preview: td() }) }));
-        let x2 = t10.request.waitUntil ?? (null == (r2 = null == (h2 = globalThis[th]) ? void 0 : h2.get()) ? void 0 : r2.waitUntil), E2 = new S({ request: w2, page: t10.page, context: x2 ? { waitUntil: x2 } : void 0 });
+        let x2 = t10.request.waitUntil ?? (null == (r2 = null == (h2 = globalThis[th]) ? void 0 : h2.get()) ? void 0 : r2.waitUntil), E2 = new T({ request: w2, page: t10.page, context: x2 ? { waitUntil: x2 } : void 0 });
         if ((s2 = await ty(w2, () => {
           if ("/middleware" === t10.page || "/src/middleware" === t10.page || "/proxy" === t10.page || "/src/proxy" === t10.page) {
             let e10 = E2.waitUntil.bind(E2), r3 = new tc();
@@ -3781,11 +4186,11 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
                         switch (r5) {
                           case "delete":
                             return function(...r6) {
-                              return eR(f3, "cookies().delete"), t12.delete(...r6), e12;
+                              return eO(f3, "cookies().delete"), t12.delete(...r6), e12;
                             };
                           case "set":
                             return function(...r6) {
-                              return eR(f3, "cookies().set"), t12.set(...r6), e12;
+                              return eO(f3, "cookies().set"), t12.set(...r6), e12;
                             };
                           default:
                             return en.get(t12, r5, n5);
@@ -3822,7 +4227,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         s2 && l2 && s2.headers.set("set-cookie", l2);
         let C2 = null == s2 ? void 0 : s2.headers.get("x-middleware-rewrite");
         if (s2 && C2 && (b2 || !p2)) {
-          let e10 = new $(C2, { forceLocale: true, headers: t10.request.headers, nextConfig: t10.request.nextConfig });
+          let e10 = new U(C2, { forceLocale: true, headers: t10.request.headers, nextConfig: t10.request.nextConfig });
           p2 || e10.host !== w2.nextUrl.host || (e10.buildId = g2 || e10.buildId, s2.headers.set("x-middleware-rewrite", String(e10)));
           let { url: r3, isRelative: o3 } = el(e10.toString(), f2.toString());
           !p2 && m2 && s2.headers.set("x-nextjs-rewrite", r3);
@@ -3833,17 +4238,17 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           let e10 = new URL(C2);
           e10.searchParams.has(ed) || (e10.searchParams.set(ed, y2), s2.headers.set("x-middleware-rewrite", e10.toString()));
         }
-        let O2 = null == s2 ? void 0 : s2.headers.get("Location");
-        if (s2 && O2 && !p2) {
-          let e10 = new $(O2, { forceLocale: false, headers: t10.request.headers, nextConfig: t10.request.nextConfig });
+        let R2 = null == s2 ? void 0 : s2.headers.get("Location");
+        if (s2 && R2 && !p2) {
+          let e10 = new U(R2, { forceLocale: false, headers: t10.request.headers, nextConfig: t10.request.nextConfig });
           s2 = new Response(s2.body, s2), e10.host === f2.host && (e10.buildId = g2 || e10.buildId, s2.headers.set("Location", el(e10, f2).url)), m2 && (s2.headers.delete("Location"), s2.headers.set("x-nextjs-redirect", el(e10.toString(), f2.toString()).url));
         }
-        let T2 = s2 || es.next(), P2 = T2.headers.get("x-middleware-override-headers"), N2 = [];
+        let S2 = s2 || es.next(), P2 = S2.headers.get("x-middleware-override-headers"), N2 = [];
         if (P2) {
-          for (let [e10, t11] of _2) T2.headers.set(`x-middleware-request-${e10}`, t11), N2.push(e10);
-          N2.length > 0 && T2.headers.set("x-middleware-override-headers", P2 + "," + N2.join(","));
+          for (let [e10, t11] of _2) S2.headers.set(`x-middleware-request-${e10}`, t11), N2.push(e10);
+          N2.length > 0 && S2.headers.set("x-middleware-override-headers", P2 + "," + N2.join(","));
         }
-        return { response: T2, waitUntil: ("internal" === E2[R].kind ? Promise.all(E2[R].promises).then(() => {
+        return { response: S2, waitUntil: ("internal" === E2[O].kind ? Promise.all(E2[O].promises).then(() => {
         }) : void 0) ?? Promise.resolve(), fetchMetrics: w2.fetchMetrics };
       }
       class tE {
@@ -3859,14 +4264,14 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           this.prev = null, this.next = null, this.key = e10, this.data = t10, this.size = r2;
         }
       }
-      class tR {
+      class tO {
         constructor() {
           this.prev = null, this.next = null;
         }
       }
-      class tO {
+      class tR {
         constructor(e10, t10, r2) {
-          this.cache = /* @__PURE__ */ new Map(), this.totalSize = 0, this.maxSize = e10, this.calculateSize = t10, this.onEvict = r2, this.head = new tR(), this.tail = new tR(), this.head.next = this.tail, this.tail.prev = this.head;
+          this.cache = /* @__PURE__ */ new Map(), this.totalSize = 0, this.maxSize = e10, this.calculateSize = t10, this.onEvict = r2, this.head = new tO(), this.tail = new tO(), this.head.next = this.tail, this.tail.prev = this.head;
         }
         addToHead(e10) {
           e10.prev = this.head, e10.next = this.head.next, this.head.next.prev = e10, this.head.next = e10;
@@ -3922,7 +4327,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return this.totalSize;
         }
       }
-      let { env: tS, stdout: tT } = (null == (Z = globalThis) ? void 0 : Z.process) ?? {}, tP = tS && !tS.NO_COLOR && (tS.FORCE_COLOR || (null == tT ? void 0 : tT.isTTY) && !tS.CI && "dumb" !== tS.TERM), tN = (e10, t10, r2, n2) => {
+      let { env: tT, stdout: tS } = (null == (Z = globalThis) ? void 0 : Z.process) ?? {}, tP = tT && !tT.NO_COLOR && (tT.FORCE_COLOR || (null == tS ? void 0 : tS.isTTY) && !tT.CI && "dumb" !== tT.TERM), tN = (e10, t10, r2, n2) => {
         let i2 = e10.substring(0, n2) + r2, a2 = e10.substring(n2 + t10.length), o2 = a2.indexOf(t10);
         return ~o2 ? i2 + tN(a2, t10, r2, o2) : i2 + a2;
       }, tA = (e10, t10, r2 = e10) => tP ? (n2) => {
@@ -3935,8 +4340,8 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
       let tD = tA("\x1B[35m", "\x1B[39m");
       tA("\x1B[38;2;173;127;168m", "\x1B[39m"), tA("\x1B[36m", "\x1B[39m");
       let tL = tA("\x1B[37m", "\x1B[39m");
-      tA("\x1B[90m", "\x1B[39m"), tA("\x1B[40m", "\x1B[49m"), tA("\x1B[41m", "\x1B[49m"), tA("\x1B[42m", "\x1B[49m"), tA("\x1B[43m", "\x1B[49m"), tA("\x1B[44m", "\x1B[49m"), tA("\x1B[45m", "\x1B[49m"), tA("\x1B[46m", "\x1B[49m"), tA("\x1B[47m", "\x1B[49m"), tL(tk("\u25CB")), tI(tk("\u2A2F")), tj(tk("\u26A0")), tL(tk(" ")), tM(tk("\u2713")), tD(tk("\xBB")), new tO(1e4, (e10) => e10.length), new tO(1e4, (e10) => e10.length);
-      var t$ = ((Q = {}).APP_PAGE = "APP_PAGE", Q.APP_ROUTE = "APP_ROUTE", Q.PAGES = "PAGES", Q.FETCH = "FETCH", Q.REDIRECT = "REDIRECT", Q.IMAGE = "IMAGE", Q), tU = ((Y = {}).APP_PAGE = "APP_PAGE", Y.APP_ROUTE = "APP_ROUTE", Y.PAGES = "PAGES", Y.FETCH = "FETCH", Y.IMAGE = "IMAGE", Y);
+      tA("\x1B[90m", "\x1B[39m"), tA("\x1B[40m", "\x1B[49m"), tA("\x1B[41m", "\x1B[49m"), tA("\x1B[42m", "\x1B[49m"), tA("\x1B[43m", "\x1B[49m"), tA("\x1B[44m", "\x1B[49m"), tA("\x1B[45m", "\x1B[49m"), tA("\x1B[46m", "\x1B[49m"), tA("\x1B[47m", "\x1B[49m"), tL(tk("\u25CB")), tI(tk("\u2A2F")), tj(tk("\u26A0")), tL(tk(" ")), tM(tk("\u2713")), tD(tk("\xBB")), new tR(1e4, (e10) => e10.length), new tR(1e4, (e10) => e10.length);
+      var tU = ((Q = {}).APP_PAGE = "APP_PAGE", Q.APP_ROUTE = "APP_ROUTE", Q.PAGES = "PAGES", Q.FETCH = "FETCH", Q.REDIRECT = "REDIRECT", Q.IMAGE = "IMAGE", Q), t$ = ((Y = {}).APP_PAGE = "APP_PAGE", Y.APP_ROUTE = "APP_ROUTE", Y.PAGES = "PAGES", Y.FETCH = "FETCH", Y.IMAGE = "IMAGE", Y);
       function tq() {
       }
       new TextEncoder();
@@ -4129,14 +4534,14 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         static #e = this.debug = !!process.env.NEXT_PRIVATE_DEBUG_CACHE;
         constructor(e10) {
           this.fs = e10.fs, this.flushToDisk = e10.flushToDisk, this.serverDistDir = e10.serverDistDir, this.revalidatedTags = e10.revalidatedTags, e10.maxMemoryCacheSize ? t6.memoryCache ? t6.debug && console.log("FileSystemCache: memory store already initialized") : (t6.debug && console.log("FileSystemCache: using memory store for fetch cache"), t6.memoryCache = function(e11) {
-            return r || (r = new tO(e11, function({ value: e12 }) {
+            return r || (r = new tR(e11, function({ value: e12 }) {
               var t10, r2;
               if (!e12) return 25;
-              if (e12.kind === t$.REDIRECT) return JSON.stringify(e12.props).length;
-              if (e12.kind === t$.IMAGE) throw Object.defineProperty(Error("invariant image should not be incremental-cache"), "__NEXT_ERROR_CODE", { value: "E501", enumerable: false, configurable: true });
-              if (e12.kind === t$.FETCH) return JSON.stringify(e12.data || "").length;
-              if (e12.kind === t$.APP_ROUTE) return e12.body.length;
-              return e12.kind === t$.APP_PAGE ? Math.max(1, e12.html.length + t9(e12.rscData) + ((null == (r2 = e12.postponed) ? void 0 : r2.length) || 0) + function(e13) {
+              if (e12.kind === tU.REDIRECT) return JSON.stringify(e12.props).length;
+              if (e12.kind === tU.IMAGE) throw Object.defineProperty(Error("invariant image should not be incremental-cache"), "__NEXT_ERROR_CODE", { value: "E501", enumerable: false, configurable: true });
+              if (e12.kind === tU.FETCH) return JSON.stringify(e12.data || "").length;
+              if (e12.kind === tU.APP_ROUTE) return e12.body.length;
+              return e12.kind === tU.APP_PAGE ? Math.max(1, e12.html.length + t9(e12.rscData) + ((null == (r2 = e12.postponed) ? void 0 : r2.length) || 0) + function(e13) {
                 if (!e13) return 0;
                 let t11 = 0;
                 for (let [r3, n2] of e13) t11 += r3.length + t9(n2);
@@ -4161,14 +4566,14 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         async get(...e10) {
           var t10, r2, n2, i2, a2, o2;
           let [s2, l2] = e10, { kind: u2 } = l2, c2 = null == (t10 = t6.memoryCache) ? void 0 : t10.get(s2);
-          if (t6.debug && (u2 === tU.FETCH ? console.log("FileSystemCache: get", s2, l2.tags, u2, !!c2) : console.log("FileSystemCache: get", s2, u2, !!c2)), (null == c2 || null == (r2 = c2.value) ? void 0 : r2.kind) === t$.APP_PAGE || (null == c2 || null == (n2 = c2.value) ? void 0 : n2.kind) === t$.APP_ROUTE || (null == c2 || null == (i2 = c2.value) ? void 0 : i2.kind) === t$.PAGES) {
+          if (t6.debug && (u2 === t$.FETCH ? console.log("FileSystemCache: get", s2, l2.tags, u2, !!c2) : console.log("FileSystemCache: get", s2, u2, !!c2)), (null == c2 || null == (r2 = c2.value) ? void 0 : r2.kind) === tU.APP_PAGE || (null == c2 || null == (n2 = c2.value) ? void 0 : n2.kind) === tU.APP_ROUTE || (null == c2 || null == (i2 = c2.value) ? void 0 : i2.kind) === tU.PAGES) {
             let e11 = null == (o2 = c2.value.headers) ? void 0 : o2[v];
             if ("string" == typeof e11) {
               let t11 = e11.split(",");
               if (t11.length > 0 && t2(t11, c2.lastModified)) return t6.debug && console.log("FileSystemCache: expired tags", t11), null;
             }
-          } else if ((null == c2 || null == (a2 = c2.value) ? void 0 : a2.kind) === t$.FETCH) {
-            let e11 = l2.kind === tU.FETCH ? [...l2.tags || [], ...l2.softTags || []] : [];
+          } else if ((null == c2 || null == (a2 = c2.value) ? void 0 : a2.kind) === tU.FETCH) {
+            let e11 = l2.kind === t$.FETCH ? [...l2.tags || [], ...l2.softTags || []] : [];
             if (e11.some((e12) => this.revalidatedTags.includes(e12))) return t6.debug && console.log("FileSystemCache: was revalidated", e11), null;
             if (t2(e11, c2.lastModified)) return t6.debug && console.log("FileSystemCache: expired tags", e11), null;
           }
@@ -4178,14 +4583,14 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           var n2;
           if (null == (n2 = t6.memoryCache) || n2.set(e10, { value: t10, lastModified: Date.now() }), t6.debug && console.log("FileSystemCache: set", e10), !this.flushToDisk || !t10) return;
           let i2 = new t3(this.fs);
-          if (t10.kind === t$.APP_ROUTE) {
-            let r3 = this.getFilePath(`${e10}.body`, tU.APP_ROUTE);
+          if (t10.kind === tU.APP_ROUTE) {
+            let r3 = this.getFilePath(`${e10}.body`, t$.APP_ROUTE);
             i2.append(r3, t10.body);
             let n3 = { headers: t10.headers, status: t10.status, postponed: void 0, segmentPaths: void 0, prefetchHints: void 0 };
             i2.append(r3.replace(/\.body$/, g), JSON.stringify(n3, null, 2));
-          } else if (t10.kind === t$.PAGES || t10.kind === t$.APP_PAGE) {
-            let n3 = t10.kind === t$.APP_PAGE, a2 = this.getFilePath(`${e10}.html`, n3 ? tU.APP_PAGE : tU.PAGES);
-            if (i2.append(a2, t10.html), r2.fetchCache || r2.isFallback || r2.isRoutePPREnabled || i2.append(this.getFilePath(`${e10}${n3 ? ".rsc" : ".json"}`, n3 ? tU.APP_PAGE : tU.PAGES), n3 ? t10.rscData : JSON.stringify(t10.pageData)), (null == t10 ? void 0 : t10.kind) === t$.APP_PAGE) {
+          } else if (t10.kind === tU.PAGES || t10.kind === tU.APP_PAGE) {
+            let n3 = t10.kind === tU.APP_PAGE, a2 = this.getFilePath(`${e10}.html`, n3 ? t$.APP_PAGE : t$.PAGES);
+            if (i2.append(a2, t10.html), r2.fetchCache || r2.isFallback || r2.isRoutePPREnabled || i2.append(this.getFilePath(`${e10}${n3 ? ".rsc" : ".json"}`, n3 ? t$.APP_PAGE : t$.PAGES), n3 ? t10.rscData : JSON.stringify(t10.pageData)), (null == t10 ? void 0 : t10.kind) === tU.APP_PAGE) {
               let e11;
               if (t10.segmentData) {
                 e11 = [];
@@ -4199,21 +4604,21 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
               let r3 = { headers: t10.headers, status: t10.status, postponed: t10.postponed, segmentPaths: e11, prefetchHints: void 0 };
               i2.append(a2.replace(/\.html$/, g), JSON.stringify(r3));
             }
-          } else if (t10.kind === t$.FETCH) {
-            let n3 = this.getFilePath(e10, tU.FETCH);
+          } else if (t10.kind === tU.FETCH) {
+            let n3 = this.getFilePath(e10, t$.FETCH);
             i2.append(n3, JSON.stringify({ ...t10, tags: r2.fetchCache ? r2.tags : [] }));
           }
           await i2.wait();
         }
         getFilePath(e10, t10) {
           switch (t10) {
-            case tU.FETCH:
+            case t$.FETCH:
               return t0.default.join(this.serverDistDir, "..", "cache", "fetch-cache", e10);
-            case tU.PAGES:
+            case t$.PAGES:
               return t0.default.join(this.serverDistDir, "pages", e10);
-            case tU.IMAGE:
-            case tU.APP_PAGE:
-            case tU.APP_ROUTE:
+            case t$.IMAGE:
+            case t$.APP_PAGE:
+            case t$.APP_ROUTE:
               return t0.default.join(this.serverDistDir, "app", e10);
             default:
               throw Object.defineProperty(Error(`Unexpected file path kind: ${t10}`), "__NEXT_ERROR_CODE", { value: "E479", enumerable: false, configurable: true });
@@ -4365,7 +4770,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         async get(e10, t10) {
           var r2, n2, i2, a2, o2, s2, l2;
           let u2, c2;
-          if (t10.kind === tU.FETCH) {
+          if (t10.kind === t$.FETCH) {
             let r3 = e3.getStore(), n3 = r3 ? function(e11) {
               switch (e11.type) {
                 case "request":
@@ -4388,7 +4793,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
             }(r3) : null;
             if (n3) {
               let r4 = n3.fetch.get(e10);
-              if ((null == r4 ? void 0 : r4.kind) === t$.FETCH) {
+              if ((null == r4 ? void 0 : r4.kind) === tU.FETCH) {
                 let n4 = ey.getStore();
                 if (![...t10.tags || [], ...t10.softTags || []].some((e11) => {
                   var t11, r5;
@@ -4398,12 +4803,12 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
               } else ri.debug && console.log("IncrementalCache: rdc:miss", e10);
             } else ri.debug && console.log("IncrementalCache: rdc:no-resume-data");
           }
-          if (this.disableForTestmode || this.dev && (t10.kind !== tU.FETCH || "no-cache" === this.requestHeaders["cache-control"])) return null;
-          e10 = this._getPathname(e10, t10.kind === tU.FETCH);
+          if (this.disableForTestmode || this.dev && (t10.kind !== t$.FETCH || "no-cache" === this.requestHeaders["cache-control"])) return null;
+          e10 = this._getPathname(e10, t10.kind === t$.FETCH);
           let d2 = await (null == (r2 = this.cacheHandler) ? void 0 : r2.get(e10, t10));
-          if (t10.kind === tU.FETCH) {
+          if (t10.kind === t$.FETCH) {
             if (!d2) return null;
-            if ((null == (i2 = d2.value) ? void 0 : i2.kind) !== t$.FETCH) throw Object.defineProperty(new e5(`Expected cached value for cache key ${JSON.stringify(e10)} to be a "FETCH" kind, got ${JSON.stringify(null == (a2 = d2.value) ? void 0 : a2.kind)} instead.`), "__NEXT_ERROR_CODE", { value: "E653", enumerable: false, configurable: true });
+            if ((null == (i2 = d2.value) ? void 0 : i2.kind) !== tU.FETCH) throw Object.defineProperty(new e5(`Expected cached value for cache key ${JSON.stringify(e10)} to be a "FETCH" kind, got ${JSON.stringify(null == (a2 = d2.value) ? void 0 : a2.kind)} instead.`), "__NEXT_ERROR_CODE", { value: "E653", enumerable: false, configurable: true });
             let r3 = ey.getStore(), n3 = [...t10.tags || [], ...t10.softTags || []];
             if (n3.some((e11) => {
               var t11, n4;
@@ -4415,14 +4820,14 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
               t11 && (ri.debug && console.log("IncrementalCache: rdc:set", e10), t11.fetch.set(e10, d2.value));
             }
             let s3 = t10.revalidate || d2.value.revalidate, l3 = (performance.timeOrigin + performance.now() - (d2.lastModified || 0)) / 1e3 > s3, u3 = d2.value.data;
-            return t2(n3, d2.lastModified) ? null : (t4(n3, d2.lastModified) && (l3 = true), { isStale: l3, value: { kind: t$.FETCH, data: u3, revalidate: s3 } });
+            return t2(n3, d2.lastModified) ? null : (t4(n3, d2.lastModified) && (l3 = true), { isStale: l3, value: { kind: tU.FETCH, data: u3, revalidate: s3 } });
           }
-          if ((null == d2 || null == (n2 = d2.value) ? void 0 : n2.kind) === t$.FETCH) throw Object.defineProperty(new e5(`Expected cached value for cache key ${JSON.stringify(e10)} not to be a ${JSON.stringify(t10.kind)} kind, got "FETCH" instead.`), "__NEXT_ERROR_CODE", { value: "E652", enumerable: false, configurable: true });
+          if ((null == d2 || null == (n2 = d2.value) ? void 0 : n2.kind) === tU.FETCH) throw Object.defineProperty(new e5(`Expected cached value for cache key ${JSON.stringify(e10)} not to be a ${JSON.stringify(t10.kind)} kind, got "FETCH" instead.`), "__NEXT_ERROR_CODE", { value: "E652", enumerable: false, configurable: true });
           let h2 = null, { isFallback: p2 } = t10, f2 = this.cacheControls.get(re(e10));
           if ((null == d2 ? void 0 : d2.lastModified) === -1) u2 = -1, c2 = -31536e6;
           else {
             let r3 = performance.timeOrigin + performance.now(), n3 = (null == d2 ? void 0 : d2.lastModified) || r3;
-            if (void 0 === (u2 = false !== (c2 = this.calculateRevalidate(e10, n3, this.dev ?? false, t10.isFallback)) && c2 < r3 || void 0) && ((null == d2 || null == (o2 = d2.value) ? void 0 : o2.kind) === t$.APP_PAGE || (null == d2 || null == (s2 = d2.value) ? void 0 : s2.kind) === t$.APP_ROUTE)) {
+            if (void 0 === (u2 = false !== (c2 = this.calculateRevalidate(e10, n3, this.dev ?? false, t10.isFallback)) && c2 < r3 || void 0) && ((null == d2 || null == (o2 = d2.value) ? void 0 : o2.kind) === tU.APP_PAGE || (null == d2 || null == (s2 = d2.value) ? void 0 : s2.kind) === tU.APP_ROUTE)) {
               let e11 = null == (l2 = d2.value.headers) ? void 0 : l2[v];
               if ("string" == typeof e11) {
                 let t11 = e11.split(",");
@@ -4433,7 +4838,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return d2 && (h2 = { isStale: u2, cacheControl: f2, revalidateAfter: c2, value: d2.value, isFallback: p2 }), !d2 && this.prerenderManifest.notFoundRoutes.includes(e10) && (h2 = { isStale: u2, value: null, cacheControl: f2, revalidateAfter: c2, isFallback: p2 }, this.set(e10, h2.value, { ...t10, cacheControl: f2 })), h2;
         }
         async set(e10, t10, r2) {
-          if ((null == t10 ? void 0 : t10.kind) === t$.FETCH) {
+          if ((null == t10 ? void 0 : t10.kind) === tU.FETCH) {
             let r3 = e3.getStore(), n3 = r3 ? e9(r3) : null;
             n3 && (ri.debug && console.log("IncrementalCache: rdc:set", e10), n3.fetch.set(e10, t10));
           }
@@ -4455,53 +4860,65 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         }
       }
       if (e.i(64445), e.i(40049).default.unstable_postpone, false === ("Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("needs to bail out of prerendering at this point because it used") && "Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("Learn more: https://nextjs.org/docs/messages/ppr-caught-error"))) throw Object.defineProperty(Error("Invariant: isDynamicPostpone misidentified a postpone reason. This is a bug in Next.js"), "__NEXT_ERROR_CODE", { value: "E296", enumerable: false, configurable: true });
-      RegExp("\\n\\s+at Suspense \\(<anonymous>\\)(?:(?!\\n\\s+at (?:body|div|main|section|article|aside|header|footer|nav|form|p|span|h1|h2|h3|h4|h5|h6) \\(<anonymous>\\))[\\s\\S])*?\\n\\s+at __next_root_layout_boundary__ \\([^\\n]*\\)"), RegExp("\\n\\s+at __next_metadata_boundary__[\\n\\s]"), RegExp("\\n\\s+at __next_viewport_boundary__[\\n\\s]"), RegExp("\\n\\s+at __next_outlet_boundary__[\\n\\s]"), RegExp("\\n\\s+at __next_instant_validation_boundary__[\\n\\s]");
-      let ra = ["/login", "/register", "/forgot-password", "/shop", "/cart", "/support"], ro = ["/api/login", "/api/register", "/api/logout", "/api/auth/social", "/api/password", "/api/live-content", "/api/catalog-categories", "/api/site-mode", "/api/enamad", "/api/support-chat", "/api/shop/prices", "/api/torob", "/api/health"];
-      function rs() {
+      async function ra(e10) {
+        return false;
+      }
+      RegExp("\\n\\s+at Suspense \\(<anonymous>\\)(?:(?!\\n\\s+at (?:body|div|main|section|article|aside|header|footer|nav|form|p|span|h1|h2|h3|h4|h5|h6) \\(<anonymous>\\))[\\s\\S])*?\\n\\s+at __next_root_layout_boundary__ \\([^\\n]*\\)"), RegExp("\\n\\s+at __next_metadata_boundary__[\\n\\s]"), RegExp("\\n\\s+at __next_viewport_boundary__[\\n\\s]"), RegExp("\\n\\s+at __next_outlet_boundary__[\\n\\s]"), RegExp("\\n\\s+at __next_instant_validation_boundary__[\\n\\s]"), process.env.OPTIBID_ADMIN_TOKEN_SECRET;
+      let ro = ["/login", "/register", "/forgot-password", "/shop", "/cart", "/support"], rs = ["/api/login", "/api/register", "/api/logout", "/api/auth/social", "/api/password", "/api/live-content", "/api/catalog-categories", "/api/site-mode", "/api/enamad", "/api/support-chat", "/api/shop/prices", "/api/store/price-refresh-tick", "/api/torob", "/api/health", "/api/session", "/api/store-products/auto-refresh"];
+      function rl(e10) {
+        let t10 = new Headers(e10.headers);
+        return t10.set("x-optibid-pathname", e10.nextUrl.pathname), es.next({ request: { headers: t10 } });
+      }
+      function ru() {
         return es.json({ success: false, message: "\u0628\u0631\u0627\u06CC \u062F\u0633\u062A\u0631\u0633\u06CC \u0628\u0647 \u0627\u06CC\u0646 \u0628\u062E\u0634 \u0628\u0627\u06CC\u062F \u0627\u0628\u062A\u062F\u0627 \u062B\u0628\u062A\u200C\u0646\u0627\u0645 \u0648 \u0648\u0631\u0648\u062F \u06A9\u0646\u06CC\u062F." }, { status: 401 });
       }
-      e.s(["config", 0, { matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"] }, "middleware", 0, function(e10) {
+      async function rc(e10) {
         let t10 = e10.nextUrl.pathname;
         if ("www.optibid.ir" === (e10.headers.get("host") || "").toLowerCase()) {
           let t11 = e10.nextUrl.clone();
           return t11.hostname = "optibid.ir", t11.protocol = "https", t11.port = "", es.redirect(t11, 308);
         }
-        if ("/" === t10 || t10.startsWith("/_next") || "/favicon.ico" === t10 || ra.some((e11) => t10 === e11 || t10.startsWith(`${e11}/`)) || ro.some((e11) => t10 === e11 || t10.startsWith(`${e11}/`))) return es.next();
-        let r2 = e10.cookies.get("optibid_admin")?.value === "1", n2 = !!e10.cookies.get("optibid_user")?.value;
+        if ("/" === t10 || t10.startsWith("/_next") || "/favicon.ico" === t10 || ro.some((e11) => t10 === e11 || t10.startsWith(`${e11}/`)) || rs.some((e11) => t10 === e11 || t10.startsWith(`${e11}/`))) return rl(e10);
+        let r2 = await ra(e10.headers.get("x-optibid-admin-token") || e10.nextUrl.searchParams.get("at")), n2 = e10.cookies.get("optibid_admin")?.value === "1" || r2, i2 = !!e10.cookies.get("optibid_user")?.value;
         if (t10.startsWith("/admin") || t10.startsWith("/api/admin")) {
-          if (!r2) {
-            if (t10.startsWith("/api/")) return rs();
+          if (!n2) {
+            if (t10.startsWith("/api/")) return ru();
             let r3 = new URL("/login", e10.url);
             return r3.searchParams.set("next", t10), es.redirect(r3);
           }
-          return es.next();
+          if (r2) {
+            let r3 = new Headers(e10.headers);
+            return r3.set("x-optibid-preview-admin", "1"), r3.set("x-optibid-pathname", t10), es.next({ request: { headers: r3 } });
+          }
+          return rl(e10);
         }
-        if (!n2 && !r2) {
-          if (t10.startsWith("/api/")) return rs();
+        if (!i2 && !n2) {
+          if (t10.startsWith("/api/")) return ru();
           let r3 = new URL("/login", e10.url);
           return r3.searchParams.set("next", `${t10}${e10.nextUrl.search}`), es.redirect(r3);
         }
-        return es.next();
-      }], 96592);
-      let rl = { ...e.i(96592) }, ru = "/middleware", rc = rl.middleware || rl.default;
-      if ("function" != typeof rc) throw new class extends Error {
+        return rl(e10);
+      }
+      e.s(["config", 0, { matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"] }, "middleware", 0, rc], 96592);
+      let rd = { ...e.i(96592) }, rh = "/middleware", rp = rd.middleware || rd.default;
+      if ("function" != typeof rp) throw new class extends Error {
         constructor(e10) {
           super(e10), this.stack = "";
         }
-      }(`The Middleware file "${ru}" must export a function named \`middleware\` or a default function.`);
-      let rd = (e10) => tx({ ...e10, IncrementalCache: ri, incrementalCacheHandler: null, page: ru, handler: async (...e11) => {
+      }(`The Middleware file "${rh}" must export a function named \`middleware\` or a default function.`);
+      let rf = (e10) => tx({ ...e10, IncrementalCache: ri, incrementalCacheHandler: null, page: rh, handler: async (...e11) => {
         try {
-          return await rc(...e11);
+          return await rp(...e11);
         } catch (i2) {
           let t10 = e11[0], r2 = new URL(t10.url), n2 = r2.pathname + r2.search;
           throw await s(i2, { path: n2, method: t10.method, headers: Object.fromEntries(t10.headers.entries()) }, { routerKind: "Pages Router", routePath: "/proxy", routeType: "proxy", revalidateReason: void 0 }), i2;
         }
       } });
-      async function rh(e10, t10) {
-        let r2 = await rd({ request: { url: e10.url, method: e10.method, headers: w(e10.headers), nextConfig: { basePath: "", i18n: "", trailingSlash: false, experimental: { cacheLife: { default: { stale: 300, revalidate: 900, expire: 4294967294 }, seconds: { stale: 30, revalidate: 1, expire: 60 }, minutes: { stale: 300, revalidate: 60, expire: 3600 }, hours: { stale: 300, revalidate: 3600, expire: 86400 }, days: { stale: 300, revalidate: 86400, expire: 604800 }, weeks: { stale: 300, revalidate: 604800, expire: 2592e3 }, max: { stale: 300, revalidate: 2592e3, expire: 31536e3 } }, authInterrupts: false, clientParamParsingOrigins: [] } }, page: { name: ru }, body: "GET" !== e10.method && "HEAD" !== e10.method ? e10.body ?? void 0 : void 0, waitUntil: t10.waitUntil, requestMeta: t10.requestMeta, signal: t10.signal || new AbortController().signal } });
+      async function rg(e10, t10) {
+        let r2 = await rf({ request: { url: e10.url, method: e10.method, headers: w(e10.headers), nextConfig: { basePath: "", i18n: "", trailingSlash: false, experimental: { cacheLife: { default: { stale: 300, revalidate: 900, expire: 4294967294 }, seconds: { stale: 30, revalidate: 1, expire: 60 }, minutes: { stale: 300, revalidate: 60, expire: 3600 }, hours: { stale: 300, revalidate: 3600, expire: 86400 }, days: { stale: 300, revalidate: 86400, expire: 604800 }, weeks: { stale: 300, revalidate: 604800, expire: 2592e3 }, max: { stale: 300, revalidate: 2592e3, expire: 31536e3 } }, authInterrupts: false, clientParamParsingOrigins: [] } }, page: { name: rh }, body: "GET" !== e10.method && "HEAD" !== e10.method ? e10.body ?? void 0 : void 0, waitUntil: t10.waitUntil, requestMeta: t10.requestMeta, signal: t10.signal || new AbortController().signal } });
         return null == t10.waitUntil || t10.waitUntil.call(t10, r2.waitUntil), r2.response;
       }
-      e.s(["default", 0, rd, "handler", 0, rh], 58217);
+      e.s(["default", 0, rf, "handler", 0, rg], 58217);
     }]);
   }
 });
@@ -4928,6 +5345,8 @@ var init_edgeFunctionHandler = __esm({
     globalThis._ENTRIES = {};
     globalThis.self = globalThis;
     globalThis._ROUTES = [{ "name": "middleware", "page": "/", "regex": ["^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\..*).*))(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$"] }];
+    require_s0wgnu();
+    require_turbopack_node_modules_next_dist_esm_build_templates_edge_wrapper_1x1n1fx();
     require_node_modules_next_dist_esm_build_templates_edge_wrapper_0_kjzx3();
     require_root_of_the_server_0emy_m4();
     require_turbopack_node_modules_next_dist_esm_build_templates_edge_wrapper_0a9xbl8();
@@ -5102,13 +5521,13 @@ globalThis.__dirname ??= "";
 var NEXT_DIR = path.join(__dirname, ".next");
 var OPEN_NEXT_DIR = path.join(__dirname, ".open-next");
 debug({ NEXT_DIR, OPEN_NEXT_DIR });
-var NextConfig = { "env": {}, "webpack": null, "typescript": { "ignoreBuildErrors": false }, "typedRoutes": false, "distDir": ".next", "cleanDistDir": true, "assetPrefix": "", "cacheMaxMemorySize": 52428800, "configOrigin": "next.config.ts", "useFileSystemPublicRoutes": true, "generateEtags": true, "pageExtensions": ["tsx", "ts", "jsx", "js"], "poweredByHeader": false, "compress": true, "images": { "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840], "imageSizes": [32, 48, 64, 96, 128, 256, 384], "path": "/_next/image", "loader": "default", "loaderFile": "", "domains": [], "disableStaticImages": false, "minimumCacheTTL": 14400, "formats": ["image/webp"], "maximumRedirects": 3, "maximumResponseBody": 5e7, "dangerouslyAllowLocalIP": false, "dangerouslyAllowSVG": false, "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;", "contentDispositionType": "attachment", "localPatterns": [{ "pathname": "**", "search": "" }], "remotePatterns": [], "qualities": [75], "unoptimized": false, "customCacheHandler": false }, "devIndicators": { "position": "bottom-left" }, "onDemandEntries": { "maxInactiveAge": 6e4, "pagesBufferLength": 5 }, "basePath": "", "sassOptions": {}, "trailingSlash": false, "i18n": null, "productionBrowserSourceMaps": false, "excludeDefaultMomentLocales": true, "reactProductionProfiling": false, "reactStrictMode": null, "reactMaxHeadersLength": 6e3, "httpAgentOptions": { "keepAlive": true }, "logging": { "serverFunctions": true, "browserToTerminal": "warn" }, "compiler": {}, "expireTime": 31536e3, "staticPageGenerationTimeout": 60, "output": "standalone", "modularizeImports": { "@mui/icons-material": { "transform": "@mui/icons-material/{{member}}" }, "lodash": { "transform": "lodash/{{member}}" } }, "outputFileTracingRoot": "/home/user/fazilatma", "cacheComponents": false, "cacheLife": { "default": { "stale": 300, "revalidate": 900, "expire": 4294967294 }, "seconds": { "stale": 30, "revalidate": 1, "expire": 60 }, "minutes": { "stale": 300, "revalidate": 60, "expire": 3600 }, "hours": { "stale": 300, "revalidate": 3600, "expire": 86400 }, "days": { "stale": 300, "revalidate": 86400, "expire": 604800 }, "weeks": { "stale": 300, "revalidate": 604800, "expire": 2592e3 }, "max": { "stale": 300, "revalidate": 2592e3, "expire": 31536e3 } }, "cacheHandlers": {}, "experimental": { "appNewScrollHandler": false, "useSkewCookie": false, "cssChunking": true, "multiZoneDraftMode": false, "appNavFailHandling": false, "prerenderEarlyExit": true, "serverMinification": true, "linkNoTouchStart": false, "caseSensitiveRoutes": false, "cachedNavigations": false, "partialFallbacks": false, "dynamicOnHover": false, "varyParams": false, "prefetchInlining": false, "preloadEntriesOnStart": true, "clientRouterFilter": true, "clientRouterFilterRedirects": false, "fetchCacheKeyPrefix": "", "proxyPrefetch": "flexible", "optimisticClientCache": true, "manualClientBasePath": false, "cpus": 1, "memoryBasedWorkersCount": false, "imgOptConcurrency": null, "imgOptTimeoutInSeconds": 7, "imgOptMaxInputPixels": 268402689, "imgOptSequentialRead": null, "isrFlushToDisk": true, "workerThreads": false, "optimizeCss": false, "nextScriptWorkers": false, "scrollRestoration": false, "externalDir": false, "disableOptimizedLoading": false, "gzipSize": true, "craCompat": false, "esmExternals": true, "fullySpecified": false, "swcTraceProfiling": false, "forceSwcTransforms": false, "largePageDataBytes": 128e3, "typedEnv": false, "parallelServerCompiles": false, "parallelServerBuildTraces": false, "ppr": false, "authInterrupts": false, "webpackMemoryOptimizations": false, "optimizeServerReact": true, "strictRouteTypes": false, "useTypeScriptCli": false, "viewTransition": false, "removeUncaughtErrorAndRejectionListeners": false, "validateRSCRequestHeaders": false, "staleTimes": { "dynamic": 0, "static": 300 }, "reactDebugChannel": true, "serverComponentsHmrCache": true, "staticGenerationMaxConcurrency": 8, "staticGenerationMinPagesPerWorker": 25, "transitionIndicator": false, "gestureTransition": false, "inlineCss": false, "useCache": false, "globalNotFound": false, "browserDebugInfoInTerminal": "warn", "lockDistDir": true, "proxyClientMaxBodySize": 10485760, "hideLogsAfterAbort": false, "mcpServer": true, "turbopackFileSystemCacheForDev": true, "turbopackFileSystemCacheForBuild": false, "turbopackInferModuleSideEffects": true, "turbopackPluginRuntimeStrategy": "childProcesses", "optimizePackageImports": ["lucide-react", "date-fns", "lodash-es", "ramda", "antd", "react-bootstrap", "ahooks", "@ant-design/icons", "@headlessui/react", "@headlessui-float/react", "@heroicons/react/20/solid", "@heroicons/react/24/solid", "@heroicons/react/24/outline", "@visx/visx", "@tremor/react", "rxjs", "@mui/material", "@mui/icons-material", "recharts", "react-use", "effect", "@effect/schema", "@effect/platform", "@effect/platform-node", "@effect/platform-browser", "@effect/platform-bun", "@effect/sql", "@effect/sql-mssql", "@effect/sql-mysql2", "@effect/sql-pg", "@effect/sql-sqlite-node", "@effect/sql-sqlite-bun", "@effect/sql-sqlite-wasm", "@effect/sql-sqlite-react-native", "@effect/rpc", "@effect/rpc-http", "@effect/typeclass", "@effect/experimental", "@effect/opentelemetry", "@material-ui/core", "@material-ui/icons", "@tabler/icons-react", "mui-core", "react-icons/ai", "react-icons/bi", "react-icons/bs", "react-icons/cg", "react-icons/ci", "react-icons/di", "react-icons/fa", "react-icons/fa6", "react-icons/fc", "react-icons/fi", "react-icons/gi", "react-icons/go", "react-icons/gr", "react-icons/hi", "react-icons/hi2", "react-icons/im", "react-icons/io", "react-icons/io5", "react-icons/lia", "react-icons/lib", "react-icons/lu", "react-icons/md", "react-icons/pi", "react-icons/ri", "react-icons/rx", "react-icons/si", "react-icons/sl", "react-icons/tb", "react-icons/tfi", "react-icons/ti", "react-icons/vsc", "react-icons/wi"], "trustHostHeader": false, "isExperimentalCompile": false }, "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight", "bundlePagesRouterDependencies": false, "configFileName": "next.config.ts", "turbopack": { "root": "/home/user/fazilatma" }, "distDirRoot": ".next" };
-var BuildId = "xDfS-HAuVN1-TEX3-DQdP";
-var RoutesManifest = { "basePath": "", "rewrites": { "beforeFiles": [], "afterFiles": [], "fallback": [] }, "redirects": [{ "source": "/:path+/", "destination": "/:path+", "internal": true, "priority": true, "statusCode": 308, "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$" }], "routes": { "static": [{ "page": "/", "regex": "^/(?:/)?$", "routeKeys": {}, "namedRegex": "^/(?:/)?$" }, { "page": "/_global-error", "regex": "^/_global\\-error(?:/)?$", "routeKeys": {}, "namedRegex": "^/_global\\-error(?:/)?$" }, { "page": "/_not-found", "regex": "^/_not\\-found(?:/)?$", "routeKeys": {}, "namedRegex": "^/_not\\-found(?:/)?$" }, { "page": "/account/completion", "regex": "^/account/completion(?:/)?$", "routeKeys": {}, "namedRegex": "^/account/completion(?:/)?$" }, { "page": "/admin/dashboard", "regex": "^/admin/dashboard(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/dashboard(?:/)?$" }, { "page": "/api/account/seller-mode", "regex": "^/api/account/seller\\-mode(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/account/seller\\-mode(?:/)?$" }, { "page": "/api/admin/categories", "regex": "^/api/admin/categories(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/categories(?:/)?$" }, { "page": "/api/admin/enamad", "regex": "^/api/admin/enamad(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/enamad(?:/)?$" }, { "page": "/api/admin/finance", "regex": "^/api/admin/finance(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/finance(?:/)?$" }, { "page": "/api/admin/homepage-slider", "regex": "^/api/admin/homepage\\-slider(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/homepage\\-slider(?:/)?$" }, { "page": "/api/admin/kyc", "regex": "^/api/admin/kyc(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/kyc(?:/)?$" }, { "page": "/api/admin/kyc-document", "regex": "^/api/admin/kyc\\-document(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/kyc\\-document(?:/)?$" }, { "page": "/api/admin/reverse-auction/dispatch", "regex": "^/api/admin/reverse\\-auction/dispatch(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/reverse\\-auction/dispatch(?:/)?$" }, { "page": "/api/admin/seller-metrics", "regex": "^/api/admin/seller\\-metrics(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/seller\\-metrics(?:/)?$" }, { "page": "/api/admin/store-products/clear", "regex": "^/api/admin/store\\-products/clear(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/clear(?:/)?$" }, { "page": "/api/admin/store-products/crawl-batch", "regex": "^/api/admin/store\\-products/crawl\\-batch(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/crawl\\-batch(?:/)?$" }, { "page": "/api/admin/store-products/digikala-page", "regex": "^/api/admin/store\\-products/digikala\\-page(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/digikala\\-page(?:/)?$" }, { "page": "/api/admin/store-products/import", "regex": "^/api/admin/store\\-products/import(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/import(?:/)?$" }, { "page": "/api/admin/store-products/import-csv", "regex": "^/api/admin/store\\-products/import\\-csv(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/import\\-csv(?:/)?$" }, { "page": "/api/admin/store-products/import-multiple", "regex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$" }, { "page": "/api/admin/store-products/refresh-prices", "regex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$" }, { "page": "/api/admin/store-products/repair-csv", "regex": "^/api/admin/store\\-products/repair\\-csv(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/repair\\-csv(?:/)?$" }, { "page": "/api/admin/storefront-slider", "regex": "^/api/admin/storefront\\-slider(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/storefront\\-slider(?:/)?$" }, { "page": "/api/admin/users", "regex": "^/api/admin/users(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/users(?:/)?$" }, { "page": "/api/admin/withdrawals", "regex": "^/api/admin/withdrawals(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/withdrawals(?:/)?$" }, { "page": "/api/avatar", "regex": "^/api/avatar(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/avatar(?:/)?$" }, { "page": "/api/buyer/profile", "regex": "^/api/buyer/profile(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/buyer/profile(?:/)?$" }, { "page": "/api/catalog-categories", "regex": "^/api/catalog\\-categories(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/catalog\\-categories(?:/)?$" }, { "page": "/api/dashboard/buyer", "regex": "^/api/dashboard/buyer(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/dashboard/buyer(?:/)?$" }, { "page": "/api/dashboard/seller", "regex": "^/api/dashboard/seller(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/dashboard/seller(?:/)?$" }, { "page": "/api/database-status", "regex": "^/api/database\\-status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/database\\-status(?:/)?$" }, { "page": "/api/download-source", "regex": "^/api/download\\-source(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/download\\-source(?:/)?$" }, { "page": "/api/enamad", "regex": "^/api/enamad(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/enamad(?:/)?$" }, { "page": "/api/external-link", "regex": "^/api/external\\-link(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/external\\-link(?:/)?$" }, { "page": "/api/health", "regex": "^/api/health(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/health(?:/)?$" }, { "page": "/api/live-content", "regex": "^/api/live\\-content(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/live\\-content(?:/)?$" }, { "page": "/api/login", "regex": "^/api/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/login(?:/)?$" }, { "page": "/api/logout", "regex": "^/api/logout(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/logout(?:/)?$" }, { "page": "/api/messages", "regex": "^/api/messages(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages(?:/)?$" }, { "page": "/api/orders/archive", "regex": "^/api/orders/archive(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/archive(?:/)?$" }, { "page": "/api/orders/cancel", "regex": "^/api/orders/cancel(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/cancel(?:/)?$" }, { "page": "/api/orders/confirm-received", "regex": "^/api/orders/confirm\\-received(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/confirm\\-received(?:/)?$" }, { "page": "/api/orders/pay", "regex": "^/api/orders/pay(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/pay(?:/)?$" }, { "page": "/api/orders/select-offer", "regex": "^/api/orders/select\\-offer(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/select\\-offer(?:/)?$" }, { "page": "/api/orders/ship", "regex": "^/api/orders/ship(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/ship(?:/)?$" }, { "page": "/api/password/forgot", "regex": "^/api/password/forgot(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/password/forgot(?:/)?$" }, { "page": "/api/password/reset", "regex": "^/api/password/reset(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/password/reset(?:/)?$" }, { "page": "/api/payments/zarinpal/callback", "regex": "^/api/payments/zarinpal/callback(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/payments/zarinpal/callback(?:/)?$" }, { "page": "/api/product-image", "regex": "^/api/product\\-image(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/product\\-image(?:/)?$" }, { "page": "/api/register", "regex": "^/api/register(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/register(?:/)?$" }, { "page": "/api/reviews", "regex": "^/api/reviews(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/reviews(?:/)?$" }, { "page": "/api/seller/profile", "regex": "^/api/seller/profile(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller/profile(?:/)?$" }, { "page": "/api/seller-matching-requests", "regex": "^/api/seller\\-matching\\-requests(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-matching\\-requests(?:/)?$" }, { "page": "/api/seller-performance-event", "regex": "^/api/seller\\-performance\\-event(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-performance\\-event(?:/)?$" }, { "page": "/api/seller-request-action", "regex": "^/api/seller\\-request\\-action(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-request\\-action(?:/)?$" }, { "page": "/api/seller-score", "regex": "^/api/seller\\-score(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-score(?:/)?$" }, { "page": "/api/shop/orders", "regex": "^/api/shop/orders(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/shop/orders(?:/)?$" }, { "page": "/api/shop/orders/pay", "regex": "^/api/shop/orders/pay(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/shop/orders/pay(?:/)?$" }, { "page": "/api/shop/prices", "regex": "^/api/shop/prices(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/shop/prices(?:/)?$" }, { "page": "/api/site-mode", "regex": "^/api/site\\-mode(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/site\\-mode(?:/)?$" }, { "page": "/api/source-files", "regex": "^/api/source\\-files(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/source\\-files(?:/)?$" }, { "page": "/api/submit-offer", "regex": "^/api/submit\\-offer(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/submit\\-offer(?:/)?$" }, { "page": "/api/submit-request", "regex": "^/api/submit\\-request(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/submit\\-request(?:/)?$" }, { "page": "/api/support-chat", "regex": "^/api/support\\-chat(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/support\\-chat(?:/)?$" }, { "page": "/api/torob/products", "regex": "^/api/torob/products(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/torob/products(?:/)?$" }, { "page": "/api/wallet/topup", "regex": "^/api/wallet/topup(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/wallet/topup(?:/)?$" }, { "page": "/api/wallet/withdraw", "regex": "^/api/wallet/withdraw(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/wallet/withdraw(?:/)?$" }, { "page": "/become-seller", "regex": "^/become\\-seller(?:/)?$", "routeKeys": {}, "namedRegex": "^/become\\-seller(?:/)?$" }, { "page": "/buyer/dashboard", "regex": "^/buyer/dashboard(?:/)?$", "routeKeys": {}, "namedRegex": "^/buyer/dashboard(?:/)?$" }, { "page": "/buyers", "regex": "^/buyers(?:/)?$", "routeKeys": {}, "namedRegex": "^/buyers(?:/)?$" }, { "page": "/cart", "regex": "^/cart(?:/)?$", "routeKeys": {}, "namedRegex": "^/cart(?:/)?$" }, { "page": "/categories", "regex": "^/categories(?:/)?$", "routeKeys": {}, "namedRegex": "^/categories(?:/)?$" }, { "page": "/contact", "regex": "^/contact(?:/)?$", "routeKeys": {}, "namedRegex": "^/contact(?:/)?$" }, { "page": "/external-link", "regex": "^/external\\-link(?:/)?$", "routeKeys": {}, "namedRegex": "^/external\\-link(?:/)?$" }, { "page": "/forgot-password", "regex": "^/forgot\\-password(?:/)?$", "routeKeys": {}, "namedRegex": "^/forgot\\-password(?:/)?$" }, { "page": "/how-it-works", "regex": "^/how\\-it\\-works(?:/)?$", "routeKeys": {}, "namedRegex": "^/how\\-it\\-works(?:/)?$" }, { "page": "/login", "regex": "^/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/login(?:/)?$" }, { "page": "/manifest.webmanifest", "regex": "^/manifest\\.webmanifest(?:/)?$", "routeKeys": {}, "namedRegex": "^/manifest\\.webmanifest(?:/)?$" }, { "page": "/register", "regex": "^/register(?:/)?$", "routeKeys": {}, "namedRegex": "^/register(?:/)?$" }, { "page": "/request-board", "regex": "^/request\\-board(?:/)?$", "routeKeys": {}, "namedRegex": "^/request\\-board(?:/)?$" }, { "page": "/request-purchase", "regex": "^/request\\-purchase(?:/)?$", "routeKeys": {}, "namedRegex": "^/request\\-purchase(?:/)?$" }, { "page": "/requests", "regex": "^/requests(?:/)?$", "routeKeys": {}, "namedRegex": "^/requests(?:/)?$" }, { "page": "/robots.txt", "regex": "^/robots\\.txt(?:/)?$", "routeKeys": {}, "namedRegex": "^/robots\\.txt(?:/)?$" }, { "page": "/seller/dashboard", "regex": "^/seller/dashboard(?:/)?$", "routeKeys": {}, "namedRegex": "^/seller/dashboard(?:/)?$" }, { "page": "/seller/sales", "regex": "^/seller/sales(?:/)?$", "routeKeys": {}, "namedRegex": "^/seller/sales(?:/)?$" }, { "page": "/sellers", "regex": "^/sellers(?:/)?$", "routeKeys": {}, "namedRegex": "^/sellers(?:/)?$" }, { "page": "/shop", "regex": "^/shop(?:/)?$", "routeKeys": {}, "namedRegex": "^/shop(?:/)?$" }, { "page": "/shop/collections", "regex": "^/shop/collections(?:/)?$", "routeKeys": {}, "namedRegex": "^/shop/collections(?:/)?$" }, { "page": "/shop/guides", "regex": "^/shop/guides(?:/)?$", "routeKeys": {}, "namedRegex": "^/shop/guides(?:/)?$" }, { "page": "/sitemap.xml", "regex": "^/sitemap\\.xml(?:/)?$", "routeKeys": {}, "namedRegex": "^/sitemap\\.xml(?:/)?$" }, { "page": "/source-code", "regex": "^/source\\-code(?:/)?$", "routeKeys": {}, "namedRegex": "^/source\\-code(?:/)?$" }, { "page": "/support", "regex": "^/support(?:/)?$", "routeKeys": {}, "namedRegex": "^/support(?:/)?$" }], "dynamic": [{ "page": "/api/auth/social/[provider]", "regex": "^/api/auth/social/([^/]+?)(?:/)?$", "routeKeys": { "nxtPprovider": "nxtPprovider" }, "namedRegex": "^/api/auth/social/(?<nxtPprovider>[^/]+?)(?:/)?$" }, { "page": "/api/auth/social/[provider]/callback", "regex": "^/api/auth/social/([^/]+?)/callback(?:/)?$", "routeKeys": { "nxtPprovider": "nxtPprovider" }, "namedRegex": "^/api/auth/social/(?<nxtPprovider>[^/]+?)/callback(?:/)?$" }, { "page": "/buyers/[id]", "regex": "^/buyers/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/buyers/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/categories/[id]", "regex": "^/categories/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/categories/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/requests/[id]", "regex": "^/requests/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/requests/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/requests/[id]/checkout", "regex": "^/requests/([^/]+?)/checkout(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/requests/(?<nxtPid>[^/]+?)/checkout(?:/)?$" }, { "page": "/requests/[id]/offer", "regex": "^/requests/([^/]+?)/offer(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/requests/(?<nxtPid>[^/]+?)/offer(?:/)?$" }, { "page": "/sellers/[id]", "regex": "^/sellers/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/sellers/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/shop/collections/[slug]", "regex": "^/shop/collections/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/shop/collections/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/shop/guides/[slug]", "regex": "^/shop/guides/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/shop/guides/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/shop/[slug]", "regex": "^/shop/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/shop/(?<nxtPslug>[^/]+?)(?:/)?$" }], "data": { "static": [], "dynamic": [] } }, "locales": [] };
+var NextConfig = { "env": {}, "webpack": null, "typescript": { "ignoreBuildErrors": false }, "typedRoutes": false, "distDir": ".next", "cleanDistDir": true, "assetPrefix": "", "cacheMaxMemorySize": 52428800, "configOrigin": "next.config.ts", "useFileSystemPublicRoutes": true, "generateEtags": true, "pageExtensions": ["tsx", "ts", "jsx", "js"], "poweredByHeader": false, "compress": true, "images": { "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840], "imageSizes": [32, 48, 64, 96, 128, 256, 384], "path": "/_next/image", "loader": "default", "loaderFile": "", "domains": [], "disableStaticImages": false, "minimumCacheTTL": 14400, "formats": ["image/webp"], "maximumRedirects": 3, "maximumResponseBody": 5e7, "dangerouslyAllowLocalIP": false, "dangerouslyAllowSVG": false, "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;", "contentDispositionType": "attachment", "localPatterns": [{ "pathname": "**", "search": "" }], "remotePatterns": [], "qualities": [75], "unoptimized": false, "customCacheHandler": false }, "devIndicators": { "position": "bottom-left" }, "onDemandEntries": { "maxInactiveAge": 6e4, "pagesBufferLength": 5 }, "basePath": "", "sassOptions": {}, "trailingSlash": false, "i18n": null, "productionBrowserSourceMaps": false, "excludeDefaultMomentLocales": true, "reactProductionProfiling": false, "reactStrictMode": null, "reactMaxHeadersLength": 6e3, "httpAgentOptions": { "keepAlive": true }, "logging": { "serverFunctions": true, "browserToTerminal": "warn" }, "compiler": {}, "expireTime": 31536e3, "staticPageGenerationTimeout": 60, "output": "standalone", "modularizeImports": { "@mui/icons-material": { "transform": "@mui/icons-material/{{member}}" }, "lodash": { "transform": "lodash/{{member}}" } }, "outputFileTracingRoot": "/home/user/fazilatma", "allowedDevOrigins": ["*.e2b.app", "*.arena.site", "localhost", "127.0.0.1"], "cacheComponents": false, "cacheLife": { "default": { "stale": 300, "revalidate": 900, "expire": 4294967294 }, "seconds": { "stale": 30, "revalidate": 1, "expire": 60 }, "minutes": { "stale": 300, "revalidate": 60, "expire": 3600 }, "hours": { "stale": 300, "revalidate": 3600, "expire": 86400 }, "days": { "stale": 300, "revalidate": 86400, "expire": 604800 }, "weeks": { "stale": 300, "revalidate": 604800, "expire": 2592e3 }, "max": { "stale": 300, "revalidate": 2592e3, "expire": 31536e3 } }, "cacheHandlers": {}, "experimental": { "appNewScrollHandler": false, "useSkewCookie": false, "cssChunking": true, "multiZoneDraftMode": false, "appNavFailHandling": false, "prerenderEarlyExit": true, "serverMinification": true, "linkNoTouchStart": false, "caseSensitiveRoutes": false, "cachedNavigations": false, "partialFallbacks": false, "dynamicOnHover": false, "varyParams": false, "prefetchInlining": false, "preloadEntriesOnStart": true, "clientRouterFilter": true, "clientRouterFilterRedirects": false, "fetchCacheKeyPrefix": "", "proxyPrefetch": "flexible", "optimisticClientCache": true, "manualClientBasePath": false, "cpus": 1, "memoryBasedWorkersCount": false, "imgOptConcurrency": null, "imgOptTimeoutInSeconds": 7, "imgOptMaxInputPixels": 268402689, "imgOptSequentialRead": null, "isrFlushToDisk": true, "workerThreads": false, "optimizeCss": false, "nextScriptWorkers": false, "scrollRestoration": false, "externalDir": false, "disableOptimizedLoading": false, "gzipSize": true, "craCompat": false, "esmExternals": true, "fullySpecified": false, "swcTraceProfiling": false, "forceSwcTransforms": false, "largePageDataBytes": 128e3, "typedEnv": false, "parallelServerCompiles": false, "parallelServerBuildTraces": false, "ppr": false, "authInterrupts": false, "webpackMemoryOptimizations": false, "optimizeServerReact": true, "strictRouteTypes": false, "useTypeScriptCli": false, "viewTransition": false, "removeUncaughtErrorAndRejectionListeners": false, "validateRSCRequestHeaders": false, "staleTimes": { "dynamic": 0, "static": 300 }, "reactDebugChannel": true, "serverComponentsHmrCache": true, "staticGenerationMaxConcurrency": 8, "staticGenerationMinPagesPerWorker": 25, "transitionIndicator": false, "gestureTransition": false, "inlineCss": false, "useCache": false, "globalNotFound": false, "browserDebugInfoInTerminal": "warn", "lockDistDir": true, "proxyClientMaxBodySize": 10485760, "hideLogsAfterAbort": false, "mcpServer": true, "turbopackFileSystemCacheForDev": true, "turbopackFileSystemCacheForBuild": false, "turbopackInferModuleSideEffects": true, "turbopackPluginRuntimeStrategy": "childProcesses", "optimizePackageImports": ["lucide-react", "date-fns", "lodash-es", "ramda", "antd", "react-bootstrap", "ahooks", "@ant-design/icons", "@headlessui/react", "@headlessui-float/react", "@heroicons/react/20/solid", "@heroicons/react/24/solid", "@heroicons/react/24/outline", "@visx/visx", "@tremor/react", "rxjs", "@mui/material", "@mui/icons-material", "recharts", "react-use", "effect", "@effect/schema", "@effect/platform", "@effect/platform-node", "@effect/platform-browser", "@effect/platform-bun", "@effect/sql", "@effect/sql-mssql", "@effect/sql-mysql2", "@effect/sql-pg", "@effect/sql-sqlite-node", "@effect/sql-sqlite-bun", "@effect/sql-sqlite-wasm", "@effect/sql-sqlite-react-native", "@effect/rpc", "@effect/rpc-http", "@effect/typeclass", "@effect/experimental", "@effect/opentelemetry", "@material-ui/core", "@material-ui/icons", "@tabler/icons-react", "mui-core", "react-icons/ai", "react-icons/bi", "react-icons/bs", "react-icons/cg", "react-icons/ci", "react-icons/di", "react-icons/fa", "react-icons/fa6", "react-icons/fc", "react-icons/fi", "react-icons/gi", "react-icons/go", "react-icons/gr", "react-icons/hi", "react-icons/hi2", "react-icons/im", "react-icons/io", "react-icons/io5", "react-icons/lia", "react-icons/lib", "react-icons/lu", "react-icons/md", "react-icons/pi", "react-icons/ri", "react-icons/rx", "react-icons/si", "react-icons/sl", "react-icons/tb", "react-icons/tfi", "react-icons/ti", "react-icons/vsc", "react-icons/wi"], "trustHostHeader": false, "isExperimentalCompile": false }, "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight", "bundlePagesRouterDependencies": false, "configFileName": "next.config.ts", "turbopack": { "root": "/home/user/fazilatma" }, "distDirRoot": ".next" };
+var BuildId = "-cVKuG8smZzgS6C4hOA5y";
+var RoutesManifest = { "basePath": "", "rewrites": { "beforeFiles": [], "afterFiles": [], "fallback": [] }, "redirects": [{ "source": "/:path+/", "destination": "/:path+", "internal": true, "priority": true, "statusCode": 308, "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$" }], "routes": { "static": [{ "page": "/", "regex": "^/(?:/)?$", "routeKeys": {}, "namedRegex": "^/(?:/)?$" }, { "page": "/_global-error", "regex": "^/_global\\-error(?:/)?$", "routeKeys": {}, "namedRegex": "^/_global\\-error(?:/)?$" }, { "page": "/_not-found", "regex": "^/_not\\-found(?:/)?$", "routeKeys": {}, "namedRegex": "^/_not\\-found(?:/)?$" }, { "page": "/account/completion", "regex": "^/account/completion(?:/)?$", "routeKeys": {}, "namedRegex": "^/account/completion(?:/)?$" }, { "page": "/admin/dashboard", "regex": "^/admin/dashboard(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/dashboard(?:/)?$" }, { "page": "/admin/diagnostics/laptop-catalog", "regex": "^/admin/diagnostics/laptop\\-catalog(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/diagnostics/laptop\\-catalog(?:/)?$" }, { "page": "/admin/orders", "regex": "^/admin/orders(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/orders(?:/)?$" }, { "page": "/admin/price-check", "regex": "^/admin/price\\-check(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/price\\-check(?:/)?$" }, { "page": "/admin/pricing-audit", "regex": "^/admin/pricing\\-audit(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/pricing\\-audit(?:/)?$" }, { "page": "/api/account/seller-mode", "regex": "^/api/account/seller\\-mode(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/account/seller\\-mode(?:/)?$" }, { "page": "/api/admin/categories", "regex": "^/api/admin/categories(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/categories(?:/)?$" }, { "page": "/api/admin/enamad", "regex": "^/api/admin/enamad(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/enamad(?:/)?$" }, { "page": "/api/admin/finance", "regex": "^/api/admin/finance(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/finance(?:/)?$" }, { "page": "/api/admin/homepage-slider", "regex": "^/api/admin/homepage\\-slider(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/homepage\\-slider(?:/)?$" }, { "page": "/api/admin/kyc", "regex": "^/api/admin/kyc(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/kyc(?:/)?$" }, { "page": "/api/admin/kyc-document", "regex": "^/api/admin/kyc\\-document(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/kyc\\-document(?:/)?$" }, { "page": "/api/admin/laptop-catalog-report", "regex": "^/api/admin/laptop\\-catalog\\-report(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/laptop\\-catalog\\-report(?:/)?$" }, { "page": "/api/admin/orders", "regex": "^/api/admin/orders(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/orders(?:/)?$" }, { "page": "/api/admin/reverse-auction/dispatch", "regex": "^/api/admin/reverse\\-auction/dispatch(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/reverse\\-auction/dispatch(?:/)?$" }, { "page": "/api/admin/seller-metrics", "regex": "^/api/admin/seller\\-metrics(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/seller\\-metrics(?:/)?$" }, { "page": "/api/admin/store-products/apply-multiplier", "regex": "^/api/admin/store\\-products/apply\\-multiplier(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/apply\\-multiplier(?:/)?$" }, { "page": "/api/admin/store-products/clear", "regex": "^/api/admin/store\\-products/clear(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/clear(?:/)?$" }, { "page": "/api/admin/store-products/crawl-batch", "regex": "^/api/admin/store\\-products/crawl\\-batch(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/crawl\\-batch(?:/)?$" }, { "page": "/api/admin/store-products/digikala-page", "regex": "^/api/admin/store\\-products/digikala\\-page(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/digikala\\-page(?:/)?$" }, { "page": "/api/admin/store-products/import", "regex": "^/api/admin/store\\-products/import(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/import(?:/)?$" }, { "page": "/api/admin/store-products/import-csv", "regex": "^/api/admin/store\\-products/import\\-csv(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/import\\-csv(?:/)?$" }, { "page": "/api/admin/store-products/import-multiple", "regex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/import\\-multiple(?:/)?$" }, { "page": "/api/admin/store-products/market-reference", "regex": "^/api/admin/store\\-products/market\\-reference(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/market\\-reference(?:/)?$" }, { "page": "/api/admin/store-products/price-audit", "regex": "^/api/admin/store\\-products/price\\-audit(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/price\\-audit(?:/)?$" }, { "page": "/api/admin/store-products/refresh-prices", "regex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/refresh\\-prices(?:/)?$" }, { "page": "/api/admin/store-products/repair-csv", "regex": "^/api/admin/store\\-products/repair\\-csv(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/store\\-products/repair\\-csv(?:/)?$" }, { "page": "/api/admin/storefront-slider", "regex": "^/api/admin/storefront\\-slider(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/storefront\\-slider(?:/)?$" }, { "page": "/api/admin/users", "regex": "^/api/admin/users(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/users(?:/)?$" }, { "page": "/api/admin/withdrawals", "regex": "^/api/admin/withdrawals(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/withdrawals(?:/)?$" }, { "page": "/api/avatar", "regex": "^/api/avatar(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/avatar(?:/)?$" }, { "page": "/api/buyer/profile", "regex": "^/api/buyer/profile(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/buyer/profile(?:/)?$" }, { "page": "/api/catalog-categories", "regex": "^/api/catalog\\-categories(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/catalog\\-categories(?:/)?$" }, { "page": "/api/dashboard/buyer", "regex": "^/api/dashboard/buyer(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/dashboard/buyer(?:/)?$" }, { "page": "/api/dashboard/seller", "regex": "^/api/dashboard/seller(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/dashboard/seller(?:/)?$" }, { "page": "/api/database-status", "regex": "^/api/database\\-status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/database\\-status(?:/)?$" }, { "page": "/api/download-source", "regex": "^/api/download\\-source(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/download\\-source(?:/)?$" }, { "page": "/api/enamad", "regex": "^/api/enamad(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/enamad(?:/)?$" }, { "page": "/api/external-link", "regex": "^/api/external\\-link(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/external\\-link(?:/)?$" }, { "page": "/api/health", "regex": "^/api/health(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/health(?:/)?$" }, { "page": "/api/live-content", "regex": "^/api/live\\-content(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/live\\-content(?:/)?$" }, { "page": "/api/login", "regex": "^/api/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/login(?:/)?$" }, { "page": "/api/logout", "regex": "^/api/logout(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/logout(?:/)?$" }, { "page": "/api/messages", "regex": "^/api/messages(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages(?:/)?$" }, { "page": "/api/orders/archive", "regex": "^/api/orders/archive(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/archive(?:/)?$" }, { "page": "/api/orders/cancel", "regex": "^/api/orders/cancel(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/cancel(?:/)?$" }, { "page": "/api/orders/confirm-received", "regex": "^/api/orders/confirm\\-received(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/confirm\\-received(?:/)?$" }, { "page": "/api/orders/pay", "regex": "^/api/orders/pay(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/pay(?:/)?$" }, { "page": "/api/orders/select-offer", "regex": "^/api/orders/select\\-offer(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/select\\-offer(?:/)?$" }, { "page": "/api/orders/ship", "regex": "^/api/orders/ship(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/orders/ship(?:/)?$" }, { "page": "/api/password/forgot", "regex": "^/api/password/forgot(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/password/forgot(?:/)?$" }, { "page": "/api/password/reset", "regex": "^/api/password/reset(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/password/reset(?:/)?$" }, { "page": "/api/payments/zarinpal/callback", "regex": "^/api/payments/zarinpal/callback(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/payments/zarinpal/callback(?:/)?$" }, { "page": "/api/product-image", "regex": "^/api/product\\-image(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/product\\-image(?:/)?$" }, { "page": "/api/register", "regex": "^/api/register(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/register(?:/)?$" }, { "page": "/api/reviews", "regex": "^/api/reviews(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/reviews(?:/)?$" }, { "page": "/api/seller/profile", "regex": "^/api/seller/profile(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller/profile(?:/)?$" }, { "page": "/api/seller-matching-requests", "regex": "^/api/seller\\-matching\\-requests(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-matching\\-requests(?:/)?$" }, { "page": "/api/seller-performance-event", "regex": "^/api/seller\\-performance\\-event(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-performance\\-event(?:/)?$" }, { "page": "/api/seller-request-action", "regex": "^/api/seller\\-request\\-action(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-request\\-action(?:/)?$" }, { "page": "/api/seller-score", "regex": "^/api/seller\\-score(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/seller\\-score(?:/)?$" }, { "page": "/api/session", "regex": "^/api/session(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/session(?:/)?$" }, { "page": "/api/shop/orders", "regex": "^/api/shop/orders(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/shop/orders(?:/)?$" }, { "page": "/api/shop/orders/pay", "regex": "^/api/shop/orders/pay(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/shop/orders/pay(?:/)?$" }, { "page": "/api/shop/prices", "regex": "^/api/shop/prices(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/shop/prices(?:/)?$" }, { "page": "/api/site-mode", "regex": "^/api/site\\-mode(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/site\\-mode(?:/)?$" }, { "page": "/api/source-files", "regex": "^/api/source\\-files(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/source\\-files(?:/)?$" }, { "page": "/api/store/price-refresh-tick", "regex": "^/api/store/price\\-refresh\\-tick(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/store/price\\-refresh\\-tick(?:/)?$" }, { "page": "/api/store-products/auto-refresh", "regex": "^/api/store\\-products/auto\\-refresh(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/store\\-products/auto\\-refresh(?:/)?$" }, { "page": "/api/submit-offer", "regex": "^/api/submit\\-offer(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/submit\\-offer(?:/)?$" }, { "page": "/api/submit-request", "regex": "^/api/submit\\-request(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/submit\\-request(?:/)?$" }, { "page": "/api/support-chat", "regex": "^/api/support\\-chat(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/support\\-chat(?:/)?$" }, { "page": "/api/torob/products", "regex": "^/api/torob/products(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/torob/products(?:/)?$" }, { "page": "/api/wallet/topup", "regex": "^/api/wallet/topup(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/wallet/topup(?:/)?$" }, { "page": "/api/wallet/withdraw", "regex": "^/api/wallet/withdraw(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/wallet/withdraw(?:/)?$" }, { "page": "/become-seller", "regex": "^/become\\-seller(?:/)?$", "routeKeys": {}, "namedRegex": "^/become\\-seller(?:/)?$" }, { "page": "/buyer/dashboard", "regex": "^/buyer/dashboard(?:/)?$", "routeKeys": {}, "namedRegex": "^/buyer/dashboard(?:/)?$" }, { "page": "/buyers", "regex": "^/buyers(?:/)?$", "routeKeys": {}, "namedRegex": "^/buyers(?:/)?$" }, { "page": "/cart", "regex": "^/cart(?:/)?$", "routeKeys": {}, "namedRegex": "^/cart(?:/)?$" }, { "page": "/categories", "regex": "^/categories(?:/)?$", "routeKeys": {}, "namedRegex": "^/categories(?:/)?$" }, { "page": "/contact", "regex": "^/contact(?:/)?$", "routeKeys": {}, "namedRegex": "^/contact(?:/)?$" }, { "page": "/external-link", "regex": "^/external\\-link(?:/)?$", "routeKeys": {}, "namedRegex": "^/external\\-link(?:/)?$" }, { "page": "/forgot-password", "regex": "^/forgot\\-password(?:/)?$", "routeKeys": {}, "namedRegex": "^/forgot\\-password(?:/)?$" }, { "page": "/how-it-works", "regex": "^/how\\-it\\-works(?:/)?$", "routeKeys": {}, "namedRegex": "^/how\\-it\\-works(?:/)?$" }, { "page": "/login", "regex": "^/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/login(?:/)?$" }, { "page": "/manifest.webmanifest", "regex": "^/manifest\\.webmanifest(?:/)?$", "routeKeys": {}, "namedRegex": "^/manifest\\.webmanifest(?:/)?$" }, { "page": "/register", "regex": "^/register(?:/)?$", "routeKeys": {}, "namedRegex": "^/register(?:/)?$" }, { "page": "/request-board", "regex": "^/request\\-board(?:/)?$", "routeKeys": {}, "namedRegex": "^/request\\-board(?:/)?$" }, { "page": "/request-purchase", "regex": "^/request\\-purchase(?:/)?$", "routeKeys": {}, "namedRegex": "^/request\\-purchase(?:/)?$" }, { "page": "/requests", "regex": "^/requests(?:/)?$", "routeKeys": {}, "namedRegex": "^/requests(?:/)?$" }, { "page": "/robots.txt", "regex": "^/robots\\.txt(?:/)?$", "routeKeys": {}, "namedRegex": "^/robots\\.txt(?:/)?$" }, { "page": "/seller/dashboard", "regex": "^/seller/dashboard(?:/)?$", "routeKeys": {}, "namedRegex": "^/seller/dashboard(?:/)?$" }, { "page": "/seller/sales", "regex": "^/seller/sales(?:/)?$", "routeKeys": {}, "namedRegex": "^/seller/sales(?:/)?$" }, { "page": "/sellers", "regex": "^/sellers(?:/)?$", "routeKeys": {}, "namedRegex": "^/sellers(?:/)?$" }, { "page": "/shop", "regex": "^/shop(?:/)?$", "routeKeys": {}, "namedRegex": "^/shop(?:/)?$" }, { "page": "/shop/collections", "regex": "^/shop/collections(?:/)?$", "routeKeys": {}, "namedRegex": "^/shop/collections(?:/)?$" }, { "page": "/shop/guides", "regex": "^/shop/guides(?:/)?$", "routeKeys": {}, "namedRegex": "^/shop/guides(?:/)?$" }, { "page": "/sitemap.xml", "regex": "^/sitemap\\.xml(?:/)?$", "routeKeys": {}, "namedRegex": "^/sitemap\\.xml(?:/)?$" }, { "page": "/source-code", "regex": "^/source\\-code(?:/)?$", "routeKeys": {}, "namedRegex": "^/source\\-code(?:/)?$" }, { "page": "/support", "regex": "^/support(?:/)?$", "routeKeys": {}, "namedRegex": "^/support(?:/)?$" }], "dynamic": [{ "page": "/api/auth/social/[provider]", "regex": "^/api/auth/social/([^/]+?)(?:/)?$", "routeKeys": { "nxtPprovider": "nxtPprovider" }, "namedRegex": "^/api/auth/social/(?<nxtPprovider>[^/]+?)(?:/)?$" }, { "page": "/api/auth/social/[provider]/callback", "regex": "^/api/auth/social/([^/]+?)/callback(?:/)?$", "routeKeys": { "nxtPprovider": "nxtPprovider" }, "namedRegex": "^/api/auth/social/(?<nxtPprovider>[^/]+?)/callback(?:/)?$" }, { "page": "/buyers/[id]", "regex": "^/buyers/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/buyers/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/categories/[id]", "regex": "^/categories/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/categories/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/requests/[id]", "regex": "^/requests/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/requests/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/requests/[id]/checkout", "regex": "^/requests/([^/]+?)/checkout(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/requests/(?<nxtPid>[^/]+?)/checkout(?:/)?$" }, { "page": "/requests/[id]/offer", "regex": "^/requests/([^/]+?)/offer(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/requests/(?<nxtPid>[^/]+?)/offer(?:/)?$" }, { "page": "/sellers/[id]", "regex": "^/sellers/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/sellers/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/shop/collections/[slug]", "regex": "^/shop/collections/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/shop/collections/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/shop/guides/[slug]", "regex": "^/shop/guides/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/shop/guides/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/shop/[slug]", "regex": "^/shop/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/shop/(?<nxtPslug>[^/]+?)(?:/)?$" }], "data": { "static": [], "dynamic": [] } }, "locales": [] };
 var ConfigHeaders = [{ "source": "/_next/static/:path*", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }], "regex": "^/_next/static(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/:path*.{png,jpg,jpeg,webp,svg,ico,css,js}", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }], "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?\\.(?:png,jpg,jpeg,webp,svg,ico,css,js)(?:/)?$" }];
-var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/manifest.webmanifest": { "initialHeaders": { "cache-control": "public, max-age=0, must-revalidate", "content-type": "application/manifest+json", "x-next-cache-tags": "_N_T_/layout,_N_T_/manifest.webmanifest/layout,_N_T_/manifest.webmanifest/route,_N_T_/manifest.webmanifest" }, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/manifest.webmanifest", "dataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/robots.txt": { "initialHeaders": { "cache-control": "public, max-age=0, must-revalidate", "content-type": "text/plain", "x-next-cache-tags": "_N_T_/layout,_N_T_/robots.txt/layout,_N_T_/robots.txt/route,_N_T_/robots.txt" }, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/robots.txt", "dataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "41a4389b36430c0e8d9199e2fabf7328", "previewModeSigningKey": "8579cff2bcd8fef04017814d4443cef96d123734bb3174aa9a99ffa7e1fe070c", "previewModeEncryptionKey": "a0a5ddf949dfc3a09c9a740399a0b87442fd40d18ff7671cf0ad26ca1ab08cb7" } };
-var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_0_kjzx3.js", "server/edge/chunks/[root-of-the-server]__0emy-m4._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0a9xbl8.js"], "name": "middleware", "page": "/", "entrypoint": "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0a9xbl8.js", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\..*).*))(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "xDfS-HAuVN1-TEX3-DQdP", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "aAhB+xwZPZgYJAWcIfLxBDRipiut+xuzaFtaxTNo+6Q=", "__NEXT_PREVIEW_MODE_ID": "41a4389b36430c0e8d9199e2fabf7328", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "a0a5ddf949dfc3a09c9a740399a0b87442fd40d18ff7671cf0ad26ca1ab08cb7", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "8579cff2bcd8fef04017814d4443cef96d123734bb3174aa9a99ffa7e1fe070c" } } }, "sortedMiddleware": ["/"], "functions": {} };
-var AppPathRoutesManifest = { "/_global-error/page": "/_global-error", "/_not-found/page": "/_not-found", "/account/completion/page": "/account/completion", "/admin/dashboard/page": "/admin/dashboard", "/api/account/seller-mode/route": "/api/account/seller-mode", "/api/admin/categories/route": "/api/admin/categories", "/api/admin/enamad/route": "/api/admin/enamad", "/api/admin/finance/route": "/api/admin/finance", "/api/admin/homepage-slider/route": "/api/admin/homepage-slider", "/api/admin/kyc-document/route": "/api/admin/kyc-document", "/api/admin/kyc/route": "/api/admin/kyc", "/api/admin/reverse-auction/dispatch/route": "/api/admin/reverse-auction/dispatch", "/api/admin/seller-metrics/route": "/api/admin/seller-metrics", "/api/admin/store-products/clear/route": "/api/admin/store-products/clear", "/api/admin/store-products/crawl-batch/route": "/api/admin/store-products/crawl-batch", "/api/admin/store-products/digikala-page/route": "/api/admin/store-products/digikala-page", "/api/admin/store-products/import-csv/route": "/api/admin/store-products/import-csv", "/api/admin/store-products/import-multiple/route": "/api/admin/store-products/import-multiple", "/api/admin/store-products/import/route": "/api/admin/store-products/import", "/api/admin/store-products/refresh-prices/route": "/api/admin/store-products/refresh-prices", "/api/admin/store-products/repair-csv/route": "/api/admin/store-products/repair-csv", "/api/admin/storefront-slider/route": "/api/admin/storefront-slider", "/api/admin/users/route": "/api/admin/users", "/api/admin/withdrawals/route": "/api/admin/withdrawals", "/api/auth/social/[provider]/callback/route": "/api/auth/social/[provider]/callback", "/api/auth/social/[provider]/route": "/api/auth/social/[provider]", "/api/avatar/route": "/api/avatar", "/api/buyer/profile/route": "/api/buyer/profile", "/api/catalog-categories/route": "/api/catalog-categories", "/api/dashboard/buyer/route": "/api/dashboard/buyer", "/api/dashboard/seller/route": "/api/dashboard/seller", "/api/database-status/route": "/api/database-status", "/api/download-source/route": "/api/download-source", "/api/enamad/route": "/api/enamad", "/api/external-link/route": "/api/external-link", "/api/health/route": "/api/health", "/api/live-content/route": "/api/live-content", "/api/login/route": "/api/login", "/api/logout/route": "/api/logout", "/api/messages/route": "/api/messages", "/api/orders/archive/route": "/api/orders/archive", "/api/orders/cancel/route": "/api/orders/cancel", "/api/orders/confirm-received/route": "/api/orders/confirm-received", "/api/orders/pay/route": "/api/orders/pay", "/api/orders/select-offer/route": "/api/orders/select-offer", "/api/orders/ship/route": "/api/orders/ship", "/api/password/forgot/route": "/api/password/forgot", "/api/password/reset/route": "/api/password/reset", "/api/payments/zarinpal/callback/route": "/api/payments/zarinpal/callback", "/api/product-image/route": "/api/product-image", "/api/register/route": "/api/register", "/api/reviews/route": "/api/reviews", "/api/seller-matching-requests/route": "/api/seller-matching-requests", "/api/seller-performance-event/route": "/api/seller-performance-event", "/api/seller-request-action/route": "/api/seller-request-action", "/api/seller-score/route": "/api/seller-score", "/api/seller/profile/route": "/api/seller/profile", "/api/shop/orders/pay/route": "/api/shop/orders/pay", "/api/shop/orders/route": "/api/shop/orders", "/api/shop/prices/route": "/api/shop/prices", "/api/site-mode/route": "/api/site-mode", "/api/source-files/route": "/api/source-files", "/api/submit-offer/route": "/api/submit-offer", "/api/submit-request/route": "/api/submit-request", "/api/support-chat/route": "/api/support-chat", "/api/torob/products/route": "/api/torob/products", "/api/wallet/topup/route": "/api/wallet/topup", "/api/wallet/withdraw/route": "/api/wallet/withdraw", "/become-seller/page": "/become-seller", "/buyer/dashboard/page": "/buyer/dashboard", "/buyers/[id]/page": "/buyers/[id]", "/buyers/page": "/buyers", "/cart/page": "/cart", "/categories/[id]/page": "/categories/[id]", "/categories/page": "/categories", "/contact/page": "/contact", "/external-link/page": "/external-link", "/forgot-password/page": "/forgot-password", "/how-it-works/page": "/how-it-works", "/login/page": "/login", "/manifest.webmanifest/route": "/manifest.webmanifest", "/page": "/", "/register/page": "/register", "/request-board/page": "/request-board", "/request-purchase/page": "/request-purchase", "/requests/[id]/checkout/page": "/requests/[id]/checkout", "/requests/[id]/offer/page": "/requests/[id]/offer", "/requests/[id]/page": "/requests/[id]", "/requests/page": "/requests", "/robots.txt/route": "/robots.txt", "/seller/dashboard/page": "/seller/dashboard", "/seller/sales/page": "/seller/sales", "/sellers/[id]/page": "/sellers/[id]", "/sellers/page": "/sellers", "/shop/[slug]/page": "/shop/[slug]", "/shop/collections/[slug]/page": "/shop/collections/[slug]", "/shop/collections/page": "/shop/collections", "/shop/guides/[slug]/page": "/shop/guides/[slug]", "/shop/guides/page": "/shop/guides", "/shop/page": "/shop", "/sitemap.xml/route": "/sitemap.xml", "/source-code/page": "/source-code", "/support/page": "/support" };
+var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/manifest.webmanifest": { "initialHeaders": { "cache-control": "public, max-age=0, must-revalidate", "content-type": "application/manifest+json", "x-next-cache-tags": "_N_T_/layout,_N_T_/manifest.webmanifest/layout,_N_T_/manifest.webmanifest/route,_N_T_/manifest.webmanifest" }, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/manifest.webmanifest", "dataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/robots.txt": { "initialHeaders": { "cache-control": "public, max-age=0, must-revalidate", "content-type": "text/plain", "x-next-cache-tags": "_N_T_/layout,_N_T_/robots.txt/layout,_N_T_/robots.txt/route,_N_T_/robots.txt" }, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/robots.txt", "dataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "4753c8766aabd73801f1e5764dfd6e57", "previewModeSigningKey": "3d24ed6c32cf6cdedfc6f9a25e86cba1e0094c16f69bf4bbfcd7b71a1237c7c7", "previewModeEncryptionKey": "9b9e59bfb8f0f046020b9c0bd52a3766fd4aa2936ac534e7bae0a52296471d75" } };
+var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/_1s0wgnu._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_1x1n1fx.js", "server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_0_kjzx3.js", "server/edge/chunks/[root-of-the-server]__0emy-m4._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0a9xbl8.js"], "name": "middleware", "page": "/", "entrypoint": "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0a9xbl8.js", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\..*).*))(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "-cVKuG8smZzgS6C4hOA5y", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "XSFt9qV1Rb8XoNuPQ7tVkk3sbZTCbxC/2vOJA6Fl5Ps=", "__NEXT_PREVIEW_MODE_ID": "4753c8766aabd73801f1e5764dfd6e57", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "9b9e59bfb8f0f046020b9c0bd52a3766fd4aa2936ac534e7bae0a52296471d75", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "3d24ed6c32cf6cdedfc6f9a25e86cba1e0094c16f69bf4bbfcd7b71a1237c7c7" } } }, "sortedMiddleware": ["/"], "functions": {} };
+var AppPathRoutesManifest = { "/_global-error/page": "/_global-error", "/_not-found/page": "/_not-found", "/account/completion/page": "/account/completion", "/admin/dashboard/page": "/admin/dashboard", "/admin/diagnostics/laptop-catalog/page": "/admin/diagnostics/laptop-catalog", "/admin/orders/page": "/admin/orders", "/admin/price-check/page": "/admin/price-check", "/admin/pricing-audit/page": "/admin/pricing-audit", "/api/account/seller-mode/route": "/api/account/seller-mode", "/api/admin/categories/route": "/api/admin/categories", "/api/admin/enamad/route": "/api/admin/enamad", "/api/admin/finance/route": "/api/admin/finance", "/api/admin/homepage-slider/route": "/api/admin/homepage-slider", "/api/admin/kyc-document/route": "/api/admin/kyc-document", "/api/admin/kyc/route": "/api/admin/kyc", "/api/admin/laptop-catalog-report/route": "/api/admin/laptop-catalog-report", "/api/admin/orders/route": "/api/admin/orders", "/api/admin/reverse-auction/dispatch/route": "/api/admin/reverse-auction/dispatch", "/api/admin/seller-metrics/route": "/api/admin/seller-metrics", "/api/admin/store-products/apply-multiplier/route": "/api/admin/store-products/apply-multiplier", "/api/admin/store-products/clear/route": "/api/admin/store-products/clear", "/api/admin/store-products/crawl-batch/route": "/api/admin/store-products/crawl-batch", "/api/admin/store-products/digikala-page/route": "/api/admin/store-products/digikala-page", "/api/admin/store-products/import-csv/route": "/api/admin/store-products/import-csv", "/api/admin/store-products/import-multiple/route": "/api/admin/store-products/import-multiple", "/api/admin/store-products/import/route": "/api/admin/store-products/import", "/api/admin/store-products/market-reference/route": "/api/admin/store-products/market-reference", "/api/admin/store-products/price-audit/route": "/api/admin/store-products/price-audit", "/api/admin/store-products/refresh-prices/route": "/api/admin/store-products/refresh-prices", "/api/admin/store-products/repair-csv/route": "/api/admin/store-products/repair-csv", "/api/admin/storefront-slider/route": "/api/admin/storefront-slider", "/api/admin/users/route": "/api/admin/users", "/api/admin/withdrawals/route": "/api/admin/withdrawals", "/api/auth/social/[provider]/callback/route": "/api/auth/social/[provider]/callback", "/api/auth/social/[provider]/route": "/api/auth/social/[provider]", "/api/avatar/route": "/api/avatar", "/api/buyer/profile/route": "/api/buyer/profile", "/api/catalog-categories/route": "/api/catalog-categories", "/api/dashboard/buyer/route": "/api/dashboard/buyer", "/api/dashboard/seller/route": "/api/dashboard/seller", "/api/database-status/route": "/api/database-status", "/api/download-source/route": "/api/download-source", "/api/enamad/route": "/api/enamad", "/api/external-link/route": "/api/external-link", "/api/health/route": "/api/health", "/api/live-content/route": "/api/live-content", "/api/login/route": "/api/login", "/api/logout/route": "/api/logout", "/api/messages/route": "/api/messages", "/api/orders/archive/route": "/api/orders/archive", "/api/orders/cancel/route": "/api/orders/cancel", "/api/orders/confirm-received/route": "/api/orders/confirm-received", "/api/orders/pay/route": "/api/orders/pay", "/api/orders/select-offer/route": "/api/orders/select-offer", "/api/orders/ship/route": "/api/orders/ship", "/api/password/forgot/route": "/api/password/forgot", "/api/password/reset/route": "/api/password/reset", "/api/payments/zarinpal/callback/route": "/api/payments/zarinpal/callback", "/api/product-image/route": "/api/product-image", "/api/register/route": "/api/register", "/api/reviews/route": "/api/reviews", "/api/seller-matching-requests/route": "/api/seller-matching-requests", "/api/seller-performance-event/route": "/api/seller-performance-event", "/api/seller-request-action/route": "/api/seller-request-action", "/api/seller-score/route": "/api/seller-score", "/api/seller/profile/route": "/api/seller/profile", "/api/session/route": "/api/session", "/api/shop/orders/pay/route": "/api/shop/orders/pay", "/api/shop/orders/route": "/api/shop/orders", "/api/shop/prices/route": "/api/shop/prices", "/api/site-mode/route": "/api/site-mode", "/api/source-files/route": "/api/source-files", "/api/store-products/auto-refresh/route": "/api/store-products/auto-refresh", "/api/store/price-refresh-tick/route": "/api/store/price-refresh-tick", "/api/submit-offer/route": "/api/submit-offer", "/api/submit-request/route": "/api/submit-request", "/api/support-chat/route": "/api/support-chat", "/api/torob/products/route": "/api/torob/products", "/api/wallet/topup/route": "/api/wallet/topup", "/api/wallet/withdraw/route": "/api/wallet/withdraw", "/become-seller/page": "/become-seller", "/buyer/dashboard/page": "/buyer/dashboard", "/buyers/[id]/page": "/buyers/[id]", "/buyers/page": "/buyers", "/cart/page": "/cart", "/categories/[id]/page": "/categories/[id]", "/categories/page": "/categories", "/contact/page": "/contact", "/external-link/page": "/external-link", "/forgot-password/page": "/forgot-password", "/how-it-works/page": "/how-it-works", "/login/page": "/login", "/manifest.webmanifest/route": "/manifest.webmanifest", "/page": "/", "/register/page": "/register", "/request-board/page": "/request-board", "/request-purchase/page": "/request-purchase", "/requests/[id]/checkout/page": "/requests/[id]/checkout", "/requests/[id]/offer/page": "/requests/[id]/offer", "/requests/[id]/page": "/requests/[id]", "/requests/page": "/requests", "/robots.txt/route": "/robots.txt", "/seller/dashboard/page": "/seller/dashboard", "/seller/sales/page": "/seller/sales", "/sellers/[id]/page": "/sellers/[id]", "/sellers/page": "/sellers", "/shop/[slug]/page": "/shop/[slug]", "/shop/collections/[slug]/page": "/shop/collections/[slug]", "/shop/collections/page": "/shop/collections", "/shop/guides/[slug]/page": "/shop/guides/[slug]", "/shop/guides/page": "/shop/guides", "/shop/page": "/shop", "/sitemap.xml/route": "/sitemap.xml", "/source-code/page": "/source-code", "/support/page": "/support" };
 var FunctionsConfigManifest = { "version": 1, "functions": {} };
 var PagesManifest = { "/500": "pages/500.html" };
 process.env.NEXT_BUILD_ID = BuildId;

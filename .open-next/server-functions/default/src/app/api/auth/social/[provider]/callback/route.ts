@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { sessionCookieOptions } from "@/lib/session-cookie-options";
 import {
   authenticateOrCreateJsonSocialUser,
   getJsonPlatformFinance,
@@ -10,15 +11,14 @@ export const dynamic = "force-dynamic";
 
 function setUserSession(
   response: NextResponse,
+  request: Request,
   user: { id: number; role: string },
 ) {
-  response.cookies.set("optibid_user", `${user.role}:${user.id}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  response.cookies.set(
+    "optibid_user",
+    `${user.role}:${user.id}`,
+    sessionCookieOptions(request, 60 * 60 * 24 * 30),
+  );
   return response;
 }
 
@@ -279,7 +279,7 @@ export async function GET(request: Request, context: RouteContext) {
       }),
       { headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
-    setUserSession(response, { id: user.id, role: user.role });
+    setUserSession(response, request, { id: user.id, role: user.role });
     response.cookies.set("optibid_social_state", "", { path: "/", maxAge: 0 });
     return response;
   } catch (error) {

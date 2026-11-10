@@ -107,6 +107,10 @@ type HomeRequestCard = {
 };
 
 export default async function HomePage() {
+  // توجه: صفحهٔ اصلی برای مدیر هم باید باز باشد؛ ریدایرکت خودکار مدیر به پنل
+  // باعث می‌شد کلیک روی لوگوی OptiBid در هدر به‌جای خانه، پنل مدیریت را باز کند.
+  // هدایت مدیر به پنل، فقط در جریان ورود (LoginFormClient) انجام می‌شود.
+
   let displayRequests: HomeRequestCard[] = [];
   let bestSellingRequests: HomeRequestCard[] = [];
   let growthPredictionRequests: HomeRequestCard[] = [];
