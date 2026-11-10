@@ -474,6 +474,9 @@ export type JsonStoreOrder = {
   shippedAt?: string;
   completedAt?: string;
   cancelledAt?: string;
+  /** مبلغی که پس از لغو به کیف پول خریدار برگشته است. */
+  refundedAmount?: number;
+  refundedAt?: string;
   /** یادداشت داخلی ادمین دربارهٔ این سفارش. */
   adminNote?: string;
   createdAt: string;
@@ -1426,6 +1429,10 @@ function normalizeStoreOrders(value: unknown): JsonStoreOrder[] {
       completedAt: String(order.completedAt || ""),
       cancelledAt: String(order.cancelledAt || ""),
       adminNote: String(order.adminNote || ""),
+      // مبلغ بازپرداخت‌شده باید در خواندن بعدی باقی بماند تا در پنل ادمین و
+      // صفحهٔ خریدار به‌عنوان «بازپرداخت‌شده» دیده شود.
+      refundedAmount: Number(order.refundedAmount || 0) || undefined,
+      refundedAt: order.refundedAt ? String(order.refundedAt) : undefined,
       createdAt: String(order.createdAt || new Date().toISOString()),
     });
   }
@@ -6137,6 +6144,8 @@ export async function adminUpdateJsonMarketOrder(input: {
   const heldEscrow = data.transactions.find(
     (item) => item.orderId === order.id && item.status === "held",
   );
+  /** مبلغی که در همین درخواست به کیف پول خریدار برگشته است. */
+  let marketRefundedAmount = 0;
 
   if (input.note?.trim()) order.adminNote = input.note.trim().slice(0, 500);
 
@@ -6257,20 +6266,36 @@ export async function adminUpdateJsonMarketOrder(input: {
     order.cancelledAt = now;
     if (request) request.status = "open";
     if (offer) offer.status = "pending";
-    if (heldEscrow) {
+    const alreadyRefunded = data.walletTransactions.some(
+      (item) => item.orderId === order.id && item.type === "refund",
+    );
+    if (heldEscrow && !alreadyRefunded && buyer) {
       heldEscrow.status = "refunded";
       heldEscrow.releasedAt = now;
-      if (buyer) {
-        buyer.walletBalance += heldEscrow.amount;
-        addWalletTransaction(data, {
-          userId: buyer.id,
-          type: "refund",
-          amount: heldEscrow.amount,
-          balanceAfter: buyer.walletBalance,
-          description: `بازپرداخت سفارش ${order.id} به کیف پول`,
-          orderId: order.id,
-        });
-      }
+      buyer.walletBalance += heldEscrow.amount;
+      marketRefundedAmount = heldEscrow.amount;
+      addWalletTransaction(data, {
+        userId: buyer.id,
+        type: "refund",
+        amount: heldEscrow.amount,
+        balanceAfter: buyer.walletBalance,
+        description: `بازپرداخت سفارش ${order.id} به کیف پول`,
+        orderId: order.id,
+      });
+    } else if (!alreadyRefunded && buyer && (Boolean(order.paymentAt) || Boolean(heldEscrow))) {
+      // اگر پرداخت تأیید شده باشد ولی رکورد امانی ثبت نشده باشد (پرداخت قدیمی یا
+      // دستی)، مبلغ سفارش باید همچنان به کیف پول خریدار برگردد.
+      const orderRefund = money(order.totalAmount);
+      marketRefundedAmount = orderRefund;
+      buyer.walletBalance += orderRefund;
+      addWalletTransaction(data, {
+        userId: buyer.id,
+        type: "refund",
+        amount: orderRefund,
+        balanceAfter: buyer.walletBalance,
+        description: `بازپرداخت سفارش ${order.id} به کیف پول (بدون رکورد امانی)`,
+        orderId: order.id,
+      });
     }
     addNotification(data, {
       userId: order.buyerId,
@@ -6291,7 +6316,12 @@ export async function adminUpdateJsonMarketOrder(input: {
   }
 
   await writeOptiBidData(data);
-  return { id: order.id, status: order.status };
+  return {
+    id: order.id,
+    status: order.status,
+    refundedAmount: marketRefundedAmount,
+    walletBalance: buyer ? Number(buyer.walletBalance || 0) : 0,
+  };
 }
 
 /** ادمین وضعیت سفارش فروشگاهی (سبد خرید) را جلو می‌برد یا آن را لغو/بازپرداخت می‌کند. */
@@ -6382,7 +6412,17 @@ export async function adminUpdateJsonStoreOrder(input: {
     const wasPaid = order.status !== "pending_payment";
     if (wasPaid) {
       restoreStoreOrderStock(data, order);
-      if (buyer) {
+      // بازپرداخت تکراری ممکن نباشد: اگر قبلاً برای همین سفارش پول برگشته،
+      // دوباره به کیف پول اضافه نمی‌شود.
+      const alreadyRefunded = data.walletTransactions.some(
+        (item) => item.orderId === order.id && item.type === "refund",
+      );
+      if (!alreadyRefunded) {
+        if (!buyer) {
+          throw new Error(
+            "خریدار این سفارش در سایت پیدا نشد؛ برای بازپرداخت، ابتدا حساب خریدار را بررسی کنید.",
+          );
+        }
         buyer.walletBalance += amount;
         addWalletTransaction(data, {
           userId: buyer.id,
@@ -6392,6 +6432,8 @@ export async function adminUpdateJsonStoreOrder(input: {
           description: `بازپرداخت سفارش فروشگاهی ${order.id}`,
           orderId: order.id,
         });
+        order.refundedAmount = amount;
+        order.refundedAt = now;
       }
     }
     order.status = "cancelled";
@@ -6400,11 +6442,20 @@ export async function adminUpdateJsonStoreOrder(input: {
       userId: order.buyerId,
       type: "order",
       title: "سفارش فروشگاهی لغو شد",
-      body: `سفارش ${order.id} لغو شد${wasPaid ? " و مبلغ آن به کیف پول شما بازگشت" : ""}.`,
+      body: `سفارش ${order.id} لغو شد${
+        Number(order.refundedAmount || 0) > 0
+          ? ` و مبلغ ${Number(order.refundedAmount).toLocaleString("fa-IR")} تومان به کیف پول شما بازگشت`
+          : ""
+      }.`,
       href: "/buyer/dashboard?tab=storeOrders",
     });
   }
 
   await writeOptiBidData(data);
-  return { id: order.id, status: order.status };
+  return {
+    id: order.id,
+    status: order.status,
+    refundedAmount: Number(order.refundedAmount || 0),
+    walletBalance: buyer ? Number(buyer.walletBalance || 0) : 0,
+  };
 }

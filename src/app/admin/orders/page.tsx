@@ -356,6 +356,14 @@ export default async function AdminOrdersPage({
                       label={STORE_STATUS[order.status]?.label ?? order.status}
                       tone={STORE_STATUS[order.status]?.tone ?? "bg-gray-50 text-gray-600 border-gray-200"}
                     />
+                    {Number(order.refundedAmount || 0) > 0 && (
+                      <div className="mt-1">
+                        <Badge
+                          label={`بازپرداخت شد: ${toman(Number(order.refundedAmount || 0))}`}
+                          tone="bg-emerald-50 text-emerald-700 border-emerald-200"
+                        />
+                      </div>
+                    )}
                   </td>
                   <td className="p-3">
                     <AdminOrderActions

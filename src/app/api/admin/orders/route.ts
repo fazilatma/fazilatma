@@ -59,7 +59,15 @@ export async function POST(request: Request) {
         trackingCode,
         note,
       });
-      return NextResponse.json({ success: true, order, message: "وضعیت سفارش فروشگاهی به‌روزرسانی شد." });
+      const refunded = Number((order as { refundedAmount?: number })?.refundedAmount || 0);
+      const walletBalance = Number((order as { walletBalance?: number })?.walletBalance || 0);
+      const message =
+        action === "cancel" && refunded > 0
+          ? `سفارش لغو شد و ${refunded.toLocaleString("fa-IR")} تومان به کیف پول خریدار بازگشت (موجودی خریدار: ${walletBalance.toLocaleString("fa-IR")} تومان).`
+          : action === "cancel"
+            ? "سفارش لغو شد؛ مبلغی برای بازپرداخت وجود نداشت (سفارش پرداخت نشده بود)."
+            : "وضعیت سفارش فروشگاهی به‌روزرسانی شد.";
+      return NextResponse.json({ success: true, order, refunded, walletBalance, message });
     }
 
     if (!MARKET_ACTIONS.includes(action as AdminMarketOrderAction)) {
@@ -71,7 +79,16 @@ export async function POST(request: Request) {
       trackingCode,
       note,
     });
-    return NextResponse.json({ success: true, order, message: "سفارش بازار به‌روزرسانی شد." });
+    const marketRefunded = Number((order as { refundedAmount?: number })?.refundedAmount || 0);
+    return NextResponse.json({
+      success: true,
+      order,
+      refunded: marketRefunded,
+      message:
+        action === "cancel" && marketRefunded > 0
+          ? `سفارش بازار لغو شد و ${marketRefunded.toLocaleString("fa-IR")} تومان به کیف پول خریدار بازگشت.`
+          : "سفارش بازار به‌روزرسانی شد.",
+    });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown admin order error";
     return NextResponse.json(

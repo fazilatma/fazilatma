@@ -42,6 +42,9 @@ export type StoreOrderRow = {
   paymentMethod?: JsonStoreOrder["paymentMethod"];
   trackingCode?: string;
   adminNote?: string;
+  /** مبلغی که پس از لغو به کیف پول خریدار بازگشته است. */
+  refundedAmount?: number;
+  refundedAt?: string;
 };
 
 export type SellerSummaryRow = {
@@ -122,6 +125,8 @@ export async function getAdminOrdersOverview(): Promise<AdminOrdersOverview> {
     paymentMethod: order.paymentMethod,
     trackingCode: order.trackingCode,
     adminNote: order.adminNote,
+    refundedAmount: Number(order.refundedAmount || 0) || undefined,
+    refundedAt: order.refundedAt,
   }));
 
   const sellerMap = new Map<number, SellerSummaryRow>();
