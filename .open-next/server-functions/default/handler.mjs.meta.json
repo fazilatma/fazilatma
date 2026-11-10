@@ -7500,7 +7500,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-      "bytes": 2701762,
+      "bytes": 2701782,
       "imports": [],
       "format": "cjs"
     },
@@ -9970,7 +9970,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_0jr94yk._.js": {
-      "bytes": 72608,
+      "bytes": 72568,
       "imports": [],
       "format": "cjs"
     },
@@ -10635,7 +10635,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/src_14c5bij._.js": {
-      "bytes": 44899,
+      "bytes": 44953,
       "imports": [],
       "format": "cjs"
     },
@@ -20729,7 +20729,7 @@
           "bytesInOutput": 287
         },
         ".open-next/server-functions/default/.next/server/chunks/src_generated_source-snapshot_json_[json]_cjs_0zaxq_a._.js": {
-          "bytesInOutput": 3352643
+          "bytesInOutput": 3352663
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__0dx3i76._.js": {
           "bytesInOutput": 9977
@@ -21107,7 +21107,7 @@
           "bytesInOutput": 23194
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_0jr94yk._.js": {
-          "bytesInOutput": 101387
+          "bytesInOutput": 101347
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_161vypf._.js": {
           "bytesInOutput": 44507
@@ -21365,7 +21365,7 @@
           "bytesInOutput": 6389
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/src_14c5bij._.js": {
-          "bytesInOutput": 59219
+          "bytesInOutput": 59273
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__13m-or7._.js": {
           "bytesInOutput": 16462
@@ -21905,7 +21905,7 @@
           "bytesInOutput": 78533
         }
       },
-      "bytes": 11878019
+      "bytes": 11878053
     }
   }
 }

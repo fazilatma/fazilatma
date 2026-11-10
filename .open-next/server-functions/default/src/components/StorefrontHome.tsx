@@ -160,7 +160,7 @@ export default function StorefrontHome({
             ).map((chip) => (
               <Link
                 key={chip}
-                href={`/shop?q=${encodeURIComponent(chip)}`}
+                href={`/shop?brand=${encodeURIComponent(chip)}&all=1`}
                 className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
                 {chip}
@@ -438,11 +438,11 @@ export default function StorefrontHome({
 
 
 const brandCircleItems = [
-  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?category=laptop&brand=Asus&ref=brand-asus", color: "from-indigo-500 to-fuchsia-500" },
-  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?category=laptop&brand=Lenovo&ref=brand-lenovo", color: "from-red-500 to-slate-800" },
-  { title: "HP", subtitle: "EliteBook", href: "/shop?category=laptop&brand=HP&ref=brand-hp", color: "from-sky-500 to-blue-700" },
-  { title: "Dell", subtitle: "Latitude", href: "/shop?category=laptop&brand=Dell&ref=brand-dell", color: "from-cyan-500 to-slate-700" },
-  { title: "Apple", subtitle: "MacBook", href: "/shop?category=laptop&brand=Apple&ref=brand-apple", color: "from-slate-500 to-slate-900" },
+  { title: "Asus", subtitle: "TUF / VivoBook", href: "/shop?brand=Asus&all=1&ref=brand-asus", color: "from-indigo-500 to-fuchsia-500" },
+  { title: "Lenovo", subtitle: "ThinkPad / Legion", href: "/shop?brand=Lenovo&all=1&ref=brand-lenovo", color: "from-red-500 to-slate-800" },
+  { title: "HP", subtitle: "EliteBook", href: "/shop?brand=HP&all=1&ref=brand-hp", color: "from-sky-500 to-blue-700" },
+  { title: "Dell", subtitle: "Latitude", href: "/shop?brand=Dell&all=1&ref=brand-dell", color: "from-cyan-500 to-slate-700" },
+  { title: "Apple", subtitle: "MacBook", href: "/shop?brand=Apple&all=1&ref=brand-apple", color: "from-slate-500 to-slate-900" },
   { title: "RTX", subtitle: "گیمینگ", href: "/shop?gpuType=rtx&ref=rtx", color: "from-rose-500 to-orange-500" },
   { title: "SSD", subtitle: "سرعت بالا", href: "/shop?ssd=512GB&ref=ssd", color: "from-emerald-500 to-teal-700" },
   { title: "i7", subtitle: "حرفه‌ای", href: "/shop?cpu=i7&ref=cpu-i7", color: "from-violet-500 to-[#003b5c]" },

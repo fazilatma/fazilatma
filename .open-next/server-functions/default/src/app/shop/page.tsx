@@ -343,7 +343,7 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   }
 
   if (getParam(params, "available") === "1" && product.stock <= 0) return false;
-  if (brand && product.brand !== brand) return false;
+  if (brand && String(product.brand || "").trim().toLowerCase() !== brand.trim().toLowerCase()) return false;
   if (use) {
     const keywords = useKeyword[use] || [];
     const useTagMatched = tags.has(`use:${normalizeFilterValue(use)}`);
