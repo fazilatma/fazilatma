@@ -95,71 +95,6 @@ export default function StorefrontHome({
         dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}
       />
 
-      {/* جستجوی کالا */}
-      <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-lg font-black text-slate-900 md:text-xl">
-                جستجوی کالا در فروشگاه
-              </h2>
-              <p className="mt-1 text-xs leading-6 text-slate-500">
-                نام، برند یا مدل دقیق کالا را بنویسید؛ مثلاً «RTX 5060»، «H610» یا «IdeaPad».
-              </p>
-            </div>
-            <form action="/shop" method="get" className="flex w-full max-w-xl flex-col gap-2 sm:flex-row">
-              <label className="relative min-w-0 flex-1">
-                <span className="sr-only">جستجوی کالا</span>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                  className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
-                >
-                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                  <path d="m16.5 16.5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <input
-                  type="search"
-                  name="q"
-                  maxLength={120}
-                  autoComplete="off"
-                  placeholder="نام کالا، برند یا مدل…"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
-                />
-              </label>
-              <button
-                type="submit"
-                className="h-12 rounded-2xl bg-rose-600 px-7 text-sm font-black text-white transition hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-200"
-              >
-                جستجو
-              </button>
-            </form>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-500">جستجوهای پیشنهادی:</span>
-            {(brandChips.length
-              ? brandChips
-              : ["لپ‌تاپ", "مادربرد", "کارت گرافیک", "SSD", "رم"]
-            ).map((chip) => (
-              <Link
-                key={chip}
-                href={`/shop?q=${encodeURIComponent(chip)}`}
-                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-              >
-                {chip}
-              </Link>
-            ))}
-            <Link
-              href="/shop"
-              className="ms-auto text-[11px] font-bold text-rose-600 underline"
-            >
-              مشاهدهٔ همهٔ کالاها
-            </Link>
-          </div>
-        </div>
-      </section>
-
       <section className="bg-white">
         <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="min-w-0 space-y-5">
@@ -174,6 +109,68 @@ export default function StorefrontHome({
               fallbackImageUrl={bannerProducts[1]?.imageUrl || bannerProducts[0]?.imageUrl}
               focus={computerPartsOnly ? "components" : "laptop"}
             />
+
+      {/* جستجوی کالا — وسط صفحه اصلی */}
+      <section className="pt-2">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-lg md:p-8">
+          <h2 className="text-xl font-black text-slate-900 md:text-2xl">
+            دنبال چه کالایی هستید؟
+          </h2>
+          <p className="mt-2 text-xs leading-6 text-slate-500">
+            نام، برند یا مدل دقیق کالا را بنویسید؛ مثلاً «RTX 5060»، «H610» یا «IdeaPad».
+          </p>
+          <form
+            action="/shop"
+            method="get"
+            className="mx-auto mt-5 flex w-full max-w-xl flex-col gap-2 sm:flex-row"
+          >
+            <label className="relative min-w-0 flex-1">
+              <span className="sr-only">جستجوی کالا</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+              >
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                <path d="m16.5 16.5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <input
+                type="search"
+                name="q"
+                maxLength={120}
+                autoComplete="off"
+                placeholder="نام کالا، برند یا مدل…"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-12 pl-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-2xl bg-rose-600 px-8 py-3 text-sm font-black text-white transition hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-200"
+            >
+              جستجوی کالا
+            </button>
+          </form>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {(brandChips.length
+              ? brandChips
+              : ["لپ‌تاپ", "مادربرد", "کارت گرافیک", "SSD", "رم"]
+            ).map((chip) => (
+              <Link
+                key={chip}
+                href={`/shop?q=${encodeURIComponent(chip)}`}
+                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+              >
+                {chip}
+              </Link>
+            ))}
+            <Link href="/shop" className="text-[11px] font-bold text-rose-600 underline">
+              مشاهدهٔ همهٔ کالاها
+            </Link>
+          </div>
+        </div>
+      </section>
+
             {laptopCatalogEnabled && <StoreLaptopBrandSlider />}
             {computerPartsCatalogEnabled && <StoreComputerPartsSlider />}
             {laptopCatalogEnabled && <SmartLaptopPickStrip />}
