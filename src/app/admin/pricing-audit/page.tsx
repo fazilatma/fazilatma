@@ -4,6 +4,7 @@ import { auditStoreProductPrices, type PriceAuditStatus } from "@/lib/store-pric
 import { normalizeStorePriceMultiplier } from "@/lib/store-pricing";
 import StorePriceAuditFixer from "@/components/StorePriceAuditFixer";
 import StorePriceReferenceSync from "@/components/StorePriceReferenceSync";
+import StorePriceBulkRefresh from "@/components/StorePriceBulkRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,16 @@ export default async function PriceAuditPage({
         </div>
       </div>
 
+      <div className="mb-6">
+        <StorePriceBulkRefresh total={summary.total} />
+      </div>
+      {summary.unverified > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-900">
+          {fa(summary.unverified)} کالا با قیمت روز بازار تطبیق داده نشده است. تا وقتی این عدد صفر نشود،
+          امکان دارد قیمت فروشگاه از کمترین قیمت ترب پایین‌تر (یا بالاتر) باشد؛ دکمهٔ «به‌روزرسانی قیمت کالاها»
+          را تا پایان شمارنده بزنید.
+        </div>
+      )}
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-xl border border-gray-100 border-r-4 border-r-purple-600 bg-white p-4 shadow-sm">
           <p className="mb-1 text-xs text-gray-500">کل کالاها</p>

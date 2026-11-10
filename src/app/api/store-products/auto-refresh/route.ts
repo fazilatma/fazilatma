@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runDueSourceAutoRefreshes } from "@/lib/store-source-auto-refresh";
+import { refreshStaleStorePrices } from "@/lib/store-price-refresh-run";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,9 @@ async function handle(request: NextRequest) {
 
   try {
     const result = await runDueSourceAutoRefreshes();
-    return NextResponse.json({ success: true, ...result });
+    // محصولاتی که از لینک مرجع نیامده‌اند هم باید قیمت‌شان تازه بماند.
+    const stale = await refreshStaleStorePrices(3, 12).catch(() => null);
+    return NextResponse.json({ success: true, ...result, staleProducts: stale });
   } catch (error) {
     return NextResponse.json(
       {

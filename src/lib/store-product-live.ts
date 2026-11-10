@@ -216,6 +216,17 @@ function marketModelTokenMatches(
   return false;
 }
 
+/**
+ * نسل حافظه (DDR4/DDR5/LPDDR5/GDDR6…) بخشی از هویت کالاست: مادربرد و لپ‌تاپ
+ * DDR4 با نسخهٔ DDR5 هم‌قیمت نیستند و مدل ارزان‌تر نباید مرجع قیمت شود.
+ */
+function memoryGenerationToken(value: string) {
+  const text = toEnglishDigits(String(value || "")).toLowerCase().replace(/[\s\u200c_-]+/g, "");
+  const match = text.match(/(?:lp|g)?ddr([2-9])(x)?/);
+  if (!match) return "";
+  return `ddr${match[1]}${match[2] ? "x" : ""}`;
+}
+
 export function marketVariantMatches(productTitle: string, candidateTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   const requiredNameTokens = distinctiveNameTokens(productTitle);
@@ -239,6 +250,9 @@ export function marketVariantMatches(productTitle: string, candidateTitle: strin
     const candidatePersianModels = new Set(persianModelTokens(candidateTitle));
     if (!requiredPersianModels.every((token) => candidatePersianModels.has(token))) return false;
   }
+  const requiredMemory = memoryGenerationToken(productTitle);
+  const candidateMemory = memoryGenerationToken(candidateTitle);
+  if (requiredMemory && candidateMemory && requiredMemory !== candidateMemory) return false;
   const requiredPackage = packageKind(productTitle);
   const candidatePackage = packageKind(candidateTitle);
   if (requiredPackage && candidatePackage && candidatePackage !== requiredPackage) return false;

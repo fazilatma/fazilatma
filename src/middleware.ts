@@ -23,6 +23,8 @@ const publicApiPrefixes = [
   "/api/enamad",
   "/api/support-chat",
   "/api/shop/prices",
+  // تیک سبک تازه‌سازی قیمت که از خود صفحات فروشگاه صدا زده می‌شود.
+  "/api/store/price-refresh-tick",
   "/api/torob",
   "/api/health",
   "/api/session",

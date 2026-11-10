@@ -12,6 +12,7 @@ import {
 } from "@/lib/laptop-storefront";
 import type { HomepageImageSliderSlide, JsonStoreProduct } from "@/lib/json-store";
 import { itemListJsonLd, jsonLd } from "@/lib/seo";
+import StorePriceFreshness from "@/components/StorePriceFreshness";
 
 export default function StorefrontHome({
   products,
@@ -90,6 +91,7 @@ export default function StorefrontHome({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <StorePriceFreshness />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(productListStructuredData) }}

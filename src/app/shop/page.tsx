@@ -22,6 +22,7 @@ import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
 import { productImportCategoryKey } from "@/lib/store-product-import";
 import { buildSeoMetadata, itemListJsonLd, jsonLd, storeSeoKeywords } from "@/lib/seo";
 import { isSuspiciousStoreProductPrice } from "@/lib/store-pricing";
+import StorePriceFreshness from "@/components/StorePriceFreshness";
 import { applyStorePriceOverrides, getStorePriceOverrides } from "@/lib/store-price-overrides";
 
 export const dynamic = "force-dynamic";
@@ -646,6 +647,7 @@ export default async function ShopPage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <StorePriceFreshness />
       <LegacyLaptopLinkRedirect />
       <script
         type="application/ld+json"

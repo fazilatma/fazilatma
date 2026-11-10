@@ -45,9 +45,13 @@ export type PriceAuditSummary = {
   stale: number;
   ok: number;
   totalDifference: number;
+  /** کالاهایی که قیمتشان با بازار روز تطبیق داده نشده است. */
+  unverified: number;
 };
 
-const STALE_DAYS = 7;
+// در فروشگاه قیمت‌محور، مرجع قیمتی که دو روز با بازار تطبیق داده نشده باشد
+// «کهنه» شمرده می‌شود؛ همین تأخیر باعث فروش زیر قیمت بازار می‌شد.
+const STALE_DAYS = 2;
 
 /**
  * تنها منبع حقیقتِ قیمت: «قیمت مرجع بازار × ضریب همان محصول».
@@ -122,6 +126,8 @@ export function auditStoreProductPrices(
     stale: rows.filter((row) => row.status === "stale").length,
     ok: rows.filter((row) => row.status === "ok").length,
     totalDifference: rows.reduce((sum, row) => sum + Math.abs(row.difference), 0),
+    unverified: rows.filter((row) => row.status === "stale" || row.status === "missing-reference" || row.daysSinceUpdate === null)
+      .length,
   };
 
   return { rows, summary };

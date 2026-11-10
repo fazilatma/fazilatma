@@ -12,6 +12,8 @@ type Body = {
   offset?: number;
   /** فقط محصولاتی که از این لینک مرجع وارد شده‌اند به‌روزرسانی شوند. */
   sourceUrl?: string;
+  /** ضریب سراسری فروشگاه در این اجرا تغییر نکند. */
+  updateGlobalMultiplier?: boolean;
 };
 
 export async function POST(request: Request) {

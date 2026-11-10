@@ -517,7 +517,16 @@ export function chooseBestPriceCandidate(candidates: PriceCandidate[]) {
   if (!candidates.length) return null;
   // نامزدها پیش از این مرحله از نظر مدل، برند، ظرفیت، وضعیت نو/کارکرده و خرابی
   // اعتبارسنجی شده‌اند؛ بنابراین فرمول فروشگاه دقیقاً کمترین قیمت معتبر است.
-  return [...candidates].sort((a, b) => a.price - b.price || b.score - a.score)[0] || null;
+  const sorted = [...candidates].sort((a, b) => a.price - b.price || b.score - a.score);
+  // آگهی‌های «قیمت‌شکن» (کمتر از ۵۵٪ میانهٔ بازار) معمولاً کالای دیگری، اجاره‌ای
+  // یا آگهی آزمایشی‌اند؛ مرجع قیمت فروشگاه نباید با آن‌ها پایین بیفتد.
+  if (sorted.length >= 3) {
+    const prices = sorted.map((candidate) => candidate.price).sort((a, b) => a - b);
+    const median = prices[Math.floor(prices.length / 2)];
+    const reliable = sorted.filter((candidate) => candidate.price >= median * 0.55);
+    if (reliable.length) return reliable[0];
+  }
+  return sorted[0] || null;
 }
 
 export function applyRefreshedPrice(

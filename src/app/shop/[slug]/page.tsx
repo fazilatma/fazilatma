@@ -8,6 +8,7 @@ import StoreProductCard, { LaptopVisual } from "@/components/StoreProductCard";
 import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import StoreProductGallery from "@/components/StoreProductGallery";
 import StoreVerifiedPriceSync from "@/components/StoreVerifiedPriceSync";
+import StorePriceFreshness from "@/components/StorePriceFreshness";
 import {
   getOptiBidData,
   type JsonStoreProduct,
@@ -250,6 +251,7 @@ export default async function StoreProductPage({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f8fa] pb-16">
+      <StorePriceFreshness />
       {verifiedPriceAt ? (
         <StoreVerifiedPriceSync
           productId={product.id}

@@ -237,3 +237,41 @@ export async function runStorePriceRefresh(
     };
   }
 }
+
+/**
+ * کهنه‌ترین قیمت‌های فروشگاه را دوباره از مرجع بازار می‌خواند.
+ *
+ * در Cloudflare Worker هیچ زمان‌بند داخلی اجرا نمی‌شود؛ این تابع هم از مسیر
+ * کرون (`/api/store-products/auto-refresh`) و هم از تیک سبک فروشگاه
+ * (`/api/store/price-refresh-tick`) صدا زده می‌شود تا قیمت‌ها عقب نمانند.
+ */
+export async function refreshStaleStorePrices(limit = 2, staleHours = 6) {
+  const data = await getOptiBidData();
+  const threshold = Date.now() - Math.max(1, staleHours) * 60 * 60 * 1000;
+  const timestampOf = (product: JsonStoreProduct) => {
+    const parsed = Date.parse(product.priceVerifiedAt || product.priceUpdatedAt || "");
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const stale = data.storeProducts
+    .filter((product) => product.isActive !== false && Number(product.stock || 0) > 0)
+    .filter((product) => timestampOf(product) < threshold)
+    .sort((a, b) => timestampOf(a) - timestampOf(b))
+    .slice(0, Math.max(1, Math.min(6, limit)));
+
+  if (!stale.length) return { checked: 0, updated: 0, results: [] as unknown[] };
+
+  const result = await runStorePriceRefresh({
+    productIds: stale.map((product) => product.id),
+    references: ["torob", "digikala"],
+    maxProducts: stale.length,
+    onlyActive: true,
+    updateGlobalMultiplier: false,
+  });
+
+  return {
+    checked: stale.length,
+    updated: Number(result.body?.updated || 0),
+    results: (result.body?.results || []) as unknown[],
+    message: result.body?.message,
+  };
+}
