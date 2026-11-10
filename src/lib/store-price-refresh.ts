@@ -397,16 +397,28 @@ function candidatesFromGoogleSearch(
 }
 
 async function directSourceCandidates(product: JsonStoreProduct, source: PriceReferenceKey) {
-  if (!product.externalSourceUrl) return [];
-  let host = "";
-  try {
-    host = new URL(product.externalSourceUrl).hostname.replace(/^www\./, "");
-  } catch {
-    return [];
+  // هم «لینک مرجع» کالا و هم «لینک مبدأ» آن بررسی می‌شود تا اگر کاربر قیمت را
+  // در یکی از این دو ثبت کرده باشد، همان قیمت (و کمترین بین منابع) مرجع شود.
+  const urls = [product.externalSourceUrl, product.sourceLink]
+    .map((value) => String(value || "").trim())
+    .filter((value, index, items) => value && items.indexOf(value) === index);
+  const results: Omit<PriceCandidate, "score">[] = [];
+  for (const url of urls) {
+    let host = "";
+    try {
+      host = new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      continue;
+    }
+    if (!referenceHosts[source].some((item) => host.includes(item))) continue;
+    try {
+      const html = await fetchText(url);
+      results.push(...candidatesFromHtml(html, source, url));
+    } catch {
+      // منبع بعدی امتحان شود.
+    }
   }
-  if (!referenceHosts[source].some((item) => host.includes(item))) return [];
-  const html = await fetchText(product.externalSourceUrl);
-  return candidatesFromHtml(html, source, product.externalSourceUrl);
+  return results;
 }
 
 async function digikalaCandidates(product: JsonStoreProduct) {

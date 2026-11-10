@@ -15,15 +15,19 @@ export default function StorePriceFreshness() {
     } catch {
       // دسترسی به storage همیشه ممکن نیست؛ در این حالت تیک سرور خودش قفل دارد.
     }
-    const timer = window.setTimeout(() => {
-      void fetch("/api/store/price-refresh-tick", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-        keepalive: true,
-      }).catch(() => undefined);
-    }, 2500);
-    return () => window.clearTimeout(timer);
+    // هر بازدید سه دستهٔ کوچک را پشت سر هم تازه می‌کند تا کل کاتالوگ نوبتی
+    // به‌روز شود (هر درخواست جداگانه است و سقف پردازش Worker را رد نمی‌کند).
+    const timers = [2500, 25000, 50000].map((delay) =>
+      window.setTimeout(() => {
+        void fetch("/api/store/price-refresh-tick", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+          keepalive: true,
+        }).catch(() => undefined);
+      }, delay),
+    );
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, []);
 
   return null;

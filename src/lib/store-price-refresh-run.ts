@@ -1,3 +1,4 @@
+import { kvGetText, kvPutText } from "@/lib/kv-storage";
 import {
   getOptiBidData,
   writeOptiBidData,
@@ -239,38 +240,62 @@ export async function runStorePriceRefresh(
 }
 
 /**
- * کهنه‌ترین قیمت‌های فروشگاه را دوباره از مرجع بازار می‌خواند.
+ * قیمت گروهی از کالاهای فروشگاه را از مرجع بازار (لینک‌هایی که ادمین داده)
+ * دوباره می‌خواند و کمترین قیمت هم‌مدل را در ضریب همان کالا ضرب می‌کند.
  *
- * در Cloudflare Worker هیچ زمان‌بند داخلی اجرا نمی‌شود؛ این تابع هم از مسیر
- * کرون (`/api/store-products/auto-refresh`) و هم از تیک سبک فروشگاه
- * (`/api/store/price-refresh-tick`) صدا زده می‌شود تا قیمت‌ها عقب نمانند.
+ * برای اینکه در Cloudflare Worker همهٔ کالاها به‌ترتیب نوبت بگیرند، یک نشانگر
+ * (cursor) در KV نگه داشته می‌شود؛ هر اجرا سراغ دستهٔ بعدی می‌رود و پس از
+ * رسیدن به انتهای فهرست از ابتدا شروع می‌کند. بنابراین هر تیک یا هر اجرای
+ * کرون، بخش تازه‌ای از کاتالوگ را به‌روز می‌کند.
  */
+const CURSOR_KEY = "optibid:price-refresh-cursor";
+
 export async function refreshStaleStorePrices(limit = 2, staleHours = 6) {
   const data = await getOptiBidData();
-  const threshold = Date.now() - Math.max(1, staleHours) * 60 * 60 * 1000;
   const timestampOf = (product: JsonStoreProduct) => {
     const parsed = Date.parse(product.priceVerifiedAt || product.priceUpdatedAt || "");
     return Number.isFinite(parsed) ? parsed : 0;
   };
-  const stale = data.storeProducts
+  const active = data.storeProducts
     .filter((product) => product.isActive !== false && Number(product.stock || 0) > 0)
-    .filter((product) => timestampOf(product) < threshold)
-    .sort((a, b) => timestampOf(a) - timestampOf(b))
-    .slice(0, Math.max(1, Math.min(6, limit)));
+    .sort((a, b) => timestampOf(a) - timestampOf(b));
+  if (!active.length) return { checked: 0, updated: 0, total: 0, results: [] as unknown[] };
 
-  if (!stale.length) return { checked: 0, updated: 0, results: [] as unknown[] };
+  const threshold = Date.now() - Math.max(1, staleHours) * 60 * 60 * 1000;
+  const stale = active.filter((product) => timestampOf(product) < threshold);
+  if (!stale.length) return { checked: 0, updated: 0, total: active.length, results: [] as unknown[] };
+
+  const size = Math.max(1, Math.min(6, limit));
+  let cursor = 0;
+  try {
+    const raw = await kvGetText(CURSOR_KEY);
+    const parsed = Number(raw);
+    cursor = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+  } catch {
+    cursor = 0;
+  }
+  const start = cursor % stale.length;
+  const window = stale.slice(start, start + size);
+  if (window.length < size) window.push(...stale.slice(0, size - window.length));
 
   const result = await runStorePriceRefresh({
-    productIds: stale.map((product) => product.id),
+    productIds: window.map((product) => product.id),
     references: ["torob", "digikala"],
-    maxProducts: stale.length,
+    maxProducts: window.length,
     onlyActive: true,
     updateGlobalMultiplier: false,
   });
 
+  try {
+    await kvPutText(CURSOR_KEY, String((start + window.length) % stale.length));
+  } catch {
+    // بدون KV هم اجرای بعدی از ابتدا شروع می‌کند؛ خطا نیست.
+  }
+
   return {
-    checked: stale.length,
+    checked: window.length,
     updated: Number(result.body?.updated || 0),
+    total: stale.length,
     results: (result.body?.results || []) as unknown[],
     message: result.body?.message,
   };
