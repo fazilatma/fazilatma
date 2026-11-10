@@ -227,6 +227,22 @@ function memoryGenerationToken(value: string) {
   return `ddr${match[1]}${match[2] ? "x" : ""}`;
 }
 
+/**
+ * وقتی کالا نسل حافظهٔ مشخصی دارد (DDR4/DDR5/GDDR6…)، فقط آگهی‌هایی که همان نسل
+ * را صریح نوشته‌اند ملاک قیمت می‌شوند. آگهی‌های بی‌نسل (که ممکن است نسخهٔ ارزان‌تر
+ * همان مدل باشند) تنها وقتی استفاده می‌شوند که هیچ آگهی صریحِ هم‌نسل وجود نداشته باشد.
+ * این قاعده جلوی قیمت‌گذاری با نسخهٔ DDR4 در حالی که کالا DDR5 است را می‌گیرد.
+ */
+export function preferSameMemoryGeneration<T extends { title: string }>(
+  productTitle: string,
+  items: T[],
+): T[] {
+  const required = memoryGenerationToken(productTitle);
+  if (!required || items.length < 2) return items;
+  const sameGeneration = items.filter((item) => memoryGenerationToken(item.title) === required);
+  return sameGeneration.length ? sameGeneration : items;
+}
+
 export function marketVariantMatches(productTitle: string, candidateTitle: string) {
   const requiredTokens = strongModelTokens(productTitle).slice(0, 4);
   const requiredNameTokens = distinctiveNameTokens(productTitle);
@@ -359,6 +375,8 @@ export function torobComparableJsonPrice(
       ? payload.data.results
       : [];
   const prices: number[] = [];
+  const sameGenerationPrices: number[] = [];
+  const requiredMemory = memoryGenerationToken(productTitle);
   for (const result of results) {
     const title = `${String(result?.name1 || "")} ${String(result?.name2 || "")}`.trim();
     if (isDefectiveMarketListing(title)) continue;
@@ -367,9 +385,14 @@ export function torobComparableJsonPrice(
     if (sourceRequiresNew && listingIsUsed) continue;
     if (!marketVariantMatches(productTitle, title)) continue;
     const price = Math.round(Number(result?.price || 0));
-    if (price >= 100_000 && price <= 10_000_000_000) prices.push(price);
+    if (price < 100_000 || price > 10_000_000_000) continue;
+    prices.push(price);
+    if (requiredMemory && memoryGenerationToken(title) === requiredMemory) {
+      sameGenerationPrices.push(price);
+    }
   }
-  return prices.length ? Math.min(...prices) : 0;
+  const pool = sameGenerationPrices.length ? sameGenerationPrices : prices;
+  return pool.length ? Math.min(...pool) : 0;
 }
 
 function torobImage(html: string, pageUrl: string) {

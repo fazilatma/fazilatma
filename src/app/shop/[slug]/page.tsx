@@ -166,13 +166,19 @@ export default async function StoreProductPage({
     Number.isFinite(verifiedAt) &&
     Date.now() - verifiedAt >= 0 &&
     Date.now() - verifiedAt <= 60 * 1000;
+  // قیمتی که ادمین دستی/از لینک مرجع تثبیت کرده، تا ۳ روز با خواندن خودکار بازار
+  // بازنویسی نمی‌شود؛ وگرنه همان لحظه با یک استخراج نادرست پایین می‌افتاد.
+  const lockedAt = Date.parse(String(storedProduct.priceLockedAt || ""));
+  const priceLocked =
+    Number.isFinite(lockedAt) && lockedAt > 0 && Date.now() - lockedAt < 3 * 24 * 60 * 60 * 1000;
   // یک کش توزیع‌شدهٔ کوتاه مانع فراخوانی هم‌زمان APIهای بازار می‌شود، اما تغییر
   // واقعی قیمت حداکثر یک دقیقه بعد دوباره مقایسه خواهد شد.
-  const liveSnapshot = recentlyVerified
+  const liveSnapshot = recentlyVerified || priceLocked
     ? null
     : await getLiveStoreProductPriceSnapshot(
         storedProduct,
-        data.settings.storePriceMultiplier,
+        // ضریبِ خودِ کالا بر ضریب سراسری اولویت دارد تا قیمت صفحه با فرمول بخواند.
+        storedProduct.priceMultiplier ?? data.settings.storePriceMultiplier,
         duplicateSourceUrls,
       );
   // خطای موقت یا timeout یکی از منابع نباید قیمت تأییدشدهٔ قبلی را ناموجود کند.

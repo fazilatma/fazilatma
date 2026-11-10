@@ -113,6 +113,7 @@ export async function POST(request: Request) {
       marketReferenceNote: `${sourceNote}: ${referencePrice.toLocaleString("fa-IR")} تومان × ضریب ${multiplier}`,
       externalSourceUrl: referenceUrl || product.externalSourceUrl,
       priceVerifiedAt: checkedAt,
+      priceLockedAt: checkedAt,
       priceUpdatedAt: checkedAt.slice(0, 10),
       priceHistory: [
         ...(product.priceHistory || []),

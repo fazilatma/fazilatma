@@ -1,6 +1,6 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
-import { marketVariantMatches } from "@/lib/store-product-live";
+import { marketVariantMatches, preferSameMemoryGeneration } from "@/lib/store-product-live";
 import {
   applyStorePriceFormula,
   normalizeStorePriceMultiplier,
@@ -508,9 +508,12 @@ export async function findProductPriceCandidates(
     marketVariantMatches(productIdentityText, candidate.title),
   );
   const requiresExactModel = exactModelTokens(productIdentityText).length > 0;
-  const candidatePool = strictVariants.length
-    ? strictVariants
-    : safeCandidates.filter((candidate) => candidateMatchesExactModel(product, candidate.title));
+  const candidatePool = preferSameMemoryGeneration(
+    productIdentityText,
+    strictVariants.length
+      ? strictVariants
+      : safeCandidates.filter((candidate) => candidateMatchesExactModel(product, candidate.title)),
+  );
   const scored = candidatePool
     .map((candidate) => ({ ...candidate, score: candidateScore(product, candidate.title) }))
     .filter((candidate) => strictVariants.length > 0 || candidate.score >= (requiresExactModel ? 3 : 5))

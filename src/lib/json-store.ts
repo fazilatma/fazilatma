@@ -430,6 +430,12 @@ export type JsonStoreProduct = {
   priceUpdatedAt?: string;
   /** زمان کامل آخرین قیمت تأییدشده؛ فقط برای جلوگیری از نوسان ناشی از قطع موقت مرجع. */
   priceVerifiedAt?: string;
+  /**
+   * زمانی که ادمین قیمت مرجع این کالا را «تثبیت» کرده است. تا ۳ روز پس از این
+   * زمان، خواندن خودکار بازار قیمت را بازنویسی نمی‌کند تا قیمتِ دستیِ ادمین
+   * با یک درخواست زندهٔ نادرست پایین نیفتد.
+   */
+  priceLockedAt?: string;
   /** نتیجهٔ آخرین بررسی موجودی قیمت دقیق در منابع بازار. */
   priceAvailable?: boolean;
   marketReferenceNote?: string;
@@ -1319,6 +1325,16 @@ function normalizeStoreProducts(value: unknown): JsonStoreProduct[] {
       priceUpdatedAt: product.priceUpdatedAt
         ? String(product.priceUpdatedAt).trim()
         : undefined,
+      // این دو فیلد باید از نرمال‌سازی جان سالم به در ببرند؛ وگرنه تثبیت دستی
+      // قیمت و برچسب «تأییدشده» در خواندن بعدی از بین می‌روند.
+      priceVerifiedAt: product.priceVerifiedAt
+        ? String(product.priceVerifiedAt).trim()
+        : undefined,
+      priceLockedAt: product.priceLockedAt
+        ? String(product.priceLockedAt).trim()
+        : undefined,
+      priceAvailable:
+        typeof product.priceAvailable === "boolean" ? product.priceAvailable : undefined,
       marketReferenceNote: product.marketReferenceNote
         ? String(product.marketReferenceNote).trim()
         : undefined,
