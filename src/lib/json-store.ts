@@ -1993,9 +1993,11 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
   const globalMultiplier = normalizeStorePriceMultiplier(migrated.settings.storePriceMultiplier, 1);
   migrated.settings.storePriceMultiplier = globalMultiplier;
   migrated.storeProducts = migrated.storeProducts.map((product) => {
-    const productMultiplier = hasConfiguredMultiplier
-      ? globalMultiplier
-      : storedProductPriceMultiplier(product, globalMultiplier);
+    // ضریبِ خودِ محصول (ضریب لینک/دستهٔ واردات) همیشه اولویت دارد و ضریب سراسری
+    // فقط برای کالاهایی است که ضریب اختصاصی ندارند. پیش‌تر هر بار که تنظیمات
+    // ضریب سراسری مقدار داشت، همهٔ کالاها با همان ضریب بازقیمت‌گذاری می‌شدند و
+    // قیمت فروشگاه با «قیمت مرجع × ضریب همان کالا» نمی‌خواند.
+    const productMultiplier = storedProductPriceMultiplier(product, globalMultiplier);
     const marketPrice = storedProductMarketPrice(product);
     return marketPrice > 0
       ? applyStorePriceFormula(product, marketPrice, productMultiplier)

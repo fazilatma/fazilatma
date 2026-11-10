@@ -4,6 +4,7 @@ import { marketVariantMatches } from "@/lib/store-product-live";
 import {
   applyStorePriceFormula,
   normalizeStorePriceMultiplier,
+  storedProductPriceMultiplier,
 } from "@/lib/store-pricing";
 
 export type PriceReferenceKey = "torob" | "digikala" | "instagram" | "telegram" | "google";
@@ -524,10 +525,17 @@ export function applyRefreshedPrice(
   candidate: PriceCandidate,
   multiplier = 1,
 ): JsonStoreProduct {
+  // ضریبِ خودِ محصول بر ضریب سراسری اولویت دارد؛ وگرنه هر بار به‌روزرسانی قیمت،
+  // محصولی که با ضریب لینک مبدأ وارد شده با ضریب دیگری بازقیمت‌گذاری می‌شد و
+  // قیمت فروشگاه با فرمول «قیمت مرجع × ضریب» نمی‌خواند.
+  const effectiveMultiplier = normalizeStorePriceMultiplier(
+    storedProductPriceMultiplier(product, multiplier),
+    1,
+  );
   const pricedProduct = applyStorePriceFormula(
     product,
     candidate.price,
-    normalizeStorePriceMultiplier(multiplier, 1),
+    effectiveMultiplier,
   );
   const price = pricedProduct.price;
   const checkedAt = new Date().toISOString();

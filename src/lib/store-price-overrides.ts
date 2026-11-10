@@ -1,4 +1,5 @@
 import { kvGetText, kvPutText } from "@/lib/kv-storage";
+import { normalizeStorePriceMultiplier, roundStorePrice } from "@/lib/store-pricing";
 
 const STORE_PRICE_OVERRIDES_KEY = "optibid:store-price-overrides";
 const STORE_PRICE_OVERRIDE_KEY_PREFIX = "optibid:store-price-override:";
@@ -117,12 +118,23 @@ export function applyStorePriceOverrides<T extends {
   return products.map((product) => {
     const override = overrides[product.id];
     if (!override) return product;
+    // قیمت ذخیره‌شده در لایهٔ تأیید باید همان «قیمت مرجع × ضریب محصول» باشد؛
+    // اگر با ضریب دیگری نوشته شده باشد، همین‌جا با فرمول درست بازمحاسبه می‌شود
+    // تا کارت، صفحهٔ محصول و سبد خرید عدد یکسان ببینند.
+    const multiplier = normalizeStorePriceMultiplier(
+      Number(product.priceMultiplier) > 0 ? product.priceMultiplier : override.priceMultiplier,
+      1,
+    );
+    const formulaPrice = roundStorePrice(override.marketPrice * multiplier);
     return {
       ...product,
-      price: override.price,
+      price: formulaPrice > 0 ? formulaPrice : override.price,
       // قیمت قبل از تخفیفِ یک منبع نباید پس از انتخاب قیمت ارزان‌ترِ منبع دیگر
       // به‌عنوان تخفیف نمایش داده شود. Override سبک منبع old_price ندارد.
-      originalPrice: override.price === product.price ? product.originalPrice : undefined,
+      originalPrice:
+        (formulaPrice > 0 ? formulaPrice : override.price) === product.price
+          ? product.originalPrice
+          : undefined,
       marketPrice: override.marketPrice,
       priceMultiplier: override.priceMultiplier,
       priceUpdatedAt: override.updatedAt.slice(0, 10),
