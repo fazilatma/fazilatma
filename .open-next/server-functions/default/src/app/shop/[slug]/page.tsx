@@ -9,7 +9,6 @@ import StorePriceHistoryChart from "@/components/StorePriceHistoryChart";
 import StoreProductGallery from "@/components/StoreProductGallery";
 import StoreVerifiedPriceSync from "@/components/StoreVerifiedPriceSync";
 import StorePriceFreshness from "@/components/StorePriceFreshness";
-import AdminAutoPriceRefresh from "@/components/AdminAutoPriceRefresh";
 import {
   getOptiBidData,
   type JsonStoreProduct,
@@ -336,13 +335,6 @@ export default async function StoreProductPage({
                       <p className="text-sm text-slate-400 line-through">{money(product.originalPrice)}</p>
                     )}
                     <p className="text-3xl font-black text-rose-600">{money(product.price)}</p>
-                    {isAdmin && (
-                      <AdminAutoPriceRefresh
-                        productId={product.id}
-                        price={Number(product.price || 0)}
-                        multiplier={Number(product.priceMultiplier || 1)}
-                      />
-                    )}
                     <p className="mt-2 text-xs leading-6 text-slate-500">
                       {product.warranty} · قیمت روز از منابع فعال تأیید شد
                     </p>

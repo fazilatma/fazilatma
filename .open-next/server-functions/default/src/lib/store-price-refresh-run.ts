@@ -163,7 +163,10 @@ export async function runStorePriceRefresh(
           continue;
         }
 
-        const nextProduct = applyRefreshedPrice(product, best, multiplier);
+        // در به‌روزرسانی «این لینک»، ضریبِ همان باکس بر ضریب قبلیِ محصول اولویت
+        // دارد؛ وگرنه تغییر ضریب باکس روی کالاهای قبلی اثری نداشت.
+        const pricingBase = sourceUrl ? { ...product, priceMultiplier: multiplier } : product;
+        const nextProduct = applyRefreshedPrice(pricingBase, best, multiplier);
         const oldPrice = Number(product.price || 0);
         const newPrice = Number(nextProduct.price || 0);
         const changeRatio = oldPrice ? Math.abs(newPrice - oldPrice) / oldPrice : 1;

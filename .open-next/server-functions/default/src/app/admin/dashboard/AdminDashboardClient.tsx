@@ -1463,8 +1463,23 @@ export default function AdminDashboardClient({
       return;
     }
     const limit = Math.max(1, Math.min(defaultSourceLimit, Number(source.limit) || defaultSourceLimit));
-    setSourceRefresh(source.id, { running: true, mode: "refresh", message: "در حال بررسی قیمت محصولات این لینک..." });
+    setSourceRefresh(source.id, { running: true, mode: "refresh", message: "در حال اعمال ضریب این لینک..." });
     try {
+      // اول ضریبِ همین باکس روی کالاهای همین لینک اعمال می‌شود تا حتی اگر منبع
+      // قیمت جواب ندهد، قیمت‌ها با ضریب درخواستی مدیر بازمحاسبه شده باشند.
+      if (Number(source.multiplier) > 0) {
+        await fetch("/api/admin/store-products/apply-multiplier", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            multiplier: Number(source.multiplier),
+            scope: "source",
+            sourceUrl,
+            updateGlobal: false,
+          }),
+        }).catch(() => undefined);
+      }
+      setSourceRefresh(source.id, { running: true, mode: "refresh", message: "در حال بررسی قیمت محصولات این لینک..." });
       let checked = 0;
       let cursor = 0;
       let updated = 0;
