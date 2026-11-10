@@ -1278,53 +1278,89 @@ export default function AdminDashboardClient({
         setProductImportMessage(
           `${scan.products.length.toLocaleString("fa-IR")} محصول از لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} پیدا شد؛ در حال ذخیرهٔ یکپارچهٔ همه محصولات...`,
         );
-        const response = await fetch("/api/admin/store-products/import-csv", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            products: scan.products,
-            strategy: "merge",
-            priceMultiplier: source.multiplier,
-            categoryFilters: ["components", "storage", "laptop", "desktop"],
-            sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
-            sourceLink: source.url,
-          }),
-        });
-        const result = await readJsonResponse(response, "ثبت یکپارچهٔ محصولات دیجی‌کالا ناموفق بود.");
-        if (!result.success) throw new Error(result.message || "ثبت محصولات دیجی‌کالا ناموفق بود.");
-        created += Number(result.created || 0);
-        updated += Number(result.updated || 0);
-        skipped += Number(result.skipped || 0);
-        activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
-        if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+        // ارسال دسته‌دستهٔ محصولات؛ فرستادن چند صد محصول در یک درخواست، Worker را
+        // به سقف منابع (خطای 1102) می‌رساند و کل استخراج نیمه‌کاره می‌ماند.
+        const uploadChunkSize = 60;
+        for (let chunkStart = 0; chunkStart < scan.products.length; chunkStart += uploadChunkSize) {
+          const chunk = scan.products.slice(chunkStart, chunkStart + uploadChunkSize);
+          const response = await fetch("/api/admin/store-products/import-csv", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              products: chunk,
+              strategy: "merge",
+              priceMultiplier: source.multiplier,
+              categoryFilters: ["components", "storage", "laptop", "desktop"],
+              sourceLabel: `digikala-browser-source-${sourceIndex + 1}`,
+              sourceLink: source.url,
+            }),
+          });
+          const result = await readJsonResponse(response, "ثبت یکپارچهٔ محصولات دیجی‌کالا ناموفق بود.");
+          if (!result.success) throw new Error(result.message || "ثبت محصولات دیجی‌کالا ناموفق بود.");
+          created += Number(result.created || 0);
+          updated += Number(result.updated || 0);
+          skipped += Number(result.skipped || 0);
+          activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
+          if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+          setProductImportMessage(
+            `${Math.min(chunkStart + uploadChunkSize, scan.products.length).toLocaleString("fa-IR")} از ${scan.products.length.toLocaleString("fa-IR")} محصول لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} ذخیره شد...`,
+          );
+        }
       }
 
       if (serverSources.length > 0) {
-        setProductImportMessage("در حال بررسی سایر لینک‌های مرجع...");
-        const response = await fetch("/api/admin/store-products/import-multiple", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sources: serverSources.map((source) => ({
-              url: source.url,
-              parts: source.parts,
-              limit: source.limit,
-              priceMultiplier: source.multiplier,
-            })),
-            limit: 500,
-            priceMultiplier: productImportPriceMultiplier,
-          }),
-        });
-        const result = await readJsonResponse(response, "درون‌ریزی سایر لینک‌های قطعات ناموفق بود.");
-        if (!result.success) {
-          if (scannedProducts === 0) throw new Error(result.message || "محصول قطعه‌ای از لینک‌ها پیدا نشد.");
-          warnings.push(result.message || "یکی از لینک‌های دیگر خوانده نشد.");
-        } else {
-          created += Number(result.created || 0);
-          updated += Number(result.updated || 0);
-          skipped += Number(result.duplicatesRemoved || 0);
-          activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
-          if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+        // هر لینک در یک درخواست جدا و با سقف صفحهٔ کوچک خوانده می‌شود تا از سقف
+        // منابع Worker رد نشود؛ اگر باز هم رد شد، یک بار با حجم نصف تلاش می‌شود.
+        for (let sourceIndex = 0; sourceIndex < serverSources.length; sourceIndex += 1) {
+          const source = serverSources[sourceIndex];
+          setProductImportMessage(
+            `در حال خواندن لینک ${(sourceIndex + 1).toLocaleString("fa-IR")} از ${serverSources.length.toLocaleString("fa-IR")}...`,
+          );
+          let saved = false;
+          for (const attempt of [
+            { limit: Math.min(Number(source.limit) || 80, 80), maxPages: 4 },
+            { limit: 30, maxPages: 2 },
+          ]) {
+            try {
+              const response = await fetch("/api/admin/store-products/import-multiple", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  sources: [
+                    {
+                      url: source.url,
+                      parts: source.parts,
+                      limit: attempt.limit,
+                      priceMultiplier: source.multiplier,
+                    },
+                  ],
+                  limit: attempt.limit,
+                  maxPages: attempt.maxPages,
+                  priceMultiplier: productImportPriceMultiplier,
+                }),
+              });
+              const result = await readJsonResponse(response, "درون‌ریزی سایر لینک‌های قطعات ناموفق بود.");
+              if (!result.success) {
+                warnings.push(result.message || `لینک ${sourceIndex + 1} خوانده نشد.`);
+                continue;
+              }
+              created += Number(result.created || 0);
+              updated += Number(result.updated || 0);
+              skipped += Number(result.duplicatesRemoved || 0);
+              activeStoreProducts = Number(result.activeStoreProducts || activeStoreProducts);
+              if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+              saved = true;
+              break;
+            } catch (error) {
+              warnings.push(
+                `لینک ${(sourceIndex + 1).toLocaleString("fa-IR")}: ${error instanceof Error ? error.message : "خطای نامشخص"}`,
+              );
+            }
+          }
+          if (!saved) continue;
+        }
+        if (created === 0 && updated === 0 && scannedProducts === 0) {
+          throw new Error("محصول قطعه‌ای از لینک‌ها پیدا نشد.");
         }
       }
 

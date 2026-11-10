@@ -246,15 +246,26 @@ export async function POST(request: Request) {
 
     // هر منبع در مسیر مستقل اجرا می‌شود؛ بنابراین رد شدن ترب، اسکن دیجی‌کالا
     // را متوقف نمی‌کند. داخل هر منبع، صفحه‌ها همچنان ترتیبی خوانده می‌شوند.
-    const sourceScans = await Promise.all(
-      sourceConfigs.map(async (sourceConfig) => {
+    // منابع یکی‌یکی خوانده می‌شوند؛ اجرای هم‌زمان چند لینک سنگین حافظهٔ Worker را
+    // پر می‌کرد و خطای 1102 «سقف منابع» می‌داد.
+    const sourceScans: Array<{
+      host: string;
+      url: string;
+      parts: string[];
+      priceMultiplier: number;
+      scan: Awaited<ReturnType<typeof scanStoreProductsFromUrl>> | null;
+      error: string;
+    }> = [];
+    const requestedMaxPages = Math.max(1, Math.min(12, Number(body.maxPages || 6)));
+    for (const sourceConfig of sourceConfigs) {
+      const runSource = async () => {
         const host = new URL(sourceConfig.url).hostname;
         const specializedSource = /(?:^|\.)(?:digikala\.com|torob\.com)$/i.test(host.replace(/^www\./, ""));
         try {
           const scan = await scanStoreProductsFromUrl(sourceConfig.url, {
             limit: sourceConfig.limit || requestedLimit,
             fullSite: specializedSource,
-            maxPages: specializedSource ? 12 : 6,
+            maxPages: requestedMaxPages,
             categoryFilters: ["components", "storage", "laptop", "desktop"],
             partFilters: sourceConfig.parts,
           });
@@ -276,8 +287,9 @@ export async function POST(request: Request) {
             error: error instanceof Error ? error.message : "خطای نامشخص",
           };
         }
-      }),
-    );
+      };
+      sourceScans.push(await runSource());
+    }
 
     for (const source of sourceScans) {
       if (!source.scan) {
