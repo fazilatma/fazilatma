@@ -44,7 +44,6 @@ export default function StorefrontHome({
         .filter((brand) => brand && !/^(?:optibid|نامشخص|digikala|torob)$/i.test(brand)),
     ),
   ).slice(0, 6);
-  const bannerProducts = products.filter((product) => Boolean(product.imageUrl)).slice(0, 2);
   const computerPartsOnly = computerPartsCatalogEnabled && !laptopCatalogEnabled;
   const effectiveHeroSlides = computerPartsOnly
     ? (heroSlides || []).map((slide, index) => index === 0
@@ -103,12 +102,12 @@ export default function StorefrontHome({
             <StoreHeroSlider
               slides={effectiveHeroSlides}
               durationSeconds={heroDurationSeconds}
-              fallbackImageUrl={bannerProducts[0]?.imageUrl}
+              fallbackImageUrl="/hero-laptop.png"
               focus={computerPartsOnly ? "components" : "laptop"}
             />
             <StoreAdSlider
               slides={effectiveHeroSlides}
-              fallbackImageUrl={bannerProducts[1]?.imageUrl || bannerProducts[0]?.imageUrl}
+              fallbackImageUrl="/hero-laptop.png"
               focus={computerPartsOnly ? "components" : "laptop"}
             />
 
