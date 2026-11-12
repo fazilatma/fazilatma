@@ -45,10 +45,13 @@ const slides = [
 export default function StoreAdSlider({
   slides: configuredSlides,
   fallbackImageUrl = "",
+  overrideImageUrl = "",
   focus = "laptop",
 }: {
   slides?: HomepageImageSliderSlide[];
   fallbackImageUrl?: string;
+  /** تصویر ثابت این بنر (بر تصویر ذخیره‌شده اولویت دارد). */
+  overrideImageUrl?: string;
   focus?: "laptop" | "components";
 }) {
   const activeSlide = focus === "components"
@@ -64,7 +67,7 @@ export default function StoreAdSlider({
   const configuredImage = configuredSlides?.[1]?.isActive !== false
     ? configuredSlides?.[1]?.image
     : undefined;
-  const imageUrl = configuredImage ? productImageUrl(configuredImage) : fallbackImageUrl;
+  const imageUrl = overrideImageUrl || (configuredImage ? productImageUrl(configuredImage) : fallbackImageUrl);
 
   return (
     <section

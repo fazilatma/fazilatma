@@ -52,11 +52,14 @@ export default function StoreHeroSlider({
   slides,
   durationSeconds: _durationSeconds = 5,
   fallbackImageUrl = "",
+  overrideImageUrl = "",
   focus = "laptop",
 }: {
   slides?: StoreHeroSlide[];
   durationSeconds?: number;
   fallbackImageUrl?: string;
+  /** تصویر ثابت این بنر (بر تصویر ذخیره‌شده اولویت دارد). */
+  overrideImageUrl?: string;
   focus?: "laptop" | "components";
 }) {
   const activeSlides = (slides || [])
@@ -64,7 +67,7 @@ export default function StoreHeroSlider({
     .slice(0, 4);
   const displaySlides = activeSlides.length > 0 ? activeSlides : fallbackSlides;
   const slide = displaySlides[0];
-  const imageUrl = slide.image ? productImageUrl(slide.image) : fallbackImageUrl;
+  const imageUrl = overrideImageUrl || (slide.image ? productImageUrl(slide.image) : fallbackImageUrl);
 
   return (
     <div className="relative min-h-[185px] overflow-hidden rounded-[2rem] bg-gradient-to-l from-[#003b5c] via-[#006494] to-[#00a8e8] p-4 text-white shadow-xl md:min-h-[220px] md:p-5 xl:min-h-[235px]">

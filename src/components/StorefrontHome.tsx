@@ -103,11 +103,13 @@ export default function StorefrontHome({
               slides={effectiveHeroSlides}
               durationSeconds={heroDurationSeconds}
               fallbackImageUrl="/hero-laptop.png"
+              overrideImageUrl={computerPartsOnly ? "" : "/hero-laptop.png"}
               focus={computerPartsOnly ? "components" : "laptop"}
             />
             <StoreAdSlider
               slides={effectiveHeroSlides}
               fallbackImageUrl="/hero-laptop.png"
+              overrideImageUrl={computerPartsOnly ? "" : "/hero-laptop.png"}
               focus={computerPartsOnly ? "components" : "laptop"}
             />
 
