@@ -758,6 +758,10 @@ export default async function ShopPage({
                     )
                   ) : (
                     <>
+                      {partImage ? (
+                        <img src={partImage} alt={`تصویر ${item.title}`} className="h-full w-full bg-white object-contain" />
+                      ) : (
+                        <>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <div className="h-8 w-16 rounded-t-lg border-[5px] border-slate-700 bg-gradient-to-br from-[#003b5c] to-[#00a8e8] transition group-hover:border-rose-600" />
                         <div className="h-1.5 w-[76px] rounded-b-xl bg-slate-500 transition group-hover:bg-rose-500" />
@@ -768,6 +772,8 @@ export default async function ShopPage({
                           alt={`لپ‌تاپ ${itemBrand}؛ ${brandProduct.title}`}
                           className="absolute inset-0 z-10 h-full w-full bg-white object-contain p-0.5"
                         />
+                      )}
+                        </>
                       )}
                     </>
                   )}

@@ -5,6 +5,8 @@ export type LaptopCategoryItem = {
   href: string;
   badge?: string;
   brand?: string;
+  /** تصویر آمادهٔ کاشی؛ اگر نباشد از تصویر محصول همان برند استفاده می‌شود. */
+  image?: string;
 };
 
 export type LaptopGuideItem = {
@@ -37,32 +39,34 @@ export type LaptopCollectionItem = {
   subtitle: string;
   href: string;
   badge: string;
+  /** تصویر آمادهٔ کاشی؛ اگر نباشد از تصویر محصول همان برند استفاده می‌شود. */
+  image?: string;
   accent: "emerald" | "blue" | "rose";
   icon: "trend" | "fire" | "sale";
 };
 
 export const laptopCategoryItems: LaptopCategoryItem[] = [
-  { title: "لپ‌تاپ لنوو", href: "/shop?category=laptop&brand=Lenovo", badge: "Lenovo", brand: "Lenovo" },
-  { title: "لپ‌تاپ اچ‌پی", href: "/shop?category=laptop&brand=HP", badge: "HP", brand: "HP" },
-  { title: "لپ‌تاپ دل", href: "/shop?category=laptop&brand=Dell", badge: "Dell", brand: "Dell" },
-  { title: "لپ‌تاپ ایسوس", href: "/shop?category=laptop&brand=Asus", badge: "Asus", brand: "Asus" },
-  { title: "مک‌بوک اپل", href: "/shop?category=laptop&brand=Apple", badge: "Apple", brand: "Apple" },
-  { title: "لپ‌تاپ استوک", href: "/shop?category=laptop&condition=stock", badge: "Stock" },
-  { title: "لپ‌تاپ کارکرده تمیز", href: "/shop?category=laptop&condition=used", badge: "Clean" },
-  { title: "لپ‌تاپ سبک", href: "/shop?category=laptop&use=student&display=14", badge: "Light" },
-  { title: "لپ‌تاپ لمسی", href: "/shop?category=laptop&touch=yes", badge: "Touch" },
-  { title: "لپ‌تاپ گیمینگ", href: "/shop?category=laptop&use=gaming", badge: "RTX" },
-  { title: "لپ‌تاپ اداری", href: "/shop?category=laptop&use=business", badge: "Office" },
-  { title: "لپ‌تاپ دانشجویی", href: "/shop?category=laptop&use=student", badge: "Student" },
-  { title: "لپ‌تاپ مهندسی", href: "/shop?category=laptop&use=engineering", badge: "CAD" },
-  { title: "برنامه‌نویسی", href: "/shop?category=laptop&use=business&ram=16GB", badge: "Dev" },
-  { title: "تدوین و طراحی", href: "/shop?category=laptop&use=engineering&gpuType=dedicated", badge: "Design" },
-  { title: "رم ۱۶ گیگ", href: "/shop?category=laptop&ram=16GB", badge: "16GB" },
-  { title: "SSD 512GB", href: "/shop?category=laptop&ssd=512GB", badge: "SSD" },
-  { title: "Core i7", href: "/shop?category=laptop&cpu=i7", badge: "i7" },
-  { title: "گرافیک RTX", href: "/shop?category=laptop&gpuType=rtx", badge: "RTX" },
-  { title: "اقتصادی", href: "/shop?category=laptop&maxPrice=45000000", badge: "Budget" },
-  { title: "حرفه‌ای", href: "/shop?category=laptop&minPrice=60000000", badge: "Pro" },
+  { title: "لپ‌تاپ لنوو", href: "/shop?category=laptop&brand=Lenovo", badge: "Lenovo", brand: "Lenovo" , image: "/laptop-tiles/standard.webp" },
+  { title: "لپ‌تاپ اچ‌پی", href: "/shop?category=laptop&brand=HP", badge: "HP", brand: "HP" , image: "/laptop-tiles/standard.webp" },
+  { title: "لپ‌تاپ دل", href: "/shop?category=laptop&brand=Dell", badge: "Dell", brand: "Dell" , image: "/laptop-tiles/standard.webp" },
+  { title: "لپ‌تاپ ایسوس", href: "/shop?category=laptop&brand=Asus", badge: "Asus", brand: "Asus" , image: "/laptop-tiles/gaming.webp" },
+  { title: "مک‌بوک اپل", href: "/shop?category=laptop&brand=Apple", badge: "Apple", brand: "Apple" , image: "/laptop-tiles/ultrabook.webp" },
+  { title: "لپ‌تاپ استوک", href: "/shop?category=laptop&condition=stock", badge: "Stock" , image: "/laptop-tiles/standard.webp" },
+  { title: "لپ‌تاپ کارکرده تمیز", href: "/shop?category=laptop&condition=used", badge: "Clean" , image: "/laptop-tiles/standard.webp" },
+  { title: "لپ‌تاپ سبک", href: "/shop?category=laptop&use=student&display=14", badge: "Light" , image: "/laptop-tiles/ultrabook.webp" },
+  { title: "لپ‌تاپ لمسی", href: "/shop?category=laptop&touch=yes", badge: "Touch" , image: "/laptop-tiles/touch.webp" },
+  { title: "لپ‌تاپ گیمینگ", href: "/shop?category=laptop&use=gaming", badge: "RTX" , image: "/laptop-tiles/gaming.webp" },
+  { title: "لپ‌تاپ اداری", href: "/shop?category=laptop&use=business", badge: "Office" , image: "/laptop-tiles/business.webp" },
+  { title: "لپ‌تاپ دانشجویی", href: "/shop?category=laptop&use=student", badge: "Student" , image: "/laptop-tiles/ultrabook.webp" },
+  { title: "لپ‌تاپ مهندسی", href: "/shop?category=laptop&use=engineering", badge: "CAD" , image: "/laptop-tiles/business.webp" },
+  { title: "برنامه‌نویسی", href: "/shop?category=laptop&use=business&ram=16GB", badge: "Dev" , image: "/laptop-tiles/business.webp" },
+  { title: "تدوین و طراحی", href: "/shop?category=laptop&use=engineering&gpuType=dedicated", badge: "Design" , image: "/laptop-tiles/gaming.webp" },
+  { title: "رم ۱۶ گیگ", href: "/shop?category=laptop&ram=16GB", badge: "16GB" , image: "/laptop-tiles/standard.webp" },
+  { title: "SSD 512GB", href: "/shop?category=laptop&ssd=512GB", badge: "SSD" , image: "/laptop-tiles/standard.webp" },
+  { title: "Core i7", href: "/shop?category=laptop&cpu=i7", badge: "i7" , image: "/laptop-tiles/business.webp" },
+  { title: "گرافیک RTX", href: "/shop?category=laptop&gpuType=rtx", badge: "RTX" , image: "/laptop-tiles/gaming.webp" },
+  { title: "اقتصادی", href: "/shop?category=laptop&maxPrice=45000000", badge: "Budget" , image: "/laptop-tiles/standard.webp" },
+  { title: "حرفه‌ای", href: "/shop?category=laptop&minPrice=60000000", badge: "Pro" , image: "/laptop-tiles/gaming.webp" },
 ];
 
 export const laptopGuideItems: LaptopGuideItem[] = [
