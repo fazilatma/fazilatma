@@ -298,7 +298,11 @@ function wantsLaptopCatalog(params: ShopSearchParams) {
   );
 }
 
-function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
+function matchesFilter(
+  product: JsonStoreProduct,
+  params: ShopSearchParams,
+  options?: { ignoreLaptopDefault?: boolean },
+) {
   const text = lowerSearchText(product);
   const brand = getParam(params, "brand");
   const use = getParam(params, "use");
@@ -309,8 +313,9 @@ function matchesFilter(product: JsonStoreProduct, params: ShopSearchParams) {
   // بدون «category» باشد (مثل /shop?brand=HP)، پیش‌فرض را لپ‌تاپ می‌گیریم تا
   // به‌جای هارد و رم و مینی‌کیس همان برند، فقط لپ‌تاپ‌های آن برند نمایش داده شود.
   // با پارامتر all=1 این پیش‌فرض غیرفعال می‌شود (برای دیدن همهٔ محصولات برند).
+  const ignoreLaptopDefault = options?.ignoreLaptopDefault === true;
   const requestedCategory = getParam(params, "category");
-  const catalogCategory = requestedCategory || (wantsLaptopCatalog(params) ? "laptop" : "");
+  const catalogCategory = requestedCategory || (ignoreLaptopDefault ? "" : wantsLaptopCatalog(params) ? "laptop" : "");
   const part = getParam(params, "part").toLowerCase();
   const partGroup = getParam(params, "partGroup").toLowerCase();
   const searchQuery = getParam(params, "q").slice(0, 120);
@@ -576,9 +581,36 @@ export default async function ShopPage({
   ));
   // صفحه فهرست هیچ درخواست خارجی یا نوشتن KV انجام نمی‌دهد؛ قیمت‌های مشکوک تا
   // زمان تأیید توسط ربات مدیریت نمایش داده نمی‌شوند تا ورکر سبک و پایدار بماند.
-  const filteredProducts = products.filter(
+  let filteredProducts = products.filter(
     (product) => matchesFilter(product, params) && !isSuspiciousStoreProductPrice(product),
   );
+  // اگر فیلتر لپ‌تاپی (مثل «لپ‌تاپ گیمینگ RTX») در کاتالوگ لپ‌تاپ نتیجه نداشت،
+  // به‌جای صفحهٔ خالی همان فیلتر را روی کل فروشگاه اعمال می‌کنیم (کارت گرافیک RTX و…).
+  let laptopFilterFallback = false;
+  if (filteredProducts.length === 0 && wantsLaptopCatalog(params)) {
+    const keywords = ["gpuType", "gpu", "use", "condition", "brand"]
+      .map((key) => getParam(params, key).trim().toLowerCase())
+      .filter((value) => value.length > 1);
+    const relaxedProducts = products.filter((product) => {
+      if (isSuspiciousStoreProductPrice(product)) return false;
+      if (!keywords.length) return product.isActive !== false;
+      const haystack = [
+        product.title,
+        product.brand,
+        product.category,
+        ...Object.keys(product.specs || {}).map((specKey) => `${specKey} ${(product.specs as Record<string, string>)[specKey] ?? ""}`),
+
+        ...(product.badges || []),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return keywords.every((keyword) => haystack.includes(keyword) || haystack.includes(keyword.replace("rtx", "rtx")));
+    });
+    if (relaxedProducts.length) {
+      filteredProducts = relaxedProducts;
+      laptopFilterFallback = true;
+    }
+  }
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
   const brandParam = getParam(params, "brand").trim();
   const laptopDefaultActive = wantsLaptopCatalog(params);
@@ -587,7 +619,7 @@ export default async function ShopPage({
   // /admin/diagnostics/laptop-catalog
   const isAdminViewer = (await cookies()).get("optibid_admin")?.value === "1";
   const effectiveCatalogCategory =
-    getParam(params, "category") || (laptopDefaultActive ? "laptop" : "");
+    getParam(params, "category") || (laptopDefaultActive && !laptopFilterFallback ? "laptop" : "");
   let laptopDiagnostics: LaptopCatalogNoticeData | null = null;
   if (isAdminViewer && effectiveCatalogCategory === "laptop") {
     const allStored = data.storeProducts;
@@ -833,6 +865,11 @@ export default async function ShopPage({
               </span>
             </div>
           </div>
+          {laptopFilterFallback && filteredProducts.length > 0 && (
+            <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900">
+              در کاتالوگ لپ‌تاپ کالایی با این فیلتر پیدا نشد؛ کالاهای مرتبط از کل فروشگاه نمایش داده می‌شود.
+            </div>
+          )}
           {filteredProducts.length === 0 ? (
             <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
               {laptopDefaultActive
