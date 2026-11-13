@@ -385,6 +385,7 @@ export default function AdminDashboardClient({
     homepageImageSliderSlides: [] as HomepageImageSliderSlide[],
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
+    storeCarPartsCatalogEnabled: false,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
     reverseAuctionProductCtaEnabled: false,
@@ -447,6 +448,9 @@ export default function AdminDashboardClient({
     homepageFinalCtaSubtitle:
       "به عنوان خریدار درخواست دهید یا به عنوان تامین‌کننده پیشنهاد قیمت بفرستید",
   });
+  const [sourceBoxNote, setSourceBoxNote] = useState("");
+  // اگر ادمین پیش از رسیدن پاسخ سرور باکس اضافه/ویرایش کرده باشد، دادهٔ قدیمی سرور نباید روی آن بنویسد.
+  const sourcesEditedRef = useRef(false);
   const [computerPartSources, setComputerPartSources] = useState<ComputerPartSourceEntry[]>(() =>
     normalizeComputerPartSourceEntries("https://www.digikala.com/search/category-computer-devices/"),
   );
@@ -540,7 +544,9 @@ export default function AdminDashboardClient({
       .then((result) => {
         if (!result.success) return;
         setPlatformFinance(result.settings);
-        setComputerPartSources(normalizeComputerPartSourceEntries(result.settings.storeComputerPartsSourceUrl));
+        if (!sourcesEditedRef.current) {
+          setComputerPartSources(normalizeComputerPartSourceEntries(result.settings.storeComputerPartsSourceUrl));
+        }
         const savedStoreMultiplier = normalizedImportPriceMultiplier(result.settings.storePriceMultiplier);
         setProductImportPriceMultiplier(savedStoreMultiplier);
         setCommissionRate(result.settings.commissionRate);
@@ -575,18 +581,21 @@ export default function AdminDashboardClient({
       Pick<ComputerPartSourceEntry, "url" | "parts" | "multiplier" | "limit" | "references" | "autoRefreshHour">
     >,
   ) => {
+    sourcesEditedRef.current = true;
     setComputerPartSources((current) =>
       current.map((entry) => entry.id === id ? { ...entry, ...updates } : entry),
     );
   };
 
   const addComputerPartSource = () => {
+    sourcesEditedRef.current = true;
+    const newId = `source-${Date.now()}-${computerPartSources.length + 1}`;
     setComputerPartSources((current) => {
-      if (current.length >= 8) return current;
+      if (current.length >= 12) return current;
       return [
         ...current,
         {
-          id: `source-${Date.now()}-${current.length + 1}`,
+          id: newId,
           url: "",
           parts: [...allComputerPartSourceTypeIds],
           multiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
@@ -596,9 +605,18 @@ export default function AdminDashboardClient({
         },
       ];
     });
+    window.setTimeout(() => {
+      document.getElementById(`computer-part-source-${newId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setSourceBoxNote(
+        computerPartSources.length < 12
+          ? `باکس لینک شمارهٔ ${(computerPartSources.length + 1).toLocaleString("fa-IR")} اضافه شد؛ آدرس را وارد کنید.`
+          : "حداکثر ۱۲ باکس لینک قابل ثبت است.",
+      );
+    }, 80);
   };
 
   const removeComputerPartSource = (id: string) => {
+    sourcesEditedRef.current = true;
     setComputerPartSources((current) =>
       current.length > 1 ? current.filter((entry) => entry.id !== id) : current,
     );
@@ -887,6 +905,7 @@ export default function AdminDashboardClient({
         body: JSON.stringify({
           storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
           storeComputerPartsCatalogEnabled: Boolean(platformFinance.storeComputerPartsCatalogEnabled),
+          storeCarPartsCatalogEnabled: Boolean(platformFinance.storeCarPartsCatalogEnabled),
           storeComputerPartsSourceUrl: serializeComputerPartSourceEntries(computerPartSources),
           storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
         }),
@@ -1220,7 +1239,8 @@ export default function AdminDashboardClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
-          storeComputerPartsCatalogEnabled: true,
+          storeComputerPartsCatalogEnabled: Boolean(platformFinance.storeComputerPartsCatalogEnabled),
+          storeCarPartsCatalogEnabled: Boolean(platformFinance.storeCarPartsCatalogEnabled),
           storeComputerPartsSourceUrl: sourceText,
           storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
         }),
@@ -3193,7 +3213,19 @@ export default function AdminDashboardClient({
                         فعلاً می‌توانید فروشگاه را روی قطعات کامپیوتر متمرکز کنید و هر زمان خواستید بخش لپ‌تاپ را دوباره فعال کنید.
                       </p>
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("car-parts-catalog-toggle")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                        className="rounded-full border border-emerald-300 bg-white px-3 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-50"
+                      >
+                        رفتن به سوییچ قطعات خودرو ⤓
+                      </button>
+                      <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                        فاز جدید: قطعات خودرو (با فعال‌کردن سوییچ، دستهٔ «قطعات خودرو» در فروشگاه اضافه می‌شود)
+                      </span>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
                       <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-cyan-100 bg-white p-4">
                         <span>
                           <b className="block text-sm text-slate-900">بخش لپ‌تاپ و نوت‌بوک</b>
@@ -3224,28 +3256,52 @@ export default function AdminDashboardClient({
                           <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeComputerPartsCatalogEnabled ? "left-1" : "left-6"}`} />
                         </span>
                       </label>
+                      <label
+                        id="car-parts-catalog-toggle"
+                        className="flex scroll-mt-28 cursor-pointer items-center justify-between rounded-2xl border border-emerald-200 bg-white p-4"
+                      >
+                        <span>
+                          <b className="block text-sm text-slate-900">بخش قطعات خودرو</b>
+                          <span className="mt-1 block text-xs text-slate-500">لنت و ترمز، فیلتر و روغن، باتری، جلوبندی، لاستیک و بدنه</span>
+                        </span>
+                        <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${platformFinance.storeCarPartsCatalogEnabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(platformFinance.storeCarPartsCatalogEnabled)}
+                            onChange={(event) => updatePlatformFinanceField("storeCarPartsCatalogEnabled", event.target.checked)}
+                            className="sr-only"
+                          />
+                          <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeCarPartsCatalogEnabled ? "left-1" : "left-6"}`} />
+                        </span>
+                      </label>
                     </div>
                     <div className="mt-4">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h4 className="text-sm font-black text-slate-800">لینک‌های جداگانهٔ جستجو و گروه محصولات هر لینک</h4>
                           <p className="mt-1 text-[11px] font-normal leading-5 text-slate-500">
-                            برای هر لینک مشخص کنید ربات فقط کدام قطعات را جستجو کند. حداکثر ۸ لینک قابل ثبت است.
+                            برای هر لینک مشخص کنید ربات فقط کدام قطعات را جستجو کند. حداکثر ۱۲ لینک قابل ثبت است.
                             با انتخاب «ربات روزانهٔ این لینک» قیمت همان لینک هر روز در ساعت تعیین‌شده (به‌وقت تهران) با ضریب و سقف همان باکس به‌روزرسانی می‌شود.
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={addComputerPartSource}
-                          disabled={computerPartSources.length >= 8}
                           className="rounded-xl bg-cyan-700 px-4 py-2 text-xs font-black text-white hover:bg-cyan-800 disabled:bg-slate-300"
                         >
                           + افزودن باکس لینک
                         </button>
                       </div>
+                      {sourceBoxNote && (
+                        <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[11px] font-black text-cyan-800">{sourceBoxNote}</p>
+                      )}
                       <div className="space-y-3">
                         {computerPartSources.map((source, sourceIndex) => (
-                          <div key={source.id} className="rounded-2xl border border-cyan-200 bg-white p-4 shadow-sm">
+                          <div
+                            key={source.id}
+                            id={`computer-part-source-${source.id}`}
+                            className="scroll-mt-28 rounded-2xl border border-cyan-200 bg-white p-4 shadow-sm"
+                          >
                             <div className="flex items-center justify-between gap-3">
                               <label className="flex-1 text-xs font-black text-slate-700">
                                 لینک شماره {(sourceIndex + 1).toLocaleString("fa-IR")}

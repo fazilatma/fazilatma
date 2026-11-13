@@ -237,6 +237,7 @@ export default async function HomePage() {
       {
         laptopEnabled: storeLaptopCatalogEnabled,
         computerPartsEnabled: storeComputerPartsCatalogEnabled,
+        carPartsEnabled: data.settings.storeCarPartsCatalogEnabled,
       },
     ));
     storeHeroSlides = data.settings.storeHeroSliderSlides || [];

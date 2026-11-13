@@ -12,6 +12,7 @@ import LaptopCatalogAdminNotice, {
 import { getOptiBidData, type JsonStoreProduct } from "@/lib/json-store";
 import {
   filterProductsByCatalogSections,
+  isCarPartsCatalogProduct,
   isComputerPartsCatalogProduct,
   isLaptopCatalogProduct,
   looksLikeLaptopProduct,
@@ -52,6 +53,28 @@ const computerPartsCategoryItems: Array<{
   { title: "کیس", href: "/shop?category=computer-parts&part=case", badge: "CASE", kind: "case", part: "case", image: "/images/parts/case.png" },
   { title: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", badge: "COOL", kind: "cooler", part: "cooler", image: "/images/parts/cooler.png" },
 ];
+
+const carPartsCategoryItems: Array<{ title: string; href: string; badge: string; part: string }> = [
+  { title: "لنت و دیسک ترمز", href: "/shop?category=car-parts&part=brake", badge: "Brake", part: "brake" },
+  { title: "فیلتر و روغن", href: "/shop?category=car-parts&part=filter", badge: "Filter", part: "filter" },
+  { title: "باتری و برق خودرو", href: "/shop?category=car-parts&part=battery", badge: "Battery", part: "battery" },
+  { title: "کمک فنر و جلوبندی", href: "/shop?category=car-parts&part=suspension", badge: "Suspension", part: "suspension" },
+  { title: "موتور و انتقال قدرت", href: "/shop?category=car-parts&part=engine", badge: "Engine", part: "engine" },
+  { title: "لاستیک و رینگ", href: "/shop?category=car-parts&part=tire", badge: "Tire", part: "tire" },
+  { title: "بدنه و آپشن", href: "/shop?category=car-parts&part=body", badge: "Body", part: "body" },
+  { title: "سیستم خنک‌کاری", href: "/shop?category=car-parts&part=cooling", badge: "Cooling", part: "cooling" },
+];
+
+const carPartKeywords: Record<string, RegExp> = {
+  brake: /ترمز|لنت|کالیپر/,
+  filter: /فیلتر|روغن/,
+  battery: /باتری|دینام|استارت|شمع/,
+  suspension: /کمک فنر|سیبک|طبق|جلوبندی|بوش/,
+  engine: /موتور|گیربکس|کلاچ|دیسک و صفحه|واشر|انژکتور|پمپ بنزین/,
+  tire: /لاستیک|رینگ/,
+  body: /سپر|کاپوت|آینه|چراغ|جلوپنجره|درب/,
+  cooling: /رادیاتور|واتر پمپ|خنک/,
+};
 
 const getParam = (params: ShopSearchParams, key: string) => {
   const value = params[key];
@@ -323,12 +346,14 @@ function matchesFilter(
   if (!matchesProductSearch(product, searchQuery)) return false;
   if (catalogCategory === "computer-parts" && !isComputerPartsCatalogProduct(product)) return false;
   if (catalogCategory === "laptop" && !isLaptopCatalogProduct(product)) return false;
+  if (catalogCategory === "car-parts" && !isCarPartsCatalogProduct(product)) return false;
   // بقیهٔ دسته‌های منو (لوازم جانبی، کنسول، شبکه، ماشین‌های اداری، کامپیوتر آماده…)
   // تا قبل از این نادیده گرفته می‌شدند و کل کاتالوگ را نشان می‌دادند.
   if (
     catalogCategory &&
     catalogCategory !== "laptop" &&
     catalogCategory !== "computer-parts" &&
+    catalogCategory !== "car-parts" &&
     !matchesStoreCatalogCategory(product, catalogCategory)
   )
     return false;
@@ -358,6 +383,11 @@ function matchesFilter(
       !keywords.some((keyword) => text.includes(keyword.toLowerCase()))
     )
       return false;
+  }
+
+  // فیلتر نوع قطعهٔ خودرو (لنت، فیلتر، باتری…)
+  if (catalogCategory === "car-parts" && part && carPartKeywords[part]) {
+    if (!carPartKeywords[part].test(`${product.title} ${product.category} ${Object.values(product.specs || {}).join(" ")}`)) return false;
   }
 
   const tagFilterKeys = [
@@ -577,6 +607,7 @@ export default async function ShopPage({
     {
       laptopEnabled: data.settings.storeLaptopCatalogEnabled,
       computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
+      carPartsEnabled: data.settings.storeCarPartsCatalogEnabled,
     },
   ));
   // صفحه فهرست هیچ درخواست خارجی یا نوشتن KV انجام نمی‌دهد؛ قیمت‌های مشکوک تا
@@ -649,7 +680,12 @@ export default async function ShopPage({
     (_, index) => paginationStart + index,
   );
   const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
-  const quickCategoryItems = computerPartsOnly ? computerPartsCategoryItems : laptopCategoryItems;
+  const carPartsOnly = data.settings.storeCarPartsCatalogEnabled === true;
+  const quickCategoryItems = computerPartsOnly
+    ? computerPartsCategoryItems
+    : carPartsOnly && !data.settings.storeLaptopCatalogEnabled
+      ? carPartsCategoryItems
+      : laptopCategoryItems;
   const firstImageByPart = new Map<string, JsonStoreProduct>();
   if (computerPartsOnly) {
     for (const item of computerPartsCategoryItems) {
@@ -762,7 +798,7 @@ export default async function ShopPage({
         <div className="flex gap-3 overflow-x-auto rounded-[2rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
           {quickCategoryItems.map((item) => {
             const itemBrand = "brand" in item ? item.brand : undefined;
-            const partKind = "kind" in item ? item.kind : undefined;
+            const partKind = "kind" in item ? (item.kind as ComputerPartVisualKind) : undefined;
             const partKey = "part" in item ? item.part : undefined;
             const partImage = "image" in item ? item.image : undefined;
             const brandProduct = itemBrand
@@ -776,7 +812,11 @@ export default async function ShopPage({
                 className="group min-w-[126px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50"
               >
                 <div className="relative mx-auto mb-3 grid h-12 w-20 place-items-center overflow-hidden rounded-xl bg-white">
-                  {computerPartsOnly && partKind ? (
+                  {carPartsOnly && !computerPartsOnly ? (
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-[10px] font-black text-white">
+                      {item.badge}
+                    </span>
+                  ) : computerPartsOnly && partKind ? (
                     partProduct?.imageUrl ? (
                       <StoreProductRemoteImage
                         src={partProduct.imageUrl}

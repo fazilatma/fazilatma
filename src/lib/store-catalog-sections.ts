@@ -37,6 +37,19 @@ export function isComputerPartsCatalogProduct(
   return key === "components" || key === "storage";
 }
 
+/** واژه‌های قطعات خودرو برای تشخیص کالای این دسته از عنوان/دسته/مشخصات. */
+const carPartPattern =
+  /قطعات خودرو|قطعات ماشین|خودرو|ترمز|لنت|دیسک ترمز|کالیپر|فیلتر روغن|فیلتر هوا|فیلتر کابین|روغن موتور|شمع خودرو|باتری خودرو|لاستیک|رینگ چرخ|کمک فنر|سیبک|طبق چرخ|بوش طبق|کلاچ|دیسک و صفحه|واشر سرسیلندر|رادیاتور|اگزوز|چراغ خودرو|آینه بغل|سنسور اکسیژن|کویل|دینام خودرو|استارت خودرو|واتر پمپ|پمپ بنزین|انژکتور|جلوپنجره|سپر خودرو|کاپوت|گاردان|دیفرانسیل|گیربکس|موتور خودرو/;
+
+/** آیا کالا بخشی از کاتالوگ «قطعات خودرو» است؟ (لپ‌تاپ و قطعات کامپیوتر هرگز) */
+export function isCarPartsCatalogProduct(
+  product: Pick<JsonStoreProduct, "title" | "brand" | "category" | "specs">,
+) {
+  const text = productText(product);
+  if (isLaptopCatalogProduct(product) || isComputerPartsCatalogProduct(product)) return false;
+  return carPartPattern.test(text);
+}
+
 /**
  * آیا عنوان/دستهٔ کالا شبیه لپ‌تاپ است؟ (فقط برای عیب‌یابی و شمارش)
  * این تابع تصمیم نمایش نمی‌گیرد؛ فقط نشان می‌دهد چه کالاهایی از نظر کاربر
@@ -68,6 +81,7 @@ const catalogCategoryMatchers: Record<string, { keys: string[]; pattern?: RegExp
   mobile: { keys: ["mobile"] },
   tablet: { keys: ["tablet"] },
   storage: { keys: ["storage"] },
+  "car-parts": { keys: [], pattern: carPartPattern },
   monitor: { keys: ["monitor"] },
 };
 
@@ -127,17 +141,23 @@ export function dedupeStorefrontCatalogProducts(products: JsonStoreProduct[]) {
 
 export function filterProductsByCatalogSections(
   products: JsonStoreProduct[],
-  settings: { laptopEnabled: boolean; computerPartsEnabled: boolean },
+  settings: { laptopEnabled: boolean; computerPartsEnabled: boolean; carPartsEnabled?: boolean },
 ) {
   const visibleComputerPart = (product: JsonStoreProduct) =>
     isComputerPartsCatalogProduct(product) && isStorefrontEligibleComputerPart(product);
-  let filtered: JsonStoreProduct[] = [];
-  if (settings.laptopEnabled && settings.computerPartsEnabled) {
-    filtered = products.filter((product) => isLaptopCatalogProduct(product) || visibleComputerPart(product));
-  } else if (settings.laptopEnabled) {
-    filtered = products.filter(isLaptopCatalogProduct);
-  } else if (settings.computerPartsEnabled) {
-    filtered = products.filter(visibleComputerPart);
+  const carPartsEnabled = settings.carPartsEnabled === true;
+  if (carPartsEnabled || settings.laptopEnabled || settings.computerPartsEnabled) {
+    const visibleCarPart = (product: JsonStoreProduct) =>
+      carPartsEnabled && isCarPartsCatalogProduct(product);
+    return dedupeStorefrontCatalogProducts(
+      products.filter(
+        (product) =>
+          (settings.laptopEnabled && isLaptopCatalogProduct(product)) ||
+          (settings.computerPartsEnabled && visibleComputerPart(product)) ||
+          visibleCarPart(product),
+      ),
+    );
   }
+  const filtered: JsonStoreProduct[] = [];
   return dedupeStorefrontCatalogProducts(filtered);
 }

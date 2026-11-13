@@ -873,6 +873,7 @@ export type OptiBidJsonData = {
     siteMode: SiteMode;
     storeLaptopCatalogEnabled: boolean;
     storeComputerPartsCatalogEnabled: boolean;
+    storeCarPartsCatalogEnabled: boolean;
     storeComputerPartsSourceUrl: string;
     /** ضریب سراسری قیمت: قیمت نهایی = کمترین قیمت معتبر بازار × این ضریب. */
     storePriceMultiplier: number;
@@ -1010,6 +1011,7 @@ const emptyData = (): OptiBidJsonData => ({
     siteMode: "store",
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
+    storeCarPartsCatalogEnabled: false,
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
     reverseAuctionProductCtaEnabled: false,
@@ -1611,6 +1613,9 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       storeComputerPartsCatalogEnabled:
         (parsed.settings as { storeComputerPartsCatalogEnabled?: boolean } | undefined)
           ?.storeComputerPartsCatalogEnabled !== false,
+      storeCarPartsCatalogEnabled:
+        (parsed.settings as { storeCarPartsCatalogEnabled?: boolean } | undefined)
+          ?.storeCarPartsCatalogEnabled === true,
       storeComputerPartsSourceUrl: String(
         (parsed.settings as { storeComputerPartsSourceUrl?: string } | undefined)
           ?.storeComputerPartsSourceUrl || "https://www.digikala.com/",
@@ -4682,6 +4687,7 @@ export async function updateJsonPlatformFinanceSettings(
   const booleanHomepageKeys = [
     "storeLaptopCatalogEnabled",
     "storeComputerPartsCatalogEnabled",
+    "storeCarPartsCatalogEnabled",
     "storeHeroSliderEnabled",
     "reverseAuctionProductCtaEnabled",
     "reverseAuctionQuickRequestEnabled",
@@ -4800,6 +4806,7 @@ export async function getJsonStoreCatalogSettings() {
   return {
     laptopEnabled: data.settings.storeLaptopCatalogEnabled,
     computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
+    carPartsEnabled: data.settings.storeCarPartsCatalogEnabled,
     computerPartsSourceUrl: data.settings.storeComputerPartsSourceUrl,
     reverseAuction: {
       productCtaEnabled: data.settings.reverseAuctionProductCtaEnabled,
