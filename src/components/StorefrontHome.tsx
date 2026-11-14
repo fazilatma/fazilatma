@@ -141,10 +141,12 @@ export default function StorefrontHome({
       <section className="pt-2">
         <div className="mx-auto max-w-3xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-lg md:p-8">
           <h2 className="text-xl font-black text-slate-900 md:text-2xl">
-            دنبال چه کالایی هستید؟
+            {carPartsPrimary ? "دنبال چه قطعه‌ای برای خودروی خود هستید؟" : "دنبال چه کالایی هستید؟"}
           </h2>
           <p className="mt-2 text-xs leading-6 text-slate-500">
-            نام، برند یا مدل دقیق کالا را بنویسید؛ مثلاً «RTX 5060»، «H610» یا «IdeaPad».
+            {carPartsPrimary
+              ? "نام قطعه، برند یا مدل خودرو را بنویسید؛ مثلاً «لنت ترمز پژو ۲۰۶»، «فیلتر روغن» یا «باتری ۷۰ آمپر»."
+              : "نام، برند یا مدل دقیق کالا را بنویسید؛ مثلاً «RTX 5060»، «H610» یا «IdeaPad»."}
           </p>
           <form
             action="/shop"
@@ -167,7 +169,7 @@ export default function StorefrontHome({
                 name="q"
                 maxLength={120}
                 autoComplete="off"
-                placeholder="نام کالا، برند یا مدل…"
+                placeholder={carPartsPrimary ? "نام قطعه، برند یا مدل خودرو…" : "نام کالا، برند یا مدل…"}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-12 pl-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
               />
             </label>
@@ -179,9 +181,11 @@ export default function StorefrontHome({
             </button>
           </form>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            {(brandChips.length
-              ? brandChips
-              : ["لپ‌تاپ", "مادربرد", "کارت گرافیک", "SSD", "رم"]
+            {(carPartsPrimary && !brandChips.length
+              ? ["لنت ترمز", "فیلتر روغن", "باتری خودرو", "کمک فنر", "لاستیک"]
+              : brandChips.length
+                ? brandChips
+                : ["لپ‌تاپ", "مادربرد", "کارت گرافیک", "SSD", "رم"]
             ).map((chip) => (
               <Link
                 key={chip}
@@ -310,6 +314,7 @@ export default function StorefrontHome({
         </section>
       )}
 
+      {!carPartsPrimary && (
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
@@ -349,6 +354,7 @@ export default function StorefrontHome({
           </div>
         </div>
       </section>
+      )}
 
       {laptopCatalogEnabled && (
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -376,7 +382,7 @@ export default function StorefrontHome({
       )}
 
 
-      {laptopCatalogEnabled && (
+      {laptopCatalogEnabled && !carPartsPrimary && (
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-900">
@@ -406,7 +412,7 @@ export default function StorefrontHome({
         ))}
       </section>
 
-      {laptopCatalogEnabled && (
+      {laptopCatalogEnabled && !carPartsPrimary && (
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
@@ -428,7 +434,7 @@ export default function StorefrontHome({
       </section>
       )}
 
-      {laptopCatalogEnabled && (
+      {laptopCatalogEnabled && !carPartsPrimary && (
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">

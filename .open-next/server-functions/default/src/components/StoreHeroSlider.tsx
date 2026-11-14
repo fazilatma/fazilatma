@@ -60,7 +60,7 @@ export default function StoreHeroSlider({
   fallbackImageUrl?: string;
   /** تصویر ثابت این بنر (بر تصویر ذخیره‌شده اولویت دارد). */
   overrideImageUrl?: string;
-  focus?: "laptop" | "components";
+  focus?: "laptop" | "components" | "car-parts";
 }) {
   const activeSlides = (slides || [])
     .filter((slide) => slide.isActive !== false)
@@ -93,7 +93,11 @@ export default function StoreHeroSlider({
 
       <div className="relative z-10 flex min-h-[145px] w-full flex-col justify-center md:min-h-[170px] lg:w-[68%] xl:min-h-[185px]">
         <span className="mb-2 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-xs font-black ring-1 ring-white/20">
-          {focus === "components" ? "فروشگاه تخصصی قطعات کامپیوتر" : "فروشگاه تخصصی لپ‌تاپ و کامپیوتر"}
+          {focus === "car-parts"
+            ? "فروشگاه تخصصی قطعات خودرو"
+            : focus === "components"
+              ? "فروشگاه تخصصی قطعات کامپیوتر"
+              : "فروشگاه تخصصی لپ‌تاپ و کامپیوتر"}
         </span>
         <h1 className="max-w-7xl text-2xl font-black leading-[1.35] md:text-3xl xl:text-4xl">
           {slide.title}

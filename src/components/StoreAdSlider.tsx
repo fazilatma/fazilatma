@@ -52,9 +52,19 @@ export default function StoreAdSlider({
   fallbackImageUrl?: string;
   /** تصویر ثابت این بنر (بر تصویر ذخیره‌شده اولویت دارد). */
   overrideImageUrl?: string;
-  focus?: "laptop" | "components";
+  focus?: "laptop" | "components" | "car-parts";
 }) {
-  const activeSlide = focus === "components"
+  const activeSlide = focus === "car-parts"
+    ? {
+        ...slides[0],
+        eyebrow: "تبلیغ ویژه فروشگاه",
+        title: "قطعات اصلی خودرو با ضمانت و مهلت تست",
+        text: "لنت، فیلتر، باتری و جلوبندی را با مشخصات دقیق، قیمت شفاف و امکان مرجوعی انتخاب کنید.",
+        href: "/shop?category=car-parts",
+        cta: "مشاهده قطعات خودرو",
+        accent: "from-emerald-500 to-[#003b5c]",
+      }
+    : focus === "components"
     ? {
         ...slides[0],
         eyebrow: "ویژه قطعات کامپیوتر",

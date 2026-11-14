@@ -643,9 +643,11 @@ export default function Header({
               >
                 <span className="text-lg leading-none">☰</span>{" "}
                 {storeExperienceEnabled
-                  ? computerPartsCatalogEnabled && !laptopCatalogEnabled
-                    ? "دسته‌بندی قطعات"
-                    : "دسته‌بندی لپ‌تاپ‌ها"
+                  ? carPartsPrimary
+                    ? "دسته‌بندی قطعات خودرو"
+                    : computerPartsCatalogEnabled && !laptopCatalogEnabled
+                      ? "دسته‌بندی قطعات"
+                      : "دسته‌بندی لپ‌تاپ‌ها"
                   : "دسته‌بندی کالاها"}
               </Link>
               <div className={computerPartsCatalogEnabled && !laptopCatalogEnabled ? "hidden" : "invisible absolute right-0 top-full z-50 w-[840px] overflow-hidden rounded-3xl border border-gray-100 bg-white text-right opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100"}>
