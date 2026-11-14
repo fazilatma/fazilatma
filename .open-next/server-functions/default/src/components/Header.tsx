@@ -481,6 +481,7 @@ export default function Header({
   const [laptopCatalogEnabled, setLaptopCatalogEnabled] = useState(false);
   const [computerPartsCatalogEnabled, setComputerPartsCatalogEnabled] = useState(true);
   const [carPartsCatalogEnabled, setCarPartsCatalogEnabled] = useState(false);
+  const [primaryCatalog, setPrimaryCatalog] = useState("laptop");
   const [cartCount, setCartCount] = useState(0);
   const [headerCategories, setHeaderCategories] = useState<CatalogCategory[]>(
     defaultCatalogCategories,
@@ -545,6 +546,7 @@ export default function Header({
           setLaptopCatalogEnabled(result.storeLaptopCatalogEnabled === true);
           setComputerPartsCatalogEnabled(result.storeComputerPartsCatalogEnabled !== false);
           setCarPartsCatalogEnabled(result.storeCarPartsCatalogEnabled === true);
+          setPrimaryCatalog(typeof result.storePrimaryCatalog === "string" ? result.storePrimaryCatalog : "laptop");
         }
       })
       .catch(() => undefined);
@@ -609,7 +611,7 @@ export default function Header({
 
   // حالت اصلی فروشگاه: «قطعات خودرو» روشن و لپ‌تاپ خاموش ⇒ همهٔ منو و دسته‌بندی
   // فروشگاه خودرویی می‌شود تا ادمین با یک سوییچ کل فروشگاه را عوض کند.
-  const carPartsPrimary = carPartsCatalogEnabled;
+  const carPartsPrimary = carPartsCatalogEnabled && primaryCatalog === "car-parts";
   const visibleStoreTopNavMenus = storeTopNavMenus.filter((menu) => {
     if (carPartsPrimary) return menu.title === "قطعات خودرو";
     if (menu.title === "قطعات خودرو") return carPartsCatalogEnabled;

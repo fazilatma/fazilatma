@@ -681,7 +681,8 @@ export default async function ShopPage({
   );
   const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
   const carPartsOnly = data.settings.storeCarPartsCatalogEnabled === true;
-  const carPartsPrimary = carPartsOnly;
+  const carTheme = carPartsOnly && data.settings.storePrimaryCatalog === "car-parts";
+  const carPartsPrimary = carPartsOnly && data.settings.storePrimaryCatalog === "car-parts";
   const quickCategoryItems = carPartsPrimary
     ? carPartsCategoryItems
     : computerPartsOnly
@@ -725,17 +726,17 @@ export default async function ShopPage({
       <section className="bg-white py-10 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
-            {carPartsOnly ? "فروشگاه تخصصی قطعات خودرو OptiBid" : "فروشگاه اینترنتی OptiBid"}
+            {carTheme ? "فروشگاه تخصصی قطعات خودرو OptiBid" : "فروشگاه اینترنتی OptiBid"}
           </span>
           <h1 className="mt-4 text-3xl font-black text-slate-900 md:text-4xl">
-            {carPartsOnly
+            {carTheme
               ? "خرید آنلاین قطعات خودرو"
               : computerPartsOnly
                 ? "خرید قطعات کامپیوتر"
                 : "خرید لپ‌تاپ و کامپیوتر"}
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            {carPartsOnly
+            {carTheme
               ? "لنت و ترمز، فیلتر و روغن، باتری، جلوبندی، لاستیک، بدنه و قطعات موتور را با شمارهٔ فنی، قیمت به‌روز و وضعیت موجودی مقایسه کنید."
               : computerPartsOnly
                 ? "پردازنده، مادربرد، کارت گرافیک، رم، حافظه، پاور و سایر قطعات را با قیمت و مشخصات مقایسه کنید."
@@ -774,7 +775,7 @@ export default async function ShopPage({
                   maxLength={120}
                   autoComplete="off"
                   placeholder={
-                    carPartsOnly
+                    carTheme
                       ? "جستجوی قطعهٔ خودرو؛ مثلاً لنت ترمز ۲۰۶، فیلتر روغن یا باتری ۷۰ آمپر..."
                       : computerPartsOnly
                         ? "جستجو بین قطعات؛ مثلاً Ryzen 7، RTX 5060 یا H610..."
@@ -898,7 +899,7 @@ export default async function ShopPage({
               <p className="mt-1 text-xs text-slate-500">
                 {searchQuery
                   ? `نتایج جستجوی «${searchQuery}» همراه با فیلترهای انتخاب‌شده نمایش داده می‌شود.`
-                  : carPartsOnly
+                  : carTheme
                     ? "با جستجو و فیلترهای سمت راست می‌توانید قطعهٔ خودرو را بر اساس نوع قطعه، برند، وضعیت و بازهٔ قیمت پیدا کنید."
                   : computerPartsOnly
                     ? "با جستجو و فیلترهای سمت راست می‌توانید قطعه را بر اساس مدل، برند، نوع و قیمت پیدا کنید."
@@ -1006,14 +1007,14 @@ export default async function ShopPage({
 
           <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">
-              {carPartsOnly
+              {carTheme
                 ? "راهنمای خرید قطعات خودرو در OptiBid"
                 : computerPartsOnly
                   ? "راهنمای خرید قطعات کامپیوتر در OptiBid"
                   : "راهنمای خرید لپ‌تاپ در OptiBid"}
             </h2>
             <div className="mt-3 grid gap-4 text-sm leading-8 text-slate-600 md:grid-cols-3">
-              {carPartsOnly ? (
+              {carTheme ? (
                 <>
                   <p>
                     قطعهٔ مناسب خودروی خود را بر اساس نوع قطعه (ترمز، فیلتر و روغن، باتری، جلوبندی، موتور، لاستیک و بدنه)، برند و بازهٔ قیمت پیدا کنید.

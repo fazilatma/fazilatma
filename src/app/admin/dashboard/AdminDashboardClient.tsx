@@ -386,6 +386,7 @@ export default function AdminDashboardClient({
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
     storeCarPartsCatalogEnabled: false,
+    storePrimaryCatalog: "laptop" as "laptop" | "computer-parts" | "car-parts",
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
     reverseAuctionProductCtaEnabled: false,
@@ -908,6 +909,7 @@ export default function AdminDashboardClient({
           storeLaptopCatalogEnabled: Boolean(platformFinance.storeLaptopCatalogEnabled),
           storeComputerPartsCatalogEnabled: Boolean(platformFinance.storeComputerPartsCatalogEnabled),
           storeCarPartsCatalogEnabled: Boolean(platformFinance.storeCarPartsCatalogEnabled),
+          storePrimaryCatalog: platformFinance.storePrimaryCatalog || "laptop",
           storeComputerPartsSourceUrl: serializeComputerPartSourceEntries(computerPartSources),
           storePriceMultiplier: normalizedImportPriceMultiplier(productImportPriceMultiplier),
         }),
@@ -3241,7 +3243,7 @@ export default function AdminDashboardClient({
                           <input
                             type="checkbox"
                             checked={Boolean(platformFinance.storeLaptopCatalogEnabled)}
-                            onChange={(event) => updatePlatformFinanceField("storeLaptopCatalogEnabled", event.target.checked)}
+                            onChange={(event) => { updatePlatformFinanceField("storeLaptopCatalogEnabled", event.target.checked); if (event.target.checked) updatePlatformFinanceField("storePrimaryCatalog", "laptop"); }}
                             className="sr-only"
                           />
                           <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeLaptopCatalogEnabled ? "left-1" : "left-6"}`} />
@@ -3256,7 +3258,7 @@ export default function AdminDashboardClient({
                           <input
                             type="checkbox"
                             checked={Boolean(platformFinance.storeComputerPartsCatalogEnabled)}
-                            onChange={(event) => updatePlatformFinanceField("storeComputerPartsCatalogEnabled", event.target.checked)}
+                            onChange={(event) => { updatePlatformFinanceField("storeComputerPartsCatalogEnabled", event.target.checked); if (event.target.checked) updatePlatformFinanceField("storePrimaryCatalog", "computer-parts"); }}
                             className="sr-only"
                           />
                           <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeComputerPartsCatalogEnabled ? "left-1" : "left-6"}`} />
@@ -3274,12 +3276,35 @@ export default function AdminDashboardClient({
                           <input
                             type="checkbox"
                             checked={Boolean(platformFinance.storeCarPartsCatalogEnabled)}
-                            onChange={(event) => updatePlatformFinanceField("storeCarPartsCatalogEnabled", event.target.checked)}
+                            onChange={(event) => { updatePlatformFinanceField("storeCarPartsCatalogEnabled", event.target.checked); if (event.target.checked) updatePlatformFinanceField("storePrimaryCatalog", "car-parts"); }}
                             className="sr-only"
                           />
                           <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${platformFinance.storeCarPartsCatalogEnabled ? "left-1" : "left-6"}`} />
                         </span>
                       </label>
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-cyan-100 bg-white p-3">
+                      <p className="mb-2 text-[11px] font-black text-slate-700">حالت اصلی سایت (ظاهر و متن‌ها از همین بخش پیروی می‌کند)</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { value: "laptop", label: "لپ‌تاپ و کامپیوتر" },
+                          { value: "computer-parts", label: "قطعات کامپیوتر" },
+                          { value: "car-parts", label: "قطعات خودرو" },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => updatePlatformFinanceField("storePrimaryCatalog", option.value as "laptop" | "computer-parts" | "car-parts")}
+                            className={`rounded-full px-3 py-1.5 text-[11px] font-black transition ${
+                              (platformFinance.storePrimaryCatalog || "laptop") === option.value
+                                ? "bg-emerald-600 text-white"
+                                : "border border-slate-200 bg-slate-50 text-slate-600"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-3">
                       <button

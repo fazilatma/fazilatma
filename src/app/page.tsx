@@ -125,6 +125,7 @@ export default async function HomePage() {
   let storeLaptopCatalogEnabled = false;
   let storeComputerPartsCatalogEnabled = true;
   let storeCarPartsCatalogEnabled = false;
+  let storePrimaryCatalog: "laptop" | "computer-parts" | "car-parts" = "laptop";
   let reverseAuctionPilot = {
     productCtaEnabled: false,
     quickRequestEnabled: false,
@@ -224,6 +225,7 @@ export default async function HomePage() {
     storeLaptopCatalogEnabled = data.settings.storeLaptopCatalogEnabled;
     storeComputerPartsCatalogEnabled = data.settings.storeComputerPartsCatalogEnabled;
     storeCarPartsCatalogEnabled = data.settings.storeCarPartsCatalogEnabled;
+    storePrimaryCatalog = data.settings.storePrimaryCatalog;
     reverseAuctionPilot = {
       productCtaEnabled: data.settings.reverseAuctionProductCtaEnabled,
       quickRequestEnabled: data.settings.reverseAuctionQuickRequestEnabled,
@@ -426,6 +428,7 @@ export default async function HomePage() {
         laptopCatalogEnabled={storeLaptopCatalogEnabled}
         computerPartsCatalogEnabled={storeComputerPartsCatalogEnabled}
         carPartsCatalogEnabled={storeCarPartsCatalogEnabled}
+        primaryCatalog={storePrimaryCatalog}
         reverseAuctionPilot={reverseAuctionPilot}
       />
     );

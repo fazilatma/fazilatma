@@ -21,6 +21,7 @@ export default function StorefrontHome({
   laptopCatalogEnabled = true,
   computerPartsCatalogEnabled = false,
   carPartsCatalogEnabled = false,
+  primaryCatalog = "car-parts",
   reverseAuctionPilot,
 }: {
   products: JsonStoreProduct[];
@@ -29,6 +30,7 @@ export default function StorefrontHome({
   laptopCatalogEnabled?: boolean;
   computerPartsCatalogEnabled?: boolean;
   carPartsCatalogEnabled?: boolean;
+  primaryCatalog?: "laptop" | "computer-parts" | "car-parts";
   reverseAuctionPilot?: {
     productCtaEnabled: boolean;
     quickRequestEnabled: boolean;
@@ -47,7 +49,7 @@ export default function StorefrontHome({
     ),
   ).slice(0, 6);
   // حالت اصلی «قطعات خودرو»: با روشن‌شدن این بخش، متن بنرها و مسیرها خودرویی می‌شوند.
-  const carPartsPrimary = carPartsCatalogEnabled;
+  const carPartsPrimary = carPartsCatalogEnabled && primaryCatalog === "car-parts";
   const carHeroSlides: HomepageImageSliderSlide[] = [
     {
       id: "car-main",

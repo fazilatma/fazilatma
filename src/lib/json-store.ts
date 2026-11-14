@@ -874,6 +874,8 @@ export type OptiBidJsonData = {
     storeLaptopCatalogEnabled: boolean;
     storeComputerPartsCatalogEnabled: boolean;
     storeCarPartsCatalogEnabled: boolean;
+    /** فاز اصلی فروشگاه: ظاهر و متن‌های سایت از همین بخش پیروی می‌کنند. */
+    storePrimaryCatalog: "laptop" | "computer-parts" | "car-parts";
     storeComputerPartsSourceUrl: string;
     /** ضریب سراسری قیمت: قیمت نهایی = کمترین قیمت معتبر بازار × این ضریب. */
     storePriceMultiplier: number;
@@ -1012,6 +1014,7 @@ const emptyData = (): OptiBidJsonData => ({
     storeLaptopCatalogEnabled: false,
     storeComputerPartsCatalogEnabled: true,
     storeCarPartsCatalogEnabled: false,
+    storePrimaryCatalog: "laptop",
     storeComputerPartsSourceUrl: "https://www.digikala.com/",
     storePriceMultiplier: 1,
     reverseAuctionProductCtaEnabled: false,
@@ -1616,6 +1619,16 @@ function migrateData(parsed: Partial<OptiBidJsonData>): OptiBidJsonData {
       storeCarPartsCatalogEnabled:
         (parsed.settings as { storeCarPartsCatalogEnabled?: boolean } | undefined)
           ?.storeCarPartsCatalogEnabled === true,
+      storePrimaryCatalog: (() => {
+        const raw = (parsed.settings as { storePrimaryCatalog?: string } | undefined)?.storePrimaryCatalog;
+        if (raw === "car-parts" || raw === "computer-parts" || raw === "laptop") return raw;
+        const car = (parsed.settings as { storeCarPartsCatalogEnabled?: boolean } | undefined)?.storeCarPartsCatalogEnabled === true;
+        const parts = (parsed.settings as { storeComputerPartsCatalogEnabled?: boolean } | undefined)?.storeComputerPartsCatalogEnabled !== false;
+        const laptop = (parsed.settings as { storeLaptopCatalogEnabled?: boolean } | undefined)?.storeLaptopCatalogEnabled !== false;
+        if (car && !laptop) return "car-parts" as const;
+        if (!laptop && parts) return "computer-parts" as const;
+        return "laptop" as const;
+      })(),
       storeComputerPartsSourceUrl: String(
         (parsed.settings as { storeComputerPartsSourceUrl?: string } | undefined)
           ?.storeComputerPartsSourceUrl || "https://www.digikala.com/",
@@ -4747,6 +4760,9 @@ export async function updateJsonPlatformFinanceSettings(
   for (const key of booleanHomepageKeys) {
     if (typeof updatesRecord[key] === "boolean") settingsRecord[key] = updatesRecord[key];
   }
+  if (updatesRecord.storePrimaryCatalog === "laptop" || updatesRecord.storePrimaryCatalog === "computer-parts" || updatesRecord.storePrimaryCatalog === "car-parts") {
+    settingsRecord.storePrimaryCatalog = updatesRecord.storePrimaryCatalog;
+  }
   for (const key of stringHomepageKeys) {
     if (typeof updatesRecord[key] === "string") {
       settingsRecord[key] = String(updatesRecord[key]).trim().slice(0, 300);
@@ -4807,6 +4823,7 @@ export async function getJsonStoreCatalogSettings() {
     laptopEnabled: data.settings.storeLaptopCatalogEnabled,
     computerPartsEnabled: data.settings.storeComputerPartsCatalogEnabled,
     carPartsEnabled: data.settings.storeCarPartsCatalogEnabled,
+    primaryCatalog: data.settings.storePrimaryCatalog,
     computerPartsSourceUrl: data.settings.storeComputerPartsSourceUrl,
     reverseAuction: {
       productCtaEnabled: data.settings.reverseAuctionProductCtaEnabled,
