@@ -26,6 +26,7 @@ SOURCE_GIT=""
 SOURCE_BRANCH=""
 RUN_MODE="auto"      # auto | systemd | pm2 | nohup
 SKIP_BUILD="0"
+CONFIG_FILE=""
 
 c_green='\033[0;32m'; c_yellow='\033[0;33m'; c_red='\033[0;31m'; c_off='\033[0m'
 log()  { printf "${c_green}[OptiBid]${c_off} %s\n" "$*"; }
@@ -40,6 +41,7 @@ while [ $# -gt 0 ]; do
     --git) SOURCE_GIT="$2"; shift 2 ;;
     --branch) SOURCE_BRANCH="$2"; shift 2 ;;
     --mode) RUN_MODE="$2"; shift 2 ;;
+    --config) CONFIG_FILE="$2"; shift 2 ;;
     --skip-build) SKIP_BUILD="1"; shift ;;
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) die "پارامتر ناشناخته: $1" ;;
@@ -98,6 +100,19 @@ if ! node_ok; then
 fi
 export PATH="$HOME/.nvm/versions/node/$(ls "$HOME/.nvm/versions/node" 2>/dev/null | sort -V | tail -1)/bin:$PATH"
 log "Node: $(node -v) / npm: $(npm -v)"
+
+# ------------------------------------------------- 2b) خواندن فایل تنظیمات JSON
+if [ -n "$CONFIG_FILE" ]; then
+  [ -f "$CONFIG_FILE" ] || die "فایل تنظیمات پیدا نشد: $CONFIG_FILE"
+  cfg_val() { node -e "const c=require(process.argv[1]);const p=process.argv[2].split('.');let v=c;for(const k of p){v=v?.[k];}if(v===undefined){process.exit(0)}process.stdout.write(String(v))" "$(readlink -f "$CONFIG_FILE")" "$1"; }
+  v="$(cfg_val app.name)";        [ -n "$v" ] && [ "$APP_NAME" = "optibid" ] && APP_NAME="$v"
+  v="$(cfg_val run.port)";        [ -n "$v" ] && [ "$APP_PORT" = "3000" ] && APP_PORT="$v"
+  v="$(cfg_val paths.installDir)";[ -n "$v" ] && APP_DIR="${v/#\~/$HOME}"
+  v="$(cfg_val app.sourceZip)";   [ -n "$v" ] && [ -z "$SOURCE_ZIP" ] && [ -f "$(dirname "$(readlink -f "$CONFIG_FILE")")/$v" ] && SOURCE_ZIP="$(dirname "$(readlink -f "$CONFIG_FILE")")/$v"
+  v="$(cfg_val app.repository)";  [ -n "$v" ] && [ -z "$SOURCE_GIT" ] && SOURCE_GIT="$v"
+  v="$(cfg_val app.branch)";      [ -n "$v" ] && [ -z "$SOURCE_BRANCH" ] && SOURCE_BRANCH="$v"
+  log "تنظیمات از $CONFIG_FILE خوانده شد (app=${APP_NAME} port=${APP_PORT} dir=${APP_DIR})"
+fi
 
 # ---------------------------------------------------------------- 3) سورس
 if [ -n "$SOURCE_GIT" ]; then

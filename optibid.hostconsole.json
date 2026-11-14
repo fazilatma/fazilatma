@@ -1,0 +1,106 @@
+{
+  "$schema": "https://optibid.ir/schemas/hostconsole-app-1.json",
+  "app": {
+    "name": "optibid",
+    "title": "OptiBid — فروشگاه لپ‌تاپ / قطعات کامپیوتر / قطعات خودرو",
+    "version": "1.0.0",
+    "description": "پروژهٔ Next.js 16 برای اجرای دائمی روی سرور با Host Console",
+    "repository": "https://github.com/fazilatma/fazilatma",
+    "branch": "arena/8f071753-fazilatma",
+    "sourceZip": "optibid-source.zip"
+  },
+  "runtime": {
+    "type": "node",
+    "version": "20",
+    "packageManager": "npm",
+    "installNodeIfMissing": true,
+    "nodeInstaller": "nvm",
+    "nvmRelease": "v0.40.7",
+    "architecture": ["x86_64", "aarch64"]
+  },
+  "install": {
+    "commands": [
+      "npm ci --no-audit --no-fund",
+      "npm run build"
+    ],
+    "fallbackCommands": [
+      "npm install --no-audit --no-fund",
+      "npm run build"
+    ],
+    "timeoutSeconds": 1800,
+    "workingDir": "."
+  },
+  "run": {
+    "command": "npm run start -- -H 0.0.0.0 -p ${PORT}",
+    "port": 3000,
+    "host": "0.0.0.0",
+    "processManager": "auto",
+    "processManagerOrder": ["systemd", "pm2", "nohup"],
+    "serviceName": "optibid",
+    "restart": "always",
+    "autoStartOnBoot": true,
+    "healthCheck": {
+      "url": "http://127.0.0.1:${PORT}/api/health",
+      "method": "GET",
+      "expectStatus": 200,
+      "timeoutSeconds": 60,
+      "intervalSeconds": 2
+    }
+  },
+  "paths": {
+    "installDir": "~/optibid",
+    "dataFile": "${INSTALL_DIR}/.optibid-data/optibid-data.json",
+    "uploadDir": "${INSTALL_DIR}/.optibid-data/kyc-uploads",
+    "logFile": "${INSTALL_DIR}/optibid.log",
+    "envFile": "${INSTALL_DIR}/.env",
+    "persistent": [".optibid-data", ".env"]
+  },
+  "env": {
+    "OPTIBID_DATA_FILE": "${INSTALL_DIR}/.optibid-data/optibid-data.json",
+    "OPTIBID_UPLOAD_DIR": "${INSTALL_DIR}/.optibid-data/kyc-uploads",
+    "OPTIBID_BANK_ENCRYPTION_KEY": { "generate": "hex", "bytes": 32, "secret": true },
+    "OPTIBID_PASSWORD_RESET_MODE": "demo",
+    "NEXT_PUBLIC_SITE_URL": "https://example.com",
+    "PORT": "${PORT}",
+    "HOST": "0.0.0.0",
+    "CRON_SECRET": { "generate": "hex", "bytes": 32, "secret": true },
+    "OPTIBID_DISABLE_AUTO_REFRESH": "0"
+  },
+  "domain": {
+    "proxy": "nginx",
+    "proxyPass": "http://127.0.0.1:${PORT}",
+    "https": "certbot --nginx -d ${DOMAIN}",
+    "requiredHeaders": ["Host", "X-Real-IP", "X-Forwarded-For", "X-Forwarded-Proto"]
+  },
+  "features": {
+    "storefront": true,
+    "adminPanel": "/admin/dashboard",
+    "loginPage": "/login",
+    "catalogPhases": ["laptop", "computer-parts", "car-parts"],
+    "priceRobot": {
+      "enabled": true,
+      "manualTrigger": "POST /api/store-products/auto-refresh",
+      "authHeader": "Authorization: Bearer ${CRON_SECRET}",
+      "schedule": "0 6 * * *"
+    },
+    "uploads": true,
+    "zarinpal": { "optional": true, "envKeys": ["ZARINPAL_MERCHANT_ID", "ZARINPAL_SANDBOX"] },
+    "socialLogin": { "optional": true, "envKeys": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET"] }
+  },
+  "postInstall": {
+    "steps": [
+      "دامنه را روی پورت ${PORT} پروکسی کنید و HTTPS را فعال کنید.",
+      "در .env مقدار NEXT_PUBLIC_SITE_URL را به دامنهٔ واقعی تغییر دهید و سرویس را ری‌استارت کنید.",
+      "وارد /login شوید و با پنل ادمین فاز فروشگاه (لپ‌تاپ / قطعات کامپیوتر / قطعات خودرو) را انتخاب و ذخیره کنید.",
+      "از پنل ادمین → استخراجگر لینک و محصولات، لینک‌های مرجع و ضریب قیمت را ثبت کنید."
+    ],
+    "backupCommand": "tar czf backup-$(date +%F).tgz .optibid-data .env",
+    "updateCommand": "unzip -oq optibid-source.zip -d ${INSTALL_DIR} && npm ci && npm run build && systemctl restart optibid"
+  },
+  "security": {
+    "runAsNonRoot": true,
+    "envFilePermissions": "600",
+    "hidePaths": [".optibid-data", ".env"],
+    "rotationNote": "مقدار OPTIBID_BANK_ENCRYPTION_KEY را پس از اولین ثبت اطلاعات تغییر ندهید."
+  }
+}
