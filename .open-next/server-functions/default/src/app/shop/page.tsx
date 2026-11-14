@@ -681,10 +681,11 @@ export default async function ShopPage({
   );
   const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
   const carPartsOnly = data.settings.storeCarPartsCatalogEnabled === true;
-  const quickCategoryItems = computerPartsOnly
-    ? computerPartsCategoryItems
-    : carPartsOnly && !data.settings.storeLaptopCatalogEnabled
-      ? carPartsCategoryItems
+  const carPartsPrimary = carPartsOnly && !data.settings.storeLaptopCatalogEnabled;
+  const quickCategoryItems = carPartsPrimary
+    ? carPartsCategoryItems
+    : computerPartsOnly
+      ? computerPartsCategoryItems
       : laptopCategoryItems;
   const firstImageByPart = new Map<string, JsonStoreProduct>();
   if (computerPartsOnly) {

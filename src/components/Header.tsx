@@ -110,6 +110,76 @@ const storeTopNavMenus: StoreTopNavMenu[] = [
   },
 ];
 
+/** دسته‌بندی فروشگاه وقتی حالت اصلی «قطعات خودرو» است. */
+const storeCarCategories: CatalogCategory[] = [
+  {
+    id: "store-car-safety",
+    legacyId: 201,
+    name: "ترمز و ایمنی",
+    icon: "🛑",
+    isActive: true,
+    subcategories: [
+      { id: "store-car-brake", title: "ترمز", items: ["لنت ترمز", "دیسک ترمز", "کالیپر ترمز", "روغن ترمز"] },
+      { id: "store-car-safety-more", title: "ایمنی", items: ["کیسه هوا", "سنسور ABS", "کمربند"] },
+    ],
+  },
+  {
+    id: "store-car-service",
+    legacyId: 202,
+    name: "فیلتر و روغن",
+    icon: "🛢️",
+    isActive: true,
+    subcategories: [
+      { id: "store-car-filters", title: "فیلترها", items: ["فیلتر روغن", "فیلتر هوا", "فیلتر کابین", "فیلتر بنزین"] },
+      { id: "store-car-oils", title: "روغن و مایعات", items: ["روغن موتور", "روغن گیربکس", "مایع خنک‌کننده"] },
+    ],
+  },
+  {
+    id: "store-car-electrical",
+    legacyId: 203,
+    name: "برق و باتری",
+    icon: "🔋",
+    isActive: true,
+    subcategories: [
+      { id: "store-car-battery", title: "باتری و شارژ", items: ["باتری خودرو", "دینام", "استارت"] },
+      { id: "store-car-ignition", title: "جرقه", items: ["شمع خودرو", "کویل", "وایر شمع"] },
+    ],
+  },
+  {
+    id: "store-car-chassis",
+    legacyId: 204,
+    name: "جلوبندی و تعلیق",
+    icon: "🛠️",
+    isActive: true,
+    subcategories: [
+      { id: "store-car-suspension", title: "تعلیق", items: ["کمک فنر", "سیبک", "طبق چرخ", "بوش طبق"] },
+      { id: "store-car-tire", title: "لاستیک و رینگ", items: ["لاستیک", "رینگ", "تویی چرخ"] },
+    ],
+  },
+  {
+    id: "store-car-engine",
+    legacyId: 205,
+    name: "موتور و انتقال قدرت",
+    icon: "⚙️",
+    isActive: true,
+    subcategories: [
+      { id: "store-car-engine-parts", title: "موتور", items: ["واشر سرسیلندر", "تسمه تایم", "واتر پمپ", "رادیاتور"] },
+      { id: "store-car-gearbox", title: "انتقال قدرت", items: ["کلاچ", "دیسک و صفحه", "گیربکس"] },
+    ],
+  },
+  {
+    id: "store-car-body",
+    legacyId: 206,
+    name: "بدنه و آپشن",
+    icon: "🚗",
+    isActive: true,
+    subcategories: [
+      { id: "store-car-body-parts", title: "بدنه", items: ["سپر", "کاپوت", "گلگیر", "درب"] },
+      { id: "store-car-lights", title: "روشنایی و آپشن", items: ["چراغ خودرو", "آینه بغل", "جلوپنجره"] },
+    ],
+  },
+];
+
 const storeLaptopCategories: CatalogCategory[] = [
   {
     id: "store-laptop-brands",
@@ -537,16 +607,20 @@ export default function Header({
     sessionStorage.removeItem("redirectAfterAuth");
   };
 
+  // حالت اصلی فروشگاه: «قطعات خودرو» روشن و لپ‌تاپ خاموش ⇒ همهٔ منو و دسته‌بندی
+  // فروشگاه خودرویی می‌شود تا ادمین با یک سوییچ کل فروشگاه را عوض کند.
+  const carPartsPrimary = carPartsCatalogEnabled && !laptopCatalogEnabled;
   const visibleStoreTopNavMenus = storeTopNavMenus.filter((menu) => {
+    if (carPartsPrimary) return menu.title === "قطعات خودرو";
+    if (menu.title === "قطعات خودرو") return carPartsCatalogEnabled;
     if (menu.title === "لپ‌تاپ") return laptopCatalogEnabled;
     if (menu.title === "قطعات کامپیوتر") return computerPartsCatalogEnabled;
-    if (menu.title === "قطعات خودرو") return carPartsCatalogEnabled;
     return true;
   });
   const storeExperienceEnabled = siteMode !== "request";
   const requestExperienceEnabled = siteMode !== "store";
   const visibleHeaderCategories = (
-    storeExperienceEnabled ? storeLaptopCategories : headerCategories
+    carPartsPrimary ? storeCarCategories : storeExperienceEnabled ? storeLaptopCategories : headerCategories
   ).filter((category) => category.isActive !== false);
   const activeHeaderCategory =
     visibleHeaderCategories.find(
@@ -564,7 +638,7 @@ export default function Header({
           {/* Logo */}
           <OptiBidLogo />            <div className="group relative hidden py-5 md:block">
               <Link
-                href={storeExperienceEnabled ? (computerPartsCatalogEnabled && !laptopCatalogEnabled ? "/shop?category=computer-parts" : "/shop#store-categories") : "/categories"}
+                href={storeExperienceEnabled ? (carPartsPrimary ? "/shop?category=car-parts" : computerPartsCatalogEnabled && !laptopCatalogEnabled ? "/shop?category=computer-parts" : "/shop#store-categories") : "/categories"}
                 className="flex items-center gap-1 text-gray-900 hover:text-green-600 transition font-black"
               >
                 <span className="text-lg leading-none">☰</span>{" "}

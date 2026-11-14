@@ -177,7 +177,7 @@ export default function StorefrontHome({
       </section>
 
             {laptopCatalogEnabled && <StoreLaptopBrandSlider />}
-            {computerPartsCatalogEnabled && <StoreComputerPartsSlider />}
+            {computerPartsCatalogEnabled && !(carPartsCatalogEnabled && !laptopCatalogEnabled) && <StoreComputerPartsSlider />}
             {carPartsCatalogEnabled && <StoreCarPartsSlider />}
             {laptopCatalogEnabled && <SmartLaptopPickStrip />}
             <SpecialOfferCarousel

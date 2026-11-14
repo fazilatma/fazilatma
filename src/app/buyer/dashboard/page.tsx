@@ -943,7 +943,7 @@ export default function BuyerDashboardPage() {
               سبد خرید فروشگاه
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-gray-500">
-              در فاز فروشگاهی، خرید لپ‌تاپ‌ها از مسیر سبد خرید انجام می‌شود؛ کالاها را اضافه کنید، آدرس ارسال را وارد کنید و پرداخت بانکی را ادامه دهید.
+              در فاز فروشگاهی، خرید کالاها از مسیر سبد خرید انجام می‌شود؛ کالاها را اضافه کنید، آدرس ارسال را وارد کنید و پرداخت بانکی را ادامه دهید.
             </p>
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
@@ -956,7 +956,7 @@ export default function BuyerDashboardPage() {
                 href="/shop"
                 className="rounded-2xl border border-rose-200 bg-rose-50 px-7 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-100"
               >
-                ادامه خرید لپ‌تاپ
+                ادامه خرید
               </Link>
             </div>
           </section>

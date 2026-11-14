@@ -106,6 +106,7 @@ export default function RequestPurchasePage() {
 
   const categories = [
     "کالای دیجیتال",
+    "قطعات خودرو",
     "مد و پوشاک",
     "خانه و آشپزخانه",
     "زیبایی و سلامت",

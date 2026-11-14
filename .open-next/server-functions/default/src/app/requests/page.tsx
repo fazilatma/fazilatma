@@ -83,6 +83,7 @@ export default async function RequestsPage() {
   const allCategories = [
     "همه دسته‌بندی‌ها",
     "کالای دیجیتال",
+    "قطعات خودرو",
     "مد و پوشاک",
     "خانه و آشپزخانه",
     "زیبایی و سلامت",
