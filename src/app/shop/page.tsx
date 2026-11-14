@@ -681,7 +681,7 @@ export default async function ShopPage({
   );
   const computerPartsOnly = data.settings.storeComputerPartsCatalogEnabled && !data.settings.storeLaptopCatalogEnabled;
   const carPartsOnly = data.settings.storeCarPartsCatalogEnabled === true;
-  const carPartsPrimary = carPartsOnly && !data.settings.storeLaptopCatalogEnabled;
+  const carPartsPrimary = carPartsOnly;
   const quickCategoryItems = carPartsPrimary
     ? carPartsCategoryItems
     : computerPartsOnly

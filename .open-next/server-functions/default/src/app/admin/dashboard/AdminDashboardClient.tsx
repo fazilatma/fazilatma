@@ -469,6 +469,7 @@ export default function AdminDashboardClient({
   const [savingHomepageSlider, setSavingHomepageSlider] = useState(false);
   const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
   const [savingStoreCatalog, setSavingStoreCatalog] = useState(false);
+  const [catalogSaveNote, setCatalogSaveNote] = useState("");
   const [importingComputerParts, setImportingComputerParts] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
   const [productImportLimit, setProductImportLimit] = useState(10000);
@@ -892,9 +893,10 @@ export default function AdminDashboardClient({
   const saveStoreCatalogSettings = async () => {
     if (
       !platformFinance.storeLaptopCatalogEnabled &&
-      !platformFinance.storeComputerPartsCatalogEnabled
+      !platformFinance.storeComputerPartsCatalogEnabled &&
+      !platformFinance.storeCarPartsCatalogEnabled
     ) {
-      alert("حداقل یکی از بخش‌های لپ‌تاپ یا قطعات کامپیوتر باید فعال باشد.");
+      alert("حداقل یکی از بخش‌های لپ‌تاپ، قطعات کامپیوتر یا قطعات خودرو باید فعال باشد.");
       return;
     }
     setSavingStoreCatalog(true);
@@ -913,7 +915,11 @@ export default function AdminDashboardClient({
       const result = await response.json();
       if (!result.success) throw new Error(result.message || "ذخیره تنظیمات فروشگاه ناموفق بود.");
       setPlatformFinance((current) => ({ ...current, ...result.settings }));
-      alert("تنظیمات نمایش لپ‌تاپ و قطعات کامپیوتر ذخیره شد.");
+      setCatalogSaveNote(
+        platformFinance.storeCarPartsCatalogEnabled
+          ? "ذخیره شد؛ فروشگاه در حالت «قطعات خودرو» قرار گرفت و هدر، دسته‌بندی‌ها و صفحه‌های فروشگاه خودرویی شدند."
+          : "تنظیمات بخش‌های فروشگاه ذخیره شد.",
+      );
     } catch (error) {
       alert(error instanceof Error ? error.message : "ذخیره تنظیمات فروشگاه ناموفق بود.");
     } finally {
@@ -3275,6 +3281,24 @@ export default function AdminDashboardClient({
                         </span>
                       </label>
                     </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={savingStoreCatalog}
+                        onClick={saveStoreCatalogSettings}
+                        className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:bg-slate-300"
+                      >
+                        {savingStoreCatalog ? "در حال ذخیره..." : "ذخیره بخش‌های فروشگاه"}
+                      </button>
+                      <span className="text-[11px] font-bold text-cyan-800">
+                        بعد از جابه‌جایی بین فازها (لپ‌تاپ / قطعات کامپیوتر / قطعات خودرو) همین‌جا ذخیره کنید.
+                      </span>
+                    </div>
+                    {catalogSaveNote && (
+                      <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-800">
+                        {catalogSaveNote}
+                      </p>
+                    )}
                     <div className="mt-4">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <div>

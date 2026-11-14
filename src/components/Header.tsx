@@ -609,7 +609,7 @@ export default function Header({
 
   // حالت اصلی فروشگاه: «قطعات خودرو» روشن و لپ‌تاپ خاموش ⇒ همهٔ منو و دسته‌بندی
   // فروشگاه خودرویی می‌شود تا ادمین با یک سوییچ کل فروشگاه را عوض کند.
-  const carPartsPrimary = carPartsCatalogEnabled && !laptopCatalogEnabled;
+  const carPartsPrimary = carPartsCatalogEnabled;
   const visibleStoreTopNavMenus = storeTopNavMenus.filter((menu) => {
     if (carPartsPrimary) return menu.title === "قطعات خودرو";
     if (menu.title === "قطعات خودرو") return carPartsCatalogEnabled;

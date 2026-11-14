@@ -46,8 +46,30 @@ export default function StorefrontHome({
         .filter((brand) => brand && !/^(?:optibid|نامشخص|digikala|torob)$/i.test(brand)),
     ),
   ).slice(0, 6);
-  const computerPartsOnly = computerPartsCatalogEnabled && !laptopCatalogEnabled;
-  const effectiveHeroSlides = computerPartsOnly
+  // حالت اصلی «قطعات خودرو»: با روشن‌شدن این بخش، متن بنرها و مسیرها خودرویی می‌شوند.
+  const carPartsPrimary = carPartsCatalogEnabled;
+  const carHeroSlides: HomepageImageSliderSlide[] = [
+    {
+      id: "car-main",
+      title: "خرید آنلاین قطعات خودرو با قیمت شفاف و ضمانت",
+      subtitle: "لنت و ترمز، فیلتر و روغن، باتری، جلوبندی، لاستیک و بدنه را با مشخصات دقیق و قیمت به‌روز مقایسه کنید.",
+      cta: "مشاهده همه قطعات خودرو",
+      href: "/shop?category=car-parts",
+      isActive: true,
+    },
+    {
+      id: "car-stock",
+      title: "قطعات اصلی و استوک با کارشناسی",
+      subtitle: "قطعهٔ مناسب خودروی خود را بر اساس برند، مدل و نوع قطعه انتخاب کنید و سفارش را آنلاین ثبت کنید.",
+      cta: "انتخاب بر اساس نوع قطعه",
+      href: "/shop?category=car-parts&part=brake",
+      isActive: true,
+    },
+  ];
+  const computerPartsOnly = !carPartsPrimary && computerPartsCatalogEnabled && !laptopCatalogEnabled;
+  const effectiveHeroSlides = carPartsPrimary
+    ? carHeroSlides
+    : computerPartsOnly
     ? (heroSlides || []).map((slide, index) => index === 0
         ? {
             ...slide,
@@ -105,13 +127,13 @@ export default function StorefrontHome({
               slides={effectiveHeroSlides}
               durationSeconds={heroDurationSeconds}
               fallbackImageUrl="/hero-laptop.webp"
-              overrideImageUrl={computerPartsOnly ? "" : "/hero-laptop.webp"}
+              overrideImageUrl={carPartsPrimary ? "/hero-car-parts.webp" : computerPartsOnly ? "" : "/hero-laptop.webp"}
               focus={computerPartsOnly ? "components" : "laptop"}
             />
             <StoreAdSlider
               slides={effectiveHeroSlides}
               fallbackImageUrl="/hero-laptop.webp"
-              overrideImageUrl={computerPartsOnly ? "" : "/hero-laptop.webp"}
+              overrideImageUrl={carPartsPrimary ? "/hero-car-parts.webp" : computerPartsOnly ? "" : "/hero-laptop.webp"}
               focus={computerPartsOnly ? "components" : "laptop"}
             />
 
@@ -176,10 +198,10 @@ export default function StorefrontHome({
         </div>
       </section>
 
-            {laptopCatalogEnabled && <StoreLaptopBrandSlider />}
-            {computerPartsCatalogEnabled && !(carPartsCatalogEnabled && !laptopCatalogEnabled) && <StoreComputerPartsSlider />}
+            {laptopCatalogEnabled && !carPartsPrimary && <StoreLaptopBrandSlider />}
+            {computerPartsCatalogEnabled && !carPartsPrimary && <StoreComputerPartsSlider />}
             {carPartsCatalogEnabled && <StoreCarPartsSlider />}
-            {laptopCatalogEnabled && <SmartLaptopPickStrip />}
+            {laptopCatalogEnabled && !carPartsPrimary && <SmartLaptopPickStrip />}
             <SpecialOfferCarousel
               products={specialOfferProducts.length > 0 ? specialOfferProducts : featured}
             />
