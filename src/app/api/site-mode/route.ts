@@ -14,6 +14,7 @@ export async function GET() {
     siteMode,
     storeLaptopCatalogEnabled: settings.storeLaptopCatalogEnabled,
     storeComputerPartsCatalogEnabled: settings.storeComputerPartsCatalogEnabled,
+    storeCarPartsCatalogEnabled: settings.storeCarPartsCatalogEnabled,
     reverseAuction: {
       productCtaEnabled: settings.reverseAuctionProductCtaEnabled,
       quickRequestEnabled: settings.reverseAuctionQuickRequestEnabled,

@@ -20,6 +20,7 @@ export default function StorefrontHome({
   heroDurationSeconds,
   laptopCatalogEnabled = true,
   computerPartsCatalogEnabled = false,
+  carPartsCatalogEnabled = false,
   reverseAuctionPilot,
 }: {
   products: JsonStoreProduct[];
@@ -27,6 +28,7 @@ export default function StorefrontHome({
   heroDurationSeconds?: number;
   laptopCatalogEnabled?: boolean;
   computerPartsCatalogEnabled?: boolean;
+  carPartsCatalogEnabled?: boolean;
   reverseAuctionPilot?: {
     productCtaEnabled: boolean;
     quickRequestEnabled: boolean;
@@ -176,6 +178,7 @@ export default function StorefrontHome({
 
             {laptopCatalogEnabled && <StoreLaptopBrandSlider />}
             {computerPartsCatalogEnabled && <StoreComputerPartsSlider />}
+            {carPartsCatalogEnabled && <StoreCarPartsSlider />}
             {laptopCatalogEnabled && <SmartLaptopPickStrip />}
             <SpecialOfferCarousel
               products={specialOfferProducts.length > 0 ? specialOfferProducts : featured}
@@ -465,6 +468,49 @@ const computerPartItems: Array<{
   { title: "CASE", subtitle: "کیس", href: "/shop?category=computer-parts&part=case", kind: "case", image: "/images/parts/case.png" },
   { title: "COOL", subtitle: "خنک‌کننده", href: "/shop?category=computer-parts&part=cooler", kind: "cooler", image: "/images/parts/cooler.png" },
 ];
+
+const storeCarPartItems = [
+  { title: "لنت و ترمز", href: "/shop?category=car-parts&part=brake", badge: "Brake" },
+  { title: "فیلتر و روغن", href: "/shop?category=car-parts&part=filter", badge: "Filter" },
+  { title: "باتری و برق", href: "/shop?category=car-parts&part=battery", badge: "Battery" },
+  { title: "جلوبندی", href: "/shop?category=car-parts&part=suspension", badge: "Suspension" },
+  { title: "موتور و گیربکس", href: "/shop?category=car-parts&part=engine", badge: "Engine" },
+  { title: "لاستیک و رینگ", href: "/shop?category=car-parts&part=tire", badge: "Tire" },
+  { title: "بدنه و آپشن", href: "/shop?category=car-parts&part=body", badge: "Body" },
+  { title: "خنک‌کاری", href: "/shop?category=car-parts&part=cooling", badge: "Cooling" },
+];
+
+function StoreCarPartsSlider() {
+  return (
+    <section id="car-parts" className="rounded-[2rem] border border-emerald-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+            فاز جدید فروشگاه
+          </span>
+          <h2 className="mt-2 text-xl font-black text-slate-900">خرید و فروش قطعات خودرو</h2>
+        </div>
+        <Link href="/shop?category=car-parts" className="text-xs font-black text-emerald-700 md:text-sm">
+          مشاهده همهٔ قطعات خودرو ←
+        </Link>
+      </div>
+      <div className="flex gap-3 overflow-x-auto scroll-smooth pb-1">
+        {storeCarPartItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="group flex w-28 shrink-0 flex-col items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3 text-center transition hover:-translate-y-0.5 hover:border-emerald-300"
+          >
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-[10px] font-black text-white">
+              {item.badge}
+            </span>
+            <span className="text-[11px] font-black text-slate-800 group-hover:text-emerald-700">{item.title}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function StoreComputerPartsSlider() {
   return (

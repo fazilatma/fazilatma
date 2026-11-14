@@ -29,6 +29,18 @@ const storeTopNavMenus: StoreTopNavMenu[] = [
     ],
   },
   {
+    title: "قطعات خودرو",
+    href: "/shop?category=car-parts",
+    groups: [
+      { title: "ترمز و ایمنی", items: ["لنت ترمز", "دیسک ترمز", "کالیپر ترمز", "روغن ترمز"] },
+      { title: "فیلتر و روغن", items: ["فیلتر روغن", "فیلتر هوا", "فیلتر کابین", "روغن موتور"] },
+      { title: "برق و باتری", items: ["باتری خودرو", "دینام", "استارت", "شمع خودرو", "کویل"] },
+      { title: "جلوبندی و تعلیق", items: ["کمک فنر", "سیبک", "طبق چرخ", "بوش طبق"] },
+      { title: "موتور و انتقال قدرت", items: ["کلاچ", "دیسک و صفحه", "واشر سرسیلندر", "تسمه تایم", "واتر پمپ"] },
+      { title: "بدنه و آپشن", items: ["سپر", "چراغ خودرو", "آینه بغل", "جلوپنجره"] },
+    ],
+  },
+  {
     title: "قطعات کامپیوتر",
     href: "/shop?category=computer-parts",
     groups: [
@@ -398,6 +410,7 @@ export default function Header({
   const [siteMode, setSiteMode] = useState<"store" | "request" | "hybrid">("store");
   const [laptopCatalogEnabled, setLaptopCatalogEnabled] = useState(false);
   const [computerPartsCatalogEnabled, setComputerPartsCatalogEnabled] = useState(true);
+  const [carPartsCatalogEnabled, setCarPartsCatalogEnabled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [headerCategories, setHeaderCategories] = useState<CatalogCategory[]>(
     defaultCatalogCategories,
@@ -461,6 +474,7 @@ export default function Header({
           setSiteMode(result.siteMode);
           setLaptopCatalogEnabled(result.storeLaptopCatalogEnabled === true);
           setComputerPartsCatalogEnabled(result.storeComputerPartsCatalogEnabled !== false);
+          setCarPartsCatalogEnabled(result.storeCarPartsCatalogEnabled === true);
         }
       })
       .catch(() => undefined);
@@ -526,6 +540,7 @@ export default function Header({
   const visibleStoreTopNavMenus = storeTopNavMenus.filter((menu) => {
     if (menu.title === "لپ‌تاپ") return laptopCatalogEnabled;
     if (menu.title === "قطعات کامپیوتر") return computerPartsCatalogEnabled;
+    if (menu.title === "قطعات خودرو") return carPartsCatalogEnabled;
     return true;
   });
   const storeExperienceEnabled = siteMode !== "request";
