@@ -725,15 +725,21 @@ export default async function ShopPage({
       <section className="bg-white py-10 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-600">
-            فروشگاه اینترنتی OptiBid
+            {carPartsOnly ? "فروشگاه تخصصی قطعات خودرو OptiBid" : "فروشگاه اینترنتی OptiBid"}
           </span>
           <h1 className="mt-4 text-3xl font-black text-slate-900 md:text-4xl">
-            {computerPartsOnly ? "خرید قطعات کامپیوتر" : "خرید لپ‌تاپ و کامپیوتر"}
+            {carPartsOnly
+              ? "خرید آنلاین قطعات خودرو"
+              : computerPartsOnly
+                ? "خرید قطعات کامپیوتر"
+                : "خرید لپ‌تاپ و کامپیوتر"}
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            {computerPartsOnly
-              ? "پردازنده، مادربرد، کارت گرافیک، رم، حافظه، پاور و سایر قطعات را با قیمت و مشخصات مقایسه کنید."
-              : "لیست مدل‌های منتخب با امکان مقایسه مشخصات فنی، گارانتی تست، قیمت و ثبت سفارش آنلاین."}
+            {carPartsOnly
+              ? "لنت و ترمز، فیلتر و روغن، باتری، جلوبندی، لاستیک، بدنه و قطعات موتور را با شمارهٔ فنی، قیمت به‌روز و وضعیت موجودی مقایسه کنید."
+              : computerPartsOnly
+                ? "پردازنده، مادربرد، کارت گرافیک، رم، حافظه، پاور و سایر قطعات را با قیمت و مشخصات مقایسه کنید."
+                : "لیست مدل‌های منتخب با امکان مقایسه مشخصات فنی، گارانتی تست، قیمت و ثبت سفارش آنلاین."}
           </p>
 
           <form
@@ -767,7 +773,13 @@ export default async function ShopPage({
                   defaultValue={searchQuery}
                   maxLength={120}
                   autoComplete="off"
-                  placeholder={computerPartsOnly ? "جستجو بین قطعات؛ مثلاً Ryzen 7، RTX 5060 یا H610..." : "نام، برند یا مدل کالا را جستجو کنید..."}
+                  placeholder={
+                    carPartsOnly
+                      ? "جستجوی قطعهٔ خودرو؛ مثلاً لنت ترمز ۲۰۶، فیلتر روغن یا باتری ۷۰ آمپر..."
+                      : computerPartsOnly
+                        ? "جستجو بین قطعات؛ مثلاً Ryzen 7، RTX 5060 یا H610..."
+                        : "نام، برند یا مدل کالا را جستجو کنید..."
+                  }
                   className="h-12 w-full rounded-2xl border border-transparent bg-white pr-12 pl-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-rose-300 focus:ring-4 focus:ring-rose-100"
                 />
               </label>
