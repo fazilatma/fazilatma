@@ -26,3 +26,4 @@ npm-debug.log*
 # خروجی آماده Worker برای deploy سریع Cloudflare
 !.open-next/
 !.open-next/**
+optibid-source.zip
