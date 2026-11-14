@@ -198,6 +198,7 @@ export default function LaptopFilterSidebar({
   sticky?: boolean;
 }) {
   const computerPartsMode = getParam(params, "category") === "computer-parts";
+  const carPartsMode = getParam(params, "category") === "car-parts";
   const detectedBrands = Array.from(new Set(products.map((product) => product.brand).filter(Boolean)));
   const brands = computerPartsMode
     ? Array.from(new Map([
@@ -247,8 +248,59 @@ export default function LaptopFilterSidebar({
         </Link>
 
         <PriceFilter params={params} />
-        <FilterGroup title="برندها" queryKey="brand" params={params} options={brands} defaultOpen={computerPartsMode} />
-        <FilterGroup title="ظرفیت حافظه RAM" queryKey="ram" params={params} options={ramOptions} />
+        <FilterGroup title="برندها" queryKey="brand" params={params} options={brands} defaultOpen={computerPartsMode || carPartsMode} />
+        {carPartsMode ? (
+          <>
+            <FilterGroup
+              title="نوع قطعهٔ خودرو"
+              queryKey="part"
+              params={params}
+              options={[
+                { label: "ترمز و لنت", value: "brake" },
+                { label: "فیلتر و روغن", value: "filter" },
+                { label: "باتری و برق", value: "battery" },
+                { label: "جلوبندی و تعلیق", value: "suspension" },
+                { label: "موتور و گیربکس", value: "engine" },
+                { label: "لاستیک و رینگ", value: "tire" },
+                { label: "بدنه و آپشن", value: "body" },
+                { label: "خنک‌کاری", value: "cooling" },
+              ]}
+              defaultOpen
+            />
+            <FilterGroup
+              title="وضعیت قطعه"
+              queryKey="condition"
+              params={params}
+              options={[
+                { label: "نو (اصلی)", value: "new" },
+                { label: "استوک سالم", value: "stock" },
+                { label: "کارکرده تمیز", value: "used" },
+              ]}
+              defaultOpen
+            />
+            <FilterGroup
+              title="گارانتی"
+              queryKey="warranty"
+              params={params}
+              options={[
+                { label: "دارد", value: "yes" },
+                { label: "ندارد", value: "no" },
+              ]}
+            />
+            <FilterGroup
+              title="ارسال فوری"
+              queryKey="shipping"
+              params={params}
+              options={[
+                { label: "ارسال امروز", value: "fast" },
+                { label: "ارسال عادی", value: "normal" },
+              ]}
+            />
+          </>
+        ) : null}
+        {!carPartsMode && <FilterGroup title="ظرفیت حافظه RAM" queryKey="ram" params={params} options={ramOptions} />}
+        {!carPartsMode && (
+          <>
         <FilterGroup title="نوع پنل" queryKey="panel" params={params} options={panelOptions} />
         <FilterGroup title="ابعاد نمایشگر" queryKey="display" params={params} options={displayOptions} />
         <FilterGroup title="صفحه نمایش لمسی" queryKey="touch" params={params} options={[{ label: "دارد", value: "yes" }, { label: "ندارد", value: "no" }]} />
@@ -271,6 +323,8 @@ export default function LaptopFilterSidebar({
         <FilterGroup title="نوع کاربری" queryKey="use" params={params} options={useOptions} />
         <FilterGroup title="نسل و مدل" queryKey="generationModel" params={params} options={generationModelOptions} />
         <FilterGroup title="رنگ‌ها" queryKey="color" params={params} options={colorOptions} />
+          </>
+        )}
         <FilterGroup title="کاستوم شده" queryKey="custom" params={params} options={customOptions} />
       </div>
     </aside>
