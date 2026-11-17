@@ -750,7 +750,10 @@ export default async function ShopPage({
             className="mt-6 max-w-3xl rounded-[1.5rem] border border-slate-200 bg-slate-50 p-2 shadow-sm"
           >
             {Object.entries(params).flatMap(([key, rawValue]) => {
+              // جستجوی جدید فقط دسته/برند/نوع قطعه را نگه می‌دارد؛ فیلترهای مشخصات
+              // قبلی (رم، SSD، پنل، چرخش، HDD…) باعث می‌شد جستجو همیشه «نتیجه‌ای یافت نشد» بدهد.
               if (key === "q" || key === "page") return [];
+              if (!["category", "brand", "part", "partGroup", "all"].includes(key)) return [];
               const values = Array.isArray(rawValue) ? rawValue : [rawValue];
               return values.map((value, index) =>
                 value ? <input key={`${key}-${index}`} type="hidden" name={key} value={value} /> : null,
