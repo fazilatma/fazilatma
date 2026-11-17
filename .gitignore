@@ -23,3 +23,6 @@ next-env.d.ts
 .DS_Store
 *.log
 npm-debug.log*
+
+# داده‌ی رانتایم قیمت‌یار (اسنپ‌شات/هشدار/کاربران)
+price-compare/data/

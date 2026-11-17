@@ -1,0 +1,22 @@
+# استقرار «قیمت‌یار» روی Render — پروژه در زیرپوشه‌ی price-compare/ است
+services:
+  - type: web
+    name: gheymatyar
+    runtime: node
+    rootDir: price-compare
+    region: singapore
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -H 0.0.0.0 -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: TG_CHANNELS
+        sync: false
+      - key: SERPAPI_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
