@@ -563,12 +563,19 @@ export async function generateMetadata({
   searchParams: Promise<ShopSearchParams>;
 }): Promise<Metadata> {
   const params = await searchParams;
-  const subject = shopSeoSubject(params);
+  const data = await getOptiBidData();
+  const carTheme =
+    data.settings.storeCarPartsCatalogEnabled === true &&
+    data.settings.storePrimaryCatalog === "car-parts";
+  const subject = carTheme
+    ? shopSeoSubject(params).replace(/لپ‌تاپ/g, "قطعات خودرو")
+    : shopSeoSubject(params);
   const path = canonicalShopPath(params);
+  const market = carTheme ? "قطعات خودرو" : "لپ‌تاپ";
   const title =
-    subject === "لپ‌تاپ نو و استوک"
-      ? "فروشگاه لپ‌تاپ | خرید لپ‌تاپ نو، استوک و گیمینگ"
-      : `خرید ${subject} | فروشگاه لپ‌تاپ OptiBid`;
+    subject === (carTheme ? "قطعات خودرو نو و استوک" : "لپ‌تاپ نو و استوک")
+      ? `فروشگاه ${market} | قیمت و خرید ${market} نو و استوک`
+      : `قیمت و خرید ${subject} | فروشگاه ${market} OptiBid`;
 
   return buildSeoMetadata({
     title,
