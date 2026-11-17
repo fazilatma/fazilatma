@@ -1,0 +1,44 @@
+[
+  {
+    "id": "optibid",
+    "name": "OptiBid",
+    "type": "node",
+    "node_version": "20",
+    "deploy_path": "/home/USER/optibid",
+    "repo_url": "https://github.com/fazilatma/fazilatma",
+    "branch": "arena/8f071753-fazilatma",
+    "start_cmd": "npm run start -- -H 0.0.0.0 -p 3000",
+    "port": 3000,
+    "bind_host": "0.0.0.0",
+    "is_daemon": true,
+    "auto_start": true,
+    "auto_update": false,
+    "preserve_configs": [".env", ".optibid-data"],
+    "auth_token": "",
+    "env": {
+      "HOST": "0.0.0.0",
+      "PORT": "3000",
+      "NODE_ENV": "production",
+      "NEXT_PUBLIC_SITE_URL": "https://your-domain.com",
+      "OPTIBID_DATA_FILE": "/home/USER/optibid/.optibid-data/optibid-data.json",
+      "OPTIBID_UPLOAD_DIR": "/home/USER/optibid/.optibid-data/kyc-uploads",
+      "OPTIBID_BANK_ENCRYPTION_KEY": "PUT_A_RANDOM_HEX_32_BYTE_KEY",
+      "OPTIBID_PASSWORD_RESET_MODE": "demo",
+      "CRON_SECRET": "PUT_A_RANDOM_HEX_32_BYTE_KEY"
+    },
+    "domain_enabled": true,
+    "domain_kind": "proxy",
+    "domain": "your-domain.com",
+    "domain_path": "/",
+    "domain_https": true,
+    "domain_ws": true,
+    "domain_timeout": 300,
+    "domain_mode": "proxy",
+    "domain_docroot": "",
+    "extra": {
+      "install_cmd": "npm ci --no-audit --no-fund && npm run build",
+      "build_cmd": "npm run build",
+      "health_url": "http://127.0.0.1:3000/api/health"
+    }
+  }
+]

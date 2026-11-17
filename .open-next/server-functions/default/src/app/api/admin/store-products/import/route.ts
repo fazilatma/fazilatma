@@ -1,0 +1,354 @@
+import { NextResponse } from "next/server";
+import { mergeStorePriceHistory } from "@/lib/store-price-history";
+import {
+  getOptiBidData,
+  writeOptiBidData,
+  type JsonStoreProduct,
+} from "@/lib/json-store";
+import {
+  importedDraftToStoreProduct,
+  normalizeProductImportCategories,
+  productImportCategoryKey,
+  productMatchesImportCategories,
+  scanStoreProductsFromUrl,
+  storeProductIdentityKey,
+  type ImportedStoreProductDraft,
+} from "@/lib/store-product-import";
+
+export const dynamic = "force-dynamic";
+
+type ImportAction = "preview" | "import";
+
+type ImportBody = {
+  url?: string;
+  limit?: number;
+  action?: ImportAction;
+  strategy?: "merge" | "add-only";
+  scanMode?: "page" | "full-site";
+  fullSite?: boolean;
+  priceMultiplier?: number;
+  categoryFilters?: string[];
+  selectedProductKeys?: string[];
+};
+
+function productSelectionKey(product: JsonStoreProduct) {
+  return `${product.id}|${product.externalSourceUrl || product.slug}|${product.title}`;
+}
+
+function findStrictSourceMatch(products: JsonStoreProduct[], imported: JsonStoreProduct) {
+  if (imported.externalSourceUrl) {
+    return products.findIndex((product) => product.externalSourceUrl === imported.externalSourceUrl);
+  }
+  const idMatch = products.findIndex((product) => product.id === imported.id);
+  if (idMatch >= 0) return idMatch;
+  const identity = storeProductIdentityKey(imported);
+  return products.findIndex((product) => storeProductIdentityKey(product) === identity);
+}
+
+function publicProduct(product: JsonStoreProduct, index: number) {
+  return {
+    index,
+    selectionKey: productSelectionKey(product),
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+    brand: product.brand,
+    category: product.category,
+    price: product.price,
+    originalPrice: product.originalPrice,
+    stock: product.stock,
+    externalSourceUrl: product.externalSourceUrl,
+    imageUrl: product.imageUrl,
+    imageUrls: product.imageUrls || (product.imageUrl ? [product.imageUrl] : []),
+    specs: product.specs || {},
+    specsCount: Object.keys(product.specs || {}).length,
+    summary: product.summary,
+    description: product.description,
+    marketReferenceNote: product.marketReferenceNote,
+    importCategory: productImportCategoryKey({
+      title: product.title,
+      brand: product.brand,
+      category: product.category,
+      specs: product.specs || {},
+    }),
+  };
+}
+
+function normalizePriceMultiplier(value: unknown) {
+  const number = Number(value || 1);
+  if (!Number.isFinite(number) || number <= 0) return 1;
+  return Math.max(0.1, Math.min(10, number));
+}
+
+function roundToman(value: number) {
+  return Math.max(0, Math.round(Number(value || 0) / 10_000) * 10_000);
+}
+
+function applyPriceMultiplier(
+  draft: ImportedStoreProductDraft,
+  priceMultiplier: number,
+): ImportedStoreProductDraft {
+  if (priceMultiplier === 1) return draft;
+  return {
+    ...draft,
+    price: roundToman(draft.price * priceMultiplier),
+    originalPrice: draft.originalPrice
+      ? roundToman(draft.originalPrice * priceMultiplier)
+      : undefined,
+  };
+}
+
+function mergeProducts(existing: JsonStoreProduct, imported: JsonStoreProduct) {
+  const importedIsNewer =
+    String(imported.priceUpdatedAt || "") >= String(existing.priceUpdatedAt || "");
+  return {
+    ...existing,
+    title: existing.title || imported.title,
+    brand: existing.brand || imported.brand,
+    category: existing.category || imported.category,
+    summary: imported.summary || existing.summary,
+    description:
+      imported.description.length > existing.description.length
+        ? imported.description
+        : existing.description,
+    price: importedIsNewer ? imported.price : existing.price,
+    originalPrice: importedIsNewer ? imported.originalPrice : existing.originalPrice,
+    marketPrice: importedIsNewer ? imported.marketPrice : existing.marketPrice,
+    priceMultiplier: importedIsNewer ? imported.priceMultiplier : existing.priceMultiplier,
+    stock: Math.max(existing.stock || 0, imported.stock || 0),
+    specs: { ...existing.specs, ...imported.specs },
+    badges: Array.from(
+      new Set([
+        ...(existing.badges || []).filter((badge) => badge !== "قیمت به‌روز"),
+        ...(imported.badges || []).filter((badge) => badge !== "قیمت به‌روز"),
+        "قیمت ثبت‌شده",
+      ]),
+    ).slice(0, 6),
+    shippingNote: imported.shippingNote || existing.shippingNote,
+    priceUpdatedAt: importedIsNewer ? imported.priceUpdatedAt : existing.priceUpdatedAt,
+    marketReferenceNote: importedIsNewer
+      ? imported.marketReferenceNote
+      : existing.marketReferenceNote,
+    externalSourceUrl: imported.externalSourceUrl || existing.externalSourceUrl,
+    imageUrls: Array.from(
+      new Set([
+        ...(imported.imageUrls || (imported.imageUrl ? [imported.imageUrl] : [])),
+        ...(existing.imageUrls || (existing.imageUrl ? [existing.imageUrl] : [])),
+      ]),
+    ).slice(0, 8),
+    imageUrl: imported.imageUrl || imported.imageUrls?.[0] || existing.imageUrl,
+    priceHistory: mergeStorePriceHistory(existing.priceHistory, imported.priceHistory),
+    isActive: true,
+  } satisfies JsonStoreProduct;
+}
+
+function activeStoreProductCount(products: JsonStoreProduct[]) {
+  return products.filter((product) => product.isActive !== false && product.stock > 0).length;
+}
+
+function dedupeStoreProducts(products: JsonStoreProduct[]) {
+  const output: JsonStoreProduct[] = [];
+  const indexByIdentity = new Map<string, number>();
+  let duplicatesRemoved = 0;
+
+  for (const product of products) {
+    const identity = storeProductIdentityKey(product);
+    const existingIndex = indexByIdentity.get(identity);
+    if (existingIndex === undefined) {
+      indexByIdentity.set(identity, output.length);
+      output.push(product);
+      continue;
+    }
+    output[existingIndex] = mergeProducts(output[existingIndex], product);
+    duplicatesRemoved += 1;
+  }
+
+  return { products: output, duplicatesRemoved };
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as ImportBody;
+    const url = String(body.url || "").trim();
+    if (!url) {
+      return NextResponse.json(
+        { success: false, message: "لینک فروشگاه را وارد کنید." },
+        { status: 400 },
+      );
+    }
+    const action: ImportAction = body.action === "import" ? "import" : "preview";
+    const fullSite = body.fullSite === true || body.scanMode === "full-site";
+    const requestedLimit = Math.max(1, Number(body.limit || (fullSite ? 1000 : 20)));
+    const limit = Math.max(1, Math.min(1000, requestedLimit));
+    const strategy = body.strategy === "add-only" ? "add-only" : "merge";
+    const priceMultiplier = normalizePriceMultiplier(body.priceMultiplier);
+    const categoryFilters = normalizeProductImportCategories(body.categoryFilters);
+
+    const scan = await scanStoreProductsFromUrl(url, {
+      limit,
+      fullSite,
+      maxPages: fullSite ? Math.min(90, limit + 40) : Math.min(35, limit + 10),
+      categoryFilters,
+    });
+    if (requestedLimit > limit) {
+      scan.warnings.push(
+        `برای جلوگیری از خطای محدودیت منابع Cloudflare، این درخواست به ${limit.toLocaleString("fa-IR")} محصول محدود شد. برای واردسازی کامل، مرحله‌ای یا روی سرور اختصاصی اجرا کنید.`,
+      );
+    }
+    const filteredDrafts = scan.products.filter((draft) =>
+      productMatchesImportCategories(draft, categoryFilters),
+    );
+    if (categoryFilters.length > 0 && filteredDrafts.length < scan.products.length) {
+      scan.warnings.push(
+        `${(scan.products.length - filteredDrafts.length).toLocaleString("fa-IR")} محصول به دلیل عدم تطابق با دسته‌های انتخابی نادیده گرفته شد.`,
+      );
+    }
+    if (filteredDrafts.length === 0) {
+      const message = scan.products.length > 0
+        ? "از اسکن محصولات پیدا شد، اما هیچ‌کدام با دسته‌های انتخاب‌شده مطابقت نداشتند."
+        : scan.sourceHost === "emalls.ir"
+          ? "از این لینک ایمالز محصول قیمت‌دار استخراج نشد. لینک اصلی ایمالز، صفحهٔ «لیست قیمت» یا لینک مستقیم محصول را وارد کنید و دسته‌های کالای مرتبط را فعال نگه دارید."
+          : "از این لینک محصولی استخراج نشد. لینک مستقیم صفحه محصول، دسته‌بندی یا sitemap را وارد کنید؛ برای فایل‌های آماده نیز امکان ورود CSV وجود دارد.";
+      const warningText = scan.warnings.slice(0, 2).join("؛ ");
+      return NextResponse.json(
+        {
+          success: false,
+          message: `${message}${warningText ? ` جزئیات: ${warningText}` : ""}`,
+          warnings: scan.warnings,
+          scannedUrls: scan.scannedUrls,
+          sourceUrl: scan.sourceUrl,
+        },
+        { status: 422 },
+      );
+    }
+
+    const importedProducts = filteredDrafts
+      .map((draft) => {
+        const product = importedDraftToStoreProduct(applyPriceMultiplier(draft, priceMultiplier));
+        product.marketPrice = Math.round(draft.price);
+        product.priceMultiplier = priceMultiplier;
+        if (priceMultiplier !== 1) {
+          product.marketReferenceNote = `${product.marketReferenceNote}؛ اعمال ضریب قیمت ${priceMultiplier.toLocaleString("fa-IR")}`;
+          product.badges = Array.from(
+            new Set([...(product.badges || []), `ضریب ${priceMultiplier.toLocaleString("fa-IR")}`]),
+          ).slice(0, 6);
+        }
+        return product;
+      });
+    const selectedKeySet = new Set(
+      Array.isArray(body.selectedProductKeys)
+        ? body.selectedProductKeys.map(String)
+        : [],
+    );
+    const shouldFilterBySelection = action === "import" && Array.isArray(body.selectedProductKeys);
+    const selectedProducts = shouldFilterBySelection
+      ? importedProducts.filter((product) => selectedKeySet.has(productSelectionKey(product)))
+      : importedProducts;
+
+    if (action === "import" && shouldFilterBySelection && selectedProducts.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "هیچ محصولی از پیش‌نمایش انتخاب نشده یا انتخاب‌ها با اسکن فعلی تطابق ندارند." },
+        { status: 400 },
+      );
+    }
+
+    if (action === "preview") {
+      const data = await getOptiBidData();
+      const preview = importedProducts.map((product, index) => {
+        const matchIndex = findStrictSourceMatch(data.storeProducts, product);
+        return {
+          ...publicProduct(product, index),
+          action: matchIndex >= 0 ? "update" : "create",
+          matchedProduct:
+            matchIndex >= 0
+              ? {
+                  id: data.storeProducts[matchIndex].id,
+                  title: data.storeProducts[matchIndex].title,
+                  price: data.storeProducts[matchIndex].price,
+                  slug: data.storeProducts[matchIndex].slug,
+                }
+              : null,
+        };
+      });
+      return NextResponse.json({
+        success: true,
+        mode: "preview",
+        scanMode: fullSite ? "full-site" : "page",
+        priceMultiplier,
+        categoryFilters,
+        sourceUrl: scan.sourceUrl,
+        sourceHost: scan.sourceHost,
+        scannedUrls: scan.scannedUrls,
+        products: preview,
+        warnings: scan.warnings,
+        message: `${preview.length.toLocaleString("fa-IR")} محصول برای پیش‌نمایش پیدا شد.`,
+      });
+    }
+
+    const data = await getOptiBidData();
+    data.settings.storePriceMultiplier = priceMultiplier;
+    let created = 0;
+    let updated = 0;
+    const changedProducts: ReturnType<typeof publicProduct>[] = [];
+
+    for (const product of selectedProducts) {
+      const matchIndex = findStrictSourceMatch(data.storeProducts, product);
+      if (matchIndex >= 0 && strategy === "merge") {
+        data.storeProducts[matchIndex] = mergeProducts(
+          data.storeProducts[matchIndex],
+          product,
+        );
+        updated += 1;
+        changedProducts.push(publicProduct(data.storeProducts[matchIndex], matchIndex));
+      } else {
+        let candidate = product;
+        const existingSlugs = new Set(data.storeProducts.map((item) => item.slug));
+        let suffix = 2;
+        while (existingSlugs.has(candidate.slug)) {
+          candidate = { ...candidate, slug: `${product.slug}-${suffix}` };
+          suffix += 1;
+        }
+        data.storeProducts.push(candidate);
+        created += 1;
+        changedProducts.push(publicProduct(candidate, data.storeProducts.length - 1));
+      }
+    }
+
+    const deduped = dedupeStoreProducts(data.storeProducts);
+    data.storeProducts = deduped.products;
+    const activeCount = activeStoreProductCount(data.storeProducts);
+    await writeOptiBidData(data);
+
+    return NextResponse.json({
+      success: true,
+      mode: "import",
+      scanMode: fullSite ? "full-site" : "page",
+      priceMultiplier,
+      categoryFilters,
+      sourceUrl: scan.sourceUrl,
+      sourceHost: scan.sourceHost,
+      scannedUrls: scan.scannedUrls,
+      products: changedProducts,
+      selectedCount: selectedProducts.length,
+      activeStoreProducts: activeCount,
+      created,
+      updated,
+      duplicatesRemoved: deduped.duplicatesRemoved,
+      warnings: scan.warnings,
+      message: `${created.toLocaleString("fa-IR")} محصول جدید اضافه شد، ${updated.toLocaleString("fa-IR")} محصول به‌روزرسانی شد و ${deduped.duplicatesRemoved.toLocaleString("fa-IR")} مورد تکراری هوشمند حذف/ادغام شد.`,
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Unknown product import error";
+    const inputError = /invalid url|لینک|آدرس‌های محلی|شبکهٔ خصوصی|http\/https|نام کاربری|رمز عبور/i.test(detail);
+    return NextResponse.json(
+      {
+        success: false,
+        message: inputError
+          ? detail
+          : "استخراج محصولات ناموفق بود. لینک را بررسی کنید یا لینک مستقیم صفحه محصول/دسته‌بندی/sitemap را وارد کنید.",
+        detail,
+      },
+      { status: inputError ? 400 : 500 },
+    );
+  }
+}

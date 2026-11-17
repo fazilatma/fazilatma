@@ -1,0 +1,3 @@
+module.exports=[6328,a=>{"use strict";var b=a.i(87924),c=a.i(72131),d=a.i(50944);a.s(["default",0,function(){let a=(0,d.useParams)(),e=(0,d.useRouter)();return(0,c.useEffect)(()=>{e.replace(`/requests/${a.id}`)},[a.id,e]),(0,b.jsx)("div",{dir:"rtl",className:"min-h-screen bg-gray-50 px-4 py-16 text-center",children:(0,b.jsxs)("div",{className:"mx-auto max-w-md rounded-3xl border border-gray-100 bg-white p-8 shadow-sm",children:[(0,b.jsx)("div",{className:"mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl",children:"↩️"}),(0,b.jsx)("h1",{className:"text-xl font-bold text-[#003b5c]",children:"در حال بازگشت به صفحه درخواست..."})]})})}])}];
+
+//# sourceMappingURL=src_app_requests_%5Bid%5D_checkout_page_tsx_0sz-woi._.js.map

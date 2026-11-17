@@ -1,0 +1,3 @@
+module.exports=[55535,a=>{"use strict";var b=a.i(7997);a.s(["default",0,function({user:a,label:c,className:d="h-12 w-12",rounded:e="rounded-2xl"}){let f=a?.fullName||a?.name||c||"کاربر",g=a?.id&&a.avatarName?`/api/avatar?userId=${a.id}&v=${encodeURIComponent(a.avatarName)}`:"";return(0,b.jsx)("div",{className:`shrink-0 overflow-hidden border border-gray-200 bg-gray-100 ${e} ${d}`,children:g?(0,b.jsx)("img",{src:g,alt:f,className:"h-full w-full object-cover",loading:"lazy"}):(0,b.jsx)("div",{className:"grid h-full w-full place-items-center bg-gradient-to-br from-[#003b5c] to-[#00a8e8] text-sm font-bold text-white",children:f.trim().charAt(0)||"👤"})})}])}];
+
+//# sourceMappingURL=src_components_UserAvatar_tsx_110w8rm._.js.map
