@@ -28,3 +28,4 @@ npm-debug.log*
 !.open-next/**
 optibid-source.zip
 optibid-full-code.html
+.optibid-data/
