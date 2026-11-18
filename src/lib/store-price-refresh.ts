@@ -1,5 +1,6 @@
 import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
+import { ensureProductUsage } from "@/lib/store-product-usage";
 import { fetchMarketText } from "@/lib/market-fetch";
 import { marketVariantMatches, preferSameMemoryGeneration } from "@/lib/store-product-live";
 import {
@@ -552,7 +553,7 @@ export function applyRefreshedPrice(
   );
   const price = pricedProduct.price;
   const checkedAt = new Date().toISOString();
-  return {
+  const refreshedProduct: JsonStoreProduct = {
     ...pricedProduct,
     priceUpdatedAt: checkedAt.slice(0, 10),
     priceHistory: appendStorePriceHistory(product.priceHistory, {
@@ -565,6 +566,9 @@ export function applyRefreshedPrice(
     externalSourceUrl: candidate.url || product.externalSourceUrl,
     badges: Array.from(new Set([...(product.badges || []).filter((badge) => badge !== "قیمت ثبت‌شده"), "قیمت به‌روز"])).slice(0, 6),
   };
+  // در جریان به‌روزرسانی قیمت هم کاربری خالی محصول پر می‌شود.
+  ensureProductUsage(refreshedProduct);
+  return refreshedProduct;
 }
 
 function toLatinPriceDigits(value: string) {

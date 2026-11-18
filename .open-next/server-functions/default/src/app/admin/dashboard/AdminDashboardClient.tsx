@@ -471,6 +471,7 @@ export default function AdminDashboardClient({
   const [savingStorefrontSlider, setSavingStorefrontSlider] = useState(false);
   const [savingStoreCatalog, setSavingStoreCatalog] = useState(false);
   const [catalogSaveNote, setCatalogSaveNote] = useState("");
+  const [classifyingUsage, setClassifyingUsage] = useState(false);
   const [importingComputerParts, setImportingComputerParts] = useState(false);
   const [productImportUrl, setProductImportUrl] = useState("");
   const [productImportLimit, setProductImportLimit] = useState(10000);
@@ -888,6 +889,25 @@ export default function AdminDashboardClient({
       alert(error instanceof Error ? error.message : "ذخیره اینماد ناموفق بود.");
     } finally {
       setSavingEnamad(false);
+    }
+  };
+
+  const classifyProductUsage = async () => {
+    setClassifyingUsage(true);
+    try {
+      const response = await fetch("/api/admin/store-products/classify-usage", { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && payload?.success) {
+        setCatalogSaveNote(
+          `کاربری ${Number(payload.updated || 0).toLocaleString("fa-IR")} محصول از ${Number(payload.total || 0).toLocaleString("fa-IR")} به‌روزرسانی شد (اداری، دانشجویی، مهندسی، گیمینگ).`,
+        );
+      } else {
+        setCatalogSaveNote(payload?.message || "دسته‌بندی کاربری انجام نشد.");
+      }
+    } catch {
+      setCatalogSaveNote("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setClassifyingUsage(false);
     }
   };
 
@@ -3314,6 +3334,14 @@ export default function AdminDashboardClient({
                         className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:bg-slate-300"
                       >
                         {savingStoreCatalog ? "در حال ذخیره..." : "ذخیره بخش‌های فروشگاه"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={classifyingUsage}
+                        onClick={classifyProductUsage}
+                        className="rounded-xl bg-cyan-700 px-5 py-2.5 text-xs font-black text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                      >
+                        {classifyingUsage ? "در حال دسته‌بندی..." : "دسته‌بندی کاربری محصولات"}
                       </button>
                       <span className="text-[11px] font-bold text-cyan-800">
                         بعد از جابه‌جایی بین فازها (لپ‌تاپ / قطعات کامپیوتر / قطعات خودرو) همین‌جا ذخیره کنید.

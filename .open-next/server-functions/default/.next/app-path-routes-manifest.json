@@ -19,6 +19,7 @@
   "/api/admin/reverse-auction/dispatch/route": "/api/admin/reverse-auction/dispatch",
   "/api/admin/seller-metrics/route": "/api/admin/seller-metrics",
   "/api/admin/store-products/apply-multiplier/route": "/api/admin/store-products/apply-multiplier",
+  "/api/admin/store-products/classify-usage/route": "/api/admin/store-products/classify-usage",
   "/api/admin/store-products/clear/route": "/api/admin/store-products/clear",
   "/api/admin/store-products/crawl-batch/route": "/api/admin/store-products/crawl-batch",
   "/api/admin/store-products/digikala-page/route": "/api/admin/store-products/digikala-page",

@@ -260,6 +260,12 @@
       "namedRegex": "^/api/admin/store\\-products/apply\\-multiplier(?:/)?$"
     },
     {
+      "page": "/api/admin/store-products/classify-usage",
+      "regex": "^/api/admin/store\\-products/classify\\-usage(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/store\\-products/classify\\-usage(?:/)?$"
+    },
+    {
       "page": "/api/admin/store-products/clear",
       "regex": "^/api/admin/store\\-products/clear(?:/)?$",
       "routeKeys": {},

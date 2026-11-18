@@ -2,6 +2,7 @@ import type { JsonStoreProduct } from "@/lib/json-store";
 import { appendStorePriceHistory } from "@/lib/store-price-history";
 import { storeComputerPartKind } from "@/lib/store-computer-part-kind";
 import { technicalSpecsFromText } from "@/lib/store-product-specs";
+import { deriveProductUsage } from "@/lib/store-product-usage";
 
 export type ImportedStoreProductDraft = {
   title: string;
@@ -2197,6 +2198,11 @@ export function importedDraftToStoreProduct(draft: ImportedStoreProductDraft): J
   const now = new Date().toISOString();
   const specs = { ...draft.specs };
   if (!specs.منبع) specs.منبع = draft.sourceHost;
+  // کاربری (اداری/دانشجویی/مهندسی/گیمینگ) همان لحظهٔ ایمپورت ذخیره می‌شود،
+  // تا فیلترهای صفحهٔ اصلی به مشخصات محصول وابسته نباشند.
+  if (!specs["کاربری"] || specs["کاربری"] === "نامشخص") {
+    specs["کاربری"] = deriveProductUsage(draft.title, specs);
+  }
   return {
     id: `imp-${stableHash(`${draft.sourceHost}:${importedDraftIdentityKey(draft)}`)}`,
     slug: storeProductSlugFromTitle(draft.title, draft.sourceHost),
