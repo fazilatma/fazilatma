@@ -516,24 +516,18 @@ const seoFilterLabels: Record<string, Record<string, string>> = {
   display: Object.fromEntries(displayOptions.map((option) => [option.value, option.label])),
 };
 
-const canonicalShopKeys = [
-  "brand",
-  "use",
-  "condition",
-  "ram",
-  "cpu",
-  "gpuType",
-  "ssd",
-  "display",
-  "minPrice",
-  "maxPrice",
-];
+// فقط همین کلیدها صفحهٔ مستقل و قابل ایندکس می‌سازند؛ بقیهٔ فیلترها به /shop
+// کاننیکال می‌شوند تا گوگل صفحات بی‌ارزش (مثل brand=Torob&hdd=none) را ایندکس نکند.
+const canonicalShopKeys = ["category", "brand", "part", "partGroup"];
 
 function canonicalShopPath(params: ShopSearchParams) {
   const query = new URLSearchParams();
   for (const key of canonicalShopKeys) {
     const value = getParam(params, key);
-    if (value) query.set(key, value);
+    if (!value) continue;
+    // برندهای «منبع» (Torob/Digikala) برند واقعی نیستند و در کاننیکال نمی‌آیند.
+    if (key === "brand" && /^(torob|digikala|emalls|technolife|zoomg|source|imported)$/i.test(value.trim())) continue;
+    query.set(key, value);
   }
   const payload = query.toString();
   return payload ? `/shop?${payload}` : "/shop";
@@ -577,11 +571,24 @@ export async function generateMetadata({
       ? `فروشگاه ${market} | قیمت و خرید ${market} نو و استوک`
       : `قیمت و خرید ${subject} | فروشگاه ${market} OptiBid`;
 
+  const junkBrand = /^(torob|digikala|emalls|technolife|zoomg|source|imported)$/i.test(
+    (getParam(params, "brand") || "").trim(),
+  );
+  const hasExtraFilters = Object.keys(params).some((key) => {
+    if (["category", "brand", "part", "partGroup"].includes(key)) return false;
+    if (key === "page") return false;
+    return Boolean(getParam(params, key));
+  });
+  // صفحات پرامتردار و بی‌ارزش نباید در گوگل ایندکس شوند؛ همان دلیل «تطابق نداشتن
+  // عنوان نتیجهٔ گوگل با محتوای صفحه» بود.
+  const robots =
+    hasExtraFilters || junkBrand ? { index: false, follow: true } : undefined;
   return buildSeoMetadata({
     title,
     description: `خرید و مقایسه ${subject} در فروشگاه OptiBid با مشخصات کامل، قیمت شفاف، مهلت تست، پشتیبانی خرید و امکان ثبت سفارش آنلاین.`,
     path,
     keywords: [subject, ...storeSeoKeywords].filter(Boolean),
+    robots,
   });
 }
 
@@ -622,6 +629,36 @@ export default async function ShopPage({
   let filteredProducts = products.filter(
     (product) => matchesFilter(product, params) && !isSuspiciousStoreProductPrice(product),
   );
+  // اگر کسی از گوگل با «رم/هارد/SSD» آمده و فیلترهای لپ‌تاپ نتیجه نداده‌اند،
+  // ابتدا خودِ قطعه (رم، هارد، SSD، پردازنده) را جستجو می‌کنیم؛ نه لپ‌تاپ بی‌ربط.
+  if (filteredProducts.length === 0) {
+    const specTerms: Array<[string, RegExp]> = [
+      ["ram", /\bram\b|رم/i],
+      ["hdd", /هارد|\bhdd\b/i],
+      ["ssd", /ssd|اس\s*اس\s*دی/i],
+      ["cpu", /پردازنده|\bcpu\b|processor/i],
+    ];
+    const activeTerms = specTerms
+      .filter(([key]) => {
+        const value = getParam(params, key).trim().toLowerCase();
+        return value && value !== "none" && value !== "no";
+      })
+      .map(([, pattern]) => pattern);
+    if (activeTerms.length) {
+      const candidates = products.filter(
+        (product) => product.isActive !== false && !isSuspiciousStoreProductPrice(product),
+      );
+      const haystackOf = (product: JsonStoreProduct) =>
+        `${product.title} ${product.category} ${Object.values(product.specs || {}).join(" ")}`;
+      const matchedAll = candidates.filter((product) =>
+        activeTerms.every((pattern) => pattern.test(haystackOf(product))),
+      );
+      const matchedAny = matchedAll.length
+        ? matchedAll
+        : candidates.filter((product) => activeTerms.some((pattern) => pattern.test(haystackOf(product))));
+      if (matchedAny.length) filteredProducts = matchedAny.slice(0, 120);
+    }
+  }
   // اگر فیلتر لپ‌تاپی (مثل «لپ‌تاپ گیمینگ RTX») در کاتالوگ لپ‌تاپ نتیجه نداشت،
   // به‌جای صفحهٔ خالی همان فیلتر را روی کل فروشگاه اعمال می‌کنیم (کارت گرافیک RTX و…).
   let laptopFilterFallback = false;
