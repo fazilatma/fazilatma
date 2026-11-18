@@ -1,3 +1,3 @@
-export const production = {};
-export const development = {};
-export const test = {};
+export const production = {"HOST":"0.0.0.0","PORT":"3000","NODE_ENV":"production","OPTIBID_DATA_FILE":"/home/user/fazilatma/.optibid-data/optibid-data.json","OPTIBID_UPLOAD_DIR":"/home/user/fazilatma/.optibid-data/kyc-uploads","OPTIBID_PASSWORD_RESET_MODE":"demo"};
+export const development = {"HOST":"0.0.0.0","PORT":"3000","NODE_ENV":"production","OPTIBID_DATA_FILE":"/home/user/fazilatma/.optibid-data/optibid-data.json","OPTIBID_UPLOAD_DIR":"/home/user/fazilatma/.optibid-data/kyc-uploads","OPTIBID_PASSWORD_RESET_MODE":"demo"};
+export const test = {"HOST":"0.0.0.0","PORT":"3000","NODE_ENV":"production","OPTIBID_DATA_FILE":"/home/user/fazilatma/.optibid-data/optibid-data.json","OPTIBID_UPLOAD_DIR":"/home/user/fazilatma/.optibid-data/kyc-uploads","OPTIBID_PASSWORD_RESET_MODE":"demo"};

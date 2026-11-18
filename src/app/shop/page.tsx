@@ -625,10 +625,26 @@ export default async function ShopPage({
   // اگر فیلتر لپ‌تاپی (مثل «لپ‌تاپ گیمینگ RTX») در کاتالوگ لپ‌تاپ نتیجه نداشت،
   // به‌جای صفحهٔ خالی همان فیلتر را روی کل فروشگاه اعمال می‌کنیم (کارت گرافیک RTX و…).
   let laptopFilterFallback = false;
-  if (filteredProducts.length === 0 && wantsLaptopCatalog(params)) {
+  if (
+    filteredProducts.length === 0 &&
+    (wantsLaptopCatalog(params) || getParam(params, "category").trim().toLowerCase() === "laptop")
+  ) {
+    // مسیرهای سریع صفحهٔ اصلی با مقدارهای انگلیسی لینک می‌دهند (use=gaming، ram=16GB…)
+    // در حالی که مشخصات کالاها فارسی ذخیره می‌شود؛ بدون این مترادف‌ها نتیجه همیشه خالی بود.
+    const quickPathSynonyms: Record<string, string[]> = {
+      student: ["دانشجویی", "اقتصادی", "دانشجو", "سبک"],
+      business: ["اداری", "شرکتی", "آفیس", "حسابداری"],
+      engineering: ["مهندسی", "طراحی", "گرافیک مجزا", "cad"],
+      gaming: ["گیمینگ", "بازی", "rtx", "گرافیک"],
+      rtx: ["rtx", "گرافیک"],
+      dedicated: ["گرافیک مجزا", "dedicated"],
+      new: ["نو", "آکبند"],
+      stock: ["استوک", "کارکرده"],
+    };
     const keywords = ["gpuType", "gpu", "use", "condition", "brand"]
       .map((key) => getParam(params, key).trim().toLowerCase())
-      .filter((value) => value.length > 1);
+      .filter((value) => value.length > 1)
+      .flatMap((value) => [value, ...(quickPathSynonyms[value] || [])]);
     const relaxedProducts = products.filter((product) => {
       if (isSuspiciousStoreProductPrice(product)) return false;
       if (!keywords.length) return product.isActive !== false;
@@ -647,6 +663,21 @@ export default async function ShopPage({
     if (relaxedProducts.length) {
       filteredProducts = relaxedProducts;
       laptopFilterFallback = true;
+    } else {
+      // قاعدهٔ همیشگی: هیچ لینک صفحهٔ اصلی نباید به صفحهٔ خالی برسد.
+      const fallbackMin = Number(getParam(params, "minPrice") || 0);
+      const fallbackMax = Number(getParam(params, "maxPrice") || 0);
+      const anyActive = products.filter((product) => {
+        if (product.isActive === false || isSuspiciousStoreProductPrice(product)) return false;
+        const price = Number(product.price || 0);
+        if (fallbackMin > 0 && price < fallbackMin) return false;
+        if (fallbackMax > 0 && price > fallbackMax) return false;
+        return true;
+      });
+      if (anyActive.length) {
+        filteredProducts = anyActive;
+        laptopFilterFallback = true;
+      }
     }
   }
   const searchQuery = getParam(params, "q").trim().slice(0, 120);
