@@ -645,7 +645,11 @@ export default async function ShopPage({
       .map((key) => getParam(params, key).trim().toLowerCase())
       .filter((value) => value.length > 1)
       .flatMap((value) => [value, ...(quickPathSynonyms[value] || [])]);
-    const relaxedProducts = products.filter((product) => {
+    // هرگز نباید کالای غیرلپ‌تاپ (مثل CPU) زیر عنوان «لپ‌تاپ اداری/دانشجویی» نمایش داده شود.
+    const laptopPool = products.filter(
+      (product) => isLaptopCatalogProduct(product) || looksLikeLaptopProduct(product),
+    );
+    const relaxedProducts = laptopPool.filter((product) => {
       if (isSuspiciousStoreProductPrice(product)) return false;
       if (!keywords.length) return product.isActive !== false;
       const haystack = [
@@ -667,7 +671,7 @@ export default async function ShopPage({
       // قاعدهٔ همیشگی: هیچ لینک صفحهٔ اصلی نباید به صفحهٔ خالی برسد.
       const fallbackMin = Number(getParam(params, "minPrice") || 0);
       const fallbackMax = Number(getParam(params, "maxPrice") || 0);
-      const anyActive = products.filter((product) => {
+      const anyActive = laptopPool.filter((product) => {
         if (product.isActive === false || isSuspiciousStoreProductPrice(product)) return false;
         const price = Number(product.price || 0);
         if (fallbackMin > 0 && price < fallbackMin) return false;
@@ -964,7 +968,7 @@ export default async function ShopPage({
           </div>
           {laptopFilterFallback && filteredProducts.length > 0 && (
             <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900">
-              در کاتالوگ لپ‌تاپ کالایی با این فیلتر پیدا نشد؛ کالاهای مرتبط از کل فروشگاه نمایش داده می‌شود.
+              لپ‌تاپ دقیقاً منطبق با این انتخاب موجود نبود؛ لپ‌تاپ‌های موجود فروشگاه نمایش داده می‌شود (بدون کالاهای نامرتبط).
             </div>
           )}
           {filteredProducts.length === 0 ? (
