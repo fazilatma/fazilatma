@@ -259,18 +259,17 @@ header('Cache-Control: no-cache');
       <div class="hint" id="rec-stat"></div>
       <div id="rec-bar" style="height:8px;background:#0d1730;border-radius:6px;margin-top:6px;overflow:hidden">
         <div id="rec-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#34d399);transition:width .2s"></div></div>
-    </div>
 
-    <!-- 🧹 پاکسازی نویز محیط نیروگاه -->
-    <div class="card recbox" id="nz-card" style="border-color:#7c3aed33">
-      <div class="rec-head"><b style="font-size:15px">🧹 پاکسازی نویز محیط (نیروگاه)</b>
-        <span class="hint">هوم ترانسفورمر، فن‌ها، ماشین‌های دیگر را سرکوب می‌کند تا صدای موتور هدف دقیق‌تر آنالیز شود</span></div>
+    <!-- 🧹 پاکسازی نویز اختیاری در همین بخش ضبط -->
+    <details class="box" id="nz-card" style="border-color:#7c3aed33;margin-top:12px">
+      <summary>🧹 پاکسازی نویز محیط (اختیاری)</summary>
+      <div class="hint" style="margin:8px 0">در صورت نیاز نویز فن، ترانسفورمر و ماشین‌های اطراف را کاهش دهید؛ می‌توانید پاکسازی را خاموش بگذارید و مستقیم تحلیل کنید.</div>
       <div class="row" style="margin-top:8px;align-items:flex-end">
         <div class="fld"><label>حالت</label>
           <select id="nz-mode">
-            <option value="off">خاموش — بدون پاکسازی</option>
-            <option value="auto">خودکار — تخمین کف نویز از خود ضبط</option>
-            <option value="prof" selected>دقیق — با نمونه نویز جدا (توصیه‌شده)</option>
+            <option value="off" selected>خاموش — تحلیل بدون پاکسازی</option>
+            <option value="auto">خودکار — تخمین نویز از خود ضبط</option>
+            <option value="prof">دقیق — با نمونه نویز جدا</option>
           </select></div>
         <div class="fld"><label>شدت پاکسازی</label>
           <select id="nz-alpha">
@@ -280,7 +279,8 @@ header('Cache-Control: no-cache');
           </select></div>
         <div class="fld" style="justify-content:flex-end"><button class="btn" id="nz-btn" style="width:100%;background:#7c3aed">🔇 ضبط نمونه نویز (۳ثانیه)</button></div>
       </div>
-      <div class="hint" id="nz-stat" style="margin-top:4px">برای بهترین نتیجه: موتور هدف را خاموش/بعید در نظر بگیر و ۳ ثانیه فقط صدای محیط را ضبط کن (هوم ترانسفورمر، فن‌ها، ماشین‌های اطراف). بعد بدون پاک کردن این نمونه، موتور را ضبط و آنالیز کن.</div>
+      <div class="hint" id="nz-stat" style="margin-top:4px">پاکسازی خاموش است. برای تحلیل بدون پاکسازی، نیازی به ضبط نمونه نویز نیست. حالت «خودکار» از همان ضبط موتور کمک می‌گیرد؛ حالت «دقیق» نیازمند ضبط ۳ ثانیه‌ای نمونه نویز محیط است.</div>
+    </details>
     </div>
 
     <!-- 📖 راهنمای ضبط -->
