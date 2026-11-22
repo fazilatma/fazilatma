@@ -22,7 +22,7 @@ if ($m === 'sw') {
   header('Service-Worker-Allowed: ./');
   echo <<<'MMDS_SW'
 // MMDS single-file SW — آفلاین کامل (همه‌چیز از همین index.php سرو می‌شود)
-const CACHE = "mmds-single-v1";
+const CACHE = "mmds-single-v2";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.add("./")).then(() => self.skipWaiting()));
 });
