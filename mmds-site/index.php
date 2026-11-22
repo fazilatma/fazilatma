@@ -251,8 +251,8 @@ header('Cache-Control: no-cache');
       <div class="row" style="margin-top:8px;align-items:flex-end">
         <div class="fld"><label>کانال ضبط</label>
           <select id="rec-ch"><option value="vib">📳 ارتعاش/صوت</option><option value="cur">⚡ جریان (MCSA)</option></select></div>
-        <div class="fld"><label>مدت ضبط</label>
-          <select id="rec-dur"><option value="15">۱۵ ثانیه</option><option value="30" selected>۳۰ ثانیه</option><option value="60">۶۰ ثانیه (توصیه برای جریان)</option></select></div>
+        <div class="fld"><label>حداکثر مدت ضبط</label>
+          <select id="rec-dur"><option value="15">۱۵ ثانیه</option><option value="30" selected>۳۰ ثانیه</option><option value="60">۶۰ ثانیه</option></select></div>
         <div class="fld"><label>ورودی صدا</label><select id="rec-in"><option value="">پیش‌فرض دستگاه</option></select></div>
         <div class="fld" style="justify-content:flex-end"><button class="btn" id="rec-btn" style="width:100%">⏺ شروع ضبط</button></div>
       </div>
@@ -1529,11 +1529,14 @@ header('Cache-Control: no-cache');
     }catch(e){}
   }
   fillInputs();
-  let recStream = null, recTimer = null;
+  let recStream = null, recTimer = null, stopRecording = null;
   $("rec-btn").onclick = async () => {
+    if (stopRecording){ stopRecording(); return; }
     const stat = $("rec-stat"), fill = $("rec-fill"), btn = $("rec-btn");
-    const dur = parseInt($("rec-dur").value, 10);
+    const selectedDur = parseInt($("rec-dur").value, 10);
     const ch = $("rec-ch").value;
+    const minDur = ch === "cur" ? 30 : 15;
+    const dur = Math.max(selectedDur, minDur);
     try{
       stat.textContent = "در حال درخواست مجوز میکروفون…";
       const cstr = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } };
@@ -1550,24 +1553,25 @@ header('Cache-Control: no-cache');
         for (let i = 0; i < buf.length; i++){ const a = Math.abs(buf[i]); if (a > maxAbs) maxAbs = a; }
       };
       src.connect(proc); proc.connect(actx.destination);
-      btn.disabled = true; btn.textContent = "⏺ در حال ضبط…";
       const t0 = performance.now();
-      stat.textContent = `ضبط ${dur} ثانیه‌ای ${ch === "cur" ? "جریان" : "ارتعاش/صوت"}… لطفاً بار موتور را ثابت نگه دارید.`;
-      const tick = setInterval(() => {
-        const el = (performance.now() - t0) / 1000;
-        fill.style.width = Math.min(100, el / dur * 100) + "%";
-        stat.textContent = `ضبط ${ch === "cur" ? "⚡ جریان" : "📳 صوت"}: ${Math.floor(el)} از ${dur} ثانیه — حداکثر سطح ${(maxAbs*100).toFixed(0)}٪` +
-          (maxAbs > 0.95 ? " ⚠️ اشباع! دامنه را کم کن." : maxAbs < 0.01 && el > 3 ? " ⚠️ ورودی سکوت است — کابل را چک کن." : "");
-        if (el >= dur){ clearInterval(tick); finish(); }
-      }, 200);
-      function finish(){
+      const channelName = ch === "cur" ? "⚡ جریان" : "📳 ارتعاش/صوت";
+      btn.disabled = true; btn.textContent = `⏺ ضبط… توقف پس از ${minDur} ثانیه`;
+      stat.textContent = `حداقل ضبط برای ${ch === "cur" ? "جریان" : "ارتعاش/صوت"}: ${minDur} ثانیه؛ پس از آن می‌توانید متوقف کنید. بار موتور را ثابت نگه دارید.`;
+      let finished = false;
+      function finish(manual = false){
+        if (finished) return;
+        finished = true;
+        if (recTimer){ clearInterval(recTimer); recTimer = null; }
+        stopRecording = null;
         proc.disconnect(); src.disconnect(); recStream.getTracks().forEach(t => t.stop());
-        actx.close(); recStream = null;
         const fsr = actx.sampleRate || 48000;
+        actx.close(); recStream = null;
+        const elapsed = (performance.now() - t0) / 1000;
         const x = new Float64Array(n); let o = 0;
         for (const c of chunks){ x.set(c, o); o += c.length; }
         btn.disabled = false; btn.textContent = "⏺ شروع ضبط";
-        fill.style.width = "100%";
+        fill.style.width = Math.min(100, elapsed / dur * 100) + "%";
+        if (manual) stat.textContent = `ضبط ${channelName} در ${Math.floor(elapsed)} ثانیه متوقف شد؛ در حال آماده‌سازی تحلیل…`;
         if (maxAbs < 0.005){ stat.textContent = "❌ سیگنال دریافت نشد — ورودی را چک کن (TRRS گوشی برای جریان مناسب نیست!)."; return; }
         const arr = Array.from(x);
         if (ch === "cur"){
@@ -1586,6 +1590,18 @@ header('Cache-Control: no-cache');
           stat.innerHTML = `✔ ضبط تکمیل شد — <b>«آنالیز کن»</b> را بزنید.`;
         }
       }
+      stopRecording = () => {
+        if (!finished && (performance.now() - t0) / 1000 >= minDur) finish(true);
+      };
+      recTimer = setInterval(() => {
+        const el = (performance.now() - t0) / 1000;
+        fill.style.width = Math.min(100, el / dur * 100) + "%";
+        btn.disabled = el < minDur;
+        btn.textContent = el < minDur ? `⏺ ضبط… ${Math.ceil(minDur - el)} ثانیه تا توقف` : "⏹ توقف و تحلیل";
+        stat.textContent = `ضبط ${channelName}: ${Math.floor(el)} از ${dur} ثانیه — حداکثر سطح ${(maxAbs*100).toFixed(0)}٪` +
+          (maxAbs > 0.95 ? " ⚠️ اشباع! دامنه را کم کن." : maxAbs < 0.01 && el > 3 ? " ⚠️ ورودی سکوت است — کابل را چک کن." : "");
+        if (el >= dur) finish();
+      }, 200);
     }catch(e){
       stat.textContent = "❌ " + (e.name === "NotAllowedError" ? "دسترسی میکروفون رد شد — مجوز را در مرورگر فعال کن." :
               e.name === "NotFoundError" ? "هیچ ورودی صوتی پیدا نشد." : e.message);
