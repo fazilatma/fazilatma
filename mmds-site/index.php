@@ -8,6 +8,10 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 
 $m = isset($_GET['mmds']) ? $_GET['mmds'] : '';
+if ($m === 'auth') {
+  require __DIR__ . '/auth.php';
+  exit;
+}
 if ($m === 'manifest') {
   header('Content-Type: application/manifest+json; charset=utf-8');
   header('Cache-Control: public, max-age=86400');
@@ -22,7 +26,7 @@ if ($m === 'sw') {
   header('Service-Worker-Allowed: ./');
   echo <<<'MMDS_SW'
 // MMDS single-file SW — آفلاین کامل (همه‌چیز از همین index.php سرو می‌شود)
-const CACHE = "mmds-single-v2";
+const CACHE = "mmds-single-v3";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.add("./")).then(() => self.skipWaiting()));
 });
@@ -30,6 +34,11 @@ self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
+  const url = new URL(e.request.url);
+  if (url.searchParams.get("mmds") === "auth" || url.pathname.endsWith("/auth.php")) {
+    e.respondWith(fetch(e.request, { cache: "no-store" }));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(hit => hit || fetch(e.request).then(resp => {
       if (e.request.method === "GET" && resp.status === 200) {
@@ -158,6 +167,15 @@ header('Cache-Control: no-cache');
   footer{border-top:1px solid #22315a;padding:24px 0;color:var(--mut);font-size:13.5px}
   @media(max-width:880px){.hero{grid-template-columns:1fr}.grid3,.grid2,.metrics{grid-template-columns:1fr}
     .hero h1{font-size:29px}}
+  #auth-dialog{width:min(92vw,440px);max-height:88vh;overflow:auto;background:#111d38;color:var(--txt);border:1px solid #344773;border-radius:20px;padding:24px;box-shadow:0 24px 80px #0009}
+  #auth-dialog::backdrop{background:#030817bb;backdrop-filter:blur(4px)}
+  #auth-dialog h2{margin:0 0 8px}
+  #auth-dialog label{display:block;margin:12px 0 5px;color:var(--mut);font-size:14px}
+  #auth-dialog input{width:100%;padding:12px;border:1px solid #2b3c68;border-radius:10px;background:#0d1730;color:var(--txt);font:inherit}
+  #auth-dialog form:not(.auth-close) .btn{width:100%;margin-top:16px}
+  .auth-close{position:absolute;top:12px;left:12px}
+  .auth-close button,.auth-switch{border:0;background:transparent;color:var(--acc2);font:inherit;cursor:pointer;padding:8px}
+  #auth-status{min-height:24px;margin:8px 0;color:var(--acc2)}
 </style>
 </head>
 <body>
@@ -167,8 +185,37 @@ header('Cache-Control: no-cache');
     <svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="none" stroke="#f5a524" stroke-width="2.4"/><path d="M8 17h4l2-5 3 9 2-6 2 2h5" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     MMDS<b>.</b>
   </div>
-  <a class="btn" href="#analyze">⚡ آنالیز رایگان موتور</a>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn ghost" id="account-open" type="button">ورود / ثبت‌نام</button>
+      <a class="btn" href="#analyze">⚡ آنالیز رایگان موتور</a>
+    </div>
 </div></header>
+
+<dialog id="auth-dialog" dir="rtl">
+  <form method="dialog" class="auth-close"><button aria-label="بستن">✕</button></form>
+  <h2 id="auth-title">ثبت‌نام در MMDS</h2>
+  <p class="hint">برای ساخت حساب، ایمیل و موبایل هر دو تأیید می‌شوند.</p>
+  <div id="auth-status" class="hint" role="status" aria-live="polite"></div>
+  <form id="signup-form">
+    <label>نام</label><input name="name" autocomplete="name" required minlength="2" maxlength="100">
+    <label>موبایل ایران</label><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="09123456789" required>
+    <label>ایمیل</label><input name="email" type="email" autocomplete="email" required>
+    <label>گذرواژه (حداقل ۱۰ نویسه)</label><input name="password" type="password" autocomplete="new-password" minlength="10" required>
+    <button class="btn" type="submit">ارسال کدهای تأیید</button>
+  </form>
+  <form id="verify-form" hidden>
+    <p class="hint">دو کد جداگانه به موبایل و ایمیلتان ارسال شده است.</p>
+    <label>کد پیامکی</label><input name="phone_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+    <label>کد ایمیل</label><input name="email_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
+    <button class="btn" type="submit">تأیید و ساخت حساب</button>
+  </form>
+  <form id="login-form" hidden>
+    <label>ایمیل یا موبایل</label><input name="identity" autocomplete="username" required>
+    <label>گذرواژه</label><input name="password" type="password" autocomplete="current-password" required>
+    <button class="btn" type="submit">ورود</button>
+  </form>
+  <button class="auth-switch" id="auth-switch" type="button">حساب دارید؟ ورود</button>
+</dialog>
 
 <!-- ─────────────── HERO ─────────────── -->
 <div class="wrap hero">
@@ -1790,6 +1837,50 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () =>
     navigator.serviceWorker.register("?mmds=sw").catch(() => {}));
 }
+</script>
+<script>
+(() => {
+  const dialog=document.getElementById('auth-dialog'), openBtn=document.getElementById('account-open');
+  const signup=document.getElementById('signup-form'), verify=document.getElementById('verify-form'), login=document.getElementById('login-form');
+  const status=document.getElementById('auth-status'), title=document.getElementById('auth-title'), switchBtn=document.getElementById('auth-switch');
+  let csrf='', signupInfo=null, userName='';
+  const setStatus=(text,isError=false)=>{status.textContent=text;status.style.color=isError?'#fb7185':'var(--acc2)';};
+  async function csrfToken(){
+    const r=await fetch('?mmds=auth&action=csrf',{credentials:'same-origin',cache:'no-store'});
+    const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.message||'ارتباط برقرار نشد.');
+    csrf=d.csrf; userName=d.user?.name||''; updateButton();
+  }
+  function updateButton(){openBtn.textContent=userName?`${userName} · خروج`:'ورود / ثبت‌نام';}
+  async function api(action,data={}){
+    if(!csrf) await csrfToken();
+    const r=await fetch('?mmds=auth',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({action,...data})});
+    const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.message||'درخواست انجام نشد.'); return d;
+  }
+  function showSignup(){signup.hidden=false;verify.hidden=true;login.hidden=true;title.textContent='ثبت‌نام در MMDS';switchBtn.textContent='حساب دارید؟ ورود';setStatus('');}
+  function showLogin(){signup.hidden=true;verify.hidden=true;login.hidden=false;title.textContent='ورود به MMDS';switchBtn.textContent='حساب ندارید؟ ثبت‌نام';setStatus('');}
+  openBtn.addEventListener('click',async()=>{
+    if(userName){try{await api('logout');userName='';updateButton();setStatus('از حساب خارج شدید.');}catch(e){setStatus(e.message,true);}return;}
+    showSignup();dialog.showModal();try{await csrfToken();}catch(e){setStatus(e.message,true);}
+  });
+  switchBtn.addEventListener('click',()=>login.hidden?showLogin():showSignup());
+  signup.addEventListener('submit',async e=>{
+    e.preventDefault();const f=new FormData(signup);signupInfo={name:f.get('name').trim(),phone:f.get('phone').trim(),email:f.get('email').trim(),password:f.get('password')};
+    const btn=signup.querySelector('button[type=submit]');btn.disabled=true;setStatus('در حال ارسال کدها…');
+    try{const d=await api('request_signup',signupInfo);signup.hidden=true;verify.hidden=false;setStatus(d.message);}
+    catch(err){setStatus(err.message,true);}finally{btn.disabled=false;}
+  });
+  verify.addEventListener('submit',async e=>{
+    e.preventDefault();if(!signupInfo)return;const f=new FormData(verify);const btn=verify.querySelector('button[type=submit]');btn.disabled=true;setStatus('در حال تأیید…');
+    try{const d=await api('verify_signup',{email:signupInfo.email,phone:signupInfo.phone,email_code:f.get('email_code').trim(),phone_code:f.get('phone_code').trim()});userName=signupInfo.name;updateButton();setStatus(d.message);signupInfo=null;setTimeout(()=>dialog.close(),1200);}
+    catch(err){setStatus(err.message,true);}finally{btn.disabled=false;}
+  });
+  login.addEventListener('submit',async e=>{
+    e.preventDefault();const f=new FormData(login);const btn=login.querySelector('button[type=submit]');btn.disabled=true;setStatus('در حال ورود…');
+    try{const d=await api('login',{identity:f.get('identity').trim(),password:f.get('password')});await csrfToken();setStatus(d.message);setTimeout(()=>dialog.close(),800);}
+    catch(err){setStatus(err.message,true);}finally{btn.disabled=false;}
+  });
+  csrfToken().catch(()=>{});
+})();
 </script>
 </body>
 </html>
