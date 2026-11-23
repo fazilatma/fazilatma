@@ -26,7 +26,7 @@ if ($m === 'sw') {
   header('Service-Worker-Allowed: ./');
   echo <<<'MMDS_SW'
 // MMDS single-file SW — آفلاین کامل (همه‌چیز از همین index.php سرو می‌شود)
-const CACHE = "mmds-single-v3";
+const CACHE = "mmds-single-v4";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.add("./")).then(() => self.skipWaiting()));
 });
@@ -266,7 +266,7 @@ header('Cache-Control: no-cache');
       <div class="fld"><label>سرعت موتور (rpm)</label><input id="rpm" type="number" value="1441" min="50" step="any"></div>
       <div class="fld"><label>مدل بلبرینگ</label>
         <select id="brg"><option>6204</option><option selected>6205</option><option>6206</option><option>6207</option><option>6305</option></select></div>
-      <div class="fld" style="justify-content:flex-end"><button class="btn" id="go" style="width:100%">🔍 آنالیز کن</button></div>
+      <div class="fld" style="justify-content:flex-end"><button class="btn" id="go" style="width:100%">🔍 آنالیز بخش صوتی / ارتعاش</button></div>
     </div>
     <div class="row" style="align-items:flex-end">
       <div class="fld" style="flex:2">
@@ -276,6 +276,11 @@ header('Cache-Control: no-cache');
       </div>
       <div class="fld"><label>fs جریان (اگر CSV)</label><input id="fs-cur" type="number" value="10240" min="1000" step="any"></div>
       <div class="fld"><label>سرعت سنکرون ns (rpm) — ۵۰Hz/۴قطب = ۱۵۰۰</label><input id="nss" type="number" value="1500" min="200" step="any"></div>
+      <div class="fld" style="justify-content:flex-end"><button class="btn" id="go-cur" style="width:100%;background:linear-gradient(135deg,#0284c7,#0369a1)">⚡ آنالیز بخش جریان (MCSA)</button></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 12px;background:#0d1730aa;border-radius:10px;border:1px solid #22315a;flex-wrap:wrap;gap:8px">
+      <span class="hint" style="color:#94a3b8">هر بخش بالا آنالیز مستقل دارد؛ همچنین در صورت ثبت هر دو داده می‌توانید تحلیل هم‌زمان انجام دهید:</span>
+      <button class="btn ghost" id="go-fusion" type="button" style="padding:7px 16px;border-color:#38bdf866;font-size:13.5px">⚡ آنالیز جامع (فیوژن ۲ کاناله)</button>
     </div>
 
     <!-- 🏷️ حالت پلاک موتور -->
@@ -307,6 +312,12 @@ header('Cache-Control: no-cache');
       <div id="rec-bar" style="height:8px;background:#0d1730;border-radius:6px;margin-top:6px;overflow:hidden">
         <div id="rec-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#34d399);transition:width .2s"></div></div>
 
+      <!-- دکمه‌های مستقیم آنالیز در بخش ضبط زنده -->
+      <div class="row" style="margin-top:12px;gap:10px;align-items:center">
+        <button class="btn" id="rec-go-vib" type="button" style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706)">🔍 آنالیز بخش صوتی (داده ضبط‌شده)</button>
+        <button class="btn ghost" id="rec-go-cur" type="button" style="flex:1;border-color:#38bdf8;color:#38bdf8">⚡ آنالیز بخش جریان (MCSA)</button>
+      </div>
+
     <!-- 🧹 پاکسازی نویز اختیاری در همین بخش ضبط -->
     <details class="box" id="nz-card" style="border-color:#7c3aed33;margin-top:12px">
       <summary>🧹 پاکسازی نویز محیط (اختیاری)</summary>
@@ -327,6 +338,10 @@ header('Cache-Control: no-cache');
         <div class="fld" style="justify-content:flex-end"><button class="btn" id="nz-btn" style="width:100%;background:#7c3aed">🔇 ضبط نمونه نویز (۳ثانیه)</button></div>
       </div>
       <div class="hint" id="nz-stat" style="margin-top:4px">پاکسازی خاموش است. برای تحلیل بدون پاکسازی، نیازی به ضبط نمونه نویز نیست. حالت «خودکار» از همان ضبط موتور کمک می‌گیرد؛ حالت «دقیق» نیازمند ضبط ۳ ثانیه‌ای نمونه نویز محیط است.</div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #7c3aed44;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn" id="nz-go-vib" type="button" style="background:#7c3aed;padding:8px 16px;font-size:13.5px">🔍 آنالیز بخش صوتی با فیلتر نویز محیط</button>
+        <span class="hint">تحلیل مستقل صدای ضبط‌شده با اعمال تنظیمات پاکسازی نویز بالا</span>
+      </div>
     </details>
     </div>
 
@@ -1627,14 +1642,14 @@ header('Cache-Control: no-cache');
           const g50 = MMDS_ANALYZE.goertzel(arr, fsr, 50);
           let rI = 0; for (let v of arr) rI += v * v; rI = Math.sqrt(rI / arr.length);
           const f1r = g50 / (rI * 1.414 + 1e-12);
-          let q = `✔ ${n.toLocaleString("fa-IR")} نمونه جریان @ ${fsr.toLocaleString("fa-IR")}Hz — سهم ۵۰Hz: ${(f1r*100).toFixed(0)}٪ — <b>«آنالیز کن»</b> را بزنید.`;
+          let q = `✔ ${n.toLocaleString("fa-IR")} نمونه جریان @ ${fsr.toLocaleString("fa-IR")}Hz — سهم ۵۰Hz: ${(f1r*100).toFixed(0)}٪ — دکمهٔ <b>«⚡ آنالیز بخش جریان»</b> را بزنید.`;
           if (f1r < 0.25)
             q += `<br>⚠️ <span style="color:var(--warn)">مؤلفه ۵۰Hz ضعیف است؛ ورودی آیا TRRS گوشی/های‌پس‌شده است؟ فقط Line-in/کارت‌صدای USB.</span>`;
           stat.innerHTML = q;
         } else {
           csvData = arr; $("fs").value = fsr; audioMode = true;
           markLoaded("🎙️ ضبط زنده صوت", `${n.toLocaleString("fa-IR")} نمونه @ ${fsr.toLocaleString("fa-IR")}Hz — آماده آنالیز`);
-          stat.innerHTML = `✔ ضبط تکمیل شد — <b>«آنالیز کن»</b> را بزنید.`;
+          stat.innerHTML = `✔ ضبط صدا تکمیل شد — دکمهٔ <b>«🔍 آنالیز بخش صوتی»</b> را بزنید.`;
         }
       }
       stopRecording = () => {
@@ -1655,13 +1670,31 @@ header('Cache-Control: no-cache');
     }
   };
 
-  $("go").onclick = () => {
+  const runAnalysis = (mode, triggerBtn) => {
     const hasVib = csvData && csvData.length >= 2000;
     const hasCur = curData && curData.length > 5000;
-    if (!hasVib && !hasCur){ alert("اول داده بده: فایل CSV/صوتی ارتعاش، یا فایل/ضبط جریان."); return; }
-    const fs = parseFloat($("fs").value), rpm = parseFloat($("rpm").value);
+
+    if (mode === "vib" && !hasVib){
+      alert("دادهٔ صوتی یا ارتعاش بارگیری نشده است.\nابتدا فایل صوتی/CSV را انتخاب کنید یا در بخش ضبط زنده با دکمه «⏺ شروع ضبط»، صدای موتور را ضبط نمایید.");
+      return;
+    }
+    if (mode === "cur" && !hasCur){
+      alert("دادهٔ جریان (MCSA) بارگیری نشده است.\nابتدا فایل جریان را انتخاب کنید یا کانال ضبط زنده را روی «⚡ جریان (MCSA)» گذاشته و ضبط نمایید.");
+      return;
+    }
+    if (mode === "fusion" && !hasVib && !hasCur){
+      alert("ابتدا داده بدهید: حداقل یکی از دو کانال (فایل/ضبط صوتی یا فایل/ضبط جریان).");
+      return;
+    }
+
+    const fs = parseFloat($("fs").value) || 10240;
+    const rpm = parseFloat($("rpm").value) || 1441;
     const brg = MMDS_ANALYZE.BEARINGS[$("brg").value];
-    if (hasVib && (!(fs > 0) || !(rpm > 0) || !brg)){ alert("fs و rpm را درست وارد کن."); return; }
+    if ((mode === "vib" || (mode === "fusion" && hasVib)) && (!(fs > 0) || !(rpm > 0) || !brg)){
+      alert("نرخ نمونه‌برداری fs و دور موتور rpm را درست وارد کنید.");
+      return;
+    }
+
     // پاکسازی نویز محیط (اگر روشن باشد)
     const nzMode = $("nz-mode").value;
     const nzAlpha = parseFloat($("nz-alpha").value) || 1.5;
@@ -1670,23 +1703,46 @@ header('Cache-Control: no-cache');
       try{
         const prof = (nzMode === "prof" && nzProf) ? nzProf : null;
         const fsV = hasVib ? fs : 0;
-        if (hasVib) csvClean = Array.from(MMDS_ANALYZE.noiseClean(csvData, fsV, prof, { alpha: nzAlpha }));
-        if (hasCur && curFs) curClean = Array.from(MMDS_ANALYZE.noiseClean(curData, curFs, prof, { alpha: nzAlpha }));
+        if (hasVib && (mode === "vib" || mode === "fusion"))
+          csvClean = Array.from(MMDS_ANALYZE.noiseClean(csvData, fsV, prof, { alpha: nzAlpha }));
+        if (hasCur && (mode === "cur" || mode === "fusion") && curFs)
+          curClean = Array.from(MMDS_ANALYZE.noiseClean(curData, curFs, prof, { alpha: nzAlpha }));
         nzMsg = prof ? "🧹 با پروفایل نویز محیط" : "🧹 خودکار (کف نویز)";
       }catch(e){ nzMsg = "⚠️ پاکسازی نشد: " + e.message; }
     }
-    $("go").innerHTML = '<span class="spin"></span> در حال تحلیل…'; $("go").disabled = true;
+
+    const prevHtml = triggerBtn ? triggerBtn.innerHTML : "";
+    if (triggerBtn){
+      triggerBtn.innerHTML = '<span class="spin"></span> در حال تحلیل…';
+      triggerBtn.disabled = true;
+    }
     setTimeout(() => {
-      let r = null, rCur = null;
-      if (hasVib) r = MMDS_ANALYZE.analyze(csvClean, fs, rpm, brg, { kind: audioMode ? "ac" : "vib" });
-      if (hasCur){
-        const nss = parseFloat($("nss").value) || 1500;
-        const slip = Math.min(Math.max((nss - rpm) / nss, 0.002), 0.3);
-        rCur = MMDS_ANALYZE.analyzeCurrent(curClean, curFs || fs, 50, slip, rpm / 60);
+      try {
+        let r = null, rCur = null;
+        if (hasVib && (mode === "vib" || mode === "fusion")){
+          r = MMDS_ANALYZE.analyze(csvClean, fs, rpm, brg, { kind: audioMode ? "ac" : "vib" });
+        }
+        if (hasCur && (mode === "cur" || mode === "fusion")){
+          const nss = parseFloat($("nss").value) || 1500;
+          const slip = Math.min(Math.max((nss - rpm) / nss, 0.002), 0.3);
+          rCur = MMDS_ANALYZE.analyzeCurrent(curClean, curFs || fs, 50, slip, rpm / 60);
+        }
+        render(r, csvClean, fs, rCur, nzMsg);
+      } finally {
+        if (triggerBtn){
+          triggerBtn.innerHTML = prevHtml;
+          triggerBtn.disabled = false;
+        }
       }
-      render(r, csvClean, fs, rCur, nzMsg); $("go").innerHTML = "🔍 آنالیز کن"; $("go").disabled = false;
     }, 30);
   };
+
+  $("go").onclick = () => runAnalysis("vib", $("go"));
+  if ($("go-cur")) $("go-cur").onclick = () => runAnalysis("cur", $("go-cur"));
+  if ($("go-fusion")) $("go-fusion").onclick = () => runAnalysis("fusion", $("go-fusion"));
+  if ($("rec-go-vib")) $("rec-go-vib").onclick = () => runAnalysis("vib", $("rec-go-vib"));
+  if ($("rec-go-cur")) $("rec-go-cur").onclick = () => runAnalysis("cur", $("rec-go-cur"));
+  if ($("nz-go-vib")) $("nz-go-vib").onclick = () => runAnalysis("vib", $("nz-go-vib"));
   const FA = n => Number(n).toLocaleString("fa-IR", {maximumFractionDigits: 1});
   const LV_ORDER = ["ok", "watch", "warning", "alarm"];
 
@@ -1728,11 +1784,12 @@ header('Cache-Control: no-cache');
 
   function render(r, x, fs, rCur, nzMsg){
     $("an-res").style.display = "block";
+    try { $("an-res").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (_) {}
     const box = $("v-box");
     if (nzMsg) box.insertAdjacentHTML("afterbegin", `<div class="hint" style="margin-bottom:6px;color:#c4b5fd">${nzMsg} — سیگنال قبل از آنالیز پاکسازی شد.</div>`);
     // فیوژن سطح: بدترین رأی دو کانال (r==null یعنی فقط کانال جریان)
-    const lv = (rCur && (!r || LV_ORDER.indexOf(rCur.worst) > LV_ORDER.indexOf(r.level))) ? rCur.worst : r.level;
-    const chanTag = (r && rCur) ? " · فیوژن ۲ کاناله" : (!r ? " · فقط کانال جریان" : "");
+    const lv = (rCur && (!r || LV_ORDER.indexOf(rCur.worst) > LV_ORDER.indexOf(r.level))) ? rCur.worst : (r ? r.level : (rCur ? rCur.worst : "ok"));
+    const chanTag = (r && rCur) ? " · فیوژن ۲ کاناله (صوت + جریان)" : (!r ? " · فقط کانال جریان (MCSA)" : " · کانال صوت و ارتعاش");
     if (lv === "ok"){ box.className = "verdict ok";
       box.innerHTML = `✅ <span><b>سالم${chanTag}</b> — امضای عیبی دیده نشد${rCur ? ` (BRB: ${rCur.brbDb.toFixed(1)} dB)` : ""}</span>`;
     } else {
