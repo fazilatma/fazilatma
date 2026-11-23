@@ -26,7 +26,7 @@ if ($m === 'sw') {
   header('Service-Worker-Allowed: ./');
   echo <<<'MMDS_SW'
 // MMDS single-file SW — آفلاین کامل (همه‌چیز از همین index.php سرو می‌شود)
-const CACHE = "mmds-single-v4";
+const CACHE = "mmds-single-v5";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.add("./")).then(() => self.skipWaiting()));
 });
@@ -307,15 +307,16 @@ header('Cache-Control: no-cache');
           <select id="rec-dur"><option value="15">۱۵ ثانیه</option><option value="30" selected>۳۰ ثانیه</option><option value="60">۶۰ ثانیه</option></select></div>
         <div class="fld"><label>ورودی صدا</label><select id="rec-in"><option value="">پیش‌فرض دستگاه</option></select></div>
         <div class="fld" style="justify-content:flex-end"><button class="btn" id="rec-btn" style="width:100%">⏺ شروع ضبط</button></div>
+        <div class="fld" style="justify-content:flex-end"><button class="btn" id="rec-an-live" type="button" style="width:100%;background:linear-gradient(135deg,#38bdf8,#0284c7);color:#071226">🔍 آنالیز ضبط زنده</button></div>
       </div>
       <div class="hint" id="rec-stat"></div>
       <div id="rec-bar" style="height:8px;background:#0d1730;border-radius:6px;margin-top:6px;overflow:hidden">
         <div id="rec-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#34d399);transition:width .2s"></div></div>
 
-      <!-- دکمه‌های مستقیم آنالیز در بخش ضبط زنده -->
+      <!-- دکمه‌های تفکیک‌شده برای آنالیز هر بخش در ضبط زنده -->
       <div class="row" style="margin-top:12px;gap:10px;align-items:center">
-        <button class="btn" id="rec-go-vib" type="button" style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706)">🔍 آنالیز بخش صوتی (داده ضبط‌شده)</button>
-        <button class="btn ghost" id="rec-go-cur" type="button" style="flex:1;border-color:#38bdf8;color:#38bdf8">⚡ آنالیز بخش جریان (MCSA)</button>
+        <button class="btn" id="rec-go-vib" type="button" style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);color:#071226">🔍 آنالیز ضبط زنده: بخش صوتی</button>
+        <button class="btn ghost" id="rec-go-cur" type="button" style="flex:1;border-color:#38bdf8;color:#38bdf8">⚡ آنالیز ضبط زنده: بخش جریان (MCSA)</button>
       </div>
 
     <!-- 🧹 پاکسازی نویز اختیاری در همین بخش ضبط -->
@@ -1642,14 +1643,14 @@ header('Cache-Control: no-cache');
           const g50 = MMDS_ANALYZE.goertzel(arr, fsr, 50);
           let rI = 0; for (let v of arr) rI += v * v; rI = Math.sqrt(rI / arr.length);
           const f1r = g50 / (rI * 1.414 + 1e-12);
-          let q = `✔ ${n.toLocaleString("fa-IR")} نمونه جریان @ ${fsr.toLocaleString("fa-IR")}Hz — سهم ۵۰Hz: ${(f1r*100).toFixed(0)}٪ — دکمهٔ <b>«⚡ آنالیز بخش جریان»</b> را بزنید.`;
+          let q = `✔ ${n.toLocaleString("fa-IR")} نمونه جریان @ ${fsr.toLocaleString("fa-IR")}Hz — سهم ۵۰Hz: ${(f1r*100).toFixed(0)}٪ — دکمهٔ <b>«🔍 آنالیز ضبط زنده»</b> را بزنید.`;
           if (f1r < 0.25)
             q += `<br>⚠️ <span style="color:var(--warn)">مؤلفه ۵۰Hz ضعیف است؛ ورودی آیا TRRS گوشی/های‌پس‌شده است؟ فقط Line-in/کارت‌صدای USB.</span>`;
           stat.innerHTML = q;
         } else {
           csvData = arr; $("fs").value = fsr; audioMode = true;
           markLoaded("🎙️ ضبط زنده صوت", `${n.toLocaleString("fa-IR")} نمونه @ ${fsr.toLocaleString("fa-IR")}Hz — آماده آنالیز`);
-          stat.innerHTML = `✔ ضبط صدا تکمیل شد — دکمهٔ <b>«🔍 آنالیز بخش صوتی»</b> را بزنید.`;
+          stat.innerHTML = `✔ ضبط صدا تکمیل شد — دکمهٔ <b>«🔍 آنالیز ضبط زنده»</b> را بزنید.`;
         }
       }
       stopRecording = () => {
@@ -1740,6 +1741,10 @@ header('Cache-Control: no-cache');
   $("go").onclick = () => runAnalysis("vib", $("go"));
   if ($("go-cur")) $("go-cur").onclick = () => runAnalysis("cur", $("go-cur"));
   if ($("go-fusion")) $("go-fusion").onclick = () => runAnalysis("fusion", $("go-fusion"));
+  if ($("rec-an-live")) $("rec-an-live").onclick = () => {
+    const ch = $("rec-ch").value;
+    runAnalysis(ch === "cur" ? "cur" : "vib", $("rec-an-live"));
+  };
   if ($("rec-go-vib")) $("rec-go-vib").onclick = () => runAnalysis("vib", $("rec-go-vib"));
   if ($("rec-go-cur")) $("rec-go-cur").onclick = () => runAnalysis("cur", $("rec-go-cur"));
   if ($("nz-go-vib")) $("nz-go-vib").onclick = () => runAnalysis("vib", $("nz-go-vib"));
