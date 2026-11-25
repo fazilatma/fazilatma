@@ -90,7 +90,7 @@ export default function StoreAdSlider({
         <div className="absolute inset-y-0 left-0 hidden w-[32%] items-center justify-center p-2 md:flex md:p-3">
           <StoreBannerImage
             src={imageUrl}
-            alt="تصویر بنر ویژه فروشگاه"
+            alt="تصویر بنر پیشنهاد ویژه لپ‌تاپ در فروشگاه OptiBid"
             className="max-h-full max-w-full bg-transparent object-contain drop-shadow-xl"
           />
         </div>

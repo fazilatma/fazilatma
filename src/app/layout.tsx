@@ -106,6 +106,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="fa" dir="rtl">
       <head>
+        {/* فونت و تصویر شاخص زودتر شروع شوند تا LCP بهتر شود */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd(organizationJsonLd()) }}
