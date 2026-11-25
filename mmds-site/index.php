@@ -12,6 +12,10 @@ if ($m === 'auth') {
   require __DIR__ . '/auth.php';
   exit;
 }
+if ($m === 'update') {
+  require __DIR__ . '/update.php';
+  exit;
+}
 if ($m === 'manifest') {
   header('Content-Type: application/manifest+json; charset=utf-8');
   header('Cache-Control: public, max-age=86400');
@@ -26,7 +30,7 @@ if ($m === 'sw') {
   header('Service-Worker-Allowed: ./');
   echo <<<'MMDS_SW'
 // MMDS single-file SW — آفلاین کامل (همه‌چیز از همین index.php سرو می‌شود)
-const CACHE = "mmds-single-v5";
+const CACHE = "mmds-single-v6";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.add("./")).then(() => self.skipWaiting()));
 });
@@ -35,7 +39,8 @@ self.addEventListener("activate", e => {
 });
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  if (url.searchParams.get("mmds") === "auth" || url.pathname.endsWith("/auth.php")) {
+  if (url.searchParams.get("mmds") === "auth" || url.pathname.endsWith("/auth.php") ||
+      url.searchParams.get("mmds") === "update" || url.pathname.endsWith("/update.php")) {
     e.respondWith(fetch(e.request, { cache: "no-store" }));
     return;
   }
@@ -54,6 +59,13 @@ MMDS_SW;
 }
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-cache');
+
+if (file_exists(__DIR__ . '/update.php')) {
+  require_once __DIR__ . '/update.php';
+  if (function_exists('mmds_maybe_background_check')) {
+    mmds_maybe_background_check();
+  }
+}
 ?><!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -185,7 +197,8 @@ header('Cache-Control: no-cache');
     <svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="none" stroke="#f5a524" stroke-width="2.4"/><path d="M8 17h4l2-5 3 9 2-6 2 2h5" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     MMDS<b>.</b>
   </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn ghost" id="check-update-btn" type="button" style="padding:8px 12px;font-size:13px;border-color:#38bdf844" title="بروزرسانی سایت به آخرین نسخه گیت‌هاب">🔄 بروزرسانی سایت</button>
       <button class="btn ghost" id="account-open" type="button">ورود / ثبت‌نام</button>
       <a class="btn" href="#analyze">⚡ آنالیز رایگان موتور</a>
     </div>
@@ -1942,6 +1955,34 @@ if ("serviceWorker" in navigator) {
     catch(err){setStatus(err.message,true);}finally{btn.disabled=false;}
   });
   csrfToken().catch(()=>{});
+
+  const updateBtn = document.getElementById('check-update-btn');
+  if (updateBtn) {
+    updateBtn.addEventListener('click', async () => {
+      const orig = updateBtn.innerHTML;
+      updateBtn.disabled = true;
+      updateBtn.innerHTML = '<span class="spin"></span> در حال بررسی…';
+      try {
+        const r = await fetch('?mmds=update&force=1', { cache: 'no-store' });
+        const d = await r.json();
+        if (d.ok) {
+          if (d.updated) {
+            alert('✔ ' + d.message + '\nصفحه اکنون برای مشاهده آخرین نسخه تازه می‌شود.');
+            window.location.reload();
+          } else {
+            alert('ℹ️ ' + d.message);
+          }
+        } else {
+          alert('❌ خطا در بروزرسانی: ' + (d.message || 'پاسخ نامعتبر'));
+        }
+      } catch (e) {
+        alert('❌ خطا در ارتباط با سرور: ' + e.message);
+      } finally {
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = orig;
+      }
+    });
+  }
 })();
 </script>
 </body>
