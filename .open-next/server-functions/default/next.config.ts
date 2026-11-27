@@ -27,7 +27,34 @@ const nextConfig: NextConfig = {
         },
       ];
     }
+    // کش لبه برای صفحات عمومی: TTFB بسیار پایین می‌آید و LCP بهتر می‌شود.
+    // پنل ادمین و APIها هرگز کش نمی‌شوند.
+    const publicCache = "public, s-maxage=60, stale-while-revalidate=300";
     return [
+      {
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/admin/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/",
+        headers: [{ key: "Cache-Control", value: publicCache }],
+      },
+      {
+        source: "/shop",
+        headers: [{ key: "Cache-Control", value: publicCache }],
+      },
+      {
+        source: "/shop/guides/:path*",
+        headers: [{ key: "Cache-Control", value: publicCache }],
+      },
+      {
+        source: "/support",
+        headers: [{ key: "Cache-Control", value: publicCache }],
+      },
       {
         source: "/_next/static/:path*",
         headers: [
