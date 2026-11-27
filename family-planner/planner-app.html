@@ -474,7 +474,7 @@ function tryCount(t){
 /* ═══════════ پارس روز ═══════════ */
 const ZWNJ = "\u200c";
 function dayRe(name){
-  const parts = name.split(ZWNJ).map(p=>p.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  const parts = name.split(ZWNJ).map(p=>p.replace(/[.*+?^${}()|[\]\\]/g,"\\/*__CORE__*/"));
   return new RegExp("(?<!"+NB+")"+parts.join("[\\s"+ZWNJ+"]?")+"(?:\\s*"+ZWNJ+"?(ها(?:ی|i|ی)?))?(?!"+NB+")","g");
 }
 function findDays(t, today){
@@ -640,7 +640,7 @@ function freeMinutes(blocks, ws, we, win){
 }
 
 /* ================= خانواده: بچه‌ها و راننده ================= */
-function escRe(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function escRe(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\/*__CORE__*/"); }
 function effDriver(family, idx, dateK){
   if(!family) return null;
   const byDate = family.driverByDate && family.driverByDate[dateK];

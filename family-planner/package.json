@@ -1,0 +1,26 @@
+{
+  "name": "family-planner",
+  "version": "16.0.0",
+  "private": true,
+  "description": "برنامه‌ریز خانواده — برنامهٔ روز و هفته (تقویم شمسی، شیفت، راننده، کلاس‌ها) — ابزارها و تست‌ها با Node.js",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "pdf": "node scripts/planner.js",
+    "week": "node scripts/gen-week.cjs",
+    "patch": "node scripts/apply-patch.js",
+    "test": "node tests/test-core.cjs",
+    "test:ui": "node -r ./tests/fixed-date.cjs tests/test-ui.cjs && node -r ./tests/fixed-date.cjs tests/test-ui-mobile.cjs",
+    "verify": "node scripts/verify.js",
+    "test:all": "node scripts/verify.js",
+    "audit:patches": "node scripts/apply-patch.js status",
+    "serve": "node scripts/serve.js"
+  },
+  "dependencies": {
+    "arabic-persian-reshaper": "^1.0.1",
+    "pdfkit": "^0.15.1"
+  }
+}

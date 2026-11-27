@@ -1,7 +1,7 @@
 // تست دود رابط کاربری موبایل
 const fs = require("fs");
 const vm = require("vm");
-const html = fs.readFileSync(__dirname + "/planner-mobile.html", "utf-8");
+const html = fs.readFileSync(__dirname + "/../planner-mobile.html", "utf-8");
 
 const core = html.split("/*CORE-START*/")[1].split("/*CORE-END*/")[0];
 const scripts = html.match(/<script>[\s\S]*?<\/script>/g);

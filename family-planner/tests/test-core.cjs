@@ -1,8 +1,8 @@
 // تست منطق هستهٔ برنامه‌ریز (node)
 const fs = require("fs");
-const html = fs.readFileSync(__dirname + "/planner-app.html", "utf-8");
+const html = fs.readFileSync(__dirname + "/../planner-app.html", "utf-8");
 const core = html.split("/*CORE-START*/")[1].split("/*CORE-END*/")[0];
-const bundle = __dirname + "/.core-bundle.js";
+const bundle = __dirname + "/../.core-bundle.cjs";
 fs.writeFileSync(bundle, core + `
 ;module.exports = {faNum,enNum,DAY_NAMES,addDays,satOf,satIdx,dkey,sameDay,sameSat,nextWeekday,toJalali,jalaliStr,gregStr,fmtT,fmtRange,fmtDur,parseClock,tryTimeRange,tryTimePoint,tryDuration,tryCount,findDays,parseLine,planWeek,freeSlots,describeParsed,WINDOWS,parseDriverLine,effDriver,kidBlocksFor,mergeIV,shiftTypeFor,wifeWindowFor,parseShiftLine,SHIFT_FA,remOccurrences,remsForDay};
 `);

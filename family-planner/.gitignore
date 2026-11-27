@@ -1,0 +1,7 @@
+node_modules/
+.core-bundle.cjs
+.core-bundle.js
+.t.cjs
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,8 +1,11 @@
+#!/usr/bin/env node
 // تولید «برنامه-این-هفته.html» — اسنپ‌شات هفتهٔ جاریِ واقعی از هستهٔ اپ (v13)
 const fs = require("fs");
-const core = fs.readFileSync(__dirname + "/core.js", "utf-8");
-fs.writeFileSync(__dirname + "/.t.js", core + "\nmodule.exports={satOf,addDays,dkey,jalaliStr,gregStr,fmtT,planWeek,satIdx,DAY_NAMES};");
-const {satOf, addDays, dkey, jalaliStr, gregStr, fmtT, planWeek, satIdx, DAY_NAMES} = require(__dirname + "/.t.js");
+const { dirname, resolve } = require("path");
+const BASE = resolve(__dirname, "..");
+const core = fs.readFileSync(BASE + "/core.js", "utf-8");
+fs.writeFileSync(BASE + "/.t.cjs", core + "\nmodule.exports={satOf,addDays,dkey,jalaliStr,gregStr,fmtT,planWeek,satIdx,DAY_NAMES};");
+const {satOf, addDays, dkey, jalaliStr, gregStr, fmtT, planWeek, satIdx, DAY_NAMES} = require(BASE + "/.t.cjs");
 
 const WEEK_SAT = satOf(new Date()); // هفتهٔ همین امروز
 const WEEK_END = addDays(WEEK_SAT, 6);
@@ -112,8 +115,8 @@ for(const day of days){
 html += `<div style="font-size:11px;color:#64748b;text-align:center;margin:10px 0">🌙 هر شب نمای «فردا» را ببند و خروجی بگیر • تیک کارها و تغییرها در اپ: «برنامه‌ریز-خانواده.html»</div>
 </div></body></html>`;
 
-fs.writeFileSync(__dirname + "/برنامه-این-هفته.html", html, "utf-8");
-fs.unlinkSync(__dirname + "/.t.js");
+fs.writeFileSync(BASE + "/برنامه-این-هفته.html", html, "utf-8");
+fs.unlinkSync(BASE + "/.t.cjs");
 console.log("OK برنامه-این-هفته.html — هفتهٔ "+jalaliStr(WEEK_SAT,false)+" تا "+jalaliStr(WEEK_END,false));
 console.log("شیفت‌ها:", days.map(d=>DAY_NAMES[d.idx][0]+":"+d.shift).join(" "));
 console.log("شنبه:", days[0].blocks.map(b=>fmtT(b.start)+" "+b.title).join(" | "));

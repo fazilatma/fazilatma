@@ -1,7 +1,7 @@
 // تست دود رابط کاربری — اجرای کد UI با DOM شبیه‌سازی‌شده
 const fs = require("fs");
 const vm = require("vm");
-const html = fs.readFileSync(__dirname + "/planner-app.html", "utf-8");
+const html = fs.readFileSync(__dirname + "/../planner-app.html", "utf-8");
 
 // هسته
 const core = html.split("/*CORE-START*/")[1].split("/*CORE-END*/")[0];

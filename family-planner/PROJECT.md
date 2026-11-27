@@ -1,6 +1,7 @@
-# 🗂 بایگانی و راهنمای کار روی «برنامه‌ریز خانواده»
+# 🗂 راهنمای کار روی «برنامه‌ریز خانواده» (Node.js — v16)
 
-این پوشه، خانهٔ جدید پروژه در همین ریپو است. از این‌جا چت و فایل‌ها ادامه پیدا می‌کند.
+این پوشه خانهٔ پروژه است؛ همهٔ ابزارها با **Node.js** اجرا می‌شوند و نسخهٔ پایتونی قدیمی
+فقط برای مرجع در `legacy-python/` بایگانی شده است.
 
 ## 🎯 پروژه چیست؟
 اپ تک‌فایلی HTML (بدون اینترنت و بدون نصب) برای برنامه‌ریزی هفتهٔ خانواده — پارسا، مهرسا، خانمم و من — با:
@@ -11,18 +12,20 @@
 ## 🚀 اجرا و ساخت
 ```bash
 cd family-planner
-python3 build.py                 # planner-app.html + planner-mobile.html از core.js و قالب‌ها
-node test-core.js                                    # ۱۱۳ تست هسته
-node -r ./tests/fixed-date.js test-ui.js             # تست‌های رابط دسکتاپ (تاریخ ثابت)
-node -r ./tests/fixed-date.js test-ui-mobile.js      # تست‌های رابط موبایل (تاریخ ثابت)
-node gen_week.js                 # اسنپ‌شات «برنامه-این-هفته.html» برای هفتهٔ جاری
-python3 -m http.server 8123      # پیش‌نمایش: family-planner/index.html
+npm install
+npm run build                                    # planner-app.html + planner-mobile.html
+npm run pdf                                      # output/weekly-plan.html + .pdf
+npm run week                                     # اسنپ‌شات «برنامه-این-هفته.html»
+npm test                                         # ۱۱۳ تست هسته
+npm run test:ui                                  # رابط دسکتاپ + موبایل (تاریخ ثابت)
+npm run verify                                   # بررسی کل زنجیره در یک فرمان
+npm run serve                                    # پیش‌نمایش: http://localhost:8123
 ```
 
-## 🗓 وضعیت فعلی (v15 — ۳ آذر ۱۴۰۵)
+## 🗓 وضعیت فعلی (v15 — آذر ۱۴۰۵)
 - **جمله‌های آماده:** «فردا ساعت ۹ تا ۱۰:۳۰ جلسه دمو»، «پایتون پارسا ۱۵ تا ۱۶:۳۰»، «راننده فردا بردن مهرسا: من»، «هفته شبکارم»، «فردا ماشین خودم».
 - **شیفت:** چرخهٔ ۴روزه (روزکار ← شبکار ← استراحت ← استراحت) از لنگر ۲۸ شهریور؛ تردد خرمشهر ۲ ساعت هر طرف؛ overrides روزهای خاص مقدم بر چرخه.
-- **برنامهٔ کلاس‌ها:** جدول قطعی در `gen_week.js` (پارسا، مهرسا، خانمم) و seed داخل قالب‌ها.
+- **برنامهٔ کلاس‌ها:** جدول قطعی در `scripts/gen-week.cjs` (پارسا، مهرسا، خانمم) و seed داخل قالب‌ها.
 - **اعلان:** درون‌برنامه‌ای نیم‌ساعت قبل؛ اعلان در حالت بسته‌بودن اپ نیاز به PWA دارد.
 
 ## ⏳ کارهای باز
@@ -41,7 +44,15 @@ python3 -m http.server 8123      # پیش‌نمایش: family-planner/index.htm
 | 🧰 سورس کامل v15 | `1i56ObvvxeOeDavXRhl3mHUONCtQN_ifD` |
 
 ## 🧰 محتوای پوشه
-`core.js` (موتور: پارس فارسی، planWeek، راننده‌ها، شیفت) • `app-template.html` / `app-mobile-template.html` (قالب‌ها + seed کلاس‌ها) •
-`build.py` (مونتاژ با فونت و آیکون inline) • `planner-app.html` / `planner-mobile.html` (خروجی‌ها) •
-`test-*.js` (تست‌ها) • `gen_week.js` (اسنپ‌شات هفته) • `patch_v12…v15.py` (تاریخچهٔ نسخه‌ها) •
-`planner.py` / `tasks.json` (ابزار اولیهٔ خروجی PDF) • `fonts/` (Vazirmatn).
+| مسیر | کار |
+|---|---|
+| `src/core.js` | موتور: پارس فارسی، planWeek، راننده‌ها، شیفت (مشترک با مرورگر) |
+| `src/html.js` / `src/pdf.js` / `src/rtl-pdf.js` | ساخت HTML و PDF (راست‌به‌چپ) |
+| `src/cli.js` | ورودی خط فرمان با همان پرچم‌های نسخهٔ پایتون |
+| `src/patch-engine.js` + `src/patches/` | موتور پچ + تاریخچهٔ نسخه‌ها (v12…v15) |
+| `app-template.html` / `app-mobile-template.html` | قالب‌ها + seed کلاس‌ها |
+| `scripts/build.js` | مونتاژ با فونت و آیکون inline |
+| `planner-app.html` / `planner-mobile.html` | خروجی‌های آمادهٔ استفاده |
+| `tests/` | تست‌های هسته و رابط (`*.cjs`) + فیکسچر پایتون |
+| `legacy-python/` | بایگانی نسخهٔ پایتونی (فقط مرجع، اجرا نمی‌شود) |
+| `tasks.json`, `output/`, `fonts/` | دادهٔ نمونه، خروجی‌ها، فونت وزیرمتن |
