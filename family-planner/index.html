@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>برنامه‌ریز خانواده — شروع</title>
+<style>
+  :root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#4f46e5}
+  *{box-sizing:border-box}
+  body{margin:0;background:#f1f5f9;color:var(--ink);font-family:Vazirmatn,Tahoma,'Segoe UI',sans-serif;line-height:1.9}
+  .wrap{max-width:680px;margin:0 auto;padding:18px 14px}
+  header{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:16px;padding:18px 20px}
+  header b{font-size:18px}
+  header div{font-size:12px;opacity:.85;margin-top:4px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+  a.tile{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0;text-decoration:none;color:inherit}
+  a.tile:hover{border-color:var(--brand);box-shadow:0 2px 10px rgba(79,70,229,.12)}
+  a.tile b{font-size:15px;display:block}
+  a.tile span{font-size:12px;color:var(--muted)}
+  .ico{font-size:26px;min-width:34px;text-align:center}
+  ul{font-size:13px;margin:6px 0 0;padding-inline-start:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <b>📅 برنامه‌ریز خانواده — ادامهٔ پروژه</b>
+    <div>نسخهٔ v15 • هفته از شنبه • تقویم شمسی/میلادی • همهٔ داده‌ها در localStorage مرورگرِ خودت</div>
+  </header>
+
+  <a class="tile" href="planner-mobile.html">
+    <div class="ico">📱</div>
+    <div><b>اپ موبایل (قابل نصب)</b><span>planner-mobile.html — نسخهٔ اصلی، تمام‌صفحه روی گوشی</span></div>
+  </a>
+  <a class="tile" href="planner-app.html">
+    <div class="ico">💻</div>
+    <div><b>اپ دسکتاپ + چاپ A4</b><span>planner-app.html — همان امکانات با صفحهٔ بزرگ</span></div>
+  </a>
+  <a class="tile" href="/%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87-%D8%A7%DB%8C%D9%86-%D9%87%D9%81%D8%AA%D9%87.html">
+    <div class="ico">📄</div>
+    <div><b>اسنپ‌شات این هفته</b><span>برنامه-این-هفته.html — خروجی چاپی هفتهٔ جاری از هسته</span></div>
+  </a>
+
+  <div class="card">
+    <b style="font-size:15px">🧰 نکته‌ها</b>
+    <ul>
+      <li>این پیش‌نمایش داخل مرورگرِ سندباکس است؛ داده‌های گوشی/مرورگر خودت به اینجا منتقل نمی‌شود. برای انتقال از «خروجی JSON» در تنظیمات اپ استفاده کن.</li>
+      <li>بعد از هر تغییر در سورس: <code>python3 build.py</code> و بعد تست‌ها.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

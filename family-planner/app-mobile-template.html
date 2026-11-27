@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>برنامه‌ریز من</title>
+<meta name="theme-color" content="#4f46e5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="برنامه‌ریز">
+<link rel="manifest" href="__MANIFEST__">
+<link rel="icon" href="__ICON__">
+<style>
+@font-face{font-family:'Vazirmatn';font-weight:400;src:url(data:font/woff2;base64,__FONT_R__) format('woff2');}
+@font-face{font-family:'Vazirmatn';font-weight:500;src:url(data:font/woff2;base64,__FONT_M__) format('woff2');}
+@font-face{font-family:'Vazirmatn';font-weight:700;src:url(data:font/woff2;base64,__FONT_B__) format('woff2');}
+:root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#eef2f7;--card:#fff;--accent:#4f46e5;
+--fixed:#b45309;--p1:#e11d48;--p2:#d97706;--p3:#059669;--kid:#0d9488;--duty:#c2410c;
+--nav-h:62px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:'Vazirmatn',Tahoma,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);
+padding:10px 10px calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 18px);
+-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:14px}
+.wrap{max-width:560px;margin:0 auto}
+.cardbox{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+header.top{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+h1{font-size:16.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+h1 .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:inline-flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.range{color:var(--muted);font-size:11.5px;line-height:1.7;text-align:left}
+.range b{color:var(--ink);font-size:12px}
+.chiprow{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+.chip{background:#eef2ff;color:#4338ca;border:1px solid #e0e7ff;border-radius:999px;padding:3px 11px;font-size:11px;font-weight:700;white-space:nowrap}
+.iconbtn{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;color:#334155;display:inline-flex;align-items:center;gap:5px;min-height:38px}
+.iconbtn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* ── ورودی ── */
+.chat{padding:12px 13px;margin-bottom:10px}
+.chat label{font-size:12.5px;font-weight:700;display:block;margin-bottom:7px;line-height:1.8}
+.inrow{display:flex;gap:7px}
+.inrow textarea{flex:1;resize:none;min-height:56px;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;
+font:inherit;font-size:14px;line-height:1.8;background:#f8fafc;outline:none}
+.inrow textarea:focus{border-color:#a5b4fc;background:#fff}
+.sendbtn{flex:none;width:52px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:20px;cursor:pointer}
+.sendbtn:active{filter:brightness(.9)}
+.exrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
+.exrow .lbl{font-size:10.5px;color:#94a3b8}
+.ex{background:#f8fafc;border:1px dashed #cbd5e1;color:#475569;border-radius:999px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;min-height:30px}
+.fb{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.fb .item{display:flex;align-items:center;gap:7px;font-size:12px;border-radius:10px;padding:7px 10px;line-height:1.8}
+.fb .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+.fb .drv{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412}
+.fb .warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.fb .undo{margin-inline-start:auto;border:1px solid var(--line);background:#fff;border-radius:8px;
+font-family:inherit;font-size:10.5px;cursor:pointer;padding:4px 9px;color:#64748b;flex:none}
+/* ── ناوبری روز/هفته ── */
+.datenav{display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+.datenav .cur{font-size:13px;font-weight:800;min-width:150px;text-align:center}
+.datenav .cur small{display:block;color:var(--muted);font-weight:500;font-size:10px}
+.navbtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 13px;font:inherit;font-size:12px;font-weight:700;color:#475569;cursor:pointer;min-height:38px}
+/* ── کارت روز ── */
+.daycard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 3px 10px rgba(15,23,42,.04)}
+.daycard.today{border-color:#818cf8;box-shadow:0 6px 18px rgba(79,70,229,.13)}
+.daycard.inactive{opacity:.55}
+.daycard.clickable{cursor:pointer}
+.dc-h{padding:10px 14px 8px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.dc-h .dn{font-size:15px;font-weight:800}
+.dc-h .today-badge{background:#4f46e5;color:#fff;border-radius:999px;font-size:9.5px;padding:2px 8px;margin-inline-start:4px;vertical-align:2px}
+.dc-h .jd{font-size:11px;color:var(--muted)}
+.dc-sub{padding:4px 14px 0;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between}
+.drvrow{display:flex;align-items:center;gap:6px;padding:6px 14px 0;font-size:12px;font-weight:800;color:#9a3412}
+.drvrow select{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:8px;padding:5px 8px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:34px}
+.drvquick{display:flex;gap:6px;flex-wrap:wrap;padding:2px 14px 12px}
+.drvquick button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:700;color:#64748b;cursor:pointer;min-height:36px}
+.drvquick button.on{border-color:#ea580c;background:#fff7ed;color:#9a3412}
+.kidsec{margin:8px 10px 0;border:1px dashed #99f6e4;background:#f0fdfa;border-radius:10px;padding:7px 10px}
+.kidsec .kt{font-size:10px;font-weight:800;color:#0f766e;margin-bottom:3px}
+.kidsec .kr{display:flex;gap:6px;font-size:11.5px;color:#115e59;line-height:1.9;flex-wrap:wrap}
+.kidsec .kr b{font-weight:800}
+.rows{padding:6px 8px 3px;flex:1}
+.row{display:grid;grid-template-columns:78px 1fr;gap:7px;padding:8px 5px;border-radius:10px;align-items:start}
+.row+.row,.gaprow+.row,.row+.gaprow{border-top:1px dashed var(--line)}
+.row .tm{font-weight:800;font-size:13px;line-height:1.5;position:relative;padding-inline-start:9px}
+.row .tm::before{content:'';position:absolute;inset-inline-start:0;top:5px;width:4px;height:22px;border-radius:3px;background:var(--bc,#334155)}
+.row .tm .till{display:block;font-size:10px;color:var(--muted);font-weight:500}
+.row .ti{font-weight:700;font-size:13.5px;line-height:1.6}
+.row .mt{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;align-items:center}
+.row.fixed .tm,.row.fixed .ti{color:var(--fixed)}
+.row.duty .tm,.row.duty .ti{color:var(--duty)}
+.row.duty{background:#fffaf5}
+.row.work .tm,.row.work .ti{color:#475569}
+.row.work{background:#f8fafc}
+.tag.work{background:#e2e8f0;color:#334155;border-color:#cbd5e1}
+.rembn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:8px 12px;font-size:12.5px;font-weight:700;margin-bottom:10px}
+.calhead{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;font-weight:800;color:#94a3b8;margin-top:8px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calcell{border:1px solid var(--line);border-radius:8px;min-height:44px;padding:3px 4px;cursor:pointer;font-size:12px}
+.calcell.out{opacity:.35}
+.calcell.sel{background:#eef2ff;border-color:#6366f1}
+.calcell .dn{font-weight:800}
+.calcell .ms{font-size:10.5px}
+.rb{color:#d97706}
+.kb{color:#0ea5e9;font-size:10px}
+.remitem{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:4px 0;font-size:12.5px}
+.brief div{margin:2px 0}
+.dayreq textarea{width:100%;min-height:62px;border:1px solid var(--line);border-radius:10px;padding:8px;font:inherit;font-size:13px;margin-top:6px;box-sizing:border-box;resize:vertical}
+.gaprow{display:flex;gap:7px;padding:7px 5px;font-size:10.5px;color:#94a3b8;align-items:baseline}
+.gaprow .tm{font-weight:700;white-space:nowrap}
+.empty{color:#94a3b8;font-size:12.5px;text-align:center;padding:20px 0}
+.dc-f{border-top:1px solid var(--line);padding:8px 14px 10px;font-size:11px;color:var(--muted)}
+.dc-f .meter{height:5px;background:#eef2f7;border-radius:99px;margin-top:6px;overflow:hidden}
+.dc-f .meter i{display:block;height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:99px}
+/* ── نماها ── */
+.view{display:none}
+.view.on{display:block}
+.panel h3{font-size:13.5px;font-weight:800;margin-bottom:10px}
+.pbox{padding:14px}
+.panel h4{font-size:12px;font-weight:800;margin:14px 0 8px;color:#334155}
+.panel h4:first-of-type{margin-top:2px}
+.set{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:10px}
+.set input[type=time],.set input[type=number]{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-weight:700;color:var(--ink);background:#f8fafc;min-height:40px}
+.set input[type=number]{width:84px}
+.setrow{display:flex;gap:10px;flex-wrap:wrap}
+.dayset{display:flex;gap:5px;flex-wrap:wrap}
+.dayset label{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font-size:11.5px;cursor:pointer;color:#475569;user-select:none;min-height:34px;display:inline-flex;align-items:center}
+.dayset input{display:none}
+.dayset label:has(input:checked){background:var(--accent);border-color:var(--accent);color:#fff}
+.drvchips{display:flex;flex-wrap:wrap;gap:6px}
+.drvchip{display:inline-flex;align-items:center;gap:6px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;
+border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:700;min-height:36px}
+.drvchip.me{background:#eef2ff;border-color:#c7d2fe;color:#3730a3}
+.drvchip button{border:none;background:none;cursor:pointer;color:inherit;font-size:15px;padding:0 2px}
+.addrow{display:flex;gap:6px;margin-top:8px}
+.addrow input{flex:1;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font:inherit;font-size:13px;background:#f8fafc;min-height:40px}
+.wkdrv{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.wkdrv label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);font-weight:700}
+.wkdrv select{border:1px solid var(--line);border-radius:8px;padding:6px 3px;font:inherit;font-size:11.5px;background:#fff;width:100%;min-height:36px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#334155;font-weight:600;margin-top:12px;cursor:pointer;line-height:1.8}
+.chk input{width:18px;height:18px}
+.set2{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--muted);font-weight:600}
+.set2 input{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:inherit;width:64px;min-height:36px}
+.kidcard{border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:10px;background:#fafafa}
+.khead{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.khead input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-weight:800;font-size:13.5px;flex:1;background:#fff;min-height:38px}
+.kdot{width:12px;height:12px;border-radius:4px;flex:none}
+.kdel{border:none;background:#fef2f2;color:#dc2626;border-radius:8px;width:32px;height:32px;cursor:pointer;font-weight:800;font-size:15px;flex:none}
+.clsrow{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:7px 0;border-top:1px dashed var(--line)}
+.clsrow input[type=text]{border:1px solid var(--line);border-radius:8px;padding:8px 9px;font:inherit;font-size:12.5px;background:#fff;min-height:38px;grid-column:1/2}
+.timerow{display:flex;gap:6px;align-items:center;grid-column:1/-1}
+.timerow input[type=time]{border:1px solid var(--line);border-radius:8px;padding:7px 6px;font:inherit;font-size:13px;background:#fff;width:100px;min-height:38px}
+.timerow .del{border:none;background:#fef2f2;color:#dc2626;border-radius:7px;width:32px;height:32px;cursor:pointer;font-weight:800;margin-inline-start:auto}
+.xs{border:none;background:#f1f5f9;border-radius:9px;padding:9px 14px;font:inherit;font-size:12px;font-weight:700;color:#475569;cursor:pointer;min-height:38px}
+.xs:hover{background:#e2e8f0;color:var(--accent)}
+.tasklist{display:flex;flex-direction:column;gap:6px}
+.trow{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px;flex-wrap:wrap}
+.trow .tt{font-weight:700}
+.trow .meta{color:var(--muted);font-size:10.5px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;width:100%}
+.trow .del{margin-inline-start:auto;border:none;background:#fef2f2;color:#dc2626;border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:800;flex:none}
+.tag{font-size:10px;font-weight:700;border-radius:6px;padding:2px 7px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
+.tag.pr1{background:#ffe4e6;color:#be123c;border-color:#fecdd3}
+.tag.pr2{background:#fef3c7;color:#b45309;border-color:#fde68a}
+.tag.pr3{background:#d1fae5;color:#047857;border-color:#a7f3d0}
+.tag.fix{background:#fef3c7;color:#92400e}
+.tag.duty{background:#ffedd5;color:#c2410c;border-color:#fed7aa}
+.warnbox{margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
+.warnbox h3{font-size:12px;color:#b45309;margin-bottom:5px}
+.warnbox li{font-size:11.5px;color:#7c2d12;line-height:2;margin-inline-start:16px}
+.summary{margin-top:10px;padding:12px 15px}
+.summary h2{font-size:13.5px;font-weight:800;margin-bottom:8px}
+.leg{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--muted)}
+.leg span{display:inline-flex;align-items:center;gap:5px}
+.leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.storage-note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:11.5px;border-radius:12px;padding:9px 13px;margin-bottom:10px;line-height:1.9}
+.emptybox{color:#94a3b8;font-size:12.5px;text-align:center;padding:18px 0}
+/* ── نوار پایین ── */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;border-top:1px solid var(--line);
+display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+.bnav button{flex:1;max-width:110px;border:none;background:none;font:inherit;font-size:10.5px;font-weight:700;color:#94a3b8;
+cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;border-radius:10px}
+.bnav button .ic{font-size:19px;line-height:1}
+.bnav button.on{color:var(--accent);background:#eef2ff}
+/* ── چاپ ── */
+@media print{
+ @page{size:A4;margin:9mm}
+ body{background:#fff;padding:0;font-size:12px}
+ .chat,.bnav,.datenav,.chiprow,.storage-note,.exrow,.fb,.drvquick{display:none!important}
+ .cardbox,.daycard{box-shadow:none;border:1px solid #cbd5e1;border-radius:9px}
+ header.top{padding:8px 12px;margin-bottom:8px}
+ .daycard{break-inside:avoid;page-break-inside:avoid;margin-bottom:7px}
+ .summary{margin-top:8px;padding:9px 13px}
+ .drvs{display:none!important}
+ .drvprint{display:inline}
+}
+/* ── اعلان‌ها ── */
+.notifbar{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:12px;padding:8px 14px;font-size:12.5px;font-weight:700;margin-bottom:10px;line-height:1.9}
+.toastwrap{position:fixed;inset-inline:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:8px;align-items:center;z-index:999;pointer-events:none}
+.toast{background:#0f172a;color:#fff;border-radius:14px;padding:10px 18px;font-size:13px;font-weight:700;box-shadow:0 10px 26px rgba(15,23,42,.35);max-width:340px;pointer-events:auto;text-align:center;line-height:1.9}
+/* ── تیک و خانهٔ یِکا ── */
+.ckb{display:inline-block;width:22px;height:22px;border:2px solid #94a3b8;border-radius:50%;cursor:pointer;flex:none}
+.ckb.on{background:#22c55e;border-color:#22c55e;position:relative}
+.ckb.on::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800}
+.ti .ckb{margin-top:0;vertical-align:-5px;margin-inline-end:6px}
+.row.doneRow{opacity:.8}
+.row.doneRow .ti{opacity:.65}
+.row.doneRow .ti span:last-child{text-decoration:line-through}
+.ckrow{display:flex;gap:9px;align-items:flex-start;background:#fafafa;border-radius:10px;padding:7px 10px;margin:4px 0}
+.calcell .gn{font-size:9px;color:#94a3b8;line-height:1.1}
+.calcell.todayc{background:#eef2ff;border-color:#6366f1}
+/* ── هدر یِکا و یادآور هر کار ── */
+.yh1{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.yh1 .yh-big{font-size:32px;font-weight:800;color:var(--accent);min-width:70px;text-align:center}
+.yh-side{font-size:11px;color:var(--muted);flex:1;text-align:center;line-height:1.5}
+.yh2{display:flex;justify-content:space-between;gap:6px;margin-top:2px}
+.yh2 .yh-c{color:var(--accent);font-weight:800;font-size:13.5px;flex:1;text-align:center}
+.calcell.todayc .dn{display:inline-block;min-width:22px;border:2px solid var(--accent);border-radius:50%;line-height:19px;color:var(--accent)}
+.bell{cursor:pointer;opacity:.32;margin-inline-end:3px;font-size:13px}
+.bell.on{opacity:1}
+.tag.tagoff{opacity:.55}
+/* ── افزودن/حذف روز (v15) ── */
+.xdel{cursor:pointer;border:none;background:#fff;border:1px solid var(--line,#e2e8f0);color:#b91c1c;border-radius:8px;font-size:11px;padding:2px 8px;flex:none;margin-inline-start:6px;font-family:inherit}
+.xdel:hover{background:#fef2f2}
+.addrow{display:flex;gap:6px;margin-top:8px}
+.addrow input{flex:1;min-width:0;border:1px dashed #94a3b8;border-radius:10px;padding:7px 10px;font-family:inherit;font-size:12.5px;background:#f8fafc;box-sizing:border-box}
+.addrow button{border:none;background:#eef2ff;color:#4338ca;border-radius:10px;padding:0 14px;font-weight:800;cursor:pointer;font-size:12.5px;font-family:inherit;white-space:nowrap}
+.homecard{background:#fff;border:1px solid var(--line,#e2e8f0);border-radius:14px;padding:14px;margin:10px 0}
+:root{--accent:#4f46e5;--muted:#64748b;--line:#e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top cardbox">
+  <h1><span class="logo"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1zm14 8H3v10h18V10zM7 12h4v4H7v-4z"/></svg></span>برنامه‌ریز من</h1>
+  <div class="range" id="rangeBox"></div>
+</header>
+
+<div class="chiprow" id="statChips"></div>
+
+<div class="storage-note" id="storageNote" style="display:none">
+⚠️ در پیش‌نمایش، ذخیره‌سازی قفل است. فایل را روی گوشی باز کن (یا دانلود کن) تا داده‌ها ذخیره شوند.
+</div>
+
+<div class="view on" id="v-week">
+  <div class="datenav" id="navWeek"></div>
+  <main id="mainWeek"></main>
+</div>
+
+<div class="view" id="v-day">
+  <div class="datenav" id="navDay"></div>
+  <main id="mainDay"></main>
+</div>
+
+<div class="view" id="v-cal"><main id="mainCal"></main></div>
+<div class="view panel" id="v-fam">
+  <div class="cardbox pbox">
+    <h3>🚗 راننده‌ها</h3>
+    <div class="drvchips" id="drvChips"></div>
+    <div class="addrow"><input id="newDrv" placeholder="اسم جدید…"><button class="xs" onclick="addDriver()">+ افزودن</button></div>
+    <h4>📅 پیش‌فرض هر روز هفته</h4>
+    <div class="wkdrv" id="wkDrv"></div>
+    <label class="chk"><input type="checkbox" id="blockSelf" onchange="setBlockSelf(this.checked)"> وقتی «من» راننده‌ام، زمان رساندن در برنامهٔ خودم بلاک شود</label>
+    <div class="set2">پیش‌فرض مسیر (کلاس‌های بدون مسیر جدا): قبل از شروع: <input type="number" id="pickupMin" min="0" max="120" onchange="setDutyMins()"> دقیقه — بعد از پایان: <input type="number" id="dropoffMin" min="0" max="120" onchange="setDutyMins()"> دقیقه</div>
+    <h4>🎓 بچه‌ها و کلاس‌های ثابت</h4>
+    <div id="kidsBox"></div>
+    <button class="xs" onclick="addKid()">+ افزودن بچه</button>
+    <h4>🕗 شیفت کاری من (خرمشهر — تردد ۲ ساعته)</h4>
+    <div class="set2">🚌 تردد هر طرف <input type="number" id="cmMin" min="0" max="240" onchange="setShiftField('commuteMin',this.value)"> دقیقه</div>
+    <div class="set2">☀️ روزکار <input type="time" id="dsS" onchange="setShiftTime('dayStart',this.value)"> تا <input type="time" id="dsE" onchange="setShiftTime('dayEnd',this.value)"></div>
+    <div class="set2">🌙 شبکار <input type="time" id="nsS" onchange="setShiftTime('nightStart',this.value)"> تا <input type="time" id="nsE" onchange="setShiftTime('nightEnd',this.value)"> (بامداد)</div>
+    <div class="set2">امروز:
+      <button class="xs" onclick="setShiftToday('day')">روزکارم</button>
+      <button class="xs" onclick="setShiftToday('night')">شبکارم</button>
+      <button class="xs" onclick="setShiftToday('rest')">استراحتم</button>
+    </div>
+    <div class="panelnote">چرخه: روزکار، شبکار، استراحت، استراحت — خودکار پر می‌شود. تغییر یک روز: دکمه‌های شیفت در نمای روز یا نوشتن «فردا استراحتم». اضافه‌کار = شبِ کامل دیگر.</div>
+    <h4>👩 ساعت کاری خانمم (بیرون از خانه)</h4>
+    <div class="set2">از <input type="text" id="wFrom" placeholder="15/03" style="width:56px" onchange="setWifeDM('fromDM',this.value)"> تا <input type="text" id="wTo" placeholder="15/06" style="width:56px" onchange="setWifeDM('toDM',this.value)"></div>
+    <div class="set2"><input type="time" id="wInS" onchange="setWifeWin('inWin',0,this.value)"> تا <input type="time" id="wInE" onchange="setWifeWin('inWin',1,this.value)"></div>
+    <div class="set2">بقیهٔ سال (ساعت دوم = رسیدن به خانه): <input type="time" id="wOutS" onchange="setWifeWin('outWin',0,this.value)"> تا <input type="time" id="wOutE" onchange="setWifeWin('outWin',1,this.value)"></div>
+    <div class="panelnote">اگر خانمم راننده باشد و کلاسی در این ساعت‌ها باشد، هشدار می‌گیری.</div>
+    <h4>⚙️ ساعات کاری من</h4>
+    <div class="setrow">
+      <div class="set">از<input type="time" id="dayStart"></div>
+      <div class="set">تا<input type="time" id="dayEnd"></div>
+    </div>
+    <div class="set">روزهای فعال<div class="dayset" id="daySet"></div></div>
+  </div>
+</div>
+
+<div class="view panel" id="v-tasks">
+  <div class="cardbox pbox">
+    <h3>🗒 همهٔ کارها</h3>
+    <div class="tasklist" id="taskList"></div>
+    <div style="display:flex;gap:7px;margin-top:12px;flex-wrap:wrap">
+      <button class="xs" onclick="exportJSON()">⬇️ JSON</button>
+      <label class="xs" style="cursor:pointer;display:inline-flex;align-items:center">⬆️ بارگذاری<input type="file" id="importFile" accept=".json,application/json" style="display:none"></label>
+      <button class="xs" onclick="clearAll()" style="color:var(--p1);background:#fef2f2">🗑 پاک کردن</button>
+    </div>
+  </div>
+</div>
+
+<section class="summary cardbox" id="summaryBox"></section>
+
+<div class="chat cardbox">
+  <label for="chatIn">کارت یا رانندهٔ فردا رو بنویس:</label>
+  <div class="inrow">
+    <textarea id="chatIn" rows="2" placeholder="فردا ساعت ۱۰ کلاس ریاضی&#10;راننده فردا: اسنپ"></textarea>
+    <button class="sendbtn" id="addBtn" title="افزودن">＋</button>
+  </div>
+  <div class="exrow" id="exRow"><span class="lbl">نمونه:</span></div>
+  <div class="fb" id="fb"></div>
+</div>
+
+<nav class="bnav">
+  <button class="on" id="b-week" onclick="setMode('week')"><span class="ic">📅</span>هفته</button>
+  <button id="b-day" onclick="setMode('day')"><span class="ic">☀️</span>روز</button>
+  <button id="b-cal" onclick="setMode('cal')"><span class="ic">🗓</span>تقویم</button>
+  <button id="b-fam" onclick="setMode('fam')"><span class="ic">👨‍👩‍👧</span>خانواده</button>
+  <button id="b-tasks" onclick="setMode('tasks')"><span class="ic">🗒</span>کارها</button>
+  <button onclick="window.print()"><span class="ic">🖨</span>چاپ</button>
+</nav>
+
+<div class="toastwrap" id="toastwrap"></div>
+</div>
+
+<script>
+/*CORE-START*/
+/*__CORE__*/
+/*CORE-END*/
+</script>
+<script>
+/* ═══════════ رابط کاربری موبایل ═══════════ */
+const store = {
+  _m:{},
+  ok:(()=>{try{localStorage.setItem("__t","1");localStorage.removeItem("__t");return true}catch(e){return false}})(),
+  get(k){ if(this.ok){try{return localStorage.getItem(k)}catch(e){}} return (k in this._m)?this._m[k]:null; },
+  set(k,v){ if(this.ok){try{localStorage.setItem(k,v);return}catch(e){}} this._m[k]=v; }
+};
+const DEFAULT_SETTINGS = {dayStart:480, dayEnd:1380, active:[0,1,2,3,4,5,6]};
+const KID_COLORS = ["#0d9488","#7c3aed","#db2777","#2563eb","#ca8a04","#dc2626"];
+let settings = {...DEFAULT_SETTINGS};
+let tasks = [];
+let family = null;
+let shiftCfg = null;
+const DEFAULT_SHIFT = {anchor:"2026-09-19", anchorType:"day", commuteMin:120,
+  dayStart:420, dayEnd:1140, nightStart:1140, nightEnd:420,
+  overrides:{"2026-09-11":"night","2026-09-12":"night","2026-09-13":"rest","2026-09-14":"rest","2026-09-15":"day","2026-09-16":"night","2026-09-17":"rest","2026-09-18":"rest"}, carDays:{},
+  wife:{fromDM:"15/03", toDM:"15/06", inWin:[480,810], outWin:[480,810]}};
+let REMS = [];
+let closedPlans = [];
+let mode = "cal";
+let weekOffset = 0;
+let dayDate = addDays(new Date(), 1);
+
+const DEFAULT_FAMILY = {selfName:"من", wifeName:"خانمم", drivers:["من","خانمم","خانم انصاری","اسنپ"],
+  kids:[], driverWeekly:[null,null,null,null,null,null,null],
+    driverByKidDate:{}, driverByDate:{},
+  pickupMin:15, dropoffMin:15, blockSelf:true};
+
+function saveState(){
+  store.set("wp2_settings", JSON.stringify(settings));
+  if(shiftCfg) store.set("wp2_shift", JSON.stringify(shiftCfg));
+  store.set("wp2_rems", JSON.stringify(REMS));
+  store.set("wp2_closed", JSON.stringify(closedPlans));
+  store.set("wp2_daynotes", JSON.stringify(dayNotes));
+  store.set("wp2_family", JSON.stringify(family));
+  const plain = tasks.map(t=>({...t, dates: t.dates ? t.dates.map(dkey) : null}));
+  store.set("wp2_tasks", JSON.stringify(plain));
+}
+function loadState(){
+  try{
+    const s = store.get("wp2_settings"); if(s) settings = {...DEFAULT_SETTINGS, ...JSON.parse(s)};
+    const f = store.get("wp2_family"); if(f) family = {...DEFAULT_FAMILY, ...JSON.parse(f)};
+    const sh = store.get("wp2_shift"); if(sh) shiftCfg = {...DEFAULT_SHIFT, ...JSON.parse(sh)};
+    if(store.get("wp2_shiftVer")!=="7"){ shiftCfg.wife={...DEFAULT_SHIFT.wife}; store.set("wp2_shiftVer","7"); }
+    const rj = store.get("wp2_rems"); if(rj) REMS = JSON.parse(rj);
+    const cj = store.get("wp2_closed"); if(cj) closedPlans = JSON.parse(cj);
+    const dn = store.get("wp2_daynotes"); if(dn) dayNotes = JSON.parse(dn);
+    const t = store.get("wp2_tasks");
+    if(t) tasks = JSON.parse(t).map(p=>({...p, dates: p.dates ? p.dates.map(k=>{const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d,12);}) : null}));
+  }catch(e){}
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function TODAY(){ const t=new Date(); t.setHours(12,0,0,0); return t; }
+function DK(k){ const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d,12); }
+function kidColor(name){ const i=Math.max(0,(family.kids||[]).findIndex(k=>k.name===name)); return KID_COLORS[i%KID_COLORS.length]; }
+function toENtime(s){ return String(s).replace(/[۰-۹]/g,d=>FA_DIG.indexOf(d)); }
+function parseHHMM(s){ const m=/^(\d{1,2}):(\d{2})$/.exec(s||""); if(!m) return null; const v=(+m[1])*60+(+m[2]); return (v>=0&&v<=1440)?v:null; }
+
+/* ── افزودن ── */
+function addFromInput(){
+  const el = document.getElementById("chatIn");
+  const lines = el.value.split(/\n|؛/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length) return;
+  const today = TODAY();
+  const fb = document.getElementById("fb");
+  fb.innerHTML = "";
+  for(const line of lines){
+    const sl = parseShiftLine(line, today);
+    if(sl && shiftCfg && (sl.allWeek || sl.dates.length)){
+      const dayList = sl.allWeek ? Array.from({length:7},(_,i)=>addDays(today,i)) : sl.dates;
+      dayList.forEach(d=>{ shiftCfg.overrides[dkey(d)] = sl.type; });
+      const scope = sl.allWeek ? "کل این هفته" : dayList.map(d=>jalaliStr(d,false)).join(" و ");
+      fb.innerHTML += `<div class="item drv">🕗 ${esc(scope)}: <b>${SHIFT_FA[sl.type]}</b> ثبت شد
+        <button class="undo" onclick="unsetShifts('${dayList.map(dkey).join(",")}',this)">↺ چرخه</button></div>`;
+      saveState(); render(); continue;
+    }
+    if(new RegExp("ماشین[\\s"+ZWNJ+"]*(خودم|شخصی)").test(line) && shiftCfg){
+      const fd = findDays(line, today);
+      const list = (fd.dates && fd.dates.length)? fd.dates : [addDays(today,1)];
+      if(!shiftCfg.carDays) shiftCfg.carDays={};
+      list.forEach(d=>{ shiftCfg.carDays[dkey(d)] = true; });
+      fb.innerHTML += `<div class="item drv">🚙 ${esc(list.map(d=>jalaliStr(d,false)).join(" و "))}: ماشین خودم — برگشت ۳۰ دقیقه زودتر ثبت شد</div>`;
+      saveState(); render(); continue;
+    }
+    if(/راننده/.test(line) && family){
+      const dl = parseDriverLine(line, today, family);
+      if(dl && dl.driver && (dl.allWeek || dl.dates.length)){
+        const dayList = dl.allWeek ? Array.from({length:7},(_,i)=>addDays(today,i)) : dl.dates;
+        dayList.forEach(d=>{ family.driverByDate[dkey(d)] = dl.driver; });
+        const scope = dl.allWeek ? "کل این هفته" : dayList.map(d=>jalaliStr(d,false)).join(" و ");
+        fb.innerHTML += `<div class="item drv">🚗 رانندهٔ <b>${esc(scope)}</b>: <b>${esc(dl.driver)}</b>
+          <button class="undo" onclick="unsetDrivers('${dayList.map(dkey).join(",")}',this)">لغو</button></div>`;
+        saveState(); render(); continue;
+      }
+      if(dl && !dl.driver && (dl.dates.length || dl.allWeek)){
+        fb.innerHTML += `<div class="item warn">⚠️ اسم راننده پیدا نشد — از تب «خانواده» اضافه‌اش کن.</div>`;
+        continue;
+      }
+    }
+    const r = parseLine(line, today);
+    const t = {
+      id: uid(), title: r.title,
+      dates: r.dates, weekdays: r.weekdays, everyDay: r.everyDay,
+      weekOnly: r.weekOnly, perWeek: r.perWeek,
+      fixStart: r.fixStart, fixEnd: r.fixEnd,
+      dur: r.dur || 60, window: r.window, priority: r.priority, notes: "",
+      createdAt: Date.now()+Math.random()
+    };
+    tasks.push(t);
+    const cls = r.problems.length ? "warn" : "ok";
+    const probs = r.problems.map(p=>" — ⚠️ "+p).join("");
+    fb.innerHTML += `<div class="item ${cls}">✅ <b>${esc(r.title)}</b> — ${describeParsed(r)}${probs}
+      <button class="undo" onclick="removeTask('${t.id}',this)">حذف</button></div>`;
+  }
+  el.value = "";
+  saveState(); render();
+}
+function unsetDrivers(keysStr, btn){
+  keysStr.split(",").forEach(k=>{ delete family.driverByDate[k]; });
+  if(btn){ const item = btn.closest(".item"); if(item){ item.style.opacity=.5; item.querySelector(".undo").outerHTML='<span style="font-size:10.5px;color:#94a3b8">لغو شد</span>'; } }
+  saveState(); render();
+}
+function unsetShifts(keysStr, btn){
+  keysStr.split(",").forEach(k=>{ delete shiftCfg.overrides[k]; });
+  if(btn){ const item = btn.closest(".item"); if(item){ item.style.opacity=.5; item.querySelector(".undo").outerHTML='<span style="font-size:10.5px;color:#94a3b8">به چرخه برگشت</span>'; } }
+  saveState(); render();
+}
+function setShiftOverride(k, v){
+  if(v) shiftCfg.overrides[k] = v; else delete shiftCfg.overrides[k];
+  saveState(); render();
+}
+function setShiftToday(t){
+  shiftCfg.anchor = dkey(TODAY()); shiftCfg.anchorType = t;
+  saveState(); renderFamilyPanelShift(); render();
+}
+function setShiftField(f, v){
+  const num = parseInt(v,10); if(isNaN(num)) return;
+  shiftCfg[f] = num; saveState(); render();
+}
+function setShiftTime(f, v){
+  const x = parseHHMM(v); if(x==null) return;
+  shiftCfg[f] = x; saveState(); render();
+}
+function setWifeWin(f, i, v){
+  const x = parseHHMM(v); if(x==null) return;
+  shiftCfg.wife[f][i] = x; saveState(); render();
+}
+function setWifeDM(f, v){
+  const m = v.trim().match(/^(\d{1,2})\/(\d{1,2})$/);
+  if(!m) return;
+  shiftCfg.wife[f] = (+m[1])+"/"+(+m[2]);
+  saveState(); render();
+}
+function renderFamilyPanelShift(){
+  const g = id=>document.getElementById(id);
+  if(g("cmMin")){ g("cmMin").value = shiftCfg.commuteMin;
+    g("dsS").value = toENtime(fmtT(shiftCfg.dayStart)); g("dsE").value = toENtime(fmtT(shiftCfg.dayEnd));
+    g("nsS").value = toENtime(fmtT(shiftCfg.nightStart)); g("nsE").value = toENtime(fmtT(shiftCfg.nightEnd)); }
+  if(g("wInS")){ g("wInS").value = toENtime(fmtT(shiftCfg.wife.inWin[0])); g("wInE").value = toENtime(fmtT(shiftCfg.wife.inWin[1]));
+    g("wOutS").value = toENtime(fmtT(shiftCfg.wife.outWin[0])); g("wOutE").value = toENtime(fmtT(shiftCfg.wife.outWin[1]));
+    g("wFrom").value = shiftCfg.wife.fromDM; g("wTo").value = shiftCfg.wife.toDM; }
+}
+function setKidDriver(dk, kid, dir, v){
+  if(!family.driverByKidDate) family.driverByKidDate={};
+  const o = (family.driverByKidDate[dk] = family.driverByKidDate[dk] || {});
+  if(v) o[dir]=v; else delete o[dir];
+  if(!o.go && !o.ret) delete family.driverByKidDate[dk];
+  saveState(); render();
+}
+function kidDrvRowsHTML(day){
+  const ks=[...new Set(day.blocks.filter(b=>b.kind==="kid"&&!b.nodrv).map(b=>b.kid))];
+  if(!ks.length || !family) return "";
+  const dk=dkey(day.date);
+  const opt=cur=>(family.drivers||[]).map(x=>`<option${x===cur?" selected":""}>${x}</option>`).join("");
+  return ks.map(k=>{
+    const cur=(family.driverByKidDate&&family.driverByKidDate[dk]&&family.driverByKidDate[dk][k])||{};
+    return `<div class="drvrow" style="color:#475569">🚗 ${esc(k)}: بردن <select class="drvs" onclick="event.stopPropagation()" onchange="setKidDriver('${dk}','${k.replace(/'/g,"")}','go',this.value)"><option value="">همان رانندهٔ روز</option>${opt(cur.go)}</select> آوردن <select class="drvs" onclick="event.stopPropagation()" onchange="setKidDriver('${dk}','${k.replace(/'/g,"")}','ret',this.value)"><option value="">متغیر / همان</option>${opt(cur.ret)}</select></div>`;
+  }).join("");
+}
+function setCarDay(k, v){
+  if(!shiftCfg.carDays) shiftCfg.carDays={};
+  if(v) shiftCfg.carDays[k]=true; else delete shiftCfg.carDays[k];
+  saveState(); render();
+}
+function addQuickTask(dk, kind){
+  const P = {
+    sleep:{title:"😴 خواب بعد از شیفت", fix:[540,840], pr:1, win:null},
+    shop:{title:"🛒 خرید", fix:null, pr:2, win:null},
+    bank:{title:"🏦 بانک (ساعات اداری)", fix:null, pr:2, win:"صبح"},
+    inspect:{title:"🏗️ بازدید نظام مهندسی", fix:null, pr:2, win:null}
+  }[kind];
+  if(!P) return;
+  tasks.push({id:uid(), title:P.title, dates:[DK2(dk)], weekdays:null, everyDay:false, weekOnly:null,
+    dur:P.fix?null:60, fixStart:P.fix?P.fix[0]:null, fixEnd:P.fix?P.fix[1]:null,
+    priority:P.pr, window:P.win, notes:"", createdAt:Date.now()});
+  saveState(); render();
+}
+function closedSet(){ return new Set((closedPlans||[]).map(c=>c.date)); }
+function closeTomorrowPlan(){
+  const tm=addDays(TODAY(),1);
+  const ws=satOf(tm);
+  const days=planWeek(tasks, ws, settings, family, shiftCfg);
+  const d=days.find(x=>sameDay(x.date,tm)); if(!d) return;
+  const lines=[];
+  lines.push("برنامهٔ "+jalaliStr(tm)+" ("+DAY_NAMES[d.idx]+") — بسته‌شده شب "+jalaliStr(TODAY()));
+  const shn={day:"روزکار",night:"شبکار",ot:"شب+اضافه‌کار",rest:"استراحت"}[d.shift]||"—";
+  lines.push("شیفت من: "+shn+(d.carOwn?" (ماشین خودم)":""));
+  d.blocks.slice().sort((a,b)=>a.start-b.start).forEach(b=>{
+    lines.push("  "+fmtT(b.start)+"–"+fmtT(b.end)+"  "+({kid:"[کلاس] ",duty:"[رانندگی] ",fixed:"[ثابت] ",work:""}[b.kind]||"")+b.title+(b.ret==="var"?" (برگشت متغیر)":""));
+  });
+  const rms=remsForDay(REMS, dkey(tm));
+  if(rms.length) lines.push("یادآورها: "+rms.map(x=>x.r.title+(x.off>0?" ("+faNum(x.off)+" روز مانده)":"")).join(" • "));
+  if(!closedPlans) closedPlans=[];
+  closedPlans.push({date:dkey(tm), at:Date.now(), text:lines.join("\n")});
+  saveState(); render();
+  const blob=new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="plan-"+dkey(tm)+".txt"; document.body.appendChild(a); a.click();
+}
+function dayPlanTxt(){
+  const tm=sameDay(dayDate, addDays(TODAY(),1))?dayDate:addDays(TODAY(),1);
+  const c=(closedPlans||[]).filter(x=>x.date===dkey(tm)).pop();
+  if(!c) return;
+  const blob=new Blob([c.text],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="plan-"+dkey(tm)+".txt"; document.body.appendChild(a); a.click();
+}
+function nightReviewHTML(day){
+  const t=TODAY(), tm=addDays(t,1);
+  if(sameDay(day.date,tm)){
+    const closed=closedSet().has(dkey(day.date));
+    return `<div class="card" style="border-color:#c7d2fe;background:#eef2ff">
+      <b>🌙 مرور شبانه</b> — ثابت‌های فردا همینه. اگه کار جدیدی داری از «افزودن کار روزانه» پایین اضافه کن، وگرنه برنامهٔ فردا رو ببند تا خروجی‌ش رو بگیری.
+      ${satIdx(tm)===5?'<div style="margin-top:6px;font-weight:800;color:#92400e">🐍 فردا پایتون پارساست — ساعتش را در کادر «درخواست تغییر» پایین همین صفحه بنویس (مثلاً: پایتون پارسا ۱۵ تا ۱۶:۳۰) تا برنامهٔ فردا با آن ساعت رندر شود.</div>':''}
+      <div class="drvquick" style="border-top:1px dashed var(--line);margin-top:4px">
+        ${closed?`<span class="tag work">🔒 برنامهٔ فردا بسته شد ✅</span><button onclick="dayPlanTxt()">⬇ خروجی دوباره</button>`
+                :`<button class="on" onclick="closeTomorrowPlan()">✅ بستن برنامهٔ فردا + خروجی</button>`}
+      </div></div>`;
+  }
+  if(sameDay(day.date,t) && new Date().getHours()>=20)
+    return `<div class="rembn">🌙 مرور شبانه: یادآوری کارهای فردا! <button style="margin:0 6px" onclick="goDay(addDays(TODAY(),1))">نمایش و بستن برنامهٔ فردا</button></div>`;
+  return "";
+}
+let dayNotes = {}; let lastDayFB = null;
+function saveDayNote(dk, v){ dayNotes[dk]=v; saveState(); }
+function applyDayRequests(dk){
+  const ta=document.getElementById("dayreq-"+dk);
+  if(!ta) return;
+  const lines=ta.value.split("\n").map(x=>x.trim()).filter(Boolean);
+  const out=[];
+  for(const ln of lines) out.push(applyDayRequest(dk, ln));
+  lastDayFB={dk, html: out.join("")};
+  ta.value="";
+  saveState(); render();
+}
+function applyDayRequest(dk, raw){
+  const okm=(ic,tx)=>`<div class="item drv" style="border-color:#16a34a">✅ ${ic} ${esc(tx)}</div>`;
+  const err=(tx)=>`<div class="item drv">❌ ${esc(tx)}</div>`;
+  const line = enNum(raw).trim();
+  const dt = DK2(dk), idx = satIdx(dt);
+  if(new RegExp("راننده|بردن|آوردن").test(line) && family){
+    let kid=null;
+    for(const k of (family.kids||[])) if(line.includes(k.name)){ kid=k.name; break; }
+    const ds=(family.drivers||[]).slice().sort((a,b)=>b.length-a.length);
+    let drv=null; for(const d of ds) if(line.includes(d)){ drv=d; break; }
+    const dir=/آوردن/.test(line)?"ret":(/بردن/.test(line)?"go":null);
+    if(!drv) return err("راننده پیدا نشد — "+ds.join("، "));
+    if(kid){
+      if(!family.driverByKidDate) family.driverByKidDate={};
+      const o=(family.driverByKidDate[dk]=family.driverByKidDate[dk]||{});
+      if(dir==="ret") o.ret=drv; else if(dir==="go") o.go=drv; else { o.go=drv; delete o.ret; }
+      return okm("🚗",(dir==="ret"?"آوردن":dir==="go"?"بردن":"رانندهٔ ")+kid+" شد: "+drv);
+    }
+    if(!family.driverByDate) family.driverByDate={};
+    family.driverByDate[dk]=drv;
+    return okm("🚗","رانندهٔ "+jalaliStr(dt,false)+" شد: "+drv);
+  }
+  if(new RegExp("ماشین[\s"+ZWNJ+"]*(خودم|شخصی)").test(line)){
+    if(!shiftCfg.carDays) shiftCfg.carDays={};
+    shiftCfg.carDays[dk]=true; return okm("🚙","ماشین خودم — برگشت ۳۰ دقیقه زودتر");
+  }
+  if(shiftCfg){
+    if(new RegExp("اضافه[\s"+ZWNJ+"]*کار").test(line)){ setShiftOverride(dk,"ot"); return okm("🕗","شیفت: شب+اضافه‌کار"); }
+    if(new RegExp("شب[\s"+ZWNJ+"]*کار|شبکار").test(line)){ setShiftOverride(dk,"night"); return okm("🕗","شیفت: شبکار"); }
+    if(new RegExp("روز[\s"+ZWNJ+"]*کار|روزکار").test(line)){ setShiftOverride(dk,"day"); return okm("🕗","شیفت: روزکار"); }
+    if(/استراحت|مرخصی/.test(line)){ setShiftOverride(dk,"rest"); return okm("🕗","شیفت: استراحت"); }
+  }
+  if(/یادآور/.test(line)){
+    const ti=line.replace(/یادآور|یادداشت|بذار|بگذار|کن|:|برای/g," ").trim()||"یادداشت";
+    REMS.push({id:uid(), title:ti, date:dk, lead:0, times:1, gapDays:1});
+    return okm("🔔","یادآور «"+ti+"» ثبت شد");
+  }
+  if(/یادداشت|نکته/.test(line)){
+    const ti=line.replace(/یادداشت|نکته|:|برای/g," ").trim();
+    dayNotes[dk]=(dayNotes[dk]?dayNotes[dk]+"\n":"")+ti;
+    return okm("🗒","یادداشت ذخیره شد");
+  }
+  if(/حذف|لغو/.test(line) && family){
+    const q=line.replace(/حذف|لغو|کن|کلاس|برنامه/g," ").trim();
+    for(const k of (family.kids||[])) for(const c of (k.classes||[])){
+      const t=c.title||"";
+      if((((c.weekdays||[]).includes(idx)) || ((c.dates||[]).includes(dk))) && q && (t.includes(q)||q.includes(t.split(" ")[0]))){
+        c.weekdays=(c.weekdays||[]).filter(x=>x!==idx);
+        if(c.dates) c.dates=c.dates.filter(x=>x!==dk);
+        if(!(c.weekdays||[]).length && !(c.dates||[]).length){ for(const kk of family.kids) kk.classes=kk.classes.filter(x=>x!==c); }
+        return okm("🗑","«"+t+"» از "+DAY_NAMES[idx]+" حذف شد");
+      }
+    }
+    return err("کلاس برای حذف پیدا نشد — اسمش رو دقیق‌تر بنویس");
+  }
+  const tm=line.match(/(\d{1,2})(?::(\d{2}))?\s*(?:تا|-|–)\s*(\d{1,2})(?::(\d{2}))?/);
+  if(tm && family){
+    const st=(+tm[1])*60+(tm[2]?+tm[2]:0), en=(+tm[3])*60+(tm[4]?+tm[4]:0);
+    if(en>st){
+      const q=line.replace(/ساعت|کلاس|به|تغییر|کن/g," ").replace(tm[0]," ").trim();
+      const anotherKid=(family.kids||[]).some(x=>line.includes(x.name));
+      for(const k of (family.kids||[])) for(const c of (k.classes||[])){
+        const t=c.title||"";
+        if(q && (t.includes(q)||q.includes(t.split(" ")[0]))){
+          if(anotherKid && !line.includes(k.name)) continue;
+          c.start=st; c.end=en;
+          return okm("⏰","«"+t+"» برای "+k.name+" شد "+fmtT(st)+" تا "+fmtT(en)+((c.weekdays||[]).length>1?" (همهٔ روزهای این کلاس)":""));
+        }
+      }
+      if(/کلاس/.test(line)) return err("کلاس برای تغییر ساعت پیدا نشد");
+    }
+  }
+  const ti=(line.replace(tm?tm[0]:""," ").replace(/اضافه|کن|بذار|برای/g," ").trim())||"کار";
+  if(tm){
+    const st=(+tm[1])*60+(tm[2]?+tm[2]:0), en=(+tm[3])*60+(tm[4]?+tm[4]:0);
+    if(en>st){
+      tasks.push({id:uid(), title:ti, dates:[dk], weekdays:null, everyDay:false, weekOnly:null, dur:null, fixStart:st, fixEnd:en, priority:2, window:null, notes:"", createdAt:Date.now()});
+      return okm("🔒","«"+ti+"» ساعت "+fmtT(st)+"–"+fmtT(en)+" برای این روز ثبت شد");
+    }
+  }
+  tasks.push({id:uid(), title:ti, dates:[dk], weekdays:null, everyDay:false, weekOnly:null, dur:60, fixStart:null, fixEnd:null, priority:2, window:null, notes:"", createdAt:Date.now()});
+  return okm("➕","«"+ti+"» برای این روز اضافه شد (۱ ساعت در فضای خالی)");
+}
+/* ── تیک کارها ── */
+let doneMap = {};
+try{ doneMap = JSON.parse(store.get("wp2_done")||"{}")||{}; }catch(e){ doneMap={}; }
+function blockId(b){ return b.kind+"|"+b.start+"|"+(b.kid||"")+"|"+b.title; }
+function isDone(dk, id){ return !!(doneMap[dk] && doneMap[dk][id]); }
+function toggleDone(dk, id){
+  id = decodeURIComponent(id);
+  if(!doneMap[dk]) doneMap[dk]={};
+  if(doneMap[dk][id]) delete doneMap[dk][id]; else doneMap[dk][id]=1;
+  const ks=Object.keys(doneMap).sort();
+  if(ks.length>120) ks.slice(0,ks.length-90).forEach(k=>{ delete doneMap[k]; });
+  store.set("wp2_done", JSON.stringify(doneMap));
+  render();
+}
+/* ── یادآورِ هر کار (نیم‌ساعت قبل) ── */
+let remLeadMin = 30;
+let remMap = {};
+try{ remMap = JSON.parse(store.get("wp2_rem")||"{}")||{}; }catch(e){ remMap={}; }
+function remState(dk, b){
+  const id = blockId(b);
+  if(remMap[dk] && remMap[dk][id]!=null) return remMap[dk][id];
+  return b.kind==="kid" ? 1 : 0;
+}
+function toggleRem(dk, id, cur){
+  id = decodeURIComponent(id);
+  if(!remMap[dk]) remMap[dk]={};
+  remMap[dk][id] = cur ? 0 : 1;
+  const ks=Object.keys(remMap).sort();
+  if(ks.length>120) ks.slice(0,ks.length-90).forEach(k=>{ delete remMap[k]; });
+  store.set("wp2_rem", JSON.stringify(remMap));
+  render();
+}
+/* ── اضافه/حذف برنامهٔ هر روز (v15) ── */
+let hideMap = {};
+try{ hideMap = JSON.parse(store.get("wp2_hide")||"{}")||{}; }catch(e){ hideMap={}; }
+function isHidden(dk, id){ return !!(hideMap[dk] && hideMap[dk][id]); }
+function toggleHide(dk, id){
+  id = decodeURIComponent(id);
+  if(!hideMap[dk]) hideMap[dk]={};
+  if(hideMap[dk][id]) delete hideMap[dk][id]; else hideMap[dk][id]=1;
+  const ks=Object.keys(hideMap).sort();
+  if(ks.length>150) ks.slice(0,ks.length-120).forEach(k=>{ delete hideMap[k]; });
+  store.set("wp2_hide", JSON.stringify(hideMap));
+  render();
+}
+function addExtra(dk, inputId){
+  const el = document.getElementById(inputId);
+  if(!el) return;
+  const lines = (el.value||"").split(/\n|؛/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length) return;
+  const today = TODAY();
+  let added = 0, lastErr = "";
+  for(const line of lines){
+    const r = parseLine(line, today);
+    if(!r || !r.title){ lastErr="نتوانستم بخوانم — ساعت را هم بنویس"; continue; }
+    tasks.push({ id: uid(), title: r.title, dates:[DK2(dk)], weekdays:[], everyDay:false,
+      weekOnly:null, perWeek:1, fixStart:r.fixStart, fixEnd:r.fixEnd,
+      dur: r.dur||60, window: r.window, priority: r.priority||2, notes:"", extra:true,
+      createdAt: Date.now()+Math.random() });
+    added++;
+  }
+  el.value="";
+  const fb = document.getElementById("fb");
+  if(fb) fb.innerHTML = `<div class="item ${lastErr?"warn":"ok"}">✅ ${faNum(added)} مورد به ${jalaliStr(DK2(dk),false)} اضافه شد${lastErr?" — ⚠️ "+esc(lastErr):""} <button class="undo" onclick="delExtraAll('${dk}')">حذف همه</button></div>`;
+  saveState(); render();
+}
+function delExtraAll(dk){
+  tasks = tasks.filter(t=>!(t.extra && t.dates && t.dates.length===1 && dkey(t.dates[0])===dk));
+  saveState(); render();
+}
+function delExtraById(xid){
+  tasks = tasks.filter(t=>t.id!==xid);
+  saveState(); render();
+}
+function extraTaskOf(dk,b){ return (tasks||[]).find(t=>t.extra && t.dates && t.dates.length===1 && dkey(t.dates[0])===dk && t.title===b.title); }
+function delCtlHTML(dk,b){
+  const et = extraTaskOf(dk,b);
+  return et ? `<span class="xdel" title="حذف" onclick="event.stopPropagation();delExtraById('${et.id}')">✕</span>`
+            : `<span class="xdel" title="برداشتن از این روز" onclick="event.stopPropagation();toggleHide('${dk}','${encodeURIComponent(blockId(b))}')">✕</span>`;
+}
+function dayRequestHTML(day){
+  const dk=dkey(day.date);
+  const fb=(lastDayFB && lastDayFB.dk===dk)? lastDayFB.html : "";
+  return `<div class="card dayreq">
+    <b>✏️ یادداشت و درخواست تغییر — ${DAY_NAMES[day.idx]}</b>
+    <textarea id="daynote-${dk}" placeholder="یادداشت این روز (خودکار ذخیره می‌شود)" onchange="saveDayNote('${dk}',this.value)">${esc(dayNotes[dk]||"")}</textarea>
+    <div style="font-size:12px;font-weight:800;color:#475569;margin-top:8px">درخواست تغییر برای این روز (هر خط = یک درخواست، بعد «انجام بده»):</div>
+    <textarea id="dayreq-${dk}" placeholder="راننده: اسنپ
+پایتون پارسا ۱۵ تا ۱۶:۳۰
+حذف کلاس تکواندو
+ساعت کلاس شنا به ۱۶ تا ۱۷:۳۰
+۱۷:۳۰ تا ۱۸:۳۰ خرید"></textarea>
+    <div style="margin-top:6px"><button class="xs" onclick="applyDayRequests('${dk}')">✅ انجام بده</button></div>
+    <div>${fb}</div>
+  </div>`;
+}
+function remBannerHTML(){
+  const t=TODAY(); const items=[];
+  [0,1,2].forEach(off=>{
+    remsForDay(REMS, dkey(addDays(t,off))).forEach(x=>{
+      items.push(`🔔 ${esc(x.r.title)} — ${off===0?"امروز":off===1?"فردا":"پس‌فردا"}${x.off>0?` (${faNum(x.off)} روز مانده)`:" (روزِ خودش!)"}`);
+    });
+  });
+  return items.length? `<div class="rembn">${items.slice(0,5).join("<br>")}</div>`:"";
+}
+function briefHTML(day){
+  const rems = remsForDay(REMS, dkey(day.date));
+  const work = day.blocks.filter(b=>b.kind==="work");
+  const kids = day.blocks.filter(b=>b.kind==="kid");
+  const wk = day.wifeWin;
+  let sh = day.shift==="day"?"☀️ روزکار":day.shift==="night"?"🌙 شبکار (امشب)":day.shift==="ot"?"⚡ شبکار + اضافه‌کار":"😴 استراحت";
+  const prevT = shiftTypeFor(addDays(day.date,-1), shiftCfg);
+  const sleepTip = (day.shift==="rest" && (prevT==="night"||prevT==="ot")) ? `<div>💡 دیشب شب‌کاری بوده‌ای — خواب صبح (۹ تا ۱۴) پیشنهاد می‌شود.</div>` : "";
+  return `<div class="card brief">
+    <b>📋 کارهای ثابت ${DAY_NAMES[day.idx]} (${jalaliStr(day.date,false)}):</b>${closedSet().has(dkey(day.date))?' <span class="tag work">🔒 بسته‌شده ✅</span>':""}
+    <div>🕗 شیفت من: <b>${sh}</b>${day.carOwn?' <span class="tag work">🚙 ماشین خودم</span>':""}${work.length?` — دور از خانه ${work.map(w=>fmtT(w.start)+" تا "+fmtT(w.end)).join(" و ")}`:""}</div>
+    ${(family.notes||[]).filter(n=>!n.weekdays||n.weekdays.includes(day.idx)).map(n=>`<div>📝 ${esc(n.text)}</div>`).join("")}
+    <div>🎓 کلاس‌های بچه‌ها و خانمم: ${kids.length?faNum(kids.length)+" کلاس — رانندهٔ بچه‌ها: <b>"+(day.driver?esc(day.driver):"تعیین نشده!")+"</b>":"کلاس ندارند"}</div>
+    ${kids.filter(b=>b.ret==="var").length?`<div>🎒 برگشت متغیر: ${kids.filter(b=>b.ret==="var").map(b=>`${b.kid} (${b.title}، تمام ${fmtT(b.end)})${b.retNote?` — ${b.retNote}`:""}`).join(" • ")}</div>`:""}
+    <div>👩 خانمم: ${wk?("بیرون از خانه "+fmtT(wk[0])+" تا "+fmtT(wk[1])+" — "+fmtT(wk[1])+" می‌رسه خونه"):"در خانه"}</div>
+    ${dayNotes[dkey(day.date)]?`<div>🗒 ${esc(dayNotes[dkey(day.date)])}</div>`:""}
+    ${rems.length?`<div>🔔 یادآور: ${rems.map(x=>esc(x.r.title)+(x.off>0?(" — "+faNum(x.off)+" روز مانده"):" — همین امروز!")).join(" • ")}</div>`:""}
+    ${sleepTip}
+    <div class="drvquick" style="border-top:1px dashed var(--line);margin-top:4px">
+      <span style="font-size:12px;font-weight:800;color:#475569;align-self:center">افزودن کار روزانه:</span>
+      <button onclick="addQuickTask('${dkey(day.date)}','sleep')">😴 خواب بعد شیفت</button>
+      <button onclick="addQuickTask('${dkey(day.date)}','shop')">🛒 خرید</button>
+      <button onclick="addQuickTask('${dkey(day.date)}','bank')">🏦 بانک</button>
+      <button onclick="addQuickTask('${dkey(day.date)}','inspect')">🏗️ بازدید نظام مهندسی</button>
+    </div>
+    <div class="panelnote">برنامه را روی همین ثابت‌ها می‌چینم — کار روزانه اضافه کن یا جمله بنویس. نمای ماه: تب «تقویم».</div>
+  </div>`;
+}
+let calY=null, calM=0, calSel=null;
+function calShift(n){
+  calM+=n; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;}
+  render();
+}
+function calPick(dk){ calSel=dk; render(); }
+function calGoDay(dk){ dayDate=DK2(dk); setMode("day"); }
+function calToday(){ const t=TODAY(); calSel=dkey(t); const j=toJalali(t.getFullYear(),t.getMonth()+1,t.getDate()); calY=j[0]; calM=j[1]; render(); }
+function jFirstGreg(y,m){
+  let d=new Date(TODAY()); d.setHours(12,0,0,0); let guard=0;
+  for(;;){ const j=toJalali(d.getFullYear(),d.getMonth()+1,d.getDate());
+    if(j[0]*12+j[1]===y*12+m) break;
+    d=addDays(d, (y*12+m)>(j[0]*12+j[1])?20:-20);
+    if(++guard>300) break; }
+  while(true){ const j=toJalali(d.getFullYear(),d.getMonth()+1,d.getDate()); if(j[2]===1) break; d=addDays(d,-1); }
+  return d;
+}
+function calHTML(){
+  const sd = calSel? DK2(calSel) : TODAY();
+  if(calY==null){ const j=toJalali(sd.getFullYear(),sd.getMonth()+1,sd.getDate()); calY=j[0]; calM=j[1]; }
+  const first = jFirstGreg(calY,calM);
+  let gs=new Date(first.getTime()); while(gs.getDay()!==6) gs=addDays(gs,-1);
+  const ge=addDays(gs,41);
+  const jSel=toJalali(sd.getFullYear(),sd.getMonth()+1,sd.getDate());
+  const gRange=(gs.getMonth()===ge.getMonth()? G_MONTHS[gs.getMonth()] : G_MONTHS[gs.getMonth()]+" - "+G_MONTHS[ge.getMonth()])+" "+faNum(ge.getFullYear());
+  let cells="";
+  for(let i=0;i<42;i++){
+    const dt=addDays(gs,i), j=toJalali(dt.getFullYear(),dt.getMonth()+1,dt.getDate());
+    const dk=dkey(dt), st=shiftTypeFor(dt, shiftCfg);
+    const sem = st==="day"?"☀️":st==="night"?"🌙":st==="ot"?"⚡":"";
+    const nk = kidBlocksFor(family, satIdx(dt), dk).length;
+    const nr = remsForDay(REMS, dk).length;
+    cells += `<div class="calcell${j[1]===calM?"":" out"}${calSel===dk?" sel":""}${sameDay(dt,TODAY())?" todayc":""}" onclick="calPick('${dk}')">
+      <div class="dn">${faNum(j[2])}</div><div class="gn">${faNum(dt.getDate())}</div>
+      <div class="ms">${sem}${nr?`<span class="rb">🔔</span>`:""}${nk?`<span class="kb">🎓</span>`:""}</div></div>`;
+  }
+  /* کارهای روز انتخاب‌شده — یادآورِ هر کار جداگانه تنظیم می‌شود */
+  const sdk=dkey(sd);
+  const ddays = planWeek(tasks, satOf(sd), settings, family, shiftCfg);
+  const fday = ddays.find(x=>sameDay(x.date,sd)) || {idx:satIdx(sd), date:sd, active:true, blocks:[], unplaced:[], driver:effDriver(family, satIdx(sd), sdk)};
+  const sorted = fday.blocks.slice().sort((a,b)=>a.start-b.start);
+  const doneCnt = sorted.filter(b=>isDone(sdk, blockId(b))).length;
+  const KC = {kid:"#0d9488", duty:"#c2410c", work:"#475569", fixed:"#b45309"};
+  const checklist = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+      <div><b>${jalaliStr(sd)}</b><br><small style="color:var(--muted)">${gregStr(sd,false)}</small></div>
+      <span class="chip" style="background:#fff7ed;color:#9a3412;border-color:#fed7aa">🕗 ${SHIFT_FA[fday.shift]||"—"}</span></div>
+    ${sorted.length?`<div class="panelnote">${faNum(doneCnt)} از ${faNum(sorted.length)} انجام شد • روی ⭕ تیک بزن • روی 🔔 هر کار بزن تا یادآورِ ${faNum(remLeadMin)} دقیقه قبلش روشن/خاموش شود</div>`:""}
+    <div class="cks">${sorted.map(b=>{
+      const id=encodeURIComponent(blockId(b));
+      const col=KC[b.kind]||"#64748b";
+      const on=remState(sdk,b)===1;
+      const hid = isHidden(sdk,blockId(b));
+      return `<div class="ckrow" style="border-inline-start:4px solid ${col}${hid?";opacity:.45":""}">
+        <span class="ckb${isDone(sdk,blockId(b))?" on":""}" onclick="toggleDone('${sdk}','${id}')"></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13.5px;line-height:1.7">${b.kind==="duty"?esc(b.kid)+" — ":""}${esc(b.title)}${b.ret==="var"&&b.kind==="kid"?' <span class="tag duty">🎒 برگشت متغیر</span>':""}</div>
+          <div style="font-size:11.5px;color:var(--muted)"><span class="bell${on?" on":""}" onclick="toggleRem('${sdk}','${id}',${on?1:0})">🔔</span> ${fmtT(b.start)} تا ${fmtT(b.end)}${on?" • یادآور "+faNum(remLeadMin)+" دقیقه قبل":""}${b.notes?" • ✎ "+esc(b.notes):""}</div></div>${hid?`<span class="xdel" onclick="toggleHide('${sdk}','${id}')">↺</span>`:delCtlHTML(sdk,b)}</div>`;
+    }).join("")||'<div class="empty">این روز چیزی ندارد 🌿</div>'}</div>
+    <div class="addrow"><input id="exT" placeholder="اضافه به این روز: مثلاً ۱۷ تا ۱۸ دکتر"><button onclick="addExtra('${sdk}','exT')">➕ اضافه کن</button></div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <button class="xs" onclick="calGoDay('${sdk}')">📅 نمای کامل روز</button>
+      <button class="xs" onclick="calToday()">امروز</button></div></div>`;
+  const rl=(REMS||[]).filter(r=>r.date===calSel);
+  const remsPanel = calSel? `<div class="card">
+      <b>🔔 یادآورهای ${jalaliStr(sd)}</b> <small>(${gregStr(sd,false)})</small>
+      <div>${rl.map(r=>`<div class="remitem"><span>🔔 ${esc(r.title)} — ${faNum(r.lead||0)} روز قبل، ${faNum(r.times||1)} بار هر ${faNum(r.gapDays||1)} روز</span><button onclick="delRem('${r.id}')">حذف</button></div>`).join("")||'<div class="panelnote">یادآوری ندارد.</div>'}</div>
+      <div class="set2">عنوان <input id="remTitle" placeholder="مثلاً تماس با اداره"></div>
+      <div class="set2">چقدر زودتر؟ <input type="number" id="remLead" value="2" min="0" style="width:52px"> روز • چند بار؟ <input type="number" id="remTimes" value="3" min="1" style="width:44px"> • فاصله؟ <input type="number" id="remGap" value="1" min="1" style="width:44px"> روز</div>
+      <button class="xs" onclick="addRem('${calSel}')">🔔 ثبت یادآور</button>
+      <button class="xs" onclick="calGoDay('${calSel}')">📅 برنامهٔ این روز</button>
+    </div>` : "";
+  return `<div class="card">
+    <div class="yh1"><span class="yh-side">${J_MONTHS[calM-1]} ${faNum(calY)}</span>
+      <span class="yh-big">${faNum(jSel[2])}</span>
+      <span class="yh-side">${gRange}</span></div>
+    <div class="yh2"><span class="yh-side">${jalaliStr(sd,false)}</span>
+      <span class="yh-c">${G_MONTHS[sd.getMonth()]} ${faNum(sd.getFullYear())}</span>
+      <span class="yh-side">${gregStr(sd,false)}</span></div>
+    <div class="calhead">${["ش","ی","د","س","چ","پ","ج"].map(x=>`<span>${x}</span>`).join("")}</div>
+    <div class="calgrid">${cells}</div>
+    <div class="panelnote">☀️ روزکار • 🌙 شبکار • ⚡ اضافه‌کار — 🔔 یادآور — 🎓 کلاس. روی روز بزن تا کارهایش پایین بیاید.</div>
+  </div>` + checklist + remsPanel;
+}
+function addRem(dk){
+  const ti=document.getElementById("remTitle").value.trim();
+  if(!ti) return;
+  const num=(id,d)=>{ const v=parseInt(document.getElementById(id).value,10); return isNaN(v)?d:v; };
+  REMS.push({id:uid(), title:ti, date:dk, lead:Math.max(0,num("remLead",2)), times:Math.max(1,num("remTimes",3)), gapDays:Math.max(1,num("remGap",1))});
+  saveState(); render();
+}
+function delRem(id){ REMS=REMS.filter(r=>r.id!==id); saveState(); render(); }
+function shiftQuickHTML(day){
+  const cur = dkey(day.date);
+  const btns = [["day","روزکار"],["night","شبکار"],["rest","استراحت"],["ot","شب+اضافه‌کار"]];
+  const isOver = shiftCfg.overrides && shiftCfg.overrides[cur]!=null;
+  return `<div class="drvquick" style="border-top:1px dashed var(--line);margin-top:2px">
+    <span style="font-size:12px;font-weight:800;color:#475569;align-self:center">🕗 شیفت:</span>` +
+    btns.map(([v,l])=>`<button class="${day.shift===v?"on":""}" style="${day.shift===v?"":"border-color:#e2e8f0"}" onclick="setShiftOverride('${cur}','${v}')">${l}</button>`).join("") +
+    (day.carOwn?`<button class="on" onclick="setCarDay('${cur}',false)">🚙 ماشین خودم ✕</button>`:`<button style="border-color:#e2e8f0" onclick="setCarDay('${cur}',true)">🚙 ماشین خودم</button>`) +
+    (isOver?`<button onclick="setShiftOverride('${cur}','')">↺ چرخه</button>`:"") +
+    `</div>`;
+}
+function removeTask(id, btn){
+  tasks = tasks.filter(t=>t.id!==id);
+  if(btn){ const item = btn.closest(".item"); if(item){ item.style.opacity=.5; item.querySelector(".undo").outerHTML='<span style="font-size:10.5px;color:#94a3b8">حذف شد</span>'; } }
+  saveState(); render(); if(mode==="tasks") renderTaskList();
+}
+
+/* ── ناوبری ── */
+function setMode(v){
+  mode = v;
+  ["week","day","fam","tasks","cal"].forEach(x=>{
+    document.getElementById("v-"+x).classList.toggle("on", x===v);
+    document.getElementById("b-"+x).classList.toggle("on", x===v);
+  });
+  if(v==="fam") renderFamily();
+  if(v==="tasks") renderTaskList();
+  render();
+  window.scrollTo({top:0});
+}
+function shiftWeek(n){ weekOffset += n; render(); }
+function goWeek(n){ weekOffset = n; render(); }
+function shiftDay(n){ dayDate = addDays(dayDate, n); render(); }
+function goDay(d){ dayDate = d; render(); }
+function currentWeekSat(){ return addDays(satOf(TODAY()), weekOffset*7); }
+
+/* ── رندر ── */
+function render(){
+  const today = TODAY();
+  let ws = currentWeekSat();
+  if(mode==="day" && !sameSat(dayDate, ws)) ws = satOf(dayDate);
+  const we = addDays(ws,6);
+  document.getElementById("rangeBox").innerHTML =
+    `<b>${jalaliStr(ws,false)}</b><br>تا ${jalaliStr(we,false)}`;
+  const weekDays = planWeek(tasks, ws, settings, family, shiftCfg);
+  const n = weekDays.reduce((s,d)=>s+d.blocks.filter(b=>b.kind!=="kid"&&!b.nobusy).length,0);
+  const mins = weekDays.reduce((s,d)=>s+d.blocks.filter(b=>b.kind!=="kid"&&!b.nobusy).reduce((x,b)=>x+(b.end-b.start),0),0);
+  document.getElementById("statChips").innerHTML =
+    `<span class="chip">${faNum(n)} کار این هفته</span><span class="chip">مجموع ${fmtDur(mins)}</span><span class="chip">🕗 امروز: ${SHIFT_FA[shiftTypeFor(TODAY(),shiftCfg)]||"—"}</span><span class="chip" style="cursor:pointer" onclick="notifToggle()">🔔 اعلان کلاس‌ها: ${notifOn?"روشن":"خاموش"}</span>`;
+
+  document.getElementById("navWeek").innerHTML = `
+    <button class="navbtn" onclick="shiftWeek(1)">‹ بعدی</button>
+    <div class="cur">${jalaliStr(ws)}<small>${gregStr(ws,false)} — ${gregStr(addDays(ws,6),false)}</small></div>
+    <button class="navbtn" onclick="shiftWeek(-1)">‹ قبلی</button>
+    <button class="navbtn" onclick="goWeek(0)">این هفته</button>`;
+  document.getElementById("navDay").innerHTML = `
+    <button class="navbtn" onclick="shiftDay(1)">‹ بعدی</button>
+    <div class="cur">${jalaliStr(dayDate)}<small>${gregStr(dayDate)}</small></div>
+    <button class="navbtn" onclick="shiftDay(-1)">‹ قبلی</button>
+    <button class="navbtn" onclick="goDay(TODAY())">امروز</button>
+    <button class="navbtn" onclick="goDay(addDays(TODAY(),1))">فردا</button>`;
+
+  let focusDay = null;
+  if(mode==="cal"){
+    document.getElementById("mainCal").innerHTML = remBannerHTML() + calHTML();
+  } else if(mode==="day"){
+    focusDay = weekDays.find(d=>sameDay(d.date, dayDate)) || {idx:satIdx(dayDate), date:dayDate, active:true, blocks:[], unplaced:[], driver:effDriver(family, satIdx(dayDate), dkey(dayDate))};
+    document.getElementById("mainDay").innerHTML = remBannerHTML() + nextClassHTML(focusDay) + nightReviewHTML(focusDay) + briefHTML(focusDay) + dayCardHTML(focusDay, today, {big:true}) + dayRequestHTML(focusDay);
+  }
+  document.getElementById("mainWeek").innerHTML = remBannerHTML() + weekDays.map(d=>dayCardHTML(d, today, {selectable:true})).join("");
+  renderSummary(weekDays, focusDay);
+}
+function busyOf(day){ return day.blocks.filter(b=>b.kind!=="kid"&&!b.nobusy&&!isHidden(dkey(day.date),blockId(b))); }
+function rowHTML(b, big, dk){
+  const pc = {1:"var(--p1)",2:"var(--p2)",3:"var(--p3)"}[b.priority];
+  const did = dk ? isDone(dk, blockId(b)) : false;
+  const ck = (big && dk) ? `<span class="ckb${did?" on":""}" onclick="event.stopPropagation();toggleDone('${dk}','${encodeURIComponent(blockId(b))}')"></span>` : "";
+  const bc = b.kind==="fixed" ? "var(--fixed)" : (b.kind==="duty" ? "var(--duty)" : (b.kind==="work" ? "#64748b" : pc));
+  const tags = [];
+  if(b.kind==="fixed") tags.push(`<span class="tag fix">🔒 ثابت</span>`);
+  if(b.kind==="duty") tags.push(`<span class="tag duty">🚗 رانندگی</span>`);
+  if(b.kind==="work") tags.push(`<span class="tag work">🕗 شیفت کاری</span>`);
+  if(b.online) tags.push(`<span class="tag work">🎧 آنلاین</span>`);
+  if(big&&dk){
+    const ron = remState(dk,b)===1;
+    tags.push(`<span class="tag${ron?"":" tagoff"}" style="cursor:pointer" onclick="event.stopPropagation();toggleRem('${dk}','${encodeURIComponent(blockId(b))}',${ron?1:0})">${ron?"🔔 یادآور ۳۰د":"🔕 یادآور"}</span>`);
+  }
+  if(dk) tags.push(delCtlHTML(dk,b));
+  if(b.window) tags.push(`<span class="tag">${b.window}</span>`);
+  tags.push(`<span class="tag pr${b.priority}">${PR_NAME[b.priority]||""}</span>`);
+  return `<div class="row${did?" doneRow":""}${b.kind==="fixed"?" fixed":""}${b.kind==="duty"?" duty":""}${b.kind==="work"?" work":""}" style="--bc:${bc}">
+    <div class="tm">${fmtT(b.start)}<span class="till">تا ${fmtT(b.end)}</span></div>
+    <div><div class="ti">${ck}${esc(b.title)}</div><div class="mt">${tags.join("")}</div></div></div>`;
+}
+function gapHTML(s,e){
+  return `<div class="gaprow"><span class="tm">· ${fmtT(s)} تا ${fmtT(e)}</span><span>خالی</span></div>`;
+}
+function kidSecHTML(day){
+  const kids = day.blocks.filter(b=>b.kind==="kid"&&!isHidden(dkey(day.date),blockId(b)));
+  if(!kids.length) return "";
+  return `<div class="kidsec"><div class="kt">🎓 کلاس‌های بچه‌ها و خانمم</div>` +
+    kids.map(b=>`<div class="kr"><b>${esc(b.kid)}</b> — ${esc(b.title)} <span style="color:#0d9488;font-weight:700">${fmtT(b.start)}–${fmtT(b.end)}</span>${b.varTime?' <span style="color:#b45309;font-weight:700">(ساعت متغیر)</span>':""}<button class="xdel" title="برداشتن از این روز" onclick="toggleHide('${dkey(day.date)}','${encodeURIComponent(blockId(b))}')">✕</button></div>`).join("") + `</div>`;
+}
+function dayCardHTML(d, today, opts){
+  opts = opts||{};
+  const cls = ["daycard"];
+  if(sameDay(d.date,today)) cls.push("today");
+  if(!d.active) cls.push("inactive");
+  if(opts.selectable) cls.push("clickable");
+  const dk = dkey(d.date);
+  const span = Math.max(60, settings.dayEnd - settings.dayStart);
+  const busy = busyOf(d);
+  const planned = busy.reduce((s,b)=>s+(b.end-b.start),0);
+  const pct = Math.min(100, Math.round(planned*100/span));
+  const free = freeSlots(busy, settings.dayStart, settings.dayEnd);
+  const freeMin = free.reduce((s,[a,b])=>s+(b-a),0);
+  const drvName = d.driver || "";
+  let rows = "";
+  if(opts.big){
+    let cur = settings.dayStart;
+    for(const b of busy){ if(b.start>cur+15) rows += gapHTML(cur,b.start); rows += rowHTML(b,true,dk); cur=Math.max(cur,b.end); }
+    if(cur < settings.dayEnd-15) rows += gapHTML(cur, settings.dayEnd);
+  } else {
+    rows = busy.map(b=>rowHTML(b,false,dk)).join("");
+  }
+  const body = rows || `<div class="empty">${d.active?"کارِ تو آزاد است 🌿":"روز غیرفعال"}</div>`;
+  const freeTxt = d.active ? (freeMin>0 ? `آزاد: ${fmtDur(freeMin)}` : "روز کاملاً پر شد") : "غیرفعال";
+  const drvSel = `<select class="drvs" onclick="event.stopPropagation()" onchange="setDriverFor('${dk}',this.value)">
+      <option value=""${drvName?"":" selected"}>— بدون راننده —</option>` +
+    (family.drivers||[]).map(n=>`<option${drvName===n?" selected":""}>${esc(n)}</option>`).join("") + `</select>`;
+  const click = opts.selectable ? ` onclick="goDay(DK('${dk}'))"` : "";
+  return `<section class="${cls.join(" ")}"${click}>
+    <div class="dc-h"><span class="dn">${DAY_NAMES[d.idx]}${sameDay(d.date,today)?'<span class="today-badge">امروز</span>':""}</span>
+    <span class="jd">${jalaliStr(d.date,false)}</span></div>
+    <div class="dc-sub"><span>${gregStr(d.date,false)}</span><span>${faNum(d.blocks.length)} مورد</span></div>
+    <div class="drvrow" style="color:#475569">🕗 شیفت: <b>${SHIFT_FA[d.shift]||"—"}</b></div>
+    <div class="drvrow">🚗 راننده: ${opts.big?`<span>${esc(drvName)||"—"}</span>`:drvSel}</div>
+    ${opts.big?kidDrvRowsHTML(d):""}
+    ${kidSecHTML(d)}
+    <div class="rows">${body}</div>
+    ${d.active?`<div class="addrow"><input id="exT_${dk}" placeholder="اضافه به این روز: مثلاً ۱۷ تا ۱۸ دکتر"><button onclick="addExtra('${dk}','exT_${dk}')">➕ اضافه کن</button></div>`:""}
+    ${opts.big?shiftQuickHTML(d):""}
+    ${opts.big?drvQuickHTML(d):""}
+    <div class="dc-f"><span>${freeTxt}</span><div class="meter"><i style="width:${pct}%"></i></div></div></section>`;
+}
+function drvQuickHTML(day){
+  const cur = day.driver || "";
+  return `<div class="drvquick">` +
+    (family.drivers||[]).map(n=>`<button class="${cur===n?"on":""}" onclick="setDriverFor('${dkey(day.date)}','${esc(n).replace(/'/g,"&#39;")}')">${esc(n)}</button>`).join("") +
+    `<button class="${cur?"":"on"}" onclick="setDriverFor('${dkey(day.date)}','')">—</button></div>`;
+}
+function setDriverFor(k, v){
+  if(v) family.driverByDate[k] = v; else delete family.driverByDate[k];
+  saveState(); render();
+}
+function renderSummary(days, focusDay){
+  const n = days.reduce((s,d)=>s+d.blocks.filter(b=>b.kind!=="kid"&&!b.nobusy).length,0);
+  const mins = days.reduce((s,d)=>s+d.blocks.filter(b=>b.kind!=="kid"&&!b.nobusy).reduce((x,b)=>x+(b.end-b.start),0),0);
+  const warns = [];
+  days.forEach(d=>{
+    d.blocks.forEach(b=>{ if(b.forced) warns.push(`«${b.title}» در ${DAY_NAMES[d.idx]} خارج از پنجرهٔ «${b.window}» چیده شد.`); });
+    d.unplaced.forEach(u=>{ if(!d.active) return; warns.push(`«${u.title}» جا نشد (${fmtDur(u.dur)}${u.window?" — "+u.window:""}).`); });
+    const bl = d.blocks;
+    for(let i=1;i<bl.length;i++){
+      const a=bl[i-1], b=bl[i];
+      if(a.start<b.end && b.start<a.end){
+        if(a.kind==="fixed" && b.kind==="fixed")
+          warns.push(`تداخل: «${a.title}» و «${b.title}» در ${DAY_NAMES[d.idx]}.`);
+        if((a.kind==="fixed"&&b.kind==="duty")||(a.kind==="duty"&&b.kind==="fixed"))
+          warns.push(`«${(a.kind==="fixed"?a:b).title}» در ${DAY_NAMES[d.idx]} با زمان رساندن بچه‌ها هم‌پوشانی دارد.`);
+      }
+    }
+  });
+  days.forEach(d=>{
+    const ks = d.blocks.filter(b=>b.kind==="kid");
+    for(let i=0;i<ks.length;i++) for(let j=i+1;j<ks.length;j++)
+      if(ks[i].kid===ks[j].kid && ks[i].start<ks[j].end && ks[j].start<ks[i].end)
+        warns.push(`⚠️ ${DAY_NAMES[d.idx]}: دو کلاس ${ks[i].kid} همپوشان‌اند («${ks[i].title}» و «${ks[j].title}») — جدول کلاس‌ها را اصلاح کن`);
+  });
+  /* هشدارهای شیفت و خانمم */
+  days.forEach(d=>{
+    const drv = d.driver||"", noDrv = !drv, isSelf = drv===(family&&family.selfName);
+    const ww = d.wifeWin;
+    for(const b of d.blocks){
+      if(b.kind!=="kid"&&!b.nobusy) continue;
+      const bef = b.travel!=null? b.travel : ((family&&family.pickupMin)||15);
+      const aft = b.travel!=null? b.travel : ((family&&family.dropoffMin)||15);
+      const s2 = b.start-bef, e2 = b.end+aft;
+      const workHit = d.blocks.some(w=>w.kind==="work" && s2<w.end && w.start<e2);
+      if((isSelf||noDrv) && workHit)
+        warns.push(`🕗 ${DAY_NAMES[d.idx]} «${b.kid} — ${b.title}» با شیفت کاری تو تداخل دارد${noDrv?" — راننده تعیین کن":" (تو راننده‌ای ولی در شیفت کاری هستی!)"}`);
+      else if(drv===(family&&family.wifeName) && ww && s2<ww[1] && ww[0]<e2)
+        warns.push(`👩 ${DAY_NAMES[d.idx]} «${b.kid} — ${b.title}» در ساعت کاری خانمم است (تا ${fmtT(ww[1])}) — رانندهٔ دیگری انتخاب کن`);
+    }
+  });
+  days.forEach(d=>{
+    if(!d.carOwn) return;
+    const wbs=d.blocks.filter(w=>w.kind==="work");
+    if(!wbs.length) return;
+    const arr = Math.max.apply(null, wbs.map(w=>w.end));
+    if(arr<1000) return;
+    for(const b of d.blocks){
+      if(b.kind!=="kid"&&!b.nobusy) continue;
+      if(b.end>=arr-90 && b.end<=arr+30)
+        warns.push(`🚙 با ماشین خودت حدود ${fmtT(arr)} خونه‌ای — در مسیر برگشت دنبال ${b.kid} برو (${b.title} تا ${fmtT(b.end)} تمام می‌شود)`);
+    }
+  });
+  const uni = [...new Set(warns)];
+  document.getElementById("summaryBox").innerHTML = `
+    <h2>راهنما</h2>
+    <div class="leg">
+      <span><i style="background:var(--fixed)"></i>ساعت ثابت</span>
+      <span><i style="background:var(--duty)"></i>رانندگی</span>
+      <span><i style="background:#14b8a6"></i>کلاس بچه‌ها</span>
+      <span><i style="background:var(--p1)"></i>اولویت بالا</span>
+    </div>
+    <p style="margin-top:7px;font-size:11.5px;color:var(--muted);line-height:2">
+    <b style="color:var(--ink)">${faNum(n)} کار</b> — ${fmtDur(mins)} • بازهٔ ${fmtT(settings.dayStart)} تا ${fmtT(settings.dayEnd)}</p>
+    ${uni.length?`<div class="warnbox"><h3>⚠️ نکته‌ها</h3><ul>${uni.slice(0,6).map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div>`:""}`;
+}
+
+/* ── خانواده ── */
+function renderFamily(){
+  document.getElementById("drvChips").innerHTML = (family.drivers||[]).map((n,i)=>
+    `<span class="drvchip${n===family.selfName?" me":""}">${esc(n)}${n===family.selfName?' <span style="font-size:9px;opacity:.7">(خودم)</span>':(n!=="من"?`<button onclick="delDriver(${i})">×</button>`:"")}</span>`).join("");
+  document.getElementById("wkDrv").innerHTML = DAY_NAMES.map((n,i)=>
+    `<label>${n}<select onchange="setWeekly(${i},this.value)">
+      <option value=""${!family.driverWeekly[i]?" selected":""}>—</option>
+      ${(family.drivers||[]).map(d=>`<option${family.driverWeekly[i]===d?" selected":""}>${esc(d)}</option>`).join("")}
+    </select></label>`).join("");
+  document.getElementById("blockSelf").checked = family.blockSelf !== false;
+  document.getElementById("pickupMin").value = family.pickupMin||30;
+  document.getElementById("dropoffMin").value = family.dropoffMin||20;
+  renderFamilyPanelShift();
+  document.getElementById("kidsBox").innerHTML = (family.kids||[]).map(k=>{
+    const col = kidColor(k.name);
+    return `<div class="kidcard">
+      <div class="khead"><span class="kdot" style="background:${col}"></span>
+        <input type="text" value="${esc(k.name)}" onchange="renameKid('${k.id}',this.value)">
+        <button class="kdel" onclick="delKid('${k.id}')">×</button></div>
+      ${(k.classes||[]).map(c=>`<div class="clsrow">
+        <input type="text" value="${esc(c.title||"")}" placeholder="نام کلاس…" onchange="setCls('${k.id}','${c.id}','title',this.value)">
+        <div class="timerow">
+          <input type="time" value="${toENtime(fmtT(c.start))}" onchange="setCls('${k.id}','${c.id}','start',this.value)">
+          <span style="color:#94a3b8">تا</span>
+          <input type="time" value="${toENtime(fmtT(c.end))}" onchange="setCls('${k.id}','${c.id}','end',this.value)">
+          <button class="del" onclick="delCls('${k.id}','${c.id}')">×</button>
+        </div>
+        <div class="dayset" style="grid-column:1/-1">${DAY_NAMES.map((dn,di)=>
+          `<label><input type="checkbox" ${(c.weekdays||[]).includes(di)?"checked":""} onchange="toggleClsDay('${k.id}','${c.id}',${di},this.checked)"><span>${dn}</span></label>`).join("")}</div>
+        <label style="grid-column:1/-1;display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#64748b;font-weight:700">🚗 مسیر هر طرف <input type="number" min="0" max="120" style="width:58px;border:1px solid var(--line);border-radius:7px;padding:5px 7px;font:inherit;min-height:36px" value="${c.travel!=null?c.travel:""}" placeholder="پیش‌فرض" onchange="setClsTravel('${k.id}','${c.id}',this.value)"> دقیقه • 🎒 برگشت <select onchange="setClsRet('${k.id}','${c.id}',this.value)" style="border:1px solid var(--line);border-radius:7px;padding:5px 7px;font:inherit;min-height:36px"><option value=""${c.ret==="var"?"":" selected"}>همان راننده</option><option value="var"${c.ret==="var"?" selected":""}>متغیر</option></select></label>
+      </div>`).join("")}
+      <button class="xs" onclick="addCls('${k.id}')">+ کلاس</button>
+    </div>`;
+  }).join("") || `<div class="emptybox">هنوز بچه‌ای اضافه نشده 🎒</div>`;
+}
+function addDriver(){
+  const el = document.getElementById("newDrv");
+  const v = el.value.trim();
+  if(!v) return;
+  if(!family.drivers.includes(v)) family.drivers.push(v);
+  el.value = ""; saveState(); renderFamily(); render();
+}
+function delDriver(i){
+  const n = family.drivers[i];
+  family.drivers.splice(i,1);
+  family.driverWeekly = family.driverWeekly.map(d=>d===n?null:d);
+  Object.keys(family.driverByDate).forEach(k=>{ if(family.driverByDate[k]===n) delete family.driverByDate[k]; });
+  saveState(); renderFamily(); render();
+}
+function setWeekly(i, v){ family.driverWeekly[i] = v||null; saveState(); render(); }
+function setBlockSelf(v){ family.blockSelf = v; saveState(); render(); }
+function setDutyMins(){
+  family.pickupMin = Math.max(0, +document.getElementById("pickupMin").value||0);
+  family.dropoffMin = Math.max(0, +document.getElementById("dropoffMin").value||0);
+  saveState(); render();
+}
+function addKid(){
+  family.kids.push({id:uid(), name:"بچه "+faNum((family.kids||[]).length+1), classes:[]});
+  saveState(); renderFamily(); render();
+}
+function delKid(id){ family.kids = family.kids.filter(k=>k.id!==id); saveState(); renderFamily(); render(); }
+function renameKid(id, name){ const k=family.kids.find(x=>x.id===id); if(k&&name.trim()){ k.name=name.trim(); saveState(); renderFamily(); render(); } }
+function findKid(id){ return family.kids.find(k=>k.id===id); }
+function addCls(kidId){
+  const k = findKid(kidId); if(!k) return;
+  k.classes.push({id:uid(), title:"", weekdays:[], start:480, end:600});
+  saveState(); renderFamily(); render();
+}
+function delCls(kidId, clsId){ const k=findKid(kidId); if(k) k.classes=k.classes.filter(c=>c.id!==clsId); saveState(); renderFamily(); render(); }
+function setCls(kidId, clsId, field, val){
+  const k=findKid(kidId); if(!k) return;
+  const c=k.classes.find(x=>x.id===clsId); if(!c) return;
+  if(field==="title"){ c.title=val; }
+  else { const v=parseHHMM(val); if(v!=null) c[field]=v; }
+  saveState(); render();
+}
+function setClsRet(kidId, clsId, v){
+  const k=(family.kids||[]).find(x=>x.id===kidId); if(!k) return;
+  const c=(k.classes||[]).find(x=>x.id===clsId); if(!c) return;
+  if(v) c.ret=v; else delete c.ret;
+  saveState(); render();
+}
+function setClsTravel(kidId, clsId, val){
+  const k=findKid(kidId); if(!k) return;
+  const c=k.classes.find(x=>x.id===clsId); if(!c) return;
+  const v=parseInt(val,10);
+  c.travel = (isNaN(v)||v<=0) ? null : Math.min(120,v);
+  saveState(); render();
+}
+function toggleClsDay(kidId, clsId, di, on){
+  const k=findKid(kidId); if(!k) return;
+  const c=k.classes.find(x=>x.id===clsId); if(!c) return;
+  c.weekdays = c.weekdays||[];
+  if(on && !c.weekdays.includes(di)) c.weekdays.push(di);
+  if(!on) c.weekdays = c.weekdays.filter(x=>x!==di);
+  saveState(); render();
+}
+
+/* ── کارها ── */
+function scopeLabel(t){
+  if(t.fixStart!=null){
+    let s = "🔒 "+fmtRange(t.fixStart,t.fixEnd);
+    if(t.weekdays&&t.weekdays.length) s += " — هر هفته "+t.weekdays.map(i=>DAY_NAMES[i]).join("،");
+    else if(t.dates&&t.dates.length) s += " — "+t.dates.map(d=>jalaliStr(d,false)).join("،");
+    return s;
+  }
+  let s = "⏱ "+fmtDur(t.dur||60)+(t.window?" — "+t.window:"");
+  if(t.weekdays&&t.weekdays.length) s += " — "+t.weekdays.map(i=>DAY_NAMES[i]).join("،");
+  else if(t.dates&&t.dates.length) s += " — "+t.dates.map(d=>jalaliStr(d,false)).join("،");
+  else if(t.everyDay) s += " — هر روز";
+  else if(t.weekOnly!=null) s += " — فقط هفتهٔ "+jalaliStr(new Date(t.weekOnly),false);
+  else if(t.perWeek) s += " — هر هفته "+faNum(t.perWeek)+" بار";
+  else s += " — هر هفته یک بار";
+  return s;
+}
+function renderTaskList(){
+  const el = document.getElementById("taskList");
+  if(!tasks.length){ el.innerHTML = `<div class="emptybox">هنوز کاری ثبت نشده ✍️</div>`; return; }
+  el.innerHTML = tasks.map(t=>`
+    <div class="trow"><span class="tt">${esc(t.title)}</span>
+      <button class="del" onclick="removeTask('${t.id}',null)">×</button>
+      <span class="meta">${scopeLabel(t)} <span class="tag pr${t.priority}">اولویت ${PR_NAME[t.priority]}</span></span></div>`).join("");
+}
+
+/* ── تنظیمات ── */
+function renderSettings(){
+  const ds = document.getElementById("dayStart"), de = document.getElementById("dayEnd");
+  ds.value = toENtime(fmtT(settings.dayStart));
+  de.value = toENtime(fmtT(settings.dayEnd));
+  ds.onchange = e=>{ const v=parseHHMM(e.target.value); if(v!=null){ settings.dayStart=v; if(settings.dayEnd<=v){settings.dayEnd=Math.min(1440,v+120);} saveState(); renderSettings(); render(); } };
+  de.onchange = e=>{ const v=parseHHMM(e.target.value); if(v!=null){ settings.dayEnd=v; saveState(); render(); } };
+  document.getElementById("daySet").innerHTML = DAY_NAMES.map((n,i)=>
+    `<label><input type="checkbox" ${settings.active.includes(i)?"checked":""} onchange="toggleDay(${i},this.checked)"><span>${n}</span></label>`).join("");
+}
+function toggleDay(i, on){
+  const set = new Set(settings.active);
+  on ? set.add(i) : set.delete(i);
+  settings.active = [0,1,2,3,4,5,6].filter(k=>set.has(k));
+  if(!settings.active.length) settings.active=[i];
+  saveState(); renderSettings(); render();
+}
+
+/* ── JSON ── */
+function exportJSON(){
+  const obj = {
+    week_start: dkey(satOf(TODAY())),
+    day_start: toENtime(fmtT(settings.dayStart)),
+    day_end: toENtime(fmtT(settings.dayEnd)),
+    days: settings.active,
+    tasks: tasks.map(t=>{
+      const o = {title:t.title};
+      if(t.weekdays&&t.weekdays.length) o.days = t.weekdays.map(i=>DAY_NAMES[i]);
+      else if(t.dates&&t.dates.length) o.days = t.dates.map(d=>DAY_NAMES[satIdx(d)]);
+      else if(t.everyDay) o.days = DAY_NAMES.slice();
+      if(t.perWeek) o.per_week = t.perWeek;
+      if(t.fixStart!=null) o.time = toENtime(fmtT(t.fixStart))+"-"+toENtime(fmtT(t.fixEnd));
+      else o.duration = t.dur||60;
+      if(t.window) o.window = t.window;
+      o.priority = PR_NAME[t.priority];
+      if(t.notes) o.notes = t.notes;
+      return o;
+    })
+  };
+  const blob = new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "tasks.json";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function clearAll(){
+  if(!confirm("همهٔ کارها پاک شوند؟")) return;
+  tasks = []; saveState(); renderTaskList(); render();
+}
+function importJSONText(txt){
+  const obj = JSON.parse(txt);
+  const pr = {"بالا":1,"زیاد":1,"high":1,"مهم":1,"متوسط":2,"وسط":2,"medium":2,"پایین":3,"کم":3,"low":3};
+  (obj.tasks||[]).forEach(tt=>{
+    let priority = 2;
+    if(typeof tt.priority==="number") priority = Math.min(3,Math.max(1,tt.priority));
+    else if(tt.priority) priority = pr[String(tt.priority).trim()] ?? 2;
+    let fixStart=null, fixEnd=null;
+    if(tt.time){
+      const m = enNum(String(tt.time)).match(/(\d{1,2})(?::(\d{2}))?\s*(?:تا|-|–)\s*(\d{1,2})(?::(\d{2}))?/);
+      if(m){ fixStart=+m[1]*60+(+(m[2]||0)); fixEnd=+m[3]*60+(+(m[4]||0)); }
+    }
+    let weekdays = null;
+    if(tt.days){
+      const arr = Array.isArray(tt.days)?tt.days:[tt.days];
+      const idxs = arr.map(x=>DAY_NAMES.findIndex(n=>String(x).replace(/[\s\u200c]/g,"")===n.replace(/[\s\u200c]/g,"")));
+      if(idxs.some(i=>i>=0)) weekdays = [...new Set(idxs.filter(i=>i>=0))];
+    }
+    tasks.push({id:uid(), title:tt.title||"کار", dates:null, weekdays,
+      everyDay: Array.isArray(tt.days)&&tt.days.length>=7,
+      weekOnly:null, perWeek:tt.per_week||null,
+      fixStart, fixEnd, dur:tt.duration||60, window:tt.window||null,
+      priority, notes:tt.notes||"", createdAt:Date.now()});
+  });
+  if(obj.day_start){ const v=parseHHMM(toENtime(String(obj.day_start)).slice(0,5)); if(v!=null) settings.dayStart=v; }
+  if(obj.day_end){ const v=parseHHMM(toENtime(String(obj.day_end)).slice(0,5)); if(v!=null) settings.dayEnd=v; }
+  saveState(); renderSettings(); if(mode==="tasks") renderTaskList(); render();
+}
+
+/* ── اعلان کلاس‌ها (نیم‌ساعت قبل) ── */
+let notifOn = store.get("wp2_notif")!=="0";
+let notifFired = {};
+try{ notifFired = JSON.parse(store.get("wp2_notifFired")||"{}")||{}; }catch(e){ notifFired={}; }
+function notifToggle(){
+  notifOn = !notifOn; store.set("wp2_notif", notifOn?"1":"0");
+  if(notifOn && typeof Notification!=="undefined" && Notification.permission==="default"){
+    try{ const p=Notification.requestPermission(); if(p&&p.then) p.then(function(){ render(); }).catch(function(){}); }catch(e){}
+  }
+  render();
+}
+function notifToast(msg){
+  const w=document.getElementById("toastwrap"); if(!w) return;
+  const d=document.createElement("div"); d.className="toast"; d.innerHTML=msg;
+  w.appendChild(d);
+  setTimeout(function(){ if(d&&d.remove) d.remove(); }, 45000);
+}
+function nextClassHTML(day){
+  try{
+    if(!day) return "";
+    const kids=day.blocks.filter(function(b){return b.kind==="kid";}).sort(function(a,b){return a.start-b.start;});
+    if(!kids.length) return "";
+    const now=new Date();
+    const isToday=sameDay(day.date, now);
+    const nm=now.getHours()*60+now.getMinutes();
+    const k=isToday? kids.find(function(b){return b.start>nm;}) : kids[0];
+    if(!k) return "";
+    const when=isToday? "، "+fmtDur(k.start-nm)+" دیگر" : " — "+DAY_NAMES[satIdx(day.date)];
+    return '<div class="notifbar">🔔 '+(isToday?"کلاس بعدی: ":"اولین کلاس: ")+"<b>"+esc(k.kid)+" — "+esc(k.title)+"</b> ساعت "+fmtT(k.start)+when+"</div>";
+  }catch(e){ return ""; }
+}
+function checkNotifs(){
+  if(!notifOn) return;
+  try{
+    const now=new Date(); const dk=dkey(now); const nm=now.getHours()*60+now.getMinutes();
+    const days=planWeek(tasks, satOf(now), settings, family, shiftCfg);
+    const day=days[satIdx(now)]; if(!day) return;
+    let changed=false;
+    for(const b of day.blocks){
+      if(b.start<=nm||b.start>nm+30) continue;
+      if(remState(dk,b)!==1) continue;
+      const key=dk+"|"+b.start+"|"+b.kid;
+      if(notifFired[key]) continue;
+      notifFired[key]=1; changed=true;
+      notifToast("🔔 "+esc(b.kid)+" — "+esc(b.title)+" ساعت "+fmtT(b.start)+" ("+fmtDur(b.start-nm)+" دیگر)");
+      if(typeof Notification!=="undefined" && Notification.permission==="granted"){
+        try{ new Notification("کلاس "+b.kid, {body:b.title+" — "+fmtT(b.start)+" ("+fmtDur(b.start-nm)+" دیگر)"}); }catch(e){}
+      }
+    }
+    const ks=Object.keys(notifFired);
+    if(ks.length>300){ ks.slice(0,ks.length-150).forEach(function(k){ delete notifFired[k]; }); changed=true; }
+    if(changed) store.set("wp2_notifFired", JSON.stringify(notifFired));
+  }catch(e){}
+}
+if(typeof setInterval==="function"){ setInterval(checkNotifs, 20000); }
+
+/* ── نمونه‌ها ── */
+const EXAMPLES = ["فردا ساعت ۱۰ تا ۱۲ کلاس ریاضی","راننده فردا: اسنپ","این هفته ۳ بار ورزش","پنجشنبه ساعت ۱۷ جلسه","فردا استراحتم","اضافه‌کار یکشنبه","شنبه ماشین خودم"];
+function renderExamples(){
+  const el = document.getElementById("exRow");
+  EXAMPLES.forEach(x=>{
+    const b = document.createElement("button");
+    b.className = "ex"; b.textContent = x;
+    b.onclick = ()=>{ const ta=document.getElementById("chatIn"); ta.value = (ta.value?ta.value.trimEnd()+"\n":"")+x; ta.focus(); };
+    el.appendChild(b);
+  });
+}
+
+/* ── seed ── */
+const SEED_VER = "13";
+function seedNotes(){ return [
+  {text:"🏫 مدرسهٔ بچه‌ها: شنبه تا چهارشنبه ۸ تا ۱۳:۳۰ — کار خانمم هم تا ۱۳:۳۰", weekdays:[0,1,2,3]},
+  {text:"📞 فیروزهٔ انفرادی پارسا: دوشنبه‌ها — ساعتش هر هفته متغیره", weekdays:[2]},
+  {text:"🐍 پایتون پارسا: پنجشنبه‌ها، ساعت هر هفته فرق می‌کند — شب قبل یا صبح پنجشنبه بنویس: «پایتون پارسا ۱۵ تا ۱۶:۳۰»", weekdays:[3,5]},
+  {text:"📅 والیبال پرورده: شنبه/دوشنبه/چهارشنبه ۱۸–۱۹:۳۰ — جمعه‌ها هیچ کلاسی ندارند", weekdays:[0,1,2,3,4,5,6]},
+  {text:"🏊 شنا خانمم: خودش می‌رود — ۳۰ دقیقه رفت و ۳۰ دقیقه برگشت (ش/د/چ ۱۵–۱۷)", weekdays:[0,2,4]},
+  {text:"👩‍👧 کلاس گروهی مادران با فیروزه: سه‌شنبه ۱۶–۱۷:۳۰", weekdays:[3]},
+  {text:"📞 جلسهٔ خصوصی خانمم با فیروزه: روز وساعتش متغیره — در کادر درخواستِ همان روز بنویس: «جلسه فیروزه ۱۷ تا ۱۸:۳۰»", weekdays:[0,1,2,3,4,5]},
+  {text:"❌ کونگ‌فو پارسا تا اطلاع ثانوی کنسل است", weekdays:[1,3]}
+];}
+function seedKids(){ return [
+  {id:"k1", name:"پارسا", classes:[
+    {id:"ps1", title:"مدرسه", weekdays:[0,1,2,3], start:480, end:810, travel:0, nodrv:true},
+    {id:"p1",  title:"پایتون", weekdays:[5], start:900, end:990, varTime:true},
+    {id:"p2",  title:"والیبال (پرورده)", weekdays:[0,2,4], start:1080, end:1170, travel:30, ret:"var"},
+    {id:"p3",  title:"والیبال (ابوالمعصومی)", weekdays:[1], start:870, end:960, travel:0, ret:"var"},
+    {id:"p5",  title:"زبان (آنلاین)", weekdays:[1,3], start:990, end:1050, travel:0, online:true},
+    {id:"p9",  title:"رباتیک", weekdays:[3], start:1110, end:1200},
+    {id:"p11", title:"والیبال (ابوالمعصومی)", weekdays:[4], start:900, end:1020, travel:30}
+  ]},
+  {id:"k2", name:"مهرسا", classes:[
+    {id:"ms1", title:"مدرسه", weekdays:[0,1,2,3], start:480, end:810, travel:0, nodrv:true},
+    {id:"m1",  title:"شنا", weekdays:[0,2,4], start:900, end:1020, travel:30, ret:"var"},
+    {id:"m2",  title:"موسیقی", weekdays:[0], start:1170, end:1200},
+    {id:"m3",  title:"زبان (آنلاین)", weekdays:[1,3], start:930, end:990, travel:0, online:true},
+    {id:"m4",  title:"فیروزه انفرادی", weekdays:[2], start:1140, end:1200, travel:30},
+    {id:"m5",  title:"تکواندو", weekdays:[1,3,5], start:1140, end:1230},
+    {id:"m7",  title:"کارگاه حل مسئله (فیروزه)", weekdays:[5], start:960, end:1020, travel:30}
+  ]},
+  {id:"kw", name:"خانمم", classes:[
+    {id:"w1", title:"شنا", weekdays:[0,2,4], start:900, end:1020, travel:0, nodrv:true},
+    {id:"w2", title:"کلاس گروهی مادران (با فیروزه)", weekdays:[3], start:960, end:1050, travel:0, nodrv:true}
+  ]}
+];}
+function seedIfEmpty(){
+  if(store.get("wp2_seeded")){
+    if(store.get("wp2_seedVer")!==SEED_VER && family && family.kids){
+      family.driverByKidDate = {};
+      family.kids = seedKids();
+      family.notes = seedNotes();
+      store.set("wp2_seedVer", SEED_VER);
+      saveState();
+    }
+    return;
+  }
+  tasks = [];   /* کارهای خودت را داخل اپ اضافه کن */
+  family = {...DEFAULT_FAMILY, kids:seedKids(), notes:seedNotes(), driverWeekly:[null,null,null,null,null,null,null]};
+  store.set("wp2_seeded","1");
+  store.set("wp2_seedVer", SEED_VER);
+  saveState();
+}
+
+/* ── شروع ── */
+function init(){
+  loadState();
+  if(!family) family = {...DEFAULT_FAMILY};
+  if(!shiftCfg) shiftCfg = {...DEFAULT_SHIFT};
+  if(!closedPlans) closedPlans = [];
+  if(!dayNotes) dayNotes = {};
+  if(!store.ok) document.getElementById("storageNote").style.display="block";
+  seedIfEmpty();
+  renderSettings();
+  renderExamples();
+  document.getElementById("addBtn").onclick = addFromInput;
+  document.getElementById("chatIn").addEventListener("keydown", e=>{
+    if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); addFromInput(); }
+  });
+  document.getElementById("newDrv").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addDriver(); } });
+  document.getElementById("importFile").addEventListener("change", e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{ try{ importJSONText(rd.result); }catch(err){ alert("فایل JSON معتبر نیست."); } };
+    rd.readAsText(f, "utf-8");
+  });
+  if(!calSel) calSel=dkey(TODAY());
+  checkNotifs();
+  setMode(mode);
+}
+init();
+</script>
+</body>
+</html>

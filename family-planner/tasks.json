@@ -1,0 +1,14 @@
+{
+  "day_start": "08:00",
+  "day_end": "22:00",
+  "tasks": [
+    { "title": "کلاس ریاضی", "days": ["شنبه", "دوشنبه", "سه‌شنبه"], "time": "10:00 تا 12:00", "priority": "بالا" },
+    { "title": "جلسه کاری", "days": ["یکشنبه"], "time": "16:00 تا 17:30", "priority": "بالا", "notes": "گزارش پیشرفت را قبل از جلسه آماده کن" },
+    { "title": "مطالعه فصل ۳ ریاضی", "duration": 120, "days": ["شنبه", "دوشنبه"], "priority": "بالا", "window": "عصر" },
+    { "title": "زبان انگلیسی", "duration": 60, "per_week": 4, "priority": "متوسط", "window": "صبح" },
+    { "title": "ورزش: باشگاه", "duration": 90, "per_week": 3, "priority": "متوسط" },
+    { "title": "تمرین‌های برنامه‌نویسی", "duration": 90, "days": ["چهارشنبه", "پنجشنبه"], "priority": "متوسط" },
+    { "title": "مرور جزوه و یادداشت‌ها", "duration": 45, "per_week": 2, "priority": "پایین", "window": "شب" },
+    { "title": "خرید هفتگی", "duration": 60, "days": ["جمعه"], "priority": "پایین" }
+  ]
+}

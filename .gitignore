@@ -26,3 +26,6 @@ npm-debug.log*
 # خروجی آماده Worker برای deploy سریع Cloudflare
 !.open-next/
 !.open-next/**
+
+# بایگانی/دانلودهای موقت Google Drive
+google_drive/
