@@ -13,11 +13,12 @@
     "week": "node scripts/gen-week.cjs",
     "patch": "node scripts/apply-patch.js",
     "test": "node tests/test-core.cjs",
-    "test:ui": "node -r ./tests/fixed-date.cjs tests/test-ui.cjs && node -r ./tests/fixed-date.cjs tests/test-ui-mobile.cjs",
+    "test:ui": "node -r ./tests/fixed-date.cjs tests/test-ui.cjs && node -r ./tests/fixed-date.cjs tests/test-ui-mobile.cjs && node tests/test-pdf.cjs",
     "verify": "node scripts/verify.js",
     "test:all": "node scripts/verify.js",
     "audit:patches": "node scripts/apply-patch.js status",
-    "serve": "node scripts/serve.js"
+    "serve": "node scripts/serve.js",
+    "test:pdf": "node tests/test-pdf.cjs"
   },
   "dependencies": {
     "arabic-persian-reshaper": "^1.0.1",

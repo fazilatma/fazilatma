@@ -18,6 +18,7 @@ const INK = [15, 23, 42];
 const MUT = [100, 116, 139];
 const LINE = [203, 213, 225];
 const ACC = [79, 70, 229];
+const TODAY_CARD = [99, 102, 241];
 
 /**
  * @param {Map<number, import('./core.js').DayPlan>} days
@@ -28,7 +29,7 @@ const ACC = [79, 70, 229];
  * @param {string} outPath
  * @returns {Promise<boolean>} آیا PDF ساخته شد
  */
-export function buildPdf(days, weekStart, dayStart, dayEnd, warnings, outPath) {
+export function buildPdf(days, weekStart, dayStart, dayEnd, warnings, outPath, opts = {}) {
   const reg = join(FONT_DIR, 'Vazirmatn-Regular.ttf');
   const bold = join(FONT_DIR, 'Vazirmatn-Bold.ttf');
 
@@ -47,6 +48,10 @@ export function buildPdf(days, weekStart, dayStart, dayEnd, warnings, outPath) {
   const H = () => 841.89;   // 297mm
   const ML = 8; const MR = 8; const MB = 8;
   const R = new RtlWriter(doc, { regular: reg, bold });
+
+  const today = opts.today || new Date();
+  const sameDay = (a, b) => a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
   const all = [...days.values()];
   const totalBlocks = all.reduce((a, d) => a + d.blocks.length, 0);
@@ -84,14 +89,34 @@ export function buildPdf(days, weekStart, dayStart, dayEnd, warnings, outPath) {
     else drawDay(x, y, cardW, cardH, d);
   });
 
-  function drawCardFrame(x, y, w, h) {
-    doc.save().lineWidth(0.35).strokeColor(rgb(LINE)).roundedRect(x, y, w, h, 4).stroke().restore();
+  function drawCardFrame(x, y, w, h, highlight = false) {
+    if (highlight) {
+      doc.save().lineWidth(1.1).strokeColor(rgb(TODAY_CARD))
+        .roundedRect(x, y, w, h, 5).stroke().restore();
+      doc.save().lineWidth(0.4).strokeColor(rgb([199, 210, 254]))
+        .roundedRect(x + 1.4, y + 1.4, w - 2.8, h - 2.8, 4).stroke().restore();
+    } else {
+      doc.save().lineWidth(0.45).strokeColor(rgb(LINE)).roundedRect(x, y, w, h, 5).stroke().restore();
+    }
   }
 
   function drawDay(x, y, w, h, d) {
-    drawCardFrame(x, y, w, h);
+    const isToday = sameDay(d.date, today);
+    drawCardFrame(x, y, w, h, isToday);
     // سربرگ کارت — سطر ۱: نام روز (راست) + تاریخ شمسی (چپ)
-    R.textRightAt(DAY_NAMES[d.idx], x + w - 6, y + 4, { size: 10.5, weight: 'bold', color: rgb(INK) });
+    const nameW = R.textRightAt(DAY_NAMES[d.idx], x + w - 6, y + 4,
+      { size: 10.5, weight: 'bold', color: rgb(INK) });
+    if (isToday) {
+      // نشان «امروز» کنار نام روز
+      const badge = 'امروز';
+      R.setFont('bold');
+      const bw = R.width(badge, 6.2) + 7;
+      const bx = x + w - 6 - nameW - 5 - bw;
+      doc.save();
+      doc.fillColor(rgb(ACC)).roundedRect(bx, y + 5, bw, 9.5, 5).fill();
+      doc.restore();
+      R.textLeftAt(badge, bx + 3.5, y + 7.2, { size: 6.2, weight: 'bold', color: '#ffffff' });
+    }
     R.textLeftAt(jalaliStr(d.date, false), x + 6, y + 5, { size: 8, color: rgb(MUT) });
     // سطر ۲: تاریخ میلادی (راست) + زمان آزاد (چپ)
     R.textRightAt(gregorianStr(d.date, false), x + w - 6, y + 15, { size: 6.6, color: rgb(MUT) });
@@ -178,13 +203,24 @@ export function buildPdf(days, weekStart, dayStart, dayEnd, warnings, outPath) {
 }
 
 /* ابزارهای کوچک */
-function rgb(c) { return `rgb(${c[0]},${c[1]},${c[2]})`; }
+/**
+ * رنگ را به hex تبدیل می‌کند — نه رشتهٔ `rgb(...)`.
+ * pdfkit رشتهٔ rgb() را در `_fillColor` نگه می‌دارد و در هر `text()`
+ * دوباره اعمالش می‌کند؛ ولی فقط وقتی رشته «هگز» یا آرایه باشد درست
+ * کار می‌کند. با rgb() رنگِ متن قبلی روی همهٔ متن‌های بعدی می‌چسبد
+ * (باگ واقعی: کارت جمعه و خلاصه سفید روی سفید می‌شدند).
+ */
+function rgb(c) {
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+  return `#${c.map((v) => clamp(v).toString(16).padStart(2, '0')).join('')}`;
+}
 function shapeForMeasure(s) { return s; }
 
 /** اطمینان از وجود پوشهٔ خروجی و ساخت PDF */
-export async function writePdf(days, weekStart, dayStart, dayEnd, warnings, outPath) {
+export async function writePdf(days, weekStart, dayStart, dayEnd, warnings, outPath, opts = {}) {
   mkdirSync(dirname(outPath), { recursive: true });
-  return buildPdf(days, weekStart, dayStart, dayEnd, warnings, outPath);
+  return buildPdf(days, weekStart, dayStart, dayEnd, warnings, outPath, opts);
 }
 
 export default writePdf;
+export { rgb };

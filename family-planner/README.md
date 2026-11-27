@@ -14,7 +14,8 @@ npm run build              # planner-app.html + planner-mobile.html (از قال
 npm run pdf                # output/weekly-plan.html + output/weekly-plan.pdf
 npm run week               # «برنامه-این-هفته.html» برای همین هفته
 npm test                   # ۱۱۳ تست هسته
-npm run test:ui            # تست‌های رابط دسکتاپ و موبایل (تاریخ ثابت)
+npm run test:ui            # رابط دسکتاپ + موبایل (تاریخ ثابت) + تست PDF
+npm run test:pdf           # فقط تست رنگ‌ها و ساخت PDF
 npm run verify             # بررسی کل زنجیره: build + تست‌ها + PDF + پچ‌ها + برابری با پایتون
 npm run serve              # پیش‌نمایش اپ در مرورگر (localhost:8123)
 ```
@@ -78,7 +79,12 @@ node scripts/apply-patch.js status         # چند لنگر اعمال‌شده
 `tests/fixtures/py-weekly-plan.html` مقایسه می‌شود.
 
 PDF در یک صفحه با فونت وزیرمتن ساخته می‌شود؛ متن فارسی با شکل‌دهی حروف و ارقام فارسی
-راست‌به‌چپ چیده می‌شود.
+راست‌به‌چپ چیده می‌شود. کارت امروز با قاب بنفش و نشان «امروز» مشخص می‌شود و نوار رنگی
+اولویت کنار هر کار می‌آید.
+
+نکتهٔ pdfkit: رنگ را همیشه **هگز** بدهید (`#0f172a`)، نه `rgb(15,23,42)`. با رشتهٔ `rgb()`
+pdfkit رنگ را برای همهٔ متن‌های بعدی نگه می‌دارد و کارت‌ها سفید روی سفید می‌شوند.
+`tests/test-pdf.cjs` نگهبان همین مورد است.
 
 ## تست‌ها
 

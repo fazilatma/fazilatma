@@ -192,6 +192,9 @@ export class RtlWriter {
       if (u.t === 'num') drawNumeric(this.doc, u.s, pen, y, size);
       else this.doc.text(shapeUnit(u), pen, y, { lineBreak: false, features: false });
     }
+    // عرض کل متن رسم‌شده (برای چیدن چیزهای بعدی کنارش)
+    const total = units.reduce((a, u) => a + u.w, 0);
+    return total;
   }
 
   /** یک تکه متن در یک نقطه، چپ‌چین از xLeft */

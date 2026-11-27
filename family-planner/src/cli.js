@@ -84,7 +84,7 @@ export function terminalReport(days, weekStart, warnings, htmlPath, pdfOk, pdfPa
  * @returns {Promise<{htmlPath:string, pdfPath:string, pdfOk:boolean, days:Map, warnings:string[], weekStart:Date}>}
  */
 export async function runCli(options = {}) {
-  const args = { ...parseArgs([]), ...options };
+  const args = { ...parseArgs(process.argv.slice(2)), ...options };
   if (args.help) {
     console.log(HELP);
     return null;

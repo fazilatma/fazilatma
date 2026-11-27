@@ -40,6 +40,7 @@ for (const [label, args] of [
   ['هسته (113 تست)', ['tests/test-core.cjs']],
   ['رابط دسکتاپ', ['-r', './tests/fixed-date.cjs', 'tests/test-ui.cjs']],
   ['رابط موبایل', ['-r', './tests/fixed-date.cjs', 'tests/test-ui-mobile.cjs']],
+  ['PDF (رنگ‌ها و ساخت)', ['tests/test-pdf.cjs']],
 ]) {
   try {
     const out = run('node', args);
