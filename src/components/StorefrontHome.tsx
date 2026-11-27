@@ -317,6 +317,33 @@ export default function StorefrontHome({
       )}
 
       {!carPartsPrimary && (
+        <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-900">راهنمای خرید لپ‌تاپ از OptiBid</h2>
+            <div className="mt-3 space-y-3 text-sm leading-8 text-slate-600">
+              <p>
+                در OptiBid می‌توانید لپ‌تاپ نو، استوک و کارکرده را با هم مقایسه کنید. همه مدل‌ها مشخصات کامل دارند.
+                قیمت‌ها شفاف اعلام می‌شود و مبلغ نهایی پیش از پرداخت نمایش داده می‌شود. برای هر کالا مهلت تست در نظر گرفته شده است.
+                اگر بین چند مدل مردد هستید، فیلترهای سمت راست را بر اساس بودجه و کاربری تنظیم کنید.
+                کارشناسان ما هم آماده‌اند تا انتخاب درست را پیشنهاد دهند.
+              </p>
+              <p>
+                برای کار اداری، سری‌های ThinkPad و Latitude گزینه‌های پایدارتری هستند. برای دانشجویان، مدل‌های سبک با قیمت منطقی کافی است.
+                اگر بازی یا رندر انجام می‌دهید، لپ‌تاپ با گرافیک مجزا و خنک‌کاری قوی انتخاب کنید.
+                پیش از خرید، ظرفیت حافظه و نوع صفحه‌نمایش را بررسی کنید. گارانتی و شرایط ارسال را هم ببینید.
+                سپس سفارش را آنلاین ثبت کنید یا درخواست خرید بگذارید.
+              </p>
+            </div>
+            <div className="mt-5 grid gap-3 text-xs font-bold text-slate-600 md:grid-cols-3">
+              <div className="rounded-2xl bg-slate-50 p-3">ارسال به سراسر ایران با بسته‌بندی ایمن.</div>
+              <div className="rounded-2xl bg-slate-50 p-3">پرداخت امن و امکان پیگیری سفارش در پنل کاربری.</div>
+              <div className="rounded-2xl bg-slate-50 p-3">پشتیبانی خرید و مشاوره انتخاب مدل.</div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {!carPartsPrimary && (
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
