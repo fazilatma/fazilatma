@@ -30,7 +30,7 @@ if ($m === 'sw') {
   header('Service-Worker-Allowed: ./');
   echo <<<'MMDS_SW'
 // MMDS single-file SW — آفلاین کامل (همه‌چیز از همین index.php سرو می‌شود)
-const CACHE = "mmds-single-v6";
+const CACHE = "mmds-single-v7";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.add("./")).then(() => self.skipWaiting()));
 });
@@ -188,6 +188,44 @@ if (file_exists(__DIR__ . '/update.php')) {
   .auth-close{position:absolute;top:12px;left:12px}
   .auth-close button,.auth-switch{border:0;background:transparent;color:var(--acc2);font:inherit;cursor:pointer;padding:8px}
   #auth-status{min-height:24px;margin:8px 0;color:var(--acc2)}
+
+  /* ─────────────── گزارش و آنالیز تخصصی ژنراتور ─────────────── */
+  .gen-box{border:1.6px solid #0284c7;background:linear-gradient(180deg,#0a1733,#081126);border-radius:18px;padding:18px;margin-top:16px}
+  .gen-preset-btn{background:#0d2248;color:#7dd3fc;border:1px solid #1e3a6d;transition:.2s}
+  .gen-preset-btn:hover{background:#0284c7;color:#071226;border-color:#38bdf8}
+  .gen-report{background:#0a152d;border:1.5px solid #29487d;border-radius:16px;padding:24px;margin-top:16px;color:var(--txt);box-shadow:0 18px 45px rgba(0,0,0,.45)}
+  .gen-head-bar{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #38bdf844;padding-bottom:14px;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+  .gen-badge{display:inline-block;padding:6px 14px;border-radius:8px;font-weight:800;font-size:14px;letter-spacing:.3px}
+  .gen-badge.zoneA{background:#065f46;color:#6ee7b7;border:1px solid #059669}
+  .gen-badge.zoneB{background:#064e3b;color:#a7f3d0;border:1px solid #10b981}
+  .gen-badge.zoneC{background:#78350f;color:#fde68a;border:1px solid #f59e0b}
+  .gen-badge.zoneD{background:#7f1d1d;color:#fecaca;border:1px solid #ef4444}
+  .gen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:12px 0}
+  .gen-card-item{background:#071126;padding:10px 14px;border-radius:10px;border:1px solid #1c2e56}
+  .gen-card-item .k{font-size:12px;color:var(--mut)}
+  .gen-card-item .v{font-size:16px;font-weight:700;margin-top:4px;color:#f8fafc}
+  .gen-action-box{background:#0f1e3d;border-right:4px solid var(--acc2);border-radius:8px;padding:12px 16px;margin:10px 0;line-height:1.9}
+  .gen-sign-box{display:flex;justify-content:space-between;margin-top:24px;padding-top:18px;border-top:1px dashed #334d7d;flex-wrap:wrap;gap:16px}
+
+  @media print {
+    body{background:#fff!important;color:#000!important;padding:0!important;margin:0!important}
+    header, footer, nav, .hero, .cta, #how, #faq, #rec-card, details:not(#gen-box), #auth-dialog, .auth-btn, #site-update-btn, .btn:not(.print-keep){display:none!important}
+    #gen-box, #gen-box *{visibility:visible!important}
+    #gen-box{background:#fff!important;border:none!important;padding:0!important;margin:0!important}
+    #gen-box summary, #gen-box .row, #gen-box .hint, #gen-box .gen-preset-btn{display:none!important}
+    .gen-report{background:#fff!important;color:#000!important;border:1.5px solid #000!important;padding:16px!important;box-shadow:none!important}
+    .gen-head-bar{border-bottom:2px solid #000!important}
+    .gen-card-item{background:#f8fafc!important;border:1px solid #cbd5e1!important;color:#000!important}
+    .gen-card-item .k{color:#475569!important}
+    .gen-card-item .v{color:#000!important}
+    .gen-action-box{background:#f1f5f9!important;border-right:4px solid #0284c7!important;color:#000!important}
+    .gen-badge.zoneA{background:#e6f4ea!important;color:#137333!important;border:1px solid #137333!important}
+    .gen-badge.zoneB{background:#e6f4ea!important;color:#137333!important;border:1px solid #137333!important}
+    .gen-badge.zoneC{background:#fef7e0!important;color:#b06000!important;border:1px solid #b06000!important}
+    .gen-badge.zoneD{background:#fce8e6!important;color:#c5221f!important;border:1px solid #c5221f!important}
+    table{color:#000!important}
+    th,td{border-bottom:1px solid #ccc!important}
+  }
 </style>
 </head>
 <body>
@@ -386,6 +424,131 @@ if (file_exists(__DIR__ . '/update.php')) {
       </div>
       <div id="qc-out" class="hint">حداقل یک فاز را وارد کن؛ هر سه فاز را بدهی عدم‌تعادل هم چک می‌شود. (انبری ساده موج خام نمی‌دهد — برای آنالیز کامل MCSA از همین صفحه با کلمپ CT ضبط زنده بگیر.)</div>
     </details>
+    <!-- ⚡ مرکز تخصصی پایش وضعیت و آنالیز جامع ارتعاشات ژنراتور -->
+    <details class="box gen-box" id="gen-box" open>
+      <summary style="color:#38bdf8;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px">
+        <span>⚡ پایش وضعیت و آنالیز جامع ارتعاشات ژنراتور (ISO 20816-2 / ISO 8528-9) — نیروگاهی، دیزلی و آبی</span>
+      </summary>
+      <p class="hint" style="margin:8px 0 14px;color:#94a3b8;line-height:1.9">
+        موتور تحلیلی تخصصی ارتعاشات ژنراتور: تفکیک عیوب الکترومغناطیسی (شلی ورقی هسته استاتور ۱۰۰Hz، رزونانس دندانه، عدم‌تقارن فاصله هوایی دینامیکی) از عیوب مکانیکی (نابالانسی جرمی vs خمش حرارتی تحریک Thermal Bow، بدترازی کوپلینگ، ناپایداری گرداب روغن یاتاقان بابیت) مطابق با استانداردهای ISO 20816-2 و ISO 8528-9 همراه با صدور <b>گزارش کارشناسی رسمی و برنامه اقدام اصلاحی قابل ارائه به کارفرما</b>.
+      </p>
+
+      <!-- انتخاب سریع دور کاری استاندارد -->
+      <div style="background:#0c1a36;border:1px solid #1e335f;border-radius:12px;padding:12px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:#38bdf8;margin-bottom:8px">⚡ انتخاب سریع دور کاری و نوع ژنراتور:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn ghost gen-preset-btn" data-rpm="3000" data-type="turbo_gas_steam" data-poles="2" data-fline="50" style="padding:6px 12px;font-size:12.5px">⚡ ۳۰۰۰ rpm (توربوژنراتور ۲ قطب نیروگاهی ۵۰Hz)</button>
+          <button type="button" class="btn ghost gen-preset-btn" data-rpm="1500" data-type="diesel_genset" data-poles="4" data-fline="50" style="padding:6px 12px;font-size:12.5px">⚡ ۱۵۰۰ rpm (دیزل‌ژنراتور صنعتی / ۴ قطب ۵۰Hz)</button>
+          <button type="button" class="btn ghost gen-preset-btn" data-rpm="1000" data-type="hydro" data-poles="6" data-fline="50" style="padding:6px 12px;font-size:12.5px">⚡ ۱۰۰۰ rpm (۶ قطب / هیدروژنراتور)</button>
+          <button type="button" class="btn ghost gen-preset-btn" data-rpm="750" data-type="hydro" data-poles="8" data-fline="50" style="padding:6px 12px;font-size:12.5px">⚡ ۷۵۰ rpm (۸ قطب نیروگاه آبی / دیزل دور پایین)</button>
+          <button type="button" class="btn ghost gen-preset-btn" data-rpm="3600" data-type="turbo_gas_steam" data-poles="2" data-fline="60" style="padding:6px 12px;font-size:12.5px">⚡ ۳۶۰۰ / ۱۸۰۰ rpm (شبکه ۶۰Hz)</button>
+        </div>
+      </div>
+
+      <!-- تنظیمات فنی ژنراتور -->
+      <div class="row" style="margin-top:10px">
+        <div class="fld">
+          <label>نوع ژنراتور</label>
+          <select id="gen-type">
+            <option value="turbo_gas_steam" selected>توربوژنراتور گازی/بخاری (ISO 20816-2)</option>
+            <option value="diesel_genset">دیزل‌ژنراتور صنعتی و اضطراری (ISO 8528-9)</option>
+            <option value="hydro">هیدروژنراتور نیروگاه آبی (ISO 20816-5)</option>
+            <option value="wind">ژنراتور توربین بادی (ISO 20816-3)</option>
+            <option value="industrial">ژنراتور صنعتی کوپله (ISO 20816-3)</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>سرعت روتور (rpm)</label>
+          <input id="gen-rpm" type="number" value="3000" min="50" max="10000" step="any">
+        </div>
+        <div class="fld">
+          <label>فرکانس شبکه (Hz)</label>
+          <select id="gen-fline">
+            <option value="50" selected>۵۰ هرتز (ایران و اروپا)</option>
+            <option value="60">۶۰ هرتز</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>تعداد قطب‌ها</label>
+          <select id="gen-poles">
+            <option value="2" selected>۲ قطب (سنکرون ۳۰۰۰)</option>
+            <option value="4">۴ قطب (سنکرون ۱۵۰۰)</option>
+            <option value="6">۶ قطب (سنکرون ۱۰۰۰)</option>
+            <option value="8">۸ قطب (سنکرون ۷۵۰)</option>
+            <option value="12">۱۲+ قطب (هیدروژنراتور)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div class="fld">
+          <label>نوع سنسور و واحد ارتعاش</label>
+          <select id="gen-unit">
+            <option value="mm/s" selected>سرعت پوسته یاتاقان (mm/s RMS) — استاندارد ISO</option>
+            <option value="g">شتاب‌سنج روی یاتاقان (g)</option>
+            <option value="disp">پروب مجاورتی جابجایی شفت (µm pk-pk) — ژورنال</option>
+            <option value="arb">سیگنال صوتی / سنسور غیرکالیبره (آنالیز نسبی)</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>نوع فونداسیون / شاسی</label>
+          <select id="gen-found">
+            <option value="rigid" selected>صلب و سنگین (Rigid Base)</option>
+            <option value="flexible">انعطاف‌پذیر / لرزه‌گیر (Flexible Base)</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>نوع یاتاقان ژنراتور</label>
+          <select id="gen-jrnl">
+            <option value="y" selected>یاتاقان ژورنال فیلم روغن بابیت (Sleeve / Tilting-pad)</option>
+            <option value="n">یاتاقان غلتکی بلبرینگی (Anti-friction / Roller)</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>تعداد شیارهای استاتور (اختیاری)</label>
+          <input id="gen-slots" type="number" value="72" min="0" max="240" placeholder="مثلاً ۷۲ یا ۰">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div class="fld">
+          <label>وضعیت بار و تحریک الکتریکی</label>
+          <select id="gen-load">
+            <option value="loaded" selected>زیر بار نامی شبکه (Full Load / On-Grid)</option>
+            <option value="no_load_excited">بی‌باری با تحریک کامل (No-Load, Excited)</option>
+            <option value="no_load_unexcited">بی‌باری بدون تحریک (No-Load, Unexcited)</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>نام پروژه / نیروگاه / کارفرما</label>
+          <input id="gen-client" type="text" value="نیروگاه / مجتمع صنعتی" placeholder="جهت درج در گزارش">
+        </div>
+        <div class="fld">
+          <label>کد یا تگ تجهیز</label>
+          <input id="gen-tag" type="text" value="GEN-Unit-01" placeholder="مثلاً TG-01">
+        </div>
+        <div class="fld">
+          <label>موقعیت و جهت سنسور</label>
+          <input id="gen-pos" type="text" value="یاتاقان سمت توربین/محرک - افقی (DE-H)" placeholder="مثلاً DE-H">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;align-items:center;gap:10px">
+        <button class="btn" id="gen-go" type="button" style="flex:2;background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;font-size:15px">
+          ⚡ اجرای آنالیز تخصصی ارتعاشات ژنراتور
+        </button>
+        <button class="btn ghost" id="gen-report-btn" type="button" style="flex:1.5;border-color:#38bdf8;color:#38bdf8;font-size:14px">
+          📄 صدور گزارش کارشناسی رسمی پایش وضعیت
+        </button>
+        <button class="btn ghost" id="gen-demo-btn" type="button" style="flex:1;border-color:#10b981;color:#10b981;font-size:13px">
+          🧪 بارگیری سیگنال نمونه ژنراتور
+        </button>
+      </div>
+
+      <!-- نتیجه آنالیز و گزارش -->
+      <div id="gen-out" style="margin-top:14px"></div>
+    </details>
+
     <!-- ⚙️ تحلیل ویبره ماشین‌آلات دوار نیروگاهی -->
     <details class="box">
       <summary>⚙️ ویبره ماشین‌آلات دوار (توربین/کمپرسور/ژنراتور) — ISO 20816-3 + مرتبه‌سنجی</summary>
@@ -947,6 +1110,312 @@ if (file_exists(__DIR__ . '/update.php')) {
              machine, unit };
   }
 
+  // ═══════════════ آنالیز پیشرفته و جامع ارتعاشات ژنراتور (ISO 20816-2 / ISO 8528-9 / ISO 20816-5) ═══════════════
+  const GEN_ISO_STANDARDS = {
+    turbo_gas_steam: {
+      name: "توربوژنراتور نیروگاهی (ISO 20816-2)",
+      std: "ISO 20816-2",
+      vel_rigid: { ab: 2.8, bc: 4.5, cd: 7.1 },
+      vel_flex:  { ab: 3.8, bc: 5.3, cd: 8.5 },
+      disp_3000: { ab: 45, bc: 85, cd: 120 },
+      disp_1500: { ab: 65, bc: 120, cd: 165 }
+    },
+    diesel_genset: {
+      name: "دیزل ژنراتور صنعتی و اضطراری (ISO 8528-9)",
+      std: "ISO 8528-9",
+      vel_rigid: { ab: 15.0, bc: 20.0, cd: 28.0 },
+      vel_flex:  { ab: 18.0, bc: 23.0, cd: 32.0 },
+      disp_1500: { ab: 80, bc: 140, cd: 200 }
+    },
+    hydro: {
+      name: "هیدروژنراتور نیروگاه آبی (ISO 20816-5)",
+      std: "ISO 20816-5",
+      vel_rigid: { ab: 1.6, bc: 2.5, cd: 4.0 },
+      vel_flex:  { ab: 2.5, bc: 4.0, cd: 6.3 },
+      disp_low:  { ab: 100, bc: 180, cd: 260 }
+    },
+    wind: {
+      name: "ژنراتور توربین بادی (ISO 20816-3)",
+      std: "ISO 20816-3 (WTC)",
+      vel_rigid: { ab: 2.8, bc: 4.5, cd: 7.1 },
+      vel_flex:  { ab: 3.5, bc: 7.1, cd: 11.0 }
+    },
+    industrial: {
+      name: "ژنراتور عمومی صنعتی (ISO 20816-3)",
+      std: "ISO 20816-3",
+      vel_rigid: { ab: 2.3, bc: 4.5, cd: 7.1 },
+      vel_flex:  { ab: 3.5, bc: 7.1, cd: 11.0 }
+    }
+  };
+
+  function analyzeGenerator(xIn, fs, rpm, opts = {}) {
+    const x = xIn.length > 500000 ? xIn.slice(0, 500000) : Float64Array.from(xIn);
+    const xm = mean(x);
+    for (let i = 0; i < x.length; i++) x[i] -= xm;
+
+    const genType = opts.genType || "turbo_gas_steam";
+    const fline = opts.fline || 50;
+    const f2line = 2 * fline; // 100 Hz در شبکه ۵۰Hz ایران
+    const unit = opts.unit || "mm/s"; // 'mm/s' | 'g' | 'disp' (um) | 'arb'
+    const foundation = opts.foundation || "rigid"; // 'rigid' | 'flexible'
+    const journal = opts.journal !== false;
+    const statorSlots = parseInt(opts.statorSlots) || 0;
+    const loadState = opts.loadState || "loaded";
+    const fr0 = rpm / 60;
+    const fhi = Math.min(1500, 0.45 * fs);
+
+    // فیلتر باندپاس متناسب با محدوده دور کاری و استانداردهای ژنراتور
+    const xb = bandpass4(x, fs, Math.max(2, fr0 * 0.2), fhi);
+
+    // محاسبه سرعت RMS یا جابجایی پیک-تو-پیک شفت
+    let vel, velRms = 0, dispPkPk = 0;
+    if (unit === "mm/s") {
+      vel = Float64Array.from(xb);
+    } else if (unit === "g") {
+      vel = new Float64Array(xb.length);
+      for (let i = 1; i < xb.length; i++)
+        vel[i] = vel[i - 1] + (xb[i] + xb[i - 1]) * 0.5 / fs;
+      vel = _hp4(vel, fs, 4);
+      for (let i = 0; i < vel.length; i++) vel[i] *= 9810;
+    } else if (unit === "disp") {
+      let minD = Infinity, maxD = -Infinity;
+      for (let i = 0; i < xb.length; i++) {
+        if (xb[i] < minD) minD = xb[i];
+        if (xb[i] > maxD) maxD = xb[i];
+      }
+      dispPkPk = Math.max(0, maxD - minD);
+      velRms = (dispPkPk / 2 / Math.SQRT2) * (2 * Math.PI * fr0) / 1000;
+    }
+
+    if (unit !== "disp") {
+      let sv = 0; for (const v of (vel || xb)) sv += v;
+      const mv = sv / (vel || xb).length; let vv2 = 0;
+      for (const v of (vel || xb)) vv2 += (v - mv) ** 2;
+      velRms = Math.sqrt(vv2 / (vel || xb).length);
+      dispPkPk = (2 * Math.SQRT2 * velRms / (2 * Math.PI * fr0)) * 1000;
+    }
+
+    // پالایش دقیق فرکانس مکانیکی 1X با الگوریتم Goertzel
+    let fr1 = fr0, a1 = 0;
+    for (const [span, steps] of [[0.04, 31], [0.008, 15]]) {
+      let bi = fr1, ba = -1;
+      for (let k = 0; k < steps; k++) {
+        const f = fr1 * (1 - span) + 2 * span * fr1 * k / (steps - 1);
+        const a = goertzel(xb, fs, f);
+        if (a > ba) { ba = a; bi = f; }
+      }
+      fr1 = bi; a1 = Math.max(a1, ba);
+    }
+
+    const acc = (a, freq) => {
+      if (unit === "mm/s") return a * 2 * Math.PI * freq;
+      if (unit === "disp") return a * (2 * Math.PI * freq) ** 2 / 1e6;
+      return a;
+    };
+    const ref = Math.max(acc(a1, fr1), 1e-12);
+
+    const gridAmp = (fc, span = 0.02) => {
+      let m = 0;
+      for (let k = 0; k < 11; k++) {
+        const f = fc * (1 - span) + 2 * span * fc * k / 10;
+        m = Math.max(m, goertzel(xb, fs, f));
+      }
+      return m;
+    };
+
+    // هارمونیک‌های مرتبه ۱X تا ۱۰X مکانیکی
+    const orders = { 1: a1 };
+    for (let n = 2; n <= 10; n++) {
+      orders[n] = (n * fr1 < fhi * 0.98) ? gridAmp(n * fr1, 0.015) : 0;
+    }
+
+    // ⚡ مؤلفه مغناطیسی استاتور: ۲ برابر فرکانس شبکه (۱۰۰Hz در شبکه ۵۰Hz)
+    const a2line = gridAmp(f2line, 0.01);
+    const r2line = acc(a2line, f2line) / ref;
+
+    // ⚡ سایدبندهای فاصله هوایی ۲fline ± ۲fr
+    const aSbUpper = gridAmp(f2line + 2 * fr1, 0.015);
+    const aSbLower = (f2line - 2 * fr1 > 3) ? gridAmp(f2line - 2 * fr1, 0.015) : 0;
+    const aSbAvg = (aSbUpper + aSbLower) / (aSbLower > 0 ? 2 : 1);
+    const rSb2line = acc(aSbAvg, f2line) / Math.max(acc(a2line, f2line), 1e-12);
+
+    // 🌀 ارتعاشات ساب‌سنکرون یاتاقان ژورنال بابیت (گرداب روغن ۰٫۴۲X تا ۰٫۴۸X)
+    let subAmp = 0, subFreq = 0;
+    if (journal && fr1 > 4) {
+      for (let k = 0; k < 25; k++) {
+        const f = (0.40 + 0.10 * k / 24) * fr1;
+        const a = goertzel(xb, fs, f);
+        if (a > subAmp) { subAmp = a; subFreq = f; }
+      }
+    }
+    const rSub = subAmp > 0 ? acc(subAmp, subFreq) / ref : 0;
+
+    // ⚙️ فرکانس گذر شیار استاتور (Stator Slot Passing Frequency)
+    let slotAmp = null, slotFreq = null;
+    if (statorSlots > 0 && statorSlots * fr1 < fhi * 0.98) {
+      slotFreq = statorSlots * fr1;
+      slotAmp = gridAmp(slotFreq, 0.015);
+    }
+
+    // ارزیابی زون استاندارد ISO
+    const cfg = GEN_ISO_STANDARDS[genType] || GEN_ISO_STANDARDS.turbo_gas_steam;
+    let zone = null;
+    if (unit === "arb") {
+      zone = null;
+    } else if (unit === "disp") {
+      const limits = (rpm > 2000) ? (cfg.disp_3000 || cfg.disp_1500) : (cfg.disp_1500 || cfg.disp_low);
+      if (limits) {
+        zone = dispPkPk <= limits.ab ? "A" : dispPkPk <= limits.bc ? "B" : dispPkPk <= limits.cd ? "C" : "D";
+      }
+    } else {
+      const limits = foundation === "flexible" ? (cfg.vel_flex || cfg.vel_rigid) : cfg.vel_rigid;
+      zone = velRms <= limits.ab ? "A" : velRms <= limits.bc ? "B" : velRms <= limits.cd ? "C" : "D";
+    }
+
+    let eTot = 1e-15;
+    for (const n in orders) eTot += acc(orders[n], n * fr1) ** 2;
+    const share1X = acc(a1, fr1) ** 2 / eTot;
+
+    // عیب‌یابی تخصصی ژنراتور
+    const findings = [];
+    const is2Pole = Math.abs(fr1 - fline) < 2.0; // توربوژنراتور ۲ قطب (۳۰۰۰ دور): 2X مکانیکی با 2fline هم‌پوشان است
+
+    // G01: ارتعاش مغناطیسی ۱۰۰Hz (شلی ورقی هسته استاتور / رزونانس دندانه‌ها)
+    if (r2line >= 0.40 || (unit === "mm/s" && a2line >= 2.0) || (unit === "disp" && a2line >= 20.0)) {
+      const isExtreme = r2line >= 0.75 || (unit === "mm/s" && a2line >= 4.0);
+      findings.push({
+        code: "G01",
+        fa: is2Pole ? "ارتعاش مغناطیسی ۱۰۰Hz استاتور / شلی ورقی هسته (هم‌پوشان با 2X)" : "شلی ورقی هسته استاتور یا رزونانس مغناطیسی دندانه‌ها (100Hz)",
+        level: isExtreme ? "alarm" : "warning",
+        cat: "electromagnetic",
+        detail: `دامنه در ${f2line.toFixed(1)}Hz برابر ${(r2line*100).toFixed(0)}٪ از 1X (${a2line.toFixed(2)} ${unit}) — با تغییر تحریک و مگاوات پایش شود.`
+      });
+    }
+
+    // G02: عدم تقارن دینامیکی فاصله هوایی روتور-استاتور (Air-gap Dynamic Eccentricity)
+    if (rSb2line >= 0.15 && a2line > 0.05 * ref) {
+      findings.push({
+        code: "G02",
+        fa: "عدم تقارن دینامیکی فاصله هوایی روتور-استاتور (Air-gap Eccentricity)",
+        level: rSb2line >= 0.35 ? "alarm" : "warning",
+        cat: "electromagnetic",
+        detail: `سایدبندهای ${f2line}±2fᵣ با دامنه ${(rSb2line*100).toFixed(0)}٪ مؤلفه ۱۰۰Hz — نشانه لنگی روتور یا خمش شفت در اثر نامتقارنی مغناطیسی.`
+      });
+    }
+
+    // G03: نابالانسی جرمی vs خمش حرارتی روتور (Thermal Bow due to field shorted turns)
+    if (share1X >= 0.58 && a1 > 0) {
+      const lvl = zone === "D" ? "alarm" : zone === "C" ? "warning" : "watch";
+      const isExcited = loadState === "no_load_excited" || loadState === "loaded";
+      findings.push({
+        code: "G03",
+        fa: isExcited ? "نابالانسی جرمی یا خمش حرارتی روتور (Thermal Bow / اتصال کوتاه تحریک)" : "نابالانسی مکانیکی روتور ژنراتور (1X غالب)",
+        level: lvl,
+        cat: "mechanical",
+        detail: `سهم 1X برابر ${(share1X*100).toFixed(0)}٪ در ${fr1.toFixed(1)}Hz — اگر با قطع/افزایش جریان تحریک ارتعاش تغییر می‌کند، خمش حرارتی ناشی از عیب سیم‌پیچ روتور است؛ در غیر این صورت بالانس مکانیکی نیاز است.`
+      });
+    }
+
+    // G04: بدترازی کوپلینگ محرک با ژنراتور (2X بالا)
+    const r2X = acc(orders[2], 2 * fr1) / ref;
+    if (r2X >= 0.45 && !is2Pole) {
+      findings.push({
+        code: "G04",
+        fa: "بدترازی و کجی کوپلینگ توربین/دیزل با ژنراتور (Coupling Misalignment)",
+        level: r2X >= 0.85 ? "alarm" : "warning",
+        cat: "mechanical",
+        detail: `نسبت 2X/1X = ${(r2X*100).toFixed(0)}٪ در ${(fr1*2).toFixed(1)}Hz — ضرورت بررسی هم‌محوری با لیزر (Laser Alignment).`
+      });
+    }
+
+    // G05: شلی مکانیکی پایه‌ها و فونداسیون ژنراتور
+    let looseCount = 0;
+    for (let n = 3; n <= 10; n++) {
+      if (acc(orders[n], n * fr1) > 0.12 * ref) looseCount++;
+    }
+    if (looseCount >= 3) {
+      findings.push({
+        code: "G05",
+        fa: "شلی مکانیکی، پای‌لق یا ضعف فونداسیون ژنراتور (Base/Foundation Looseness)",
+        level: looseCount >= 5 ? "warning" : "watch",
+        cat: "mechanical",
+        detail: `${looseCount} هارمونیک مضرب 3X تا 10X با دامنه بالای ۱۲٪ — بررسی گشتاور پیچ‌های پایه و شاسی دیزل‌ژنراتور.`
+      });
+    }
+
+    // G06: گرداب یا تازیان روغن در یاتاقان‌های ژورنال بابیت
+    if (rSub >= 0.22 && journal) {
+      const isWhip = rSub >= 0.50;
+      findings.push({
+        code: isWhip ? "G06-B" : "G06-A",
+        fa: isWhip ? "تازیان روغن یاتاقان بابیت (Oil Whip - خطر تخریب فوری فیلم روغن)" : "گرداب روغن در فیلم روغنی یاتاقان (Oil Whirl)",
+        level: isWhip ? "alarm" : "warning",
+        cat: "bearing",
+        detail: `قله زیرسنکرون در ${subFreq.toFixed(1)}Hz = ${(subFreq/fr1).toFixed(2)}X با دامنه ${(rSub*100).toFixed(0)}٪ از 1X — چک فوری ویسکوزیته و دمای روغن ورودی و لقی لایه بابیت.`
+      });
+    }
+
+    // G07: ارتعاش شیارهای استاتور (Stator Slot Passing Frequency)
+    if (slotAmp !== null && statorSlots > 0) {
+      const rSlot = acc(slotAmp, slotFreq) / ref;
+      if (rSlot >= 0.25) {
+        findings.push({
+          code: "G07",
+          fa: `ارتعاش شیارهای استاتور (${statorSlots} شیار) — احتمال شلی گُوه‌ها (Stator Wedge)`,
+          level: rSlot >= 0.60 ? "warning" : "watch",
+          cat: "electromagnetic",
+          detail: `قله گذر شیار در ${slotFreq.toFixed(1)}Hz با دامنه ${(rSlot*100).toFixed(0)}٪ از 1X.`
+        });
+      }
+    }
+
+    // ارزیابی زون ISO
+    if (zone === "C") {
+      findings.push({
+        code: "Z-ISO",
+        fa: `شدت ارتعاش در ناحیه C استاندارد ${cfg.std} (هشدار نگهداری)`,
+        level: "warning",
+        cat: "standard",
+        detail: `سطح ارتعاش کل (${unit === "disp" ? dispPkPk.toFixed(1) + " µm pk-pk" : velRms.toFixed(2) + " mm/s RMS"}) فراتر از حد مجاز کارکرد مداوم است؛ برنامه‌ریزی تعمیرات الزامی است.`
+      });
+    } else if (zone === "D") {
+      findings.push({
+        code: "Z-ISO",
+        fa: `شدت ارتعاش در ناحیه D استاندارد ${cfg.std} (بحرانی - خطر آسیب فوری)`,
+        level: "alarm",
+        cat: "standard",
+        detail: `سطح ارتعاشات (${unit === "disp" ? dispPkPk.toFixed(1) + " µm pk-pk" : velRms.toFixed(2) + " mm/s RMS"}) در محدوده خطرناک تخریب یاتاقان و شفت ژنراتور قرار دارد؛ توقف فوری جهت بازرسی.`
+      });
+    }
+
+    const L = ["ok", "watch", "warning", "alarm"];
+    const worst = findings.reduce((w, f) => L.indexOf(f.level) > L.indexOf(w) ? f.level : w, "ok");
+
+    return {
+      velRms,
+      dispPkPk,
+      zone,
+      fr: fr1,
+      rpm: fr1 * 60,
+      fline,
+      f2line,
+      a2line,
+      r2line,
+      orders,
+      sub: [subFreq, subAmp, rSub],
+      slot: slotFreq ? [slotFreq, slotAmp] : null,
+      share1X,
+      findings,
+      worst,
+      unit,
+      genType,
+      stdName: cfg.std,
+      journal,
+      foundation,
+      opts
+    };
+  }
+
   // ═══════ آنالیز حرارتی ادوات نیروگاهی (پورت از thermal_pp.py) ═══════
   const TH_CLASS = { B: [120, 130], F: [140, 155], H: [165, 180] };
   const TH_BRG = [90, 105];
@@ -1299,7 +1768,7 @@ if (file_exists(__DIR__ . '/update.php')) {
   const API = { BEARINGS, bearingFreqs, analyze, parseCsv, parseWav,
                 analyzeCurrent, analyzeMachine, goertzel, ISO_GROUPS,
                 analyzeThermal, analyzeRelay, analyzeComtrade,
-                parseComtradeCfg, parseComtradeDat,
+                parseComtradeCfg, parseComtradeDat, analyzeGenerator, GEN_ISO_STANDARDS,
                 noiseClean, noiseProfile };
   G.MMDS_ANALYZE = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
@@ -1426,6 +1895,278 @@ if (file_exists(__DIR__ . '/update.php')) {
     }
     out.innerHTML = lines.join("<br>");
   };
+
+  // ═══════════════ ⚡ رویدادها و کنترل‌های آنالیز ژنراتور ═══════════════
+  // انتخاب سریع Presetها
+  document.querySelectorAll(".gen-preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const rpm = btn.getAttribute("data-rpm");
+      const type = btn.getAttribute("data-type");
+      const poles = btn.getAttribute("data-poles");
+      const fline = btn.getAttribute("data-fline");
+      if (rpm) $("gen-rpm").value = rpm;
+      if (type) $("gen-type").value = type;
+      if (poles) $("gen-poles").value = poles;
+      if (fline) $("gen-fline").value = fline;
+      if ($("rpm")) $("rpm").value = rpm;
+    });
+  });
+
+  // تولید سیگنال نمونه ژنراتور (توربوژنراتور ۳۰۰۰ rpm با ۱۰۰Hz استاتور و نابالانسی)
+  $("gen-demo-btn").onclick = () => {
+    const fsDemo = 10240, N = 20480;
+    const sim = new Float64Array(N);
+    const fr = 50.0; // 3000 rpm
+    for (let i = 0; i < N; i++) {
+      const t = i / fsDemo;
+      sim[i] = 3.6 * Math.sin(2 * Math.PI * fr * t) +              // 1X unbalance
+               1.5 * Math.sin(2 * Math.PI * 100 * t) +             // 2fline = 100Hz stator core
+               0.5 * Math.sin(2 * Math.PI * (100 - 2 * fr) * t) +  // air-gap sideband
+               0.5 * Math.sin(2 * Math.PI * (100 + 2 * fr) * t) +  // air-gap sideband
+               0.8 * Math.sin(2 * Math.PI * 22.5 * t) +            // 0.45X oil whirl
+               (Math.random() - 0.5) * 0.4;
+    }
+    csvData = sim;
+    audioMode = false;
+    $("fs").value = fsDemo;
+    $("gen-rpm").value = 3000;
+    $("gen-type").value = "turbo_gas_steam";
+    $("gen-fline").value = "50";
+    $("gen-poles").value = "2";
+    markLoaded("🧪 سیگنال آزمایشی توربوژنراتور ۳۰۰۰ rpm", "۲۰٬۴۸۰ نمونه @ ۱۰٬۲۴۰Hz — مؤلفه‌های 1X، ۱۰۰Hz مغناطیسی استاتور و گرداب روغن یاتاقان بابیت شبیه‌سازی شد.");
+    runGeneratorAnalysis(true);
+  };
+
+  function runGeneratorAnalysis(autoOpenReport = false) {
+    if (!csvData || csvData.length < 2000) {
+      alert("ابتدا فایل ارتعاش یاتاقان ژنراتور را بارگیری کنید، یا در بخش ضبط زنده با دکمه «⏺ شروع ضبط»، ارتعاش ژنراتور را ضبط نمایید (یا از دکمه «🧪 بارگیری سیگنال نمونه ژنراتور» استفاده کنید).");
+      return;
+    }
+    const fs = parseFloat($("fs").value) || 10240;
+    const rpm = parseFloat($("gen-rpm").value) || 3000;
+    const fline = parseFloat($("gen-fline").value) || 50;
+    const genType = $("gen-type").value;
+    const unit = $("gen-unit").value;
+    const foundation = $("gen-found").value;
+    const journal = $("gen-jrnl").value === "y";
+    const statorSlots = parseInt($("gen-slots").value) || 0;
+    const loadState = $("gen-load").value;
+    const clientName = $("gen-client").value.trim() || "نیروگاه / مجتمع صنعتی";
+    const genTag = $("gen-tag").value.trim() || "GEN-01";
+    const sensorPos = $("gen-pos").value.trim() || "یاتاقان ژنراتور";
+
+    const goBtn = $("gen-go");
+    goBtn.disabled = true;
+    goBtn.innerHTML = '<span class="spin"></span> در حال آنالیز ارتعاشات ژنراتور…';
+
+    setTimeout(() => {
+      try {
+        const r = MMDS_ANALYZE.analyzeGenerator(csvData, fs, rpm, {
+          genType, fline, unit, foundation, journal, statorSlots, loadState
+        });
+        renderGeneratorReport(r, { clientName, genTag, sensorPos, rpm, fs, loadState, genType, unit });
+        if (autoOpenReport) {
+          const repEl = document.getElementById("gen-official-report");
+          if (repEl) repEl.scrollIntoView({ behavior: "smooth" });
+        }
+      } catch (err) {
+        alert("خطا در آنالیز ژنراتور: " + err.message);
+      } finally {
+        goBtn.disabled = false;
+        goBtn.innerHTML = "⚡ اجرای آنالیز تخصصی ارتعاشات ژنراتور";
+      }
+    }, 40);
+  }
+
+  function renderGeneratorReport(r, meta) {
+    const out = $("gen-out");
+    const FA = n => (n === null || n === undefined || isNaN(n)) ? "—" : Number(n).toLocaleString("fa-IR", { maximumFractionDigits: 2 });
+    const zcClass = r.zone ? `zone${r.zone}` : "";
+    const zcText = r.zone ? `Zone ${r.zone}` : "ارزیابی نسبی";
+    const zcColor = r.zone ? { A: "#10b981", B: "#34d399", C: "#f59e0b", D: "#ef4444" }[r.zone] : "#7dd3fc";
+    const todayShamsi = new Intl.DateTimeFormat("fa-IR", { dateStyle: "full", timeStyle: "short" }).format(new Date());
+    const reportId = "CM-GEN-" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "-" + Math.floor(1000 + Math.random() * 9000);
+
+    // ۱. کارت شاخص‌های کلیدی
+    let h = `
+      <div class="gen-grid">
+        <div class="gen-card-item" style="border-color:${zcColor}">
+          <div class="k">سطح ارتعاش کلی (${r.unit})</div>
+          <div class="v" style="color:${zcColor}">${r.unit === "disp" ? FA(r.dispPkPk) + " µm pk-pk" : FA(r.velRms) + " mm/s RMS"}</div>
+        </div>
+        <div class="gen-card-item" style="border-color:${zcColor}">
+          <div class="k">رده استاندارد ${r.stdName}</div>
+          <div class="v"><span class="gen-badge ${zcClass}">${zcText}</span></div>
+        </div>
+        <div class="gen-card-item">
+          <div class="k">مؤلفه 1X مکانیکی (${FA(r.fr)} Hz)</div>
+          <div class="v">${FA(r.orders[1])} ${r.unit} (${(r.share1X * 100).toFixed(0)}٪ توان)</div>
+        </div>
+        <div class="gen-card-item">
+          <div class="k">مؤلفه ۱۰۰Hz مغناطیسی استاتور</div>
+          <div class="v" style="color:${r.r2line >= 0.4 ? 'var(--warn)' : '#f8fafc'}">${FA(r.a2line)} ${r.unit} (${(r.r2line * 100).toFixed(0)}٪ از 1X)</div>
+        </div>
+        <div class="gen-card-item">
+          <div class="k">مؤلفه 2X بدترازی کوپلینگ</div>
+          <div class="v">${FA(r.orders[2])} ${r.unit}</div>
+        </div>
+        <div class="gen-card-item">
+          <div class="k">ساب‌سنکرون یاتاقان بابیت (${r.sub[0] ? FA(r.sub[0]) + "Hz" : "—"})</div>
+          <div class="v" style="color:${r.sub[2] >= 0.25 ? 'var(--bad)' : '#f8fafc'}">${r.sub[0] ? (r.sub[0] / r.fr).toFixed(2) + "X (" + (r.sub[2] * 100).toFixed(0) + "٪)" : "بدون قله"}</div>
+        </div>
+      </div>
+    `;
+
+    // ۲. گزارش رسمی پایش وضعیت قابل چاپ
+    h += `
+      <div class="gen-report" id="gen-official-report">
+        <div class="gen-head-bar">
+          <div>
+            <div style="font-size:19px;font-weight:800;color:#38bdf8;display:flex;align-items:center;gap:8px">
+              <span>⚡ گزارش کارشناسی رسمی پایش وضعیت و آنالیز ارتعاشات ژنراتور</span>
+            </div>
+            <div style="font-size:12.5px;color:var(--mut);margin-top:4px">مرجع ارزیابی: استانداردهای بین‌المللی ISO 20816-2 / ISO 8528-9 · سامانه MMDS Diagnostic Engine</div>
+          </div>
+          <div style="text-align:left">
+            <div style="font-size:13px;font-weight:700;color:#cbd5e1">کد گزارش: <span style="font-family:monospace;color:#38bdf8">${reportId}</span></div>
+            <div style="font-size:12px;color:var(--mut);margin-top:2px">${todayShamsi}</div>
+          </div>
+        </div>
+
+        <!-- جدول مشخصات تجهیز -->
+        <table style="margin-bottom:16px">
+          <tbody>
+            <tr>
+              <td style="width:25%;color:var(--mut)">نام پروژه / کارفرما:</td>
+              <td style="width:25%"><b>${meta.clientName}</b></td>
+              <td style="width:25%;color:var(--mut)">کد و تگ تجهیز:</td>
+              <td style="width:25%"><b>${meta.genTag}</b></td>
+            </tr>
+            <tr>
+              <td style="color:var(--mut)">نوع ژنراتور و استاندارد:</td>
+              <td><b>${r.stdName}</b></td>
+              <td style="color:var(--mut)">موقعیت و جهت سنسور:</td>
+              <td><b>${meta.sensorPos}</b></td>
+            </tr>
+            <tr>
+              <td style="color:var(--mut)">دور کاری / فرکانس شبکه:</td>
+              <td><b>${FA(meta.rpm)} rpm / ${meta.loadState === "loaded" ? "۵۰Hz برق سراسری (زیر بار)" : "تست بی‌باری"}</b></td>
+              <td style="color:var(--mut)">نوع یاتاقان و فونداسیون:</td>
+              <td><b>${r.journal ? "یاتاقان ژورنال فیلم روغن بابیت" : "یاتاقان غلتکی"} (${r.foundation === "rigid" ? "پایه صلب" : "پایه انعطاف‌پذیر"})</b></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- وضعیت نهایی ارزیابی استاندارد -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0d1d3d;border:1px solid #233e73;border-radius:12px;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:13px;color:var(--mut)">ارزیابی شدت کلی ارتعاشات بر اساس استاندارد ${r.stdName}:</div>
+            <div style="font-size:16px;font-weight:800;color:${zcColor};margin-top:4px">
+              ${r.zone === "A" ? "ناحیه A — عالی (تجهیز نو یا پس از اورهال کامل، بدون هیچ‌گونه عیب)" :
+                r.zone === "B" ? "ناحیه B — مطلوب و قابل قبول (کارکرد مداوم صنعتی بدون محدودیت)" :
+                r.zone === "C" ? "ناحیه C — هشدار و نیازمند پایش (کارکرد کوتاه‌مدت مجاز، تنظیم برنامه تعمیرات الزامی است)" :
+                r.zone === "D" ? "ناحیه D — بحرانی و آسیب‌رسان (خطر تخریب یاتاقان و شفت، توقف فوری جهت بازرسی)" : "تحلیل طیفی نسبی"}
+            </div>
+          </div>
+          <div><span class="gen-badge ${zcClass}" style="font-size:16px;padding:8px 18px">${zcText}</span></div>
+        </div>
+
+        <!-- جدول عیوب شناسایی شده -->
+        <div style="font-size:15px;font-weight:800;color:#38bdf8;margin:16px 0 8px">🔍 عیوب شناسایی‌شده و تحلیل علل ریشه‌ای (Root Cause Analysis):</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${r.findings.length ? r.findings.map(f => `
+            <div class="gen-action-box" style="border-right-color:${f.level === 'alarm' ? 'var(--bad)' : f.level === 'warning' ? 'var(--warn)' : 'var(--acc2)'}">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <b style="color:${f.level === 'alarm' ? 'var(--bad)' : f.level === 'warning' ? 'var(--warn)' : 'var(--acc2)'}">
+                  [${f.code}] ${f.fa}
+                </b>
+                <span class="gen-badge ${f.level === 'alarm' ? 'zoneD' : f.level === 'warning' ? 'zoneC' : 'zoneB'}" style="font-size:11.5px;padding:2px 8px">
+                  ${f.level === 'alarm' ? 'بحرانی (Alarm)' : f.level === 'warning' ? 'هشدار (Warning)' : 'تحت نظر (Watch)'}
+                </span>
+              </div>
+              <div style="font-size:13px;color:#cbd5e1;margin-top:5px">${f.detail}</div>
+            </div>
+          `).join("") : `
+            <div style="padding:14px;background:#052e16;border:1px solid #10b981;border-radius:10px;color:#6ee7b7;font-size:14px">
+              ✔ وضعیت ارتعاشاتی ژنراتور در تمام مؤلفه‌های مکانیکی و الکترومغناطیسی کاملاً عادی و بدون عیب ارزیابی شد.
+            </div>
+          `}
+        </div>
+
+        <!-- برنامه اقدام اصلاحی کارشناسی (Engineering Action Plan) -->
+        <div style="font-size:15px;font-weight:800;color:#38bdf8;margin:20px 0 8px">🛠️ برنامه اقدامات اصلاحی مهندسی (Corrective Action Plan):</div>
+        <div class="gen-action-box" style="border-right-color:#38bdf8">
+          <ul style="margin:0;padding-right:20px;line-height:2;font-size:13.5px;color:#e2e8f0">
+            ${r.r2line >= 0.4 ? '<li><b>بررسی سیستم تحریک و استاتور:</b> آزمون حساسیت ارتعاش ۱۰۰Hz نسبت به تغییر جریان تحریک روتور (Excitation Current) و آزمون امپدانس حلقه‌های روتور (RSO Test) جهت شناسایی اتصال کوتاه احتمالی انجام گیرد.</li>' : ''}
+            ${r.share1X >= 0.58 ? '<li><b>اقدام بالانس روتور:</b> در صورت ثابت بودن فاز و دامنه 1X در تغییرات حرارتی، بالانس دینامیکی تک‌صفحه/دوصفحه در دور نامی توصیه می‌شود.</li>' : ''}
+            ${(r.orders[2] / (r.orders[1] || 1)) >= 0.45 ? '<li><b>کنترل الاینمنت کوپلینگ:</b> بررسی هم‌محوری شفت توربین/دیزل با ژنراتور با استفاده از سیستم الاینمنت لیزری و بررسی وضعیت پدها یا لرزه‌گیرهای کوپلینگ.</li>' : ''}
+            ${r.sub[2] >= 0.22 ? '<li><b>پایش یاتاقان ژورنال بابیت:</b> نمونه‌برداری فوری از روغن روانکاری جهت آزمایش ویسکوزیته و ذرات فرسایشی (Ferrography) و کنترل دمای روغن ورودی و لقی‌های شعاعی مجاز یاتاقان.</li>' : ''}
+            <li><b>پایش دوره‌ای:</b> اندازه‌گیری مجدد ارتعاشات در فواصل ۷ روزه یا پیاده‌سازی سیستم مانیتورینگ آنلاین دائمی جهت ثبت ترند (Vibration Trending).</li>
+          </ul>
+        </div>
+
+        <!-- مهر و امضای کارشناس پایش وضعیت -->
+        <div class="gen-sign-box">
+          <div>
+            <div style="font-size:12.5px;color:var(--mut)">کارشناس تحلیل ارتعاشات و پایش وضعیت (ISO 18436):</div>
+            <div style="font-size:14px;font-weight:700;margin-top:4px">مهندس پایش وضعیت و نگهداری پیشگیرانه</div>
+          </div>
+          <div style="text-align:left">
+            <div style="font-size:12.5px;color:var(--mut)">وضعیت تأییدیه فنی:</div>
+            <div style="font-size:14px;font-weight:800;color:#38bdf8;margin-top:4px">✓ صادرشده توسط MMDS Diagnostic Center</div>
+          </div>
+        </div>
+
+        <!-- دکمه‌های اقدام گزارش -->
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+          <button class="btn print-keep" id="gen-print-btn" type="button" style="background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff">
+            🖨️ چاپ / ذخیره مستقیم به PDF گزارش رسمی
+          </button>
+          <button class="btn ghost print-keep" id="gen-copy-btn" type="button" style="border-color:#38bdf8;color:#38bdf8">
+            📋 کپی متن کامل گزارش برای کارفرما
+          </button>
+        </div>
+      </div>
+    `;
+
+    out.innerHTML = h;
+
+    // اتصال رویداد چاپ و کپی
+    const prBtn = $("gen-print-btn");
+    if (prBtn) prBtn.onclick = () => window.print();
+
+    const cpBtn = $("gen-copy-btn");
+    if (cpBtn) {
+      cpBtn.onclick = () => {
+        const textSummary = `گزارش کارشناسی ارتعاشات ژنراتور (${meta.genTag})
+` +
+          `کارفرما: ${meta.clientName}
+` +
+          `تاریخ: ${todayShamsi}
+` +
+          `سطح ارتعاش: ${r.unit === "disp" ? r.dispPkPk.toFixed(1) + " µm pk-pk" : r.velRms.toFixed(2) + " mm/s RMS"} (${r.stdName} ${zcText})
+` +
+          `مؤلفه 1X مکانیکی: ${r.orders[1].toFixed(2)} ${r.unit}
+` +
+          `مؤلفه 100Hz استاتور: ${r.a2line.toFixed(2)} ${r.unit}
+` +
+          `عیوب شناسایی‌شده:
+` +
+          (r.findings.length ? r.findings.map(f => `- [${f.code}] ${f.fa}: ${f.detail}`).join("\n") : "وضعت ارتعاشاتی کاملاً نرمال.") +
+          `
+
+صادر شده از سامانه MMDS`;
+        navigator.clipboard.writeText(textSummary).then(() => {
+          alert("متن گزارش کارشناسی با موفقیت در کلیپ‌بورد کپی شد؛ می‌توانید آن را در تلگرام، بله یا ایمیل برای کارفرما ارسال کنید.");
+        }).catch(() => {
+          alert("امکان کپی خودکار نبود؛ لطفاً متن را دستی انتخاب کنید.");
+        });
+      };
+    }
+  }
+
+  $("gen-go").onclick = () => runGeneratorAnalysis(false);
+  $("gen-report-btn").onclick = () => runGeneratorAnalysis(true);
 
   // ══════ تحلیل ویبره ماشین دوار (ISO 20816-3) ══════
   $("mv-go").onclick = () => {
