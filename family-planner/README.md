@@ -63,7 +63,16 @@
 | `core.js` / `app-*-template.html` / `build.py` | سورس و ساخت |
 | `test-core.js` / `test-ui.js` / `test-ui-mobile.js` | تست‌ها (node) |
 
-بعد از تغییر سورس: `python3 build.py` سپس `node test-core.js && node test-ui.js && node test-ui-mobile.js`
+بعد از تغییر سورس: `python3 build.py` سپس:
+
+```bash
+node test-core.js
+node -r ./tests/fixed-date.js test-ui.js
+node -r ./tests/fixed-date.js test-ui-mobile.js
+```
+
+> تست‌های رابط با تاریخِ ثابت (شنبه ۲۸ نوامبر ۲۰۲۶) اجرا می‌شوند تا نتیجه در هر روز سال یکسان باشد؛
+> بدون آن چند تستِ وابسته به فصل/شیفت (بازهٔ کاری خانمم، یادآور v14) در بعضی تاریخ‌ها قرمز می‌شوند.
 
 ## 🕗 شیفت کاری (نسخهٔ خانواده)
 

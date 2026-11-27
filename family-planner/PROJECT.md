@@ -12,9 +12,9 @@
 ```bash
 cd family-planner
 python3 build.py                 # planner-app.html + planner-mobile.html از core.js و قالب‌ها
-node test-core.js                # ۱۱۳ تست هسته
-node test-ui.js                  # تست‌های رابط دسکتاپ
-node test-ui-mobile.js           # تست‌های رابط موبایل
+node test-core.js                                    # ۱۱۳ تست هسته
+node -r ./tests/fixed-date.js test-ui.js             # تست‌های رابط دسکتاپ (تاریخ ثابت)
+node -r ./tests/fixed-date.js test-ui-mobile.js      # تست‌های رابط موبایل (تاریخ ثابت)
 node gen_week.js                 # اسنپ‌شات «برنامه-این-هفته.html» برای هفتهٔ جاری
 python3 -m http.server 8123      # پیش‌نمایش: family-planner/index.html
 ```
